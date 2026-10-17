@@ -2,8 +2,10 @@ package com.wf.wflib.client.fx;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.wf.gemrender.light.Lights;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.laser.LaserBeamPacket;
+import com.wf.wflib.nvg.client.NvgClient;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -19,7 +21,10 @@ import org.joml.Matrix4f;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Laser beams from {@link LaserBeamPacket}: additive red sheath + white core, alive 2 ticks per packet. */
+/**
+ * Laser beams from {@link LaserBeamPacket}: additive red sheath + white core, alive 2 ticks per packet. Near-IR =>
+ * eye and thermal see nothing.
+ */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class LaserBeams {
 
@@ -48,7 +53,8 @@ public final class LaserBeams {
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || ACTIVE.isEmpty()) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || ACTIVE.isEmpty()
+                || NvgClient.irView() == Lights.IrView.OFF) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();

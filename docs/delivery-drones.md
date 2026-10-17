@@ -322,7 +322,7 @@ Autonomy flies any `ControllableDrone`: `DroneEntity` (wflib fallback) or anothe
 
 - `LaserDamage.perTick = rated / (1 + res (m / 2 kg)^1.5 (1 + armour / 5 mm))`, `WFDamageTypes.LASER`, i-frames cleared. Mass/armour/res from `LaserTarget`; else living 80 kg, box x 100 kg/m³.
 - 2 kg quad: rated/2; 80 kg player ~rated/250; 2 t airframe ~0 => anti-FPV only.
-- `LaserBeamPacket` -> client `LaserBeams` (2-tick additive strip). Hosts + targeting = other mods (CA `combinedassault:laser`).
+- `LaserBeamPacket` -> client `LaserBeams` (2-tick additive strip; near-IR => drawn only when `NvgClient.irView() != OFF`). Hosts + targeting = other mods (CA `combinedassault:laser`).
 
 ## 10g. Counterplay (`recon/env/Interference`, `Datalink`)
 
