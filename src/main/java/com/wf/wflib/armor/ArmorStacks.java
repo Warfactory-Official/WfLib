@@ -40,7 +40,7 @@ public final class ArmorStacks {
             Integer stored = stack.get(ArmorComponents.CONDITION.get());
             return stored == null ? spec.maxCondition() : Math.min(stored, spec.maxCondition());
         }
-        int whole = (max - stack.getDamageValue()) * ArmorUnits.POINTS_PER_DAMAGE;
+        int whole = ArmorUnits.durabilityPoints(max - stack.getDamageValue());
         int part = remainder(stack);
         return Math.max(0, whole - part);
     }

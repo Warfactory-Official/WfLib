@@ -17,6 +17,7 @@ import com.wf.wflib.damage.WFDamage;
 import com.wf.wflib.damage.WFDamageTypes;
 import com.wf.wflib.item.ModItems;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -86,6 +87,20 @@ public class ArmorGameTest {
                 }
             }
         }
+        helper.succeed();
+    }
+
+    /** GT electric armour: MAX_DAMAGE = Integer.MAX_VALUE; x POINTS_PER_DAMAGE wrapped to -100 => crash. */
+    @GameTest(template = TEMPLATE)
+    public static void maxIntDurabilitySaturatesCondition(GameTestHelper helper) {
+        ItemStack stack = new ItemStack(Items.IRON_CHESTPLATE);
+        stack.set(DataComponents.MAX_DAMAGE, Integer.MAX_VALUE);
+        ArmorSpec spec = ArmorProfiles.specFor(stack);
+        helper.assertTrue(spec != null && spec.maxCondition() == Integer.MAX_VALUE,
+                "max condition " + (spec == null ? null : spec.maxCondition()));
+        helper.assertTrue(ArmorStacks.condition(stack, spec) == Integer.MAX_VALUE,
+                "condition " + ArmorStacks.condition(stack, spec));
+        stack.getAttributeModifiers();
         helper.succeed();
     }
 

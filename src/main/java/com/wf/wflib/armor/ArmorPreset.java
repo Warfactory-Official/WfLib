@@ -67,7 +67,7 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
             this.id = rl(path);
             this.type = type;
             this.durability = durability;
-            this.spec = ArmorSpec.builder(id.toString(), durability * ArmorUnits.POINTS_PER_DAMAGE);
+            this.spec = ArmorSpec.builder(id.toString(), ArmorUnits.durabilityPoints(durability));
         }
 
         public Builder row(ProtectionType protection, double dt, double dr, double hardness, double tier) {

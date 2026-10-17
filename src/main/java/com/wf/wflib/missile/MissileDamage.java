@@ -10,6 +10,7 @@ import com.wf.wflib.mine.DefuseMethod;
 import com.wf.wflib.mine.MineEntity;
 import com.wf.wflib.mine.MineTags;
 import com.wf.wflib.sim.MissileSimConfig;
+import com.wf.wflib.swarm.SwarmManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -104,6 +105,10 @@ public final class MissileDamage {
                 this.missile.fuze().detonate(this.missile.position(), false);
             }
             return true;
+        }
+        // Submunition spread: one leaf's blast downs its co-spawned siblings => ballistic strays.
+        if (source.getDirectEntity() instanceof MissileEntity other && SwarmManager.sameSwarm(this.missile, other)) {
+            return false;
         }
         if (source.is(DamageTypeTags.IS_PROJECTILE) && amount < MissileSimConfig.MIN_PROJECTILE_DAMAGE) {
             return false;

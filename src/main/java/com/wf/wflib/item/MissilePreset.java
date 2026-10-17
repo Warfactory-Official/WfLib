@@ -556,7 +556,7 @@ public final class MissilePreset {
         }
 
         /**
-         * Airburst this many blocks above the target (0 = contact).
+         * Airburst this many blocks from the target, slant range (0 = contact).
          */
         public Builder explosionOffset(float offset) {
             this.explosionOffset = offset;

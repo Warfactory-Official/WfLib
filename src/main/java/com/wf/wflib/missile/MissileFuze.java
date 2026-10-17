@@ -32,7 +32,7 @@ public final class MissileFuze {
     WarheadRegistry.Detonation detonation = WarheadRegistry.STANDARD;
     int fragmentCount = MissileEntity.DEFAULT_FRAGMENT_COUNT;
     int impactPreloadRadius = MissileEntity.DEFAULT_IMPACT_PRELOAD_RADIUS;
-    /** Airburst height above the target; 0 = contact. */
+    /** Airburst range to the aim point; 0 = contact. */
     float explosionOffset;
     boolean armed;
     /** Contact fuze failed once: never strikes again. */
@@ -83,10 +83,14 @@ public final class MissileFuze {
         return this.fuseFailed;
     }
 
-    /** Airburst: in ATTACK within {@link #explosionOffset} above the aim point. */
+    /**
+     * Airburst: in ATTACK, slant range to aim <= {@link #explosionOffset}. Height-only FORBIDDEN: shallow/uphill
+     * approach => fuzes at ATTACK entry, short of / below the aim.
+     */
     boolean airburstDue(Vec3 target) {
-        return this.explosionOffset > 0.0f && this.missile.flight().getPhase() == MissileEntity.Phase.ATTACK
-                && this.missile.getY() - target.y <= this.explosionOffset;
+        double r = this.explosionOffset;
+        return r > 0.0 && this.missile.flight().getPhase() == MissileEntity.Phase.ATTACK
+                && this.missile.position().distanceToSqr(target) <= r * r;
     }
 
     /** Any hittable entity within {@link #proximityRadius}. */

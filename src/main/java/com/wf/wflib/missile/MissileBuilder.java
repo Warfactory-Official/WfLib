@@ -145,7 +145,7 @@ public final class MissileBuilder {
         return this;
     }
 
-    /** Airburst height above the target; 0 = contact. */
+    /** Airburst range to the aim point; 0 = contact. */
     public MissileBuilder explosionOffset(float offset) {
         this.explosionOffset = offset;
         return this;

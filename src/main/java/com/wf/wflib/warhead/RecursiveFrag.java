@@ -6,16 +6,19 @@ import com.wf.wflib.MissileModels;
 import com.wf.wflib.ModEntities;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.aef.ExplosionAEF;
+import com.wf.wflib.flight.FlightStageRegistry;
 import com.wf.wflib.fx.ExplosionCreator;
 import com.wf.wflib.swarm.SwarmManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.UUID;
@@ -53,8 +56,11 @@ public final class RecursiveFrag {
      */
     private static final double CHILD_SPEED = 2.0;
     private static final double SPREAD_SPEED = 3.0;
-    // Outward-vs-downward bias of the split burst: higher = the missilelets fan out flatter before diving.
-    private static final double SPREAD_LATERAL = 1.3;
+    /**
+     * Line-of-sight pursuit. AttackStage FORBIDDEN: 80-90° dive line from a split beside the aim => orbit; aim
+     * uphill of the split => never descends.
+     */
+    private static final ResourceLocation CHILD_ATTACK = FlightStageRegistry.rl("direct");
     private static final float CHILD_HEALTH = 10.0f;
     /**
      * Leaf (final generation) blast radius: kept small; a full cluster is many of these.
@@ -90,7 +96,7 @@ public final class RecursiveFrag {
         if (source instanceof MissileEntity missile && missile.swarm().getSplitDepth() > 0) {
             split(missile, pos);
         } else {
-            leafBlast(level, pos, source.igniterFactionId());
+            leafBlast(level, pos, source instanceof MissileEntity m ? m : source.exploder(), source.igniterFactionId());
         }
     }
 
@@ -134,7 +140,8 @@ public final class RecursiveFrag {
             double childZ = target.z + hz * r;
             int childGroundY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                     Mth.floor(childX), Mth.floor(childZ));
-            Vec3 childTarget = new Vec3(childX, childGroundY, childZ);
+            // Heightmap = first air above the surface: LOS onto it grazes the ground, then flies on level.
+            Vec3 childTarget = new Vec3(childX, childGroundY - 0.5, childZ);
 
             MissileEntity child = MissileEntity.builder(type, level)
                     .model(CHILD_MODEL)
@@ -143,17 +150,20 @@ public final class RecursiveFrag {
                     .swarmId(swarm)
                     .controlId(control)
                     .detonation(ID)
-                    .startInAttack()          // instant attack mode
+                    .startInAttack()
+                    .attackStage(CHILD_ATTACK)
+                    // Split on contact => children start on the ground, inside the arming distance.
+                    .startArmed()
                     .explosionOffset(childOffset)
                     .fragmentCount(count)
                     .cruiseSpeed(CHILD_SPEED)
-                    .terrainFollow(6.0)
                     .health(CHILD_HEALTH)
                     .build();
 
             child.moveTo(pos.x, pos.y, pos.z, 0.0f, 0.0f);
-            Vec3 burst = new Vec3(hx * SPREAD_LATERAL, -1.0, hz * SPREAD_LATERAL).normalize().scale(SPREAD_SPEED);
-            child.setDeltaMovement(burst);
+            Vec3 los = childTarget.subtract(pos);
+            child.setDeltaMovement(los.lengthSqr() < 1.0E-6 ? new Vec3(0.0, -SPREAD_SPEED, 0.0)
+                    : los.normalize().scale(SPREAD_SPEED));
             level.addFreshEntity(child);
 
             LOGGER.info("  child={} depth={} tgt=({},{},{}) groundUnderTgt={} tgtAGL={} (aimpoint {})",
@@ -169,8 +179,9 @@ public final class RecursiveFrag {
         return String.format("%.1f", v);
     }
 
-    private static void leafBlast(Level level, Vec3 pos, java.util.UUID igniterFaction) {
-        new ExplosionAEF(level, pos.x, pos.y, pos.z, LEAF_BLAST_RADIUS)
+    /** {@code exploder} = the leaf: siblings skip same-swarm blasts (see MissileDamage#hurt). */
+    private static void leafBlast(Level level, Vec3 pos, @Nullable Entity exploder, UUID igniterFaction) {
+        new ExplosionAEF(level, pos.x, pos.y, pos.z, LEAF_BLAST_RADIUS, exploder)
                 .makeStandard()
                 .igniterFaction(igniterFaction)
                 .explode();

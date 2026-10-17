@@ -114,13 +114,13 @@ public final class ArmorProfiles {
         if (max <= 0) {
             return spec;
         }
-        int want = max * ArmorUnits.POINTS_PER_DAMAGE;
+        int want = ArmorUnits.durabilityPoints(max);
         return spec.maxCondition() == want ? spec : spec.withMaxCondition(want);
     }
 
     /** An item's durability in condition points, or {@code fallback} if it has no durability. */
     private static int conditionScale(Item item, int fallback) {
         Integer max = item.components().get(DataComponents.MAX_DAMAGE);
-        return max == null || max <= 0 ? fallback : max * ArmorUnits.POINTS_PER_DAMAGE;
+        return max == null || max <= 0 ? fallback : ArmorUnits.durabilityPoints(max);
     }
 }
