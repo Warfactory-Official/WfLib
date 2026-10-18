@@ -9,7 +9,6 @@ import com.wf.wflib.ModEntities;
 import com.wf.wflib.drone.cam.CameraSpec;
 import com.wf.wflib.flight.FlightStageRegistry;
 import com.wf.wflib.sim.MissileSimConfig;
-import com.wf.wflib.warhead.WarheadRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
@@ -487,7 +486,7 @@ public final class MissilePreset {
         private Builder(ResourceLocation id, ResourceLocation modelId, ResourceLocation warheadId) {
             this.id = id;
             this.modelId = MissileModels.exists(modelId) ? modelId : MissileModels.defaultId();
-            this.warheadId = WarheadRegistry.exists(warheadId) ? warheadId : WarheadRegistry.defaultId();
+            this.warheadId = warheadId;
         }
 
         /**

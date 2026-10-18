@@ -2,7 +2,11 @@ package com.wf.wflib.flight.gametest;
 
 import com.wf.wflib.MissileEntity;
 import com.wf.wflib.WFLib;
-import com.wf.wflib.item.MissilePresetRegistry;
+import com.wf.wflib.MissileModels;
+import com.wf.wflib.api.ThreatKind;
+import com.wf.wflib.item.MissilePreset;
+import com.wf.wflib.missile.SeekerMode;
+import com.wf.wflib.ordnance.VehicleOrdnance;
 import com.wf.wflib.util.ForcedChunks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -26,6 +30,9 @@ public class DirectStageGameTest {
     private static final int LANE_ORIGIN = 3600;
     private static final double ALTITUDE = 40.0;
     private static final int TICKS = 160;
+    private static final MissilePreset TOW = VehicleOrdnance.missile(
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "test_tow"), MissileModels.rl("atgm"),
+            ThreatKind.TANDEM_HEAT, 152, 1000, 4, 0, 21.5, 3440, 600, 0.1075, 18, 2, SeekerMode.OPTICAL, 30);
 
     @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 20)
     public static void anAtgmPastASkyAimPointFliesStraightOn(GameTestHelper helper) {
@@ -33,8 +40,7 @@ public class DirectStageGameTest {
         BlockPos lane = helper.absolutePos(BlockPos.ZERO).offset(0, 0, LANE_ORIGIN);
         Vec3 from = new Vec3(lane.getX() + 0.5, lane.getY() + ALTITUDE, lane.getZ() + 0.5);
         Vec3 aim = from.add(60.0, 20.0, 0.0);
-        MissileEntity missile = MissilePresetRegistry.get(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "tow"))
-                .build(level, aim);
+        MissileEntity missile = TOW.build(level, aim);
         Vec3 dir = aim.subtract(from).normalize();
         missile.moveTo(from.x, from.y, from.z, (float) Math.toDegrees(Math.atan2(-dir.x, dir.z)),
                 (float) Math.toDegrees(-Math.asin(dir.y)));

@@ -43,7 +43,7 @@ public final class MiniNuke {
         }
 
         if (p.killRadius > 0) {
-            ExplosionNukeGeneric.dealDamage(level, center, p.killRadius);
+            ExplosionNukeGeneric.dealDamage(level, center.x, center.y, center.z, p.killRadius);
         }
 
         level.addFreshEntity(new EntityNukeTorex(level, center.add(0.0, 1.5, 0.0), p.blastRadius));

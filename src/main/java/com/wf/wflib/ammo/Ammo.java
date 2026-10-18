@@ -11,13 +11,15 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
- * Calibre + variant registry. Registration: mod construction, any thread, until WFLib's item registration
- * ({@link #freeze}); id registered twice => {@link IllegalStateException} naming both sources. Frozen: one
- * {@link CartridgeItem} per calibre, one {@link KineticPreset} per variant under the variant id. Reads
- * copy-on-write, any thread.
+ * Calibre + variant registry. Catalogue ({@link AmmoCatalogue}) entries live only once requested
+ * ({@link com.wf.wflib.content.WFLibContent}); requested calibre => all its catalogue variants. Own registration: mod
+ * construction, any thread, until freeze; id registered twice / catalogue id => {@link IllegalStateException} naming
+ * both sources. Frozen: one {@link CartridgeItem} per live calibre, one {@link KineticPreset} per live variant under
+ * the variant id. Reads copy-on-write, any thread; live entries only.
  */
 public final class Ammo {
     private static volatile Map<ResourceLocation, Calibre> calibres = Map.of();
@@ -26,9 +28,11 @@ public final class Ammo {
     private static volatile Map<ResourceLocation, ProjectileLook> looks = Map.of();
     private static volatile Map<ResourceLocation, List<AmmoVariant>> byCalibre = Map.of();
     private static volatile boolean frozen;
+    private static final Map<ResourceLocation, Calibre> CATALOGUE_CALIBRES = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, AmmoVariant> CATALOGUE_VARIANTS = new LinkedHashMap<>();
 
     static {
-        AmmoCatalogue.register();
+        AmmoCatalogue.define();
     }
 
     private Ammo() {
@@ -52,9 +56,36 @@ public final class Ammo {
         }
     }
 
+    static void define(Calibre c) {
+        CATALOGUE_CALIBRES.put(c.id(), c);
+    }
+
+    static void define(AmmoVariant v) {
+        CATALOGUE_VARIANTS.put(v.id(), v);
+    }
+
+    public static Collection<Calibre> catalogueCalibres() {
+        return Collections.unmodifiableCollection(CATALOGUE_CALIBRES.values());
+    }
+
+    public static Collection<AmmoVariant> catalogueVariants() {
+        return Collections.unmodifiableCollection(CATALOGUE_VARIANTS.values());
+    }
+
+    @Nullable
+    public static Calibre catalogueCalibre(ResourceLocation id) {
+        return CATALOGUE_CALIBRES.get(id);
+    }
+
+    @Nullable
+    public static AmmoVariant catalogueVariant(ResourceLocation id) {
+        return CATALOGUE_VARIANTS.get(id);
+    }
+
     /** Calibre + variant ids share one namespace (a variant id must not name a calibre). */
     private static void claim(ResourceLocation id, String kind, String source) {
-        String prev = SOURCES.get(id);
+        String prev = CATALOGUE_CALIBRES.containsKey(id) || CATALOGUE_VARIANTS.containsKey(id)
+                ? AmmoCatalogue.SOURCE : SOURCES.get(id);
         if (prev != null) {
             throw new IllegalStateException(kind + " " + id + ": registered by " + source + " and by " + prev);
         }
@@ -128,11 +159,32 @@ public final class Ammo {
         }
     }
 
-    /** All problems collected into one {@link IllegalStateException} (not fail-fast). Idempotent. */
-    public static synchronized void freeze() {
+    /**
+     * {@code requested} catalogue calibres + own registrations go live; all problems collected into one
+     * {@link IllegalStateException} (not fail-fast). Called once by {@link com.wf.wflib.content.WFLibContent#freeze}.
+     */
+    public static synchronized void freeze(Set<ResourceLocation> requested) {
         if (frozen) {
-            return;
+            throw new IllegalStateException("ammo frozen twice");
         }
+        Map<ResourceLocation, Calibre> liveCalibres = new LinkedHashMap<>();
+        Map<ResourceLocation, AmmoVariant> liveVariants = new LinkedHashMap<>();
+        CATALOGUE_CALIBRES.forEach((id, c) -> {
+            if (requested.contains(id)) {
+                liveCalibres.put(id, c);
+                SOURCES.put(id, AmmoCatalogue.SOURCE);
+            }
+        });
+        CATALOGUE_VARIANTS.forEach((id, v) -> {
+            if (requested.contains(v.calibre())) {
+                liveVariants.put(id, v);
+                SOURCES.put(id, AmmoCatalogue.SOURCE);
+            }
+        });
+        liveCalibres.putAll(calibres);
+        liveVariants.putAll(variants);
+        calibres = Collections.unmodifiableMap(liveCalibres);
+        variants = Collections.unmodifiableMap(liveVariants);
         List<String> problems = new ArrayList<>();
         Map<ResourceLocation, List<AmmoVariant>> by = new LinkedHashMap<>();
         Map<ResourceLocation, ProjectileLook> lk = new LinkedHashMap<>();
@@ -165,7 +217,7 @@ public final class Ammo {
         by.forEach((c, vs) -> frozenBy.put(c, List.copyOf(vs)));
         byCalibre = Collections.unmodifiableMap(frozenBy);
         looks = Collections.unmodifiableMap(lk);
-        presets.forEach(KineticPresetRegistry::register);
+        presets.forEach(KineticPresetRegistry::registerItemless);
         frozen = true;
     }
 

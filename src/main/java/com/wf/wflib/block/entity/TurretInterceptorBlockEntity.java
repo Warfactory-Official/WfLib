@@ -109,7 +109,7 @@ public abstract class TurretInterceptorBlockEntity extends BlockEntity implement
 
     @Override
     public double interceptorSpeed() {
-        return this.outOfAmmo() ? Double.NaN : MissilePresetRegistry.get(this.presetId).cruiseSpeed();
+        return this.outOfAmmo() ? Double.NaN : MissilePresetRegistry.catalogueEntry(this.presetId).cruiseSpeed();
     }
 
     /** Vertical launch: nothing to lay. */
@@ -126,7 +126,7 @@ public abstract class TurretInterceptorBlockEntity extends BlockEntity implement
             this.warnCooldown = WARN_INTERVAL;
         }
         Vec3 muzzle = this.muzzle();
-        MissilePreset preset = MissilePresetRegistry.get(this.presetId);
+        MissilePreset preset = MissilePresetRegistry.catalogueEntry(this.presetId);
         MissileEntity m = preset.build(sl, muzzle);
         InterceptBattery.arm(m, this.controlId(), this.cachedTeamId, target.interceptEntity());
         m.moveTo(muzzle.x, muzzle.y, muzzle.z, 0.0f, 0.0f);

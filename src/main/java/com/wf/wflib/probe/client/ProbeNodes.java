@@ -1,5 +1,6 @@
 package com.wf.wflib.probe.client;
 
+import com.wf.wflib.probe.ProbeSight;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.WFLib;
@@ -18,6 +19,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -100,7 +102,7 @@ public final class ProbeNodes implements LayeredDraw.Layer {
                 : BlockHitResult.miss(eye, Direction.UP, BlockPos.containing(eye));
         AABB box = player.getBoundingBox().inflate(reach);
         List<ProbeNode> nodes = new ArrayList<>();
-        Frame frame = new Frame(eye, look, reach, clip, camera, width, height);
+        Frame frame = new Frame(level, player, eye, look, reach, clip, camera, width, height);
 
         for (Entity entity : level.getEntities(player, box, ProbeRegistry::hasNodes)) {
             BlockPos pos = entity.blockPosition();
@@ -155,6 +157,8 @@ public final class ProbeNodes implements LayeredDraw.Layer {
 
     /** Per-frame projection + best-so-far. */
     private static final class Frame {
+        private final Level level;
+        private final Entity viewer;
         private final Vec3 eye;
         private final Vec3 look;
         private final double reach;
@@ -169,7 +173,10 @@ public final class ProbeNodes implements LayeredDraw.Layer {
         private Shown claimed;
         private double claimedDistance = Double.MAX_VALUE;
 
-        Frame(Vec3 eye, Vec3 look, double reach, Matrix4f clip, Vec3 camera, float width, float height) {
+        Frame(Level level, Entity viewer, Vec3 eye, Vec3 look, double reach, Matrix4f clip, Vec3 camera, float width,
+              float height) {
+            this.level = level;
+            this.viewer = viewer;
             this.eye = eye;
             this.look = look;
             this.reach = reach;
@@ -185,7 +192,7 @@ public final class ProbeNodes implements LayeredDraw.Layer {
                 double distance = to.length();
                 double cos = to.dot(look) / distance;
                 if (distance > Math.min(reach, node.reach()) || cos < SHOW_COS
-                        || node.normal() != null && to.dot(node.normal()) >= 0) {
+                        || node.normal() != null && to.dot(node.normal()) >= 0 || blocked(this, node.at(), pos, entityId)) {
                     continue;
                 }
                 Vector4f p = clip.transform(new Vector4f((float) (node.at().x - camera.x),
@@ -207,6 +214,11 @@ public final class ProbeNodes implements LayeredDraw.Layer {
                 }
             }
         }
+    }
+
+    /** Collider block between eye and node; a block target's own block never hides its nodes. */
+    private static boolean blocked(Frame frame, Vec3 at, BlockPos pos, int entityId) {
+        return ProbeSight.blocked(frame.level, frame.viewer, frame.eye, at, entityId >= 0 ? null : pos);
     }
 
     @Override

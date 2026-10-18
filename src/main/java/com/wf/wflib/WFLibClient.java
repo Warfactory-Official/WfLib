@@ -19,7 +19,6 @@ import com.wf.wflib.client.model.PartRigs;
 import com.wf.wflib.client.render.GlyphidVisual;
 import com.wf.wflib.client.render.MineVisual;
 import com.wf.wflib.drone.DroneEntity;
-import com.wf.wflib.client.render.EntityTorexRender;
 import com.wf.wflib.entity.glyphid.EntityGlyphid;
 import com.wf.wflib.entity.glyphid.GlyphidCaste;
 import com.wf.wflib.mine.MineEntity;
@@ -96,9 +95,7 @@ public class WFLibClient {
         event.registerEntityRenderer(ModEntities.NUKE_EXPLOSION.get(),
                 NoopRenderer::new);
 
-        // The Torex mushroom cloud has its own bespoke cloudlet renderer.
-        event.registerEntityRenderer(ModEntities.NUKE_TOREX.get(),
-                EntityTorexRender::new);
+        event.registerEntityRenderer(ModEntities.NUKE_TOREX.get(), NoopRenderer::new);
 
         LOGGER.info("HELLO FROM CLIENT SETUP");
 
@@ -113,13 +110,13 @@ public class WFLibClient {
             return;
         }
         for (MissilePreset preset : MissilePresetRegistry.all()) {
-            models.put(missileItemModel(preset.id().getPath()), template);
+            models.put(missileItemModel(preset.id()), template);
         }
     }
 
     private static BakedModel missileItemTemplate(Map<ModelResourceLocation, BakedModel> models) {
         for (MissilePreset preset : MissilePresetRegistry.all()) {
-            BakedModel model = models.get(missileItemModel(preset.id().getPath()));
+            BakedModel model = models.get(missileItemModel(preset.id()));
             if (model != null && model.isCustomRenderer()) {
                 return model;
             }
@@ -127,8 +124,9 @@ public class WFLibClient {
         return null;
     }
 
-    private static ModelResourceLocation missileItemModel(String presetId) {
-        return ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "missile_" + presetId));
+    private static ModelResourceLocation missileItemModel(ResourceLocation preset) {
+        return ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(preset.getNamespace(),
+                "missile_" + preset.getPath()));
     }
 
     /** Rebuild the mine rigs after a resource reload. */

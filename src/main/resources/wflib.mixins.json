@@ -10,6 +10,7 @@
     "MixinInventoryMenu",
     "MixinServerGamePacketListenerImpl",
     "MixinLevelChunk",
+    "MixinLevelChunkSection",
     "MixinLivingEntity",
     "MixinMob",
     "MixinPathNavigation",

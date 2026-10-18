@@ -10,10 +10,10 @@ public final class Nuke {
     private Nuke() {
     }
 
-    /** {@code radius}: not the literal block radius; also scales speed + cloud size. */
+    /** {@code radius}: MK5 carve radius (ray strength = 2 radius); also cloud scale. */
     public static void detonate(Level level, Vec3 center, int radius) {
         if (level.isClientSide) return;
-        level.addFreshEntity(EntityNukeExplosionMK5.statFac(level, radius, center));
-        level.addFreshEntity(new EntityNukeTorex(level, center.add(0.0D, 4.5D, 0.0D), radius));
+        level.addFreshEntity(EntityNukeExplosionMK5.statFac(level, radius, center.x, center.y, center.z));
+        level.addFreshEntity(new EntityNukeTorex(level, center, radius));
     }
 }

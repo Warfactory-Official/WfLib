@@ -55,7 +55,6 @@ public class EntityNukeTorex extends Entity implements IEntityWithComplexSpawn {
     public double rollerSize = 1D;
     public double heat = 1D;
     public double lastSpawnY = -1D;
-    public int lastRenderSortTick = Integer.MIN_VALUE;
     public int maxAge = 1000;
     public float humidity = -1F;
     /** Heard where the expanding front reaches ({@code tryPlayClientSound}); the curve only shapes loudness. */
@@ -71,7 +70,6 @@ public class EntityNukeTorex extends Entity implements IEntityWithComplexSpawn {
         super(entityType, level);
         this.noCulling = true;
         this.noPhysics = true;
-        this.blocksBuilding = true;
         this.setNoGravity(true);
     }
 
@@ -151,7 +149,7 @@ public class EntityNukeTorex extends Entity implements IEntityWithComplexSpawn {
             lastSpawnY = posY - 3D;
         }
 
-        int spawnTarget = Math.max(level().getHeight(Heightmap.Types.WORLD_SURFACE, Mth.floor(posX), Mth.floor(posZ)) - 3, 1);
+        int spawnTarget = Math.max(level().getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(posX), Mth.floor(posZ)) - 3, 1);
         double moveSpeed = 0.5D;
 
         if (Math.abs(spawnTarget - lastSpawnY) < moveSpeed) {
@@ -190,7 +188,7 @@ public class EntityNukeTorex extends Entity implements IEntityWithComplexSpawn {
                 vec = vec.yRot(rot);
                 cloudlets.add(new Cloudlet(
                         vec.x + posX,
-                        level().getHeight(Heightmap.Types.WORLD_SURFACE, (int) (vec.x + posX) + 1, (int) (vec.z + posZ)),
+                        level().getHeight(Heightmap.Types.MOTION_BLOCKING, (int) (vec.x + posX) + 1, (int) (vec.z + posZ)),
                         vec.z + posZ,
                         rot,
                         0,
@@ -247,7 +245,7 @@ public class EntityNukeTorex extends Entity implements IEntityWithComplexSpawn {
                     vec = vec.zRot((float) Math.acos((height - getY()) / age) + (float) Math.toRadians(humidity * humidity * 90F * j * (0.1D * random.nextDouble() - 0.05D)));
                     vec = vec.yRot(angle);
                     Cloudlet cloud = new Cloudlet(getX() + vec.x, getY() + vec.y, getZ() + vec.z, angle, 0,
-                            (int) ((20 + age / 10D) * (1D + random.nextDouble() * 0.1D)), TorexType.CONDENSATION);
+                            (int) ((20 + age / 10) * (1D + random.nextDouble() * 0.1D)), TorexType.CONDENSATION);
                     cloud.setScale(3F * (float) (cloudScale * scale), 4F * (float) (cloudScale * scale));
                     cloudlets.add(cloud);
                 }
@@ -410,7 +408,6 @@ public class EntityNukeTorex extends Entity implements IEntityWithComplexSpawn {
         public double prevColorR;
         public double prevColorG;
         public double prevColorB;
-        public double renderSortDistanceSq;
         public TorexType type;
         float rangeMod = 1F;
         private float startingScale = 3F;

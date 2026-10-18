@@ -66,12 +66,12 @@ public class PenTableGameTest {
     private static final List<RoundPierceEvent> PIERCES = new CopyOnWriteArrayList<>();
 
     static {
-        KineticPresetRegistry.register(KineticPreset.builder(PIERCER, null, WarheadRegistry.rl("inert")).speed(SPEED)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(PIERCER, null, WarheadRegistry.rl("inert")).speed(SPEED)
                 .drag(0.0).gravity(0.0).life(100).mass(0.004).caliber(5.56).blockPen(BLOCK_PEN).noChunkLoading()
                 .build());
-        KineticPresetRegistry.register(KineticPreset.builder(DRILL_AT, null, WarheadRegistry.rl("inert")).speed(4.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(DRILL_AT, null, WarheadRegistry.rl("inert")).speed(4.0)
                 .drag(0.0).gravity(0.0).life(100).penetration(1, OVERRIDE).build());
-        KineticPresetRegistry.register(KineticPreset.builder(DRILL_BELOW, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(DRILL_BELOW, null, WarheadRegistry.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(100).penetration(1, OVERRIDE - 0.5).build());
     }
 

@@ -48,9 +48,9 @@ public class RocketGameTest {
 
     static {
         WarheadRegistry.register(WARHEAD, (source, pos) -> DETONATIONS.add(pos));
-        KineticPresetRegistry.register(KineticPreset.builder(ROCKET, null, WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(ROCKET, null, WARHEAD)
                 .speed(1.0).motor(ACCEL, BURN).quadraticDrag(0.002).life(400).durability(6.0).build());
-        KineticPresetRegistry.register(KineticPreset.builder(FAST, null, WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(FAST, null, WARHEAD)
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).build());
     }
 

@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProjectileLookTest {
     private static ProjectileLook look(String variant) {
-        AmmoVariant v = Ammo.variant(ResourceLocation.fromNamespaceAndPath("wflib", variant));
-        return ProjectileLook.resolve(Ammo.calibre(v.calibre()), v);
+        AmmoVariant v = Ammo.catalogueVariant(ResourceLocation.fromNamespaceAndPath("wflib", variant));
+        return ProjectileLook.resolve(Ammo.catalogueCalibre(v.calibre()), v);
     }
 
     @Test
@@ -50,7 +50,7 @@ class ProjectileLookTest {
                         ResourceLocation.fromNamespaceAndPath("wflib", "40x46"), "y").flight(76, 0.23f, 0)
                 .look(new ProjectileLook.Override(null, null, null, null, null, null, null, null, null, true)).build();
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> ProjectileLook.resolve(Ammo.calibre(v.calibre()), v));
+                () -> ProjectileLook.resolve(Ammo.catalogueCalibre(v.calibre()), v));
         assertEquals("look flame without a motor", e.getMessage());
     }
 
@@ -59,7 +59,7 @@ class ProjectileLookTest {
         AmmoVariant v = AmmoVariant.builder(ResourceLocation.fromNamespaceAndPath("t", "x"),
                         ResourceLocation.fromNamespaceAndPath("wflib", "5.56x45"), "x").flight(900, 0.004f, 0)
                 .look(ProjectileLook.Override.visible(true)).build();
-        ProjectileLook l = ProjectileLook.resolve(Ammo.calibre(v.calibre()), v);
+        ProjectileLook l = ProjectileLook.resolve(Ammo.catalogueCalibre(v.calibre()), v);
         assertTrue(l.visible());
         assertEquals(ProjectileLook.Shape.BULLET, l.shape());
     }

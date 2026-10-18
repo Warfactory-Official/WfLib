@@ -85,24 +85,24 @@ public class ImpactEffectGameTest {
         for (ImpactTrigger t : ImpactTrigger.VALUES) {
             all.effect(PROBE, t, 1.0, new JsonObject());
         }
-        KineticPresetRegistry.register(all.build());
-        KineticPresetRegistry.register(slow(SHORT_LIFE).life(2).effect(PROBE, ImpactTrigger.END, 1.0, new JsonObject())
+        KineticPresetRegistry.registerItemless(all.build());
+        KineticPresetRegistry.registerItemless(slow(SHORT_LIFE).life(2).effect(PROBE, ImpactTrigger.END, 1.0, new JsonObject())
                 .build());
-        KineticPresetRegistry.register(slow(IGNITE_HIT).effect(ImpactEffects.IGNITE, ImpactTrigger.HIT, 1.0,
+        KineticPresetRegistry.registerItemless(slow(IGNITE_HIT).effect(ImpactEffects.IGNITE, ImpactTrigger.HIT, 1.0,
                 json("{\"seconds\": 4}")).build());
-        KineticPresetRegistry.register(slow(IGNITE_BLOCK).effect(ImpactEffects.IGNITE, ImpactTrigger.BLOCK, 1.0,
+        KineticPresetRegistry.registerItemless(slow(IGNITE_BLOCK).effect(ImpactEffects.IGNITE, ImpactTrigger.BLOCK, 1.0,
                 new JsonObject()).build());
-        KineticPresetRegistry.register(slow(DAMAGE_HIT).effect(ImpactEffects.DAMAGE, ImpactTrigger.HIT, 1.0,
+        KineticPresetRegistry.registerItemless(slow(DAMAGE_HIT).effect(ImpactEffects.DAMAGE, ImpactTrigger.HIT, 1.0,
                 json("{\"type\": \"minecraft:in_fire\", \"amount\": 3}")).build());
-        KineticPresetRegistry.register(slow(EXPLODE_BLOCK).effect(ImpactEffects.EXPLODE, ImpactTrigger.BLOCK, 1.0,
+        KineticPresetRegistry.registerItemless(slow(EXPLODE_BLOCK).effect(ImpactEffects.EXPLODE, ImpactTrigger.BLOCK, 1.0,
                 json("{\"warhead\": \"wflib:standard\", \"size\": 3}")).build());
-        KineticPresetRegistry.register(slow(PLAIN).impactDamage(30.0).armorPenetration(20.0).build());
-        KineticPresetRegistry.register(slow(THERMAL).impactDamage(30.0).armorPenetration(20.0)
+        KineticPresetRegistry.registerItemless(slow(PLAIN).impactDamage(30.0).armorPenetration(20.0).build());
+        KineticPresetRegistry.registerItemless(slow(THERMAL).impactDamage(30.0).armorPenetration(20.0)
                 .effect(ImpactEffects.THERMAL, ImpactTrigger.HIT, 1.0, json("{\"pen\": 30, \"wear\": 3}")).build());
-        KineticPresetRegistry.register(KineticPreset.builder(PEN, null, INERT).speed(PEN_SPEED).drag(0.02)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(PEN, null, INERT).speed(PEN_SPEED).drag(0.02)
                 .gravity(0.0).life(400).mass(0.0095).energyDamage(1.0e-4).caliber(7.62).armorPenetration(PEN_MM)
                 .passesThroughEntities().noChunkLoading().build());
-        KineticPresetRegistry.register(rifle(BENCH).armorPenetration(10.0).passesThroughEntities().build());
+        KineticPresetRegistry.registerItemless(rifle(BENCH).armorPenetration(10.0).passesThroughEntities().build());
     }
 
     private static JsonObject json(String s) {

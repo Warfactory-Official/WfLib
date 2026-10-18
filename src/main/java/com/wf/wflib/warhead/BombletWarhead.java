@@ -21,7 +21,7 @@ public final class BombletWarhead {
         if (level.isClientSide) {
             return;
         }
-        ExplosionNukeGeneric.dealDamage(level, pos, BLAST_RADIUS, MAX_DAMAGE);
+        ExplosionNukeGeneric.dealDamage(level, pos.x, pos.y, pos.z, BLAST_RADIUS, MAX_DAMAGE);
         ExplosionSmallCreator.composeEffect(level, pos.x, pos.y, pos.z, 3, 1.0f, 0.6f);
     };
 
@@ -30,7 +30,7 @@ public final class BombletWarhead {
         if (level.isClientSide) {
             return;
         }
-        ExplosionNukeGeneric.dealDamage(level, pos, BLAST_RADIUS, MAX_DAMAGE * 0.5f);
+        ExplosionNukeGeneric.dealDamage(level, pos.x, pos.y, pos.z, BLAST_RADIUS, MAX_DAMAGE * 0.5f);
         FireLingeringEntity.spawn(level, pos.x, pos.y, pos.z, 3.0f, 2.0f, 120, com.wf.wflib.fire.FireType.NORMAL);
         ExplosionSmallCreator.composeEffect(level, pos.x, pos.y, pos.z, 3, 1.0f, 0.6f);
     };

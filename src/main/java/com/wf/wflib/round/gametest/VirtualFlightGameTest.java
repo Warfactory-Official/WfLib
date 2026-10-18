@@ -94,16 +94,16 @@ public class VirtualFlightGameTest {
     static {
         WarheadRegistry.register(RECORDING_WARHEAD, (source, pos) -> DETONATIONS.add(pos));
         ResourceLocation inert = WarheadRegistry.rl("inert");
-        KineticPresetRegistry.register(KineticPreset.builder(CROSSING, null, inert).speed(12.0).drag(0.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(CROSSING, null, inert).speed(12.0).drag(0.0)
                 .gravity(0.0).life(200).impactDamage(5.0).caliber(7.62).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(SHELL, null, RECORDING_WARHEAD).speed(12.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(SHELL, null, RECORDING_WARHEAD).speed(12.0)
                 .drag(0.0).gravity(0.0).life(200).caliber(30.0).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(DIVER, null, inert).speed(2.0).drag(0.02)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(DIVER, null, inert).speed(2.0).drag(0.02)
                 .quadraticDrag(0.001).gravity(0.0245).water(0.3, 0.6).life(400).impactDamage(1.0).caliber(5.56)
                 .noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(WATCHED, null, inert).speed(40.0).drag(0.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(WATCHED, null, inert).speed(40.0).drag(0.0)
                 .gravity(0.0).life(40).impactDamage(1.0).caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(WATCHED_PEN, null, inert).speed(40.0).drag(0.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(WATCHED_PEN, null, inert).speed(40.0).drag(0.0)
                 .gravity(0.0).life(140).mass(0.004).energyDamage(0.01).caliber(5.56).blockPen(10.0f)
                 .noChunkLoading().build());
     }

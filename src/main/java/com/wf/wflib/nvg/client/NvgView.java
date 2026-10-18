@@ -5,7 +5,7 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.logging.LogUtils;
 import com.wf.gemrender.light.IrTarget;
 import com.wf.gemrender.render.GlPrograms;
-import com.wf.gemrender.water.PassState;
+import com.wf.gemrender.render.PassState;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.nvg.NvgState;
 import com.wf.wflib.nvg.NvgWorn;

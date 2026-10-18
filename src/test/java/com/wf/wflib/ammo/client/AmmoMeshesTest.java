@@ -44,8 +44,8 @@ class AmmoMeshesTest {
 
     @Test
     void cartridgeSpansOverallLengthWithinRim() {
-        for (AmmoVariant v : Ammo.variants()) {
-            Calibre c = Ammo.calibre(v.calibre());
+        for (AmmoVariant v : Ammo.catalogueVariants()) {
+            Calibre c = Ammo.catalogueCalibre(v.calibre());
             ProjectileLook look = ProjectileLook.resolve(c, v);
             double[] s = stats(AmmoMeshes.cartridge(c, look, ProjectileLook.COPPER, UV));
             double len = c.hasCase() ? c.overallMm() : look.lengthMm();
@@ -60,8 +60,8 @@ class AmmoMeshesTest {
 
     @Test
     void projectileSpansLookLength() {
-        for (AmmoVariant v : Ammo.variants()) {
-            ProjectileLook look = ProjectileLook.resolve(Ammo.calibre(v.calibre()), v);
+        for (AmmoVariant v : Ammo.catalogueVariants()) {
+            ProjectileLook look = ProjectileLook.resolve(Ammo.catalogueCalibre(v.calibre()), v);
             double[] s = stats(AmmoMeshes.projectile(look, UV));
             assertEquals(0, s[0], 1e-6, v.id().toString());
             assertEquals(look.lengthMm() / 1000, s[1], 1e-5, v.id().toString());
@@ -73,8 +73,8 @@ class AmmoMeshesTest {
     @Test
     void flameBehindTheNozzle() {
         int n = 0;
-        for (AmmoVariant v : Ammo.variants()) {
-            ProjectileLook look = ProjectileLook.resolve(Ammo.calibre(v.calibre()), v);
+        for (AmmoVariant v : Ammo.catalogueVariants()) {
+            ProjectileLook look = ProjectileLook.resolve(Ammo.catalogueCalibre(v.calibre()), v);
             if (!look.flame()) {
                 continue;
             }
@@ -99,8 +99,8 @@ class AmmoMeshesTest {
 
     @Test
     void tipColouredOnlyWhenSet() {
-        Calibre c = Ammo.calibre(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wflib", "5.56x45"));
-        AmmoVariant m855 = Ammo.variant(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wflib",
+        Calibre c = Ammo.catalogueCalibre(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wflib", "5.56x45"));
+        AmmoVariant m855 = Ammo.catalogueVariant(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wflib",
                 "5.56x45/ball"));
         RigGeometry g = AmmoMeshes.cartridge(c, ProjectileLook.resolve(c, m855), ProjectileLook.COPPER, UV);
         float tipU = UV.u(m855.tip()), tipV = UV.v(m855.tip());

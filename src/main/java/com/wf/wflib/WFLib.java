@@ -3,6 +3,7 @@ package com.wf.wflib;
 import com.wf.wflib.colony.GlyphidNest;
 import com.wf.wflib.config.WFClientConfig;
 import com.wf.wflib.config.WFConfig;
+import com.wf.wflib.content.WFLibContent;
 import com.wf.wflib.drone.DroneTracker;
 import com.wf.wflib.drone.sim.SimDroneManager;
 import com.wf.wflib.entity.mist.MistEffects;
@@ -13,13 +14,18 @@ import com.wf.wflib.recon.example.ExampleCountermeasureProvider;
 import com.wf.wflib.recon.example.ExampleSignatureProvider;
 import com.wf.wflib.recon.example.decoy.DecoyTargetSource;
 import com.wf.wflib.recon.source.EntityTargetSource;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.registries.RegisterEvent;
+
+import java.util.List;
 
 @Mod(WFLib.MODID)
 public class WFLib {
@@ -55,8 +61,15 @@ public class WFLib {
         // A plain list add, on both sides, for the same reason the doors' is.
         com.wf.wflib.mine.MineProbeActions.register();
 
-        modEventBus.addListener(net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent.class, e -> e.enqueueWork(
-                () -> com.wf.wflib.ammo.Ammo.checkWarheads(com.wf.wflib.warhead.WarheadRegistry::exists)));
+        // Interceptor turrets fly unregistered catalogue presets => warhead live.
+        WFLibContent.warheads(MODID, "interceptor");
+        if (List.of(System.getProperty("neoforge.enabledGameTestNamespaces", "").split(",")).contains(MODID)
+                || FMLLoader.launcherHandlerName().startsWith("forgejunit")) {
+            WFLibContent.everything(MODID + " tests");
+        }
+        modEventBus.addListener(EventPriority.HIGHEST, RegisterEvent.class, e -> WFLibContent.freeze());
+        modEventBus.addListener(net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent.class,
+                e -> e.enqueueWork(WFLibContent::loadComplete));
         modEventBus.addListener(WFConfig::onLoad);
         modEventBus.addListener(com.wf.wflib.armor.ArmorConfig::onLoad);
         modContainer.registerConfig(

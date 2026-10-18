@@ -2,8 +2,10 @@ package com.wf.wflib.api;
 
 import com.wf.wflib.sim.SimMissileManager;
 import com.wf.wflib.MissileEntity;
+import com.wf.wflib.mixin.AccessorChunkMap;
 import com.wf.wflib.sim.SimMissile;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.entity.EntityTypeTest;
 
 import java.util.ArrayList;
@@ -39,6 +41,11 @@ public final class WFLibAPI {
 
     public static boolean isAutoTelemetry() {
         return WFTelemetryService.autoOpen();
+    }
+
+    /** Chunk radius the server sends {@code player}: client request clamped to server view distance. */
+    public static int viewDistance(ServerPlayer player) {
+        return ((AccessorChunkMap) player.serverLevel().getChunkSource().chunkMap).wfPlayerViewDistance(player);
     }
 
     public static MissileData getMissileData(ServerLevel level, UUID id) {

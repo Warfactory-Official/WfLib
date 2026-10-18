@@ -22,7 +22,7 @@ class AmmoCatalogueTest {
     }
 
     private static Map<ResourceLocation, List<AmmoVariant>> byCalibre() {
-        return Ammo.variants().stream().collect(Collectors.groupingBy(AmmoVariant::calibre));
+        return Ammo.catalogueVariants().stream().collect(Collectors.groupingBy(AmmoVariant::calibre));
     }
 
     @Test
@@ -30,28 +30,28 @@ class AmmoCatalogueTest {
         Map<ResourceLocation, List<AmmoVariant>> by = byCalibre();
         for (String c : List.of("9x19", "11.43x23", "5.56x45", "5.45x39", "7.62x39", "7.62x51", "7.62x54r",
                 "8.6x70", "12.7x99", "12.7x108")) {
-            assertNotNull(Ammo.calibre(rl(c)), c);
+            assertNotNull(Ammo.catalogueCalibre(rl(c)), c);
             assertEquals(rl(c + "/ball"), by.get(rl(c)).getFirst().id(), c + " default = ball");
         }
         for (String c : List.of("5.56x45", "5.45x39", "7.62x39", "7.62x51", "7.62x54r", "12.7x99", "12.7x108")) {
-            AmmoVariant t = Ammo.variant(rl(c + "/tracer"));
+            AmmoVariant t = Ammo.catalogueVariant(rl(c + "/tracer"));
             assertNotEquals(AmmoVariant.NONE, t.tracer(), c);
-            assertTrue(Ammo.variant(rl(c + "/ap")).blockPen() > Ammo.variant(rl(c + "/ball")).blockPen(), c);
+            assertTrue(Ammo.catalogueVariant(rl(c + "/ap")).blockPen() > Ammo.catalogueVariant(rl(c + "/ball")).blockPen(), c);
         }
         for (String c : List.of("9x19", "5.45x39", "7.62x39")) {
-            assertTrue(Ammo.variant(rl(c + "/subsonic")).speed() < 343, c);
+            assertTrue(Ammo.catalogueVariant(rl(c + "/subsonic")).speed() < 343, c);
         }
-        assertEquals(9, Ammo.variant(rl("12ga/buck")).pellets());
-        assertNotNull(Ammo.variant(rl("12ga/slug")));
-        assertNotNull(Ammo.variant(rl("40x46/he")).explosive());
+        assertEquals(9, Ammo.catalogueVariant(rl("12ga/buck")).pellets());
+        assertNotNull(Ammo.catalogueVariant(rl("12ga/slug")));
+        assertNotNull(Ammo.catalogueVariant(rl("40x46/he")).explosive());
         for (String c : List.of("20x102", "25x137", "30x173")) {
-            assertNotNull(Ammo.variant(rl(c + "/he")).explosive(), c);
-            assertEquals(CalibreKind.AUTOCANNON, Ammo.calibre(rl(c)).kind());
+            assertNotNull(Ammo.catalogueVariant(rl(c + "/he")).explosive(), c);
+            assertEquals(CalibreKind.AUTOCANNON, Ammo.catalogueCalibre(rl(c)).kind());
         }
         for (String c : List.of("105mm", "120mm", "125mm")) {
-            assertNull(Ammo.variant(rl(c + "/apfsds")).explosive(), c);
-            assertEquals("shaped_charge", Ammo.variant(rl(c + "/heat")).explosive().warhead().getPath(), c);
-            assertNotNull(Ammo.variant(rl(c + "/he")).explosive(), c);
+            assertNull(Ammo.catalogueVariant(rl(c + "/apfsds")).explosive(), c);
+            assertEquals("shaped_charge", Ammo.catalogueVariant(rl(c + "/heat")).explosive().warhead().getPath(), c);
+            assertNotNull(Ammo.catalogueVariant(rl(c + "/he")).explosive(), c);
         }
     }
 
@@ -62,7 +62,7 @@ class AmmoCatalogueTest {
     @Test
     void everyCalibreHasAVariantAndAnItemModel() {
         Map<ResourceLocation, List<AmmoVariant>> by = byCalibre();
-        for (Calibre c : Ammo.calibres()) {
+        for (Calibre c : Ammo.catalogueCalibres()) {
             assertFalse(by.getOrDefault(c.id(), List.of()).isEmpty(), c.id().toString());
             Path json = Path.of("src/main/resources/assets", c.itemId().getNamespace(), "models/item",
                     c.itemId().getPath() + ".json");
@@ -72,7 +72,7 @@ class AmmoCatalogueTest {
 
     @Test
     void variantIdsAreCalibreSlashRole() {
-        for (AmmoVariant v : Ammo.variants()) {
+        for (AmmoVariant v : Ammo.catalogueVariants()) {
             assertTrue(v.id().getPath().startsWith(v.calibre().getPath() + "/"), v.id().toString());
             assertTrue(v.projectileMassKg() > 0 && v.speed() > 0, v.id().toString());
         }
@@ -80,16 +80,16 @@ class AmmoCatalogueTest {
 
     @Test
     void itemIdSanitised() {
-        assertEquals(rl("cartridge_5_56x45"), Ammo.calibre(rl("5.56x45")).itemId());
-        assertEquals(rl("cartridge_12ga"), Ammo.calibre(rl("12ga")).itemId());
+        assertEquals(rl("cartridge_5_56x45"), Ammo.catalogueCalibre(rl("5.56x45")).itemId());
+        assertEquals(rl("cartridge_12ga"), Ammo.catalogueCalibre(rl("12ga")).itemId());
     }
 
     @Test
     void duplicateIdNamesBothSources() {
-        Calibre c = Ammo.calibre(rl("5.56x45"));
+        Calibre c = Ammo.catalogueCalibre(rl("5.56x45"));
         IllegalStateException e = assertThrows(IllegalStateException.class, () -> Ammo.register(c, "packA"));
         assertTrue(e.getMessage().contains("packA") && e.getMessage().contains("wflib"), e.getMessage());
-        AmmoVariant v = Ammo.variant(rl("5.56x45/ball"));
+        AmmoVariant v = Ammo.catalogueVariant(rl("5.56x45/ball"));
         e = assertThrows(IllegalStateException.class, () -> Ammo.register(v, "packB"));
         assertTrue(e.getMessage().contains("packB") && e.getMessage().contains("wflib"), e.getMessage());
         AmmoVariant clash = AmmoVariant.builder(rl("9x19"), rl("9x19"), "x").flight(300, 0.008f, 0).build();
@@ -99,10 +99,10 @@ class AmmoCatalogueTest {
 
     @Test
     void ballPenAnchorsAndEnergyScaling() {
-        assertEquals(10f, Ammo.variant(rl("5.56x45/ball")).blockPen());
-        assertEquals(16f, Ammo.variant(rl("7.62x51/ball")).blockPen());
-        assertEquals(40f, Ammo.variant(rl("12.7x99/ball")).blockPen());
-        assertTrue(Ammo.variant(rl("9x19/subsonic")).blockPen() < Ammo.variant(rl("9x19/ball")).blockPen());
+        assertEquals(10f, Ammo.catalogueVariant(rl("5.56x45/ball")).blockPen());
+        assertEquals(16f, Ammo.catalogueVariant(rl("7.62x51/ball")).blockPen());
+        assertEquals(40f, Ammo.catalogueVariant(rl("12.7x99/ball")).blockPen());
+        assertTrue(Ammo.catalogueVariant(rl("9x19/subsonic")).blockPen() < Ammo.catalogueVariant(rl("9x19/ball")).blockPen());
     }
 
     @Test

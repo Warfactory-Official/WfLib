@@ -33,10 +33,10 @@ public class BlockDamageGameTest {
     private static final double SLUG_SPEED = 24.0;
 
     static {
-        KineticPresetRegistry.register(KineticPreset.builder(BALL, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(BALL, null, WarheadRegistry.rl("inert"))
                 .speed(BALL_SPEED).drag(0.0).gravity(0.0).life(100).mass(0.004).energyDamage(0.01).caliber(5.56)
                 .blockPen(10.0).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(SLUG, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(SLUG, null, WarheadRegistry.rl("inert"))
                 .speed(SLUG_SPEED).drag(0.0).gravity(0.0).life(100).mass(0.028).energyDamage(0.01).caliber(18.5)
                 .blockPen(3.0).noChunkLoading().build());
     }

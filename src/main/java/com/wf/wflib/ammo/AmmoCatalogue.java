@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Map;
 
 /**
- * WFLib base calibres + variants (nominal service loads; dims mm). Mass + muzzle velocity: published service loads
+ * WFLib catalogue calibres + variants (nominal service loads; dims mm); live only once requested. Mass + muzzle velocity: published service loads
  * (Wikipedia cartridge articles, TM 43-0001-27, Nammo handbook); grenade / rocket Cd + motor fitted to published range,
  * peak speed or self-destruct distance; gravity 9.8. {@code damagePerKJ} = median of converted packs; {@code blockPen}:
  * guide §29b anchors, else {@code 31.58 (E kJ / mm)^0.8517}, AP x1.5.
@@ -71,12 +71,12 @@ public final class AmmoCatalogue {
                            float dpk) {
         Calibre c = new Calibre(rl(key), name, kind, bullet, caseLen, caseD, neck, rim, oal, projLen, mat,
                 Calibre.defaultCasing(kind, bullet, mat), cartGrams / 1000f, Calibre.defaultStack(kind));
-        Ammo.register(c, SOURCE);
+        Ammo.define(c);
         return new Cal(c, key, dpk);
     }
 
     private static void add(AmmoVariant.Builder b) {
-        Ammo.register(b.build(), SOURCE);
+        Ammo.define(b.build());
     }
 
     /** Small arms: ball first (calibre default), tracer, AP, subsonic where fielded. */
@@ -97,7 +97,7 @@ public final class AmmoCatalogue {
         }
     }
 
-    static void register() {
+    static void define() {
         CaseMaterial br = CaseMaterial.BRASS, st = CaseMaterial.STEEL;
         CalibreKind p = CalibreKind.PISTOL, r = CalibreKind.RIFLE;
         smallArms(cal("9x19", "9x19mm Parabellum", p, 9.02f, 19.15f, 9.93f, 9.65f, 9.96f, 29.69f, 15.6f, br, 12f,

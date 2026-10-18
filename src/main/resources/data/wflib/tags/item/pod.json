@@ -1,7 +1,13 @@
 {
   "replace": false,
   "values": [
-    "wflib:pod_gmlrs",
-    "wflib:pod_atacms"
+    {
+      "id": "wflib:pod_gmlrs",
+      "required": false
+    },
+    {
+      "id": "wflib:pod_atacms",
+      "required": false
+    }
   ]
 }

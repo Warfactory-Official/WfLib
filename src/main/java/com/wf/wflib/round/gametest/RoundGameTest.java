@@ -60,24 +60,24 @@ public class RoundGameTest {
     static {
         WarheadRegistry.register(RECORDING_WARHEAD, (source, pos) -> DETONATIONS.add(pos));
         ResourceLocation micro = MissileModels.rl("micro");
-        KineticPresetRegistry.register(KineticPreset.builder(ARC_ROUND, micro, RECORDING_WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(ARC_ROUND, micro, RECORDING_WARHEAD)
                 .speed(CLIMB_SPEED).drag(TEST_DRAG).life(4000).build());
-        KineticPresetRegistry.register(KineticPreset.builder(BULLET, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(BULLET, null, WarheadRegistry.rl("inert"))
                 .speed(4.0).life(400).impactDamage(7.0).caliber(12.7).armorPenetration(20.0).noChunkLoading()
                 .passesThroughEntities().tracer(0xFFAA00).build());
-        KineticPresetRegistry.register(KineticPreset.builder(DRILLING_ROUND, micro, RECORDING_WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(DRILLING_ROUND, micro, RECORDING_WARHEAD)
                 .speed(12.0).penetration(3, 100.0).build());
-        KineticPresetRegistry.register(KineticPreset.builder(AIRBURST_ROUND, micro, RECORDING_WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(AIRBURST_ROUND, micro, RECORDING_WARHEAD)
                 .speed(2.0).airburst(6.0).build());
-        KineticPresetRegistry.register(KineticPreset.builder(CONTACT_ROUND, micro, RECORDING_WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(CONTACT_ROUND, micro, RECORDING_WARHEAD)
                 .speed(2.0).build());
-        KineticPresetRegistry.register(KineticPreset.builder(HEADSHOT_ROUND, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(HEADSHOT_ROUND, null, WarheadRegistry.rl("inert"))
                 .speed(0.5).gravity(0.0).impactDamage(3.0).headshot(2.0).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(BOMB, micro, RECORDING_WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(BOMB, micro, RECORDING_WARHEAD)
                 .speed(0.0).drag(0.0).quadraticDrag(0.005).fuseDelay(5).burrow(1.0).noEntityContact().build());
-        KineticPresetRegistry.register(KineticPreset.builder(FAST_ROUND, micro, RECORDING_WARHEAD)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(FAST_ROUND, micro, RECORDING_WARHEAD)
                 .speed(24.0).build());
-        KineticPresetRegistry.register(KineticPreset.builder(DRAG_ROUND, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(DRAG_ROUND, null, WarheadRegistry.rl("inert"))
                 .speed(3.0).drag(0.003).quadraticDrag(0.0011722).gravity(0.04).life(400).noChunkLoading().build());
     }
 

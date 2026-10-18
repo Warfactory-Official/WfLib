@@ -57,10 +57,10 @@ public class BlockPenGameTest {
     private static final List<ProjectileStrikeEvent> STRIKES = new CopyOnWriteArrayList<>();
 
     static {
-        KineticPresetRegistry.register(KineticPreset.builder(RIFLE, null, WarheadRegistry.rl("inert")).speed(SPEED)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(RIFLE, null, WarheadRegistry.rl("inert")).speed(SPEED)
                 .drag(0.0).gravity(0.0).life(100).mass(0.004).energyDamage(0.01).caliber(5.56).blockPen(BLOCK_PEN)
                 .tracer(0xFFAA00).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(SLOW, null, WarheadRegistry.rl("inert")).speed(SPEED / 10.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(SLOW, null, WarheadRegistry.rl("inert")).speed(SPEED / 10.0)
                 .drag(0.0).gravity(0.0).life(200).mass(0.004).energyDamage(0.01).caliber(5.56).blockPen(BLOCK_PEN)
                 .tracer(0xFF3300).noChunkLoading().build());
     }

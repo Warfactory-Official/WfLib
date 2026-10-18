@@ -66,7 +66,7 @@ Two consequences worth internalizing:
 
 **MissilePreset (recommended for shippable missiles).** A frozen, launch-ready config that becomes a
 carryable item and a launcher option. Registered during mod construction. This is how all the built-ins are
-defined (see `MissilePresetRegistry.bootstrap()`), and it is the surface you should use for anything a player
+defined (catalogue in `MissilePresetRegistry.defineDefaults()`, live only once requested via `WFLibContent.missiles`), and it is the surface you should use for anything a player
 picks up and fires.
 
 ```java
@@ -444,8 +444,7 @@ are viable. Give swarm members a fuel tank sized for the full distance; a member
 
 ## 8. Registering your own preset
 
-Add it during mod construction, before items are frozen (the built-ins are added in
-`MissilePresetRegistry.bootstrap()`):
+Add it during mod construction, before the first `RegisterEvent` (`WFLibContent.freeze`); catalogue ids are requested instead (`WFLibContent.missiles(modId, "cruise")`):
 
 ```java
 MissilePresetRegistry.register(

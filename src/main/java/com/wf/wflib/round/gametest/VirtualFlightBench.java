@@ -65,9 +65,9 @@ public class VirtualFlightBench {
     private static final int DISPERSED_TICKS = 20;
 
     static {
-        KineticPresetRegistry.register(KineticPreset.builder(ROUND, null, WarheadRegistry.rl("inert")).speed(4.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(ROUND, null, WarheadRegistry.rl("inert")).speed(4.0)
                 .drag(0.01).gravity(0.0).life(400).impactDamage(1.0).caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(LOADING, null, WarheadRegistry.rl("inert")).speed(4.0)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(LOADING, null, WarheadRegistry.rl("inert")).speed(4.0)
                 .drag(0.01).gravity(0.0).life(400).impactDamage(1.0).caliber(5.56).build());
     }
 

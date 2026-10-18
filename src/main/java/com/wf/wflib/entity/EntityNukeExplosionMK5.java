@@ -1,145 +1,131 @@
 package com.wf.wflib.entity;
 
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.ModEntities;
-import com.wf.wflib.aef.nuke.*;
+import com.wf.wflib.aef.nuke.BombForkJoinPool;
+import com.wf.wflib.aef.nuke.ExplosionNukeGeneric;
+import com.wf.wflib.aef.nuke.ExplosionNukeRayParallelized;
+import com.wf.wflib.aef.nuke.NukeConfig;
+import com.wf.wflib.recon.event.SeismicEvents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
+import org.slf4j.Logger;
 
-public class EntityNukeExplosionMK5 extends EntityExplosionChunkLoading {
-    public static final EntityDataAccessor<Integer> EXPLODE_STRENGTH = SynchedEntityData.defineId(EntityNukeExplosionMK5.class, EntityDataSerializers.INT);
-    public static final EntityDataAccessor<Integer> EXPLODE_RADIUS = SynchedEntityData.defineId(EntityNukeExplosionMK5.class, EntityDataSerializers.INT);
-    // How fast the blast front propagates outward (ray points processed per tick).
-    public static final EntityDataAccessor<Integer> RADIATION_SPEED = SynchedEntityData.defineId(EntityNukeExplosionMK5.class, EntityDataSerializers.INT);
-    private static final int default_explode_strength = 100;
-    // The blast algorithm that does the actual destruction.
-    IExplosionRay explosion;
+import java.util.concurrent.ForkJoinPool;
 
-    public EntityNukeExplosionMK5(EntityType<?> pEntityType, Level pLevel) {
-        super(pEntityType, pLevel);
+// NTM-next: fallout rain, radiation sweep, detonation advancement not ported (no wflib radiation system).
+public class EntityNukeExplosionMK5 extends EntityExplosionChunkLoading implements BombForkJoinPool.IJobCancellable {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    private int strength;
+    private int radius;
+    private int algorithm;
+
+    private ExplosionNukeRayParallelized explosion;
+    private boolean initialized = false;
+    private ForkJoinPool generationPool;
+    private long explosionStart;
+
+    public EntityNukeExplosionMK5(EntityType<? extends EntityNukeExplosionMK5> type, Level level) {
+        super(type, level);
     }
 
-    public EntityNukeExplosionMK5(Level pLevel) {
-        super(ModEntities.NUKE_EXPLOSION.get(), pLevel);
+    public static EntityNukeExplosionMK5 statFac(Level level, int r, double x, double y, double z) {
+        if (r == 0) r = 25;
+        EntityNukeExplosionMK5 mk5 = new EntityNukeExplosionMK5(ModEntities.NUKE_EXPLOSION.get(), level);
+        mk5.strength = 2 * r;
+        mk5.radius = r;
+        mk5.algorithm = NukeConfig.explosionAlgorithm;
+        mk5.setPos(x, y, z);
+        return mk5;
     }
 
-    public EntityNukeExplosionMK5(Level pLevel, Vec3 location, int strength, int radius, int speed) {
-        super(ModEntities.NUKE_EXPLOSION.get(), pLevel);
-        setStrength(strength);
-        setRadius(radius);
-        setSpeed(speed);
-        this.setPos(location);
-    }
-
-    public static EntityNukeExplosionMK5 statFac(Level level, int r, Vec3 location) {
-        r = r == 0 ? 25 : 2 * r;
-        int strength = r;
-        int speed = (int) Math.ceil((double) 10_0000 / strength);
-        int radius = strength / 2;
-        return new EntityNukeExplosionMK5(level, location, strength, radius, speed);
+    public int getRadius() {
+        return radius;
     }
 
     @Override
     public void tick() {
         super.tick();
-        if (getStrength() == 0) {
-            this.clearChunkLoader();
-            this.discard();
+        if (level().isClientSide()) {
+            discard();
             return;
         }
-        if (!this.level().isClientSide) {
-            loadChunk((int) Math.floor(position().x / 16D), (int) Math.floor(position().z / 16D));
-            int damageInterval = getDamageInterval();
-            if (tickCount % damageInterval == 0) {
-                ExplosionNukeGeneric.dealDamage(level(), position(), getRadius());
-            }
+        if (strength == 0) {
+            discard();
+            return;
+        }
 
-            if (explosion == null) {
-                com.wf.wflib.recon.event.SeismicEvents.report((ServerLevel) level(),
-                        getX(), getY(), getZ(), getStrength());
-                if (NukeConfig.explosionAlgorithm == 0) {
-                    explosion = new ExplosionNukeRayBatched(level(), blockPosition(),
-                            getStrength(), getSpeed(), getRadius());
-                } else {
-                    explosion = new ExplosionNukeRayParallelized((ServerLevel) level(), blockPosition(),
-                            getStrength(), getRadius());
-                }
+        ExplosionNukeGeneric.dealDamage(level(), getX(), getY(), getZ(), radius * 2.0D);
+
+        if (!initialized) {
+            ServerLevel server = (ServerLevel) level();
+            explosionStart = System.currentTimeMillis();
+            SeismicEvents.report(server, getX(), getY(), getZ(), strength);
+            generationPool = BombForkJoinPool.acquire();
+            BombForkJoinPool.register(generationPool, server.dimension(), this);
+            try {
+                explosion = new ExplosionNukeRayParallelized(server, getX(), getY(), getZ(), strength, radius, algorithm);
+            } catch (RuntimeException | Error cause) {
+                discard();
+                throw cause;
             }
-            if (!explosion.isComplete()) {
-                int tickBudget = Math.max(1, NukeConfig.mk5BlastTime);
-                int cacheBudget = Math.max(1, tickBudget / 2);
-                int destructionBudget = Math.max(1, tickBudget - cacheBudget);
-                explosion.cacheChunksTick(cacheBudget);
-                explosion.destructionTick(destructionBudget);
-            } else {
-                this.clearChunkLoader();
-                this.discard();
-            }
+            initialized = true;
+        }
+
+        if (explosion.hasFailed()) {
+            discard();
+        } else if (!explosion.isComplete()) {
+            explosion.update(NukeConfig.mk5);
+        } else {
+            LOGGER.info("[NUKE] done: radius {}, {} ms", radius, System.currentTimeMillis() - explosionStart);
+            discard();
         }
     }
 
-    private int getDamageInterval() {
-        int radius = getRadius();
-        if (radius >= 384) return 8;
-        if (radius >= 256) return 6;
-        if (radius >= 160) return 4;
-        if (radius >= 96) return 2;
-        return 1;
+    @Override
+    public void onAddedToLevel() {
+        super.onAddedToLevel();
+        if (!level().isClientSide()) anchor(0);
     }
 
     @Override
-    public void remove(RemovalReason pReason) {
-        if (explosion != null) explosion.cancel();
-        super.remove(pReason);
+    public void remove(RemovalReason reason) {
+        try {
+            if (explosion != null) explosion.cancel();
+        } finally {
+            if (generationPool != null) {
+                BombForkJoinPool.unregister(generationPool, level().dimension(), this);
+                BombForkJoinPool.release(generationPool);
+                generationPool = null;
+            }
+            super.remove(reason);
+        }
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(EXPLODE_STRENGTH, default_explode_strength);
-        builder.define(EXPLODE_RADIUS, 100);
-        builder.define(RADIATION_SPEED, 0);
+    public void cancelJob() {
+        ServerLevel server = (ServerLevel) level();
+        if (server.getServer().isSameThread()) discard();
+        else server.getServer().execute(this::discard);
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag pCompound) {
-        this.setStrength(pCompound.getInt("strength"));
-        this.setRadius(pCompound.getInt("radius"));
-        this.setSpeed(pCompound.getInt("speed"));
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        radius = tag.getInt("radius");
+        strength = tag.getInt("strength");
+        algorithm = tag.getInt("algorithm");
     }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag pCompound) {
-        pCompound.putInt("strength", getStrength());
-        pCompound.putInt("radius", getRadius());
-        pCompound.putInt("speed", getSpeed());
-    }
-
-    protected int getStrength() {
-        return this.entityData.get(EXPLODE_STRENGTH);
-    }
-
-    protected void setStrength(int strength) {
-        this.entityData.set(EXPLODE_STRENGTH, strength);
-    }
-
-    protected int getRadius() {
-        return this.entityData.get(EXPLODE_RADIUS);
-    }
-
-    protected void setRadius(int radius) {
-        this.entityData.set(EXPLODE_RADIUS, radius);
-    }
-
-    protected int getSpeed() {
-        return this.entityData.get(RADIATION_SPEED);
-    }
-
-    protected void setSpeed(int speed) {
-        this.entityData.set(RADIATION_SPEED, speed);
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putInt("radius", radius);
+        tag.putInt("strength", strength);
+        tag.putInt("algorithm", algorithm);
     }
 }

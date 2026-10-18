@@ -14,12 +14,17 @@ import com.wf.wflib.util.FragmentationUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Detonations by id. Catalogue (static block) live only once requested or referenced by a live round / missile
+ * ({@link com.wf.wflib.content.WFLibContent}); own {@link #register} live at once. Reads live only, any thread.
+ */
 public final class WarheadRegistry {
 
     public static final int STANDARD_BLAST_RADIUS = 50;
@@ -104,9 +109,14 @@ public final class WarheadRegistry {
     };
 
     private static final ResourceLocation DEFAULT_ID = rl("standard");
-    private static final Map<ResourceLocation, Detonation> WARHEADS = new LinkedHashMap<>();
-    private static final Map<ResourceLocation, InterceptDetonation> INTERCEPTS = new LinkedHashMap<>();
-    private static final Map<ResourceLocation, Float> BLAST_SIZE = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, Detonation> CATALOGUE = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, InterceptDetonation> CATALOGUE_INTERCEPTS = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, Float> CATALOGUE_BLAST = new LinkedHashMap<>();
+    /** Spawned sub-munition warheads: live with the parent. */
+    private static final Map<ResourceLocation, ResourceLocation> CATALOGUE_CHILD = new LinkedHashMap<>();
+    private static volatile Map<ResourceLocation, Detonation> warheads = Map.of();
+    private static volatile Map<ResourceLocation, InterceptDetonation> intercepts = Map.of();
+    private static volatile Map<ResourceLocation, Float> blastSizes = Map.of();
     /**
      * Peak damage to a person standing on the charge, for warheads that know it outright rather than having it
      * inferred from a blast size.
@@ -114,29 +124,31 @@ public final class WarheadRegistry {
     private static final Map<ResourceLocation, Integer> PEAK_DAMAGE = new LinkedHashMap<>();
 
     static {
-        register(DEFAULT_ID, STANDARD, STANDARD_INTERCEPT);
-        register(rl("mininuke"), MININUKE);
-        register(rl("fragmentation"), FRAGMENTATION);
-        register(rl("shaped_charge"), SHAPED_CHARGE);
-        register(RecursiveFrag.ID, RecursiveFrag::detonate);
-        register(GasWarhead.ID, GasWarhead::detonate);
-        register(FireWarhead.ID, FireWarhead::detonate);
-        register(ThermobaricWarhead.ID, ThermobaricWarhead::detonate);
-        register(AgentOrangeWarhead.ID, AgentOrangeWarhead::detonate);
-        register(TorpedoWarhead.ID, TorpedoWarhead::detonate);
-        register(FireCluster.ID, FireCluster::detonate);
-        register(rl("interceptor"), INTERCEPTOR, INTERCEPTOR::detonate);
-        register(rl("inert"), INERT);
-        register(rl("emp"), EMPWarhead::detonate);
-        register(BombletWarhead.ID, BombletWarhead.STANDARD);
-        register(BombletWarhead.FIRE_ID, BombletWarhead.FIRE);
+        define(DEFAULT_ID, STANDARD, STANDARD_INTERCEPT);
+        define(rl("mininuke"), MININUKE);
+        define(rl("fragmentation"), FRAGMENTATION);
+        define(rl("shaped_charge"), SHAPED_CHARGE);
+        define(RecursiveFrag.ID, RecursiveFrag::detonate);
+        define(GasWarhead.ID, GasWarhead::detonate);
+        define(FireWarhead.ID, FireWarhead::detonate);
+        define(ThermobaricWarhead.ID, ThermobaricWarhead::detonate);
+        define(AgentOrangeWarhead.ID, AgentOrangeWarhead::detonate);
+        define(TorpedoWarhead.ID, TorpedoWarhead::detonate);
+        define(FireCluster.ID, FireCluster::detonate);
+        define(rl("interceptor"), INTERCEPTOR, INTERCEPTOR::detonate);
+        define(rl("inert"), INERT);
+        define(rl("emp"), EMPWarhead::detonate);
+        define(BombletWarhead.ID, BombletWarhead.STANDARD);
+        define(BombletWarhead.FIRE_ID, BombletWarhead.FIRE);
+        CATALOGUE_CHILD.put(rl("fragmentation"), BombletWarhead.ID);
+        CATALOGUE_CHILD.put(FireCluster.ID, BombletWarhead.FIRE_ID);
         com.wf.wflib.grenade.GrenadeWarheads.bootstrap();
 
-        BLAST_SIZE.put(DEFAULT_ID, STANDARD_BLAST_SIZE);
-        BLAST_SIZE.put(FireWarhead.ID, 8F);
-        BLAST_SIZE.put(ThermobaricWarhead.ID, ThermobaricWarhead.SIZE);
-        BLAST_SIZE.put(AgentOrangeWarhead.ID, AgentOrangeWarhead.RADIUS);
-        BLAST_SIZE.put(rl("shaped_charge"), SHAPED_CHARGE_SIZE);
+        CATALOGUE_BLAST.put(DEFAULT_ID, STANDARD_BLAST_SIZE);
+        CATALOGUE_BLAST.put(FireWarhead.ID, 8F);
+        CATALOGUE_BLAST.put(ThermobaricWarhead.ID, ThermobaricWarhead.SIZE);
+        CATALOGUE_BLAST.put(AgentOrangeWarhead.ID, AgentOrangeWarhead.RADIUS);
+        CATALOGUE_BLAST.put(rl("shaped_charge"), SHAPED_CHARGE_SIZE);
     }
 
     private WarheadRegistry() {
@@ -159,25 +171,77 @@ public final class WarheadRegistry {
         return parsed != null ? parsed : DEFAULT_ID;
     }
 
-    public static void register(ResourceLocation id, Detonation detonation) {
-        WARHEADS.put(id, detonation);
+    private static void define(ResourceLocation id, Detonation detonation) {
+        CATALOGUE.put(id, detonation);
     }
 
-    public static void register(ResourceLocation id, Detonation detonation, InterceptDetonation intercept) {
-        WARHEADS.put(id, detonation);
-        INTERCEPTS.put(id, intercept);
+    private static void define(ResourceLocation id, Detonation detonation, InterceptDetonation intercept) {
+        CATALOGUE.put(id, detonation);
+        CATALOGUE_INTERCEPTS.put(id, intercept);
+    }
+
+    /** Own (non-catalogue) warhead: live at once. */
+    public static void register(ResourceLocation id, Detonation detonation) {
+        register(id, detonation, null);
+    }
+
+    public static synchronized void register(ResourceLocation id, Detonation detonation,
+                                             @Nullable InterceptDetonation intercept) {
+        if (CATALOGUE.containsKey(id)) {
+            throw new IllegalStateException("warhead " + id + ": WFLib catalogue entry, request it");
+        }
+        live(id, detonation, intercept, null);
+    }
+
+    /**
+     * Catalogue id not live => live (+ sub-munition child); live / other id => no-op. Freeze + post-freeze preset
+     * registration; dependents request via {@link com.wf.wflib.content.WFLibContent}.
+     */
+    public static synchronized void require(ResourceLocation id) {
+        Detonation d = CATALOGUE.get(id);
+        if (d == null || warheads.containsKey(id)) {
+            return;
+        }
+        live(id, d, CATALOGUE_INTERCEPTS.get(id), CATALOGUE_BLAST.get(id));
+        ResourceLocation child = CATALOGUE_CHILD.get(id);
+        if (child != null) {
+            require(child);
+        }
+    }
+
+    private static void live(ResourceLocation id, Detonation detonation, @Nullable InterceptDetonation intercept,
+                             @Nullable Float blast) {
+        Map<ResourceLocation, Detonation> w = new LinkedHashMap<>(warheads);
+        w.put(id, detonation);
+        warheads = Collections.unmodifiableMap(w);
+        Map<ResourceLocation, InterceptDetonation> i = new LinkedHashMap<>(intercepts);
+        if (intercept != null) {
+            i.put(id, intercept);
+        } else {
+            i.remove(id);
+        }
+        intercepts = Collections.unmodifiableMap(i);
+        if (blast != null) {
+            Map<ResourceLocation, Float> b = new LinkedHashMap<>(blastSizes);
+            b.put(id, blast);
+            blastSizes = Collections.unmodifiableMap(b);
+        }
+    }
+
+    public static Set<ResourceLocation> catalogue() {
+        return Collections.unmodifiableSet(CATALOGUE.keySet());
     }
 
     public static Detonation get(ResourceLocation id) {
-        return WARHEADS.getOrDefault(id, STANDARD);
+        return warheads.getOrDefault(id, STANDARD);
     }
 
     public static Detonation get(ResourceLocation id, Detonation fallback) {
-        return WARHEADS.getOrDefault(id, fallback);
+        return warheads.getOrDefault(id, fallback);
     }
 
     public static InterceptDetonation getIntercept(ResourceLocation id) {
-        InterceptDetonation intercept = INTERCEPTS.get(id);
+        InterceptDetonation intercept = intercepts.get(id);
         if (intercept != null) {
             return intercept;
         }
@@ -186,11 +250,11 @@ public final class WarheadRegistry {
     }
 
     public static boolean exists(ResourceLocation id) {
-        return WARHEADS.containsKey(id);
+        return warheads.containsKey(id);
     }
 
     public static float blastSize(ResourceLocation id) {
-        return BLAST_SIZE.getOrDefault(id, 0f);
+        return blastSizes.getOrDefault(id, 0f);
     }
 
     /** Records what {@code id} does to a person at the centre of it. */
@@ -208,7 +272,7 @@ public final class WarheadRegistry {
     }
 
     public static Set<ResourceLocation> ids() {
-        return Collections.unmodifiableSet(WARHEADS.keySet());
+        return warheads.keySet();
     }
 
     public static ResourceLocation defaultId() {

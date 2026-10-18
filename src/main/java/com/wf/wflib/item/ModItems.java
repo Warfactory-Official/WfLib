@@ -1,6 +1,7 @@
 package com.wf.wflib.item;
 
 import com.wf.wflib.WFLib;
+import com.wf.wflib.content.WFLibContent;
 import com.wf.wflib.kinetic.KineticPreset;
 import com.wf.wflib.kinetic.KineticPresetRegistry;
 import com.wf.wflib.kinetic.KineticShellItem;
@@ -10,6 +11,7 @@ import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.RegisterEvent;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -17,8 +19,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Registers one {@link MissileItem} per registered {@link MissilePreset}, one {@link KineticShellItem} per
- * registered {@link KineticPreset}, and one {@link MineItem} per registered {@link MinePreset}.
+ * One {@link MissileItem} / {@link KineticShellItem} per live preset with an item (item registration, after
+ * {@link WFLibContent#freeze}), one {@link MineItem} per {@link MinePreset}.
  */
 public final class ModItems {
 
@@ -31,17 +33,6 @@ public final class ModItems {
     private static final Map<ResourceLocation, DeferredHolder<Item, Item>> ARMOR_ITEMS = new LinkedHashMap<>();
 
     static {
-        // Presets must exist before we enumerate them into items (both happen before the registry freezes).
-        MissilePresetRegistry.bootstrap();
-        for (MissilePreset preset : MissilePresetRegistry.all()) {
-            MISSILE_ITEMS.put(preset.id(), ITEMS.register(preset.itemPath(),
-                    () -> new MissileItem(preset, new Item.Properties().stacksTo(16))));
-        }
-        KineticPresetRegistry.bootstrap();
-        for (KineticPreset preset : KineticPresetRegistry.all()) {
-            SHELL_ITEMS.put(preset.id(), ITEMS.register(preset.itemPath(),
-                    () -> new KineticShellItem(preset, new Item.Properties().stacksTo(preset.stackSize()))));
-        }
         MinePresetRegistry.bootstrap();
         for (MinePreset preset : MinePresetRegistry.all()) {
             MINE_ITEMS.put(preset.id(), ITEMS.register("mine_" + preset.id().getPath(),
@@ -95,7 +86,7 @@ public final class ModItems {
         return MISSILE_ITEMS.values();
     }
 
-    /** @return the item a missile preset is launched from, or empty if that preset was registered too late. */
+    /** Empty: preset not live or registered after freeze. */
     public static Optional<DeferredHolder<Item, MissileItem>> missileItem(ResourceLocation presetId) {
         return Optional.ofNullable(MISSILE_ITEMS.get(presetId));
     }
@@ -104,7 +95,7 @@ public final class ModItems {
         return SHELL_ITEMS.values();
     }
 
-    /** @return the item a kinetic round is loaded from, or empty if that preset was registered too late. */
+    /** Empty: preset not live, registered after freeze, or an ammo variant. */
     public static Optional<DeferredHolder<Item, KineticShellItem>> shellItem(ResourceLocation presetId) {
         return Optional.ofNullable(SHELL_ITEMS.get(presetId));
     }
@@ -130,5 +121,25 @@ public final class ModItems {
 
     public static void register(IEventBus bus) {
         ITEMS.register(bus);
+        bus.addListener(ModItems::onRegister);
+    }
+
+    private static void onRegister(RegisterEvent event) {
+        if (!event.getRegistryKey().equals(Registries.ITEM)) {
+            return;
+        }
+        WFLibContent.freeze();
+        event.register(Registries.ITEM, helper -> {
+            for (MissilePreset preset : MissilePresetRegistry.withItems()) {
+                ResourceLocation id = WFLibContent.itemId(preset.id(), preset.itemPath());
+                helper.register(id, new MissileItem(preset, new Item.Properties().stacksTo(16)));
+                MISSILE_ITEMS.put(preset.id(), DeferredHolder.create(Registries.ITEM, id));
+            }
+            for (KineticPreset preset : KineticPresetRegistry.withItems()) {
+                ResourceLocation id = WFLibContent.itemId(preset.id(), preset.itemPath());
+                helper.register(id, new KineticShellItem(preset, new Item.Properties().stacksTo(preset.stackSize())));
+                SHELL_ITEMS.put(preset.id(), DeferredHolder.create(Registries.ITEM, id));
+            }
+        });
     }
 }

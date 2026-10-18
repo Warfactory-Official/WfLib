@@ -1,7 +1,16 @@
 {
   "values": [
-    "wflib:cartridge_rpg7",
-    "wflib:cartridge_pzf3",
-    "wflib:cartridge_73mm_spg9"
+    {
+      "id": "wflib:cartridge_rpg7",
+      "required": false
+    },
+    {
+      "id": "wflib:cartridge_pzf3",
+      "required": false
+    },
+    {
+      "id": "wflib:cartridge_73mm_spg9",
+      "required": false
+    }
   ]
 }

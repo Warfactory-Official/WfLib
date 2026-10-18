@@ -69,6 +69,11 @@ final class BuiltinEffects {
                 }
 
                 @Override
+                public java.util.List<ResourceLocation> warheads() {
+                    return java.util.List.of(warhead);
+                }
+
+                @Override
                 public void check(RegistryAccess registries) {
                     if (!WarheadRegistry.exists(warhead)) {
                         throw new IllegalStateException("explode: warhead " + warhead + " not registered");

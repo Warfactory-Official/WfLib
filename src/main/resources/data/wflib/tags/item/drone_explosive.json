@@ -1,9 +1,21 @@
 {
   "values": [
     "#c:ammo/rockets/explosive",
-    "wflib:cartridge_60mm",
-    "wflib:cartridge_81mm",
-    "wflib:cartridge_vog25",
-    "wflib:cartridge_30x29"
+    {
+      "id": "wflib:cartridge_60mm",
+      "required": false
+    },
+    {
+      "id": "wflib:cartridge_81mm",
+      "required": false
+    },
+    {
+      "id": "wflib:cartridge_vog25",
+      "required": false
+    },
+    {
+      "id": "wflib:cartridge_30x29",
+      "required": false
+    }
   ]
 }

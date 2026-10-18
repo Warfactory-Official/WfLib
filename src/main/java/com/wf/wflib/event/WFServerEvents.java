@@ -2865,6 +2865,10 @@ public final class WFServerEvents {
         long swarmId = SwarmManager.newId(level);
         UUID team = com.wf.wflib.recon.ReconOwners.owningEntity(player);
         MissilePreset preset = MissilePresetRegistry.get(MissilePresetRegistry.rl("cruise"));
+        if (preset == null) {
+            src.sendFailure(Component.literal("wflib:cruise not requested"));
+            return 0;
+        }
         Vec3 base = player.getEyePosition().add(player.getLookAngle().scale(3.0));
         for (int i = 0; i < count; i++) {
             MissileEntity m = preset.build(level, target);
@@ -2914,7 +2918,7 @@ public final class WFServerEvents {
     }
 
     private static void spawnInterceptor(ServerLevel level, ServerPlayer player, Vec3 spawn, UUID lock) {
-        MissilePreset preset = MissilePresetRegistry.get(MissilePresetRegistry.rl("interceptor"));
+        MissilePreset preset = MissilePresetRegistry.catalogueEntry(MissilePresetRegistry.rl("interceptor"));
         MissileEntity m = preset.build(level, spawn);
         m.setControlId(player.getUUID());
         m.setOperatorId(player.getUUID());

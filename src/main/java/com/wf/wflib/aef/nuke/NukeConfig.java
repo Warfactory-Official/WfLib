@@ -1,23 +1,24 @@
 package com.wf.wflib.aef.nuke;
 
-/** Tunables for the multi-tick nuclear explosion, ported from HBM's {@code ConfigBomb}. */
 public final class NukeConfig {
 
-    /**
-     * {@link com.wf.wflib.entity.EntityNukeExplosionMK5} ray algorithm: {@code 0} legacy batched, {@code 1}
-     * threaded DDA, {@code 2} threaded DDA + damage accumulation.
-     */
+    /** ms/tick the MK5 spends on chunk admission + publication. */
+    public static long mk5 = 50;
+
+    /** 0 = auto. */
+    public static int blastChunksInFlight = 0;
+
+    /** 1 = binary carve; 2 = per-cell damage accumulation. NTM-next's 0 (batched) not ported. */
     public static int explosionAlgorithm = 2;
 
-    /** Parallelized algorithm: snapshot + generate not-yet-loaded chunks. */
-    public static boolean chunkloading = false;
-
-    /** Parallelized algorithm: blocks cleared per destruction-tick budget. */
-    public static int blastSpeed = 1024;
-
-    /** Parallelized algorithm: ms/tick budgeted to caching + destruction. */
-    public static int mk5BlastTime = 50;
+    /** Bomb pool workers; {@code <= 0} => processors + value. */
+    public static int maxThreads = -1;
 
     private NukeConfig() {
+    }
+
+    public static int chunksInFlight() {
+        int configured = blastChunksInFlight;
+        return configured > 0 ? configured : Math.max(64, Runtime.getRuntime().availableProcessors() * 8);
     }
 }

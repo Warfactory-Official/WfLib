@@ -1,16 +1,49 @@
 {
   "replace": false,
   "values": [
-    "wflib:shell_he",
-    "wflib:shell_ap",
-    "wflib:shell_heat",
-    "wflib:shell_frag",
-    "wflib:shell_incendiary",
-    "wflib:shell_chemical",
-    "wflib:shell_cluster",
-    "wflib:shell_emp",
-    "wflib:shell_rap",
-    "wflib:shell_nuclear",
-    "wflib:shell_practice"
+    {
+      "id": "wflib:shell_he",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_ap",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_heat",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_frag",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_incendiary",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_chemical",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_cluster",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_emp",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_rap",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_nuclear",
+      "required": false
+    },
+    {
+      "id": "wflib:shell_practice",
+      "required": false
+    }
   ]
 }

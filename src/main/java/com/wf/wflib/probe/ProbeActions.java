@@ -91,7 +91,8 @@ public final class ProbeActions {
         ServerLevel level = player.serverLevel();
         if (packet.entityId() >= 0) {
             Entity entity = level.getEntity(packet.entityId());
-            if (entity == null || entity.getBoundingBox().distanceToSqr(player.getEyePosition()) > MAX_RANGE_SQR) {
+            if (entity == null || entity.getBoundingBox().distanceToSqr(player.getEyePosition()) > MAX_RANGE_SQR
+                    || !ProbeSight.sees(player, entity)) {
                 return;
             }
             TimedEntity timed = TIMED_ENTITIES.get(packet.action());
@@ -112,7 +113,8 @@ public final class ProbeActions {
 
         BlockPos pos = packet.pos();
         if (!level.isLoaded(pos)
-                || player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > MAX_RANGE_SQR) {
+                || player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > MAX_RANGE_SQR
+                || !ProbeSight.sees(player, pos)) {
             return;
         }
         BlockState state = level.getBlockState(pos);

@@ -119,22 +119,22 @@ public class RoundHitGameTest {
 
     static {
         WarheadRegistry.register(RECORDING, (source, pos) -> DETONATIONS.add(pos));
-        KineticPresetRegistry.register(KineticPreset.builder(LINE, null, RECORDING)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(LINE, null, RECORDING)
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(1.0).caliber(5.56).noChunkLoading()
                 .passesThroughEntities().build());
-        KineticPresetRegistry.register(KineticPreset.builder(HEAD, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(HEAD, null, WarheadRegistry.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(2.0).headshot(2.0).caliber(5.56)
                 .noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(PIERCING, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(PIERCING, null, WarheadRegistry.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(2.0).pierce(PIERCE_DT, PIERCE_DR)
                 .caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(ENERGY, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(ENERGY, null, WarheadRegistry.rl("inert"))
                 .speed(40.0).drag(0.0).gravity(0.0).life(40).mass(ENERGY_MASS).energyDamage(ENERGY_PER_KJ)
                 .caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.register(KineticPreset.builder(TEN, null, WarheadRegistry.rl("inert"))
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(TEN, null, WarheadRegistry.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(10.0).caliber(5.56).noChunkLoading()
                 .build());
-        KineticPresetRegistry.register(KineticPreset.builder(STOP, null, RECORDING)
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(STOP, null, RECORDING)
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(1.0).caliber(5.56).noChunkLoading()
                 .build());
         ArmorSystem.claimResolution(e -> e.getTags().contains(CLAIMED));

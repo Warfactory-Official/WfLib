@@ -1,6 +1,7 @@
 package com.wf.wflib.ammo;
 
 import com.wf.wflib.WFLib;
+import com.wf.wflib.content.WFLibContent;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +17,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** {@code wflib:ammo_variant} component + one {@link CartridgeItem} per calibre, registered at {@link Ammo#freeze}. */
+/** {@code wflib:ammo_variant} component + one {@link CartridgeItem} per live calibre, item registration. */
 public final class AmmoItems {
     public static final DeferredRegister<DataComponentType<?>> COMPONENTS =
             DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, WFLib.MODID);
@@ -43,7 +44,7 @@ public final class AmmoItems {
         if (!event.getRegistryKey().equals(Registries.ITEM)) {
             return;
         }
-        Ammo.freeze();
+        WFLibContent.freeze();
         Map<ResourceLocation, CartridgeItem> out = new LinkedHashMap<>();
         event.register(Registries.ITEM, helper -> Ammo.calibres().forEach(c -> {
             CartridgeItem item = new CartridgeItem(c, new Item.Properties().stacksTo(c.stackSize())

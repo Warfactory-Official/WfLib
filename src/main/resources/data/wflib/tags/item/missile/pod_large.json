@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "wflib:missile_atacms"
+    {
+      "id": "wflib:missile_atacms",
+      "required": false
+    }
   ]
 }

@@ -17,4 +17,9 @@ public interface ImpactEffect {
     /** Server start, per bound preset: missing registry/warhead refs => {@link IllegalStateException}. */
     default void check(RegistryAccess registries) {
     }
+
+    /** Warheads it detonates: catalogue ones go live with the bound preset. */
+    default java.util.List<net.minecraft.resources.ResourceLocation> warheads() {
+        return java.util.List.of();
+    }
 }

@@ -54,11 +54,13 @@ public final class WFCreativeTabs {
                         output.accept(ModBlocks.ORBITAL_JAMMER_ITEM.get());
                         output.accept(ModBlocks.CARGO_SHUTTLE_ITEM.get());
                         output.accept(ModItems.GRID_KEY.get());
-                        // Preset missiles (registration order).
-                        ModItems.missileItems().forEach(item -> output.accept(item.get()));
-                        // Loadable kinetic rounds (registration order).
-                        ModItems.shellItems().forEach(item -> output.accept(item.get()));
-                        // Catalogue cartridges; other sources list theirs in their own tabs.
+                        // Catalogue rounds; other sources list theirs in their own tabs.
+                        ModItems.missileItems().stream().map(DeferredHolder::get)
+                                .filter(i -> i.preset().id().getNamespace().equals(WFLib.MODID))
+                                .forEach(output::accept);
+                        ModItems.shellItems().stream().map(DeferredHolder::get)
+                                .filter(i -> i.preset().id().getNamespace().equals(WFLib.MODID))
+                                .forEach(output::accept);
                         com.wf.wflib.ammo.Ammo.variants().stream()
                                 .filter(v -> v.id().getNamespace().equals(WFLib.MODID))
                                 .forEach(v -> output.accept(com.wf.wflib.ammo.AmmoItems.stack(v, 1)));
