@@ -8,6 +8,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Builds a wall-respecting gas cloud out of many static {@link MistEntity} box cells. */
@@ -54,12 +55,18 @@ public final class GasCloud {
 
     /** @param tint per-cell RGB ({@link MistEntity#setTint}); -1 = fluid colour */
     public static int spawn(Level level, Fluid fluid, Vec3 center, int radius, int maxCells, int duration, int tint) {
+        return spawnCells(level, fluid, center, radius, maxCells, duration, tint).size();
+    }
+
+    /** {@link #spawn}, returning the cells. */
+    public static List<MistEntity> spawnCells(Level level, Fluid fluid, Vec3 center, int radius, int maxCells,
+                                              int duration, int tint) {
         if (level.isClientSide) {
-            return 0;
+            return List.of();
         }
         VolumetricFill.Fill fill = VolumetricFill.flood(level, BlockPos.containing(center), radius, maxCells, true);
         if (fill == null || fill.count() == 0) {
-            return 0;
+            return List.of();
         }
 
         List<int[]> boxes = VolumetricFill.decompose(fill);
@@ -70,6 +77,7 @@ public final class GasCloud {
             boxes = boxes.subList(0, MAX_BOXES);
         }
 
+        List<MistEntity> cells = new ArrayList<>(boxes.size());
         for (int[] b : boxes) {
             double wx = fill.minX() + b[0];
             double wy = fill.minY() + b[1];
@@ -77,8 +85,9 @@ public final class GasCloud {
             float sx = b[3] - b[0] + 1;
             float sy = b[4] - b[1] + 1;
             float sz = b[5] - b[2] + 1;
-            MistEntity.spawnBox(level, fluid, wx, wy, wz, sx, sy, sz, duration, DEFAULT_EFFECT_INTERVAL, tint);
+            cells.add(MistEntity.spawnBox(level, fluid, wx, wy, wz, sx, sy, sz, duration, DEFAULT_EFFECT_INTERVAL,
+                    tint));
         }
-        return boxes.size();
+        return cells;
     }
 }

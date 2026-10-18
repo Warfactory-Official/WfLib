@@ -1,6 +1,8 @@
 package com.wf.wflib.config;
 
+import com.wf.gemrender.water.Absorbance;
 import com.wf.wflib.audio.AudioCategory;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class WFClientConfig {
@@ -11,6 +13,17 @@ public final class WFClientConfig {
 
     public static final ModConfigSpec.BooleanValue VOLUMETRIC_GAS;
     public static final ModConfigSpec.ConfigValue<String> VOLUMETRIC_GAS_QUALITY;
+    public static final ModConfigSpec.EnumValue<ParticleResolution> PARTICLE_RESOLUTION;
+
+    public enum ParticleResolution {
+        FULL(1), HALF(2), QUARTER(4);
+
+        final int factor;
+
+        ParticleResolution(int factor) {
+            this.factor = factor;
+        }
+    }
 
     /** System-property override: dev run flips gas settings without editing/racing the generated toml. */
     private static final String VOLUMETRIC_GAS_PROPERTY = "wflib.volumetricGas";
@@ -56,6 +69,12 @@ public final class WFClientConfig {
                         "MEDIUM is 48 with a 4-step light march; HIGH is 96 with 6. MEDIUM is the first",
                         "setting that looks like smoke. Ignored unless volumetric is on.")
                 .define("volumetricQuality", "MEDIUM");
+        PARTICLE_RESOLUTION = b
+                .comment("Resolution smoke, gas and dust are drawn at before being scaled up to the screen.",
+                        "Soft smoke loses nothing visible at QUARTER (1/16 of the pixels), and a screen full of",
+                        "smoke costs a fraction of FULL. Edges of blocks and models in front of the smoke stay",
+                        "sharp. FULL only if you see smoke bleeding around thin objects.")
+                .defineEnum("particleResolution", ParticleResolution.QUARTER);
         b.pop();
 
         b.comment("Drone camera feeds.").push("droneCamera");
@@ -142,6 +161,15 @@ public final class WFClientConfig {
         } catch (IllegalStateException e) {
             return "MEDIUM";
         }
+    }
+
+    /** Loaded values -> GemRender, one-way. */
+    public static void onLoad(ModConfigEvent event) {
+        if (event.getConfig().getSpec() != SPEC) {
+            return;
+        }
+        Absorbance.getInstance()
+                .resolutionFactor(PARTICLE_RESOLUTION.get().factor);
     }
 
     private WFClientConfig() {

@@ -1,6 +1,7 @@
 package com.wf.wflib.grenade;
 
 import com.wf.wflib.api.ChargeSpec;
+import com.wf.wflib.entity.MistEntity;
 import com.wf.wflib.entity.OBBEntity;
 import com.wf.wflib.util.OBB;
 import com.wf.wflib.warhead.WarheadCarrier;
@@ -93,6 +94,8 @@ public class ThrownCharge extends Projectile implements WarheadCarrier, IEntityW
     private int phaseAge;
     @Nullable
     private UUID hostUuid;
+    /** Server: cells of the last smoke stage; next stage replaces them. Not saved. */
+    List<MistEntity> smokeCells = List.of();
     /** Client-only debris (a released spoon): ticks to live; 0 = a real charge. */
     private int debrisLife;
     private static int debrisIds = -1_000_000;

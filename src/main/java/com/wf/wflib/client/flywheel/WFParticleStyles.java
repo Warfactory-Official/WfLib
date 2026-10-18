@@ -134,7 +134,7 @@ public final class WFParticleStyles {
                 .drag(DRAG_09, 0.0F)
                 .size(0.75F, 1.5F)
                 .tint(k & 0xFFFFFF)
-                .alpha(0.22F, 0.35F)
+                .alpha(0.392F, 0.35F)
                 .fadeIn(0.2F)
                 .spin(0.4F)
                 .light(block / 16.0F, sky / 16.0F)

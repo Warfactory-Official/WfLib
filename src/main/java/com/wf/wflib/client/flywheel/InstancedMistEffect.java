@@ -21,7 +21,7 @@ import java.util.List;
 
 public class InstancedMistEffect implements WFFlywheelEffect {
 
-    private static final double PARTICLE_DENSITY = 0.09;
+    private static final double PARTICLE_DENSITY = 0.045;
 
     private static final int MAX_EMIT = 180;
 
@@ -45,6 +45,8 @@ public class InstancedMistEffect implements WFFlywheelEffect {
 
     private AABB opticsBox;
     private float extinction;
+    /** Fractional emission carried between ticks. */
+    private double owed;
 
     private boolean sourceGone = false;
 
@@ -62,7 +64,7 @@ public class InstancedMistEffect implements WFFlywheelEffect {
         int blockLight = LightTexture.block(packed);
         int skyLight = LightTexture.sky(packed);
 
-        int capacity = (int) (emitFor(box) * (LIFE_TICKS_MIN + LIFE_TICKS_JITTER) * RING_HEADROOM);
+        int capacity = (int) Math.ceil(emitFor(box) * (LIFE_TICKS_MIN + LIFE_TICKS_JITTER) * RING_HEADROOM) + 1;
         style = WFParticleStyles.mist(tint, blockLight, skyLight);
         emitter = ParticleEmitter.create(style, capacity, mx, my, mz);
         LIVE.add(this);
@@ -108,9 +110,10 @@ public class InstancedMistEffect implements WFFlywheelEffect {
         return extinction;
     }
 
-    private static int emitFor(AABB box) {
+    /** Particles/tick; fractional => small cells keep the large-cell density. */
+    private static double emitFor(AABB box) {
         double volume = (box.maxX - box.minX) * (box.maxY - box.minY) * (box.maxZ - box.minZ);
-        return Mth.clamp((int) Math.round(volume * PARTICLE_DENSITY), 1, MAX_EMIT);
+        return Math.min(volume * PARTICLE_DENSITY, MAX_EMIT);
     }
 
     ParticleEmitter emitter() {
@@ -135,7 +138,9 @@ public class InstancedMistEffect implements WFFlywheelEffect {
         }
 
         AABB box = source.getBoundingBox();
-        int emit = emitFor(box);
+        owed += emitFor(box);
+        int emit = (int) owed;
+        owed -= emit;
 
         for (int i = 0; i < emit; i++) {
             double x = box.minX + level.random.nextDouble() * (box.maxX - box.minX);

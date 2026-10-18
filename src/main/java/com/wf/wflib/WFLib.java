@@ -72,6 +72,7 @@ public class WFLib {
                 e -> e.enqueueWork(WFLibContent::loadComplete));
         modEventBus.addListener(WFConfig::onLoad);
         modEventBus.addListener(com.wf.wflib.armor.ArmorConfig::onLoad);
+        modEventBus.addListener(WFClientConfig::onLoad);
         modContainer.registerConfig(
                 ModConfig.Type.COMMON, WFConfig.SPEC);
         modContainer.registerConfig(

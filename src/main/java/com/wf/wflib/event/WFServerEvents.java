@@ -334,6 +334,15 @@ public final class WFServerEvents {
                         .then(Commands.argument("radius", IntegerArgumentType.integer(1, 32))
                                 .executes(ctx -> spawnGas(ctx.getSource(),
                                         IntegerArgumentType.getInteger(ctx, "radius")))))
+                .then(Commands.literal("smoke")
+                        .executes(ctx -> spawnSmoke(ctx.getSource(), net.minecraft.world.item.DyeColor.WHITE))
+                        .then(Commands.argument("dye", StringArgumentType.word())
+                                .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
+                                        java.util.Arrays.stream(net.minecraft.world.item.DyeColor.values())
+                                                .map(net.minecraft.world.item.DyeColor::getName), b))
+                                .executes(ctx -> spawnSmoke(ctx.getSource(), net.minecraft.world.item.DyeColor
+                                        .byName(StringArgumentType.getString(ctx, "dye"),
+                                                net.minecraft.world.item.DyeColor.WHITE)))))
                 .then(Commands.literal("intercept")
                         .then(Commands.literal("nearest")
                                 .executes(ctx -> interceptNearest(ctx.getSource())))
@@ -2597,6 +2606,16 @@ public final class WFServerEvents {
      * Releases a mustard gas cloud at the command's position: the same {@link GasCloud#spawn} call the chemical
      * warhead makes, without having to fly a missile at something.
      */
+    /** Smoke grenade reaction at the source position, no thrown body. */
+    private static int spawnSmoke(CommandSourceStack src, net.minecraft.world.item.DyeColor dye) {
+        Vec3 pos = src.getPosition();
+        com.wf.wflib.grenade.ThrownCharge.react(src.getLevel(), pos, net.minecraft.world.item.ItemStack.EMPTY,
+                new com.wf.wflib.api.ChargeSpec(com.wf.wflib.grenade.GrenadeWarheads.smoke(dye), 0, 0.2f, false,
+                        false, 0, 0, 0), new Vec3(0, 1, 0), src.getEntity(), null, false);
+        src.sendSuccess(() -> Component.literal("Smoke " + dye.getName() + " at " + BlockPos.containing(pos)), true);
+        return 1;
+    }
+
     private static int spawnGas(CommandSourceStack src, int radius) {
         Vec3 pos = src.getPosition();
         int cells = GasCloud.spawn(src.getLevel(), WFFluids.MUSTARD_GAS.get(), pos, radius,

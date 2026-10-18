@@ -261,8 +261,11 @@ public final class GrenadeWarheads {
     private static void smokeTick(ThrownCharge charge, int age, int tint) {
         for (int[] stage : SMOKE_STAGES) {
             if (age == stage[0]) {
-                GasCloud.spawn(charge.level(), WFFluids.SMOKE.get(), charge.position().add(0, 0.5, 0), stage[1],
-                        GasCloud.DEFAULT_MAX_CELLS, SMOKE_BURN - age + SMOKE_LINGER, tint);
+                // Stage flood covers the previous one => stacked cells = overdraw only.
+                charge.smokeCells.forEach(Entity::discard);
+                charge.smokeCells = GasCloud.spawnCells(charge.level(), WFFluids.SMOKE.get(),
+                        charge.position().add(0, 0.5, 0), stage[1], GasCloud.DEFAULT_MAX_CELLS,
+                        SMOKE_BURN - age + SMOKE_LINGER, tint);
             }
         }
     }
