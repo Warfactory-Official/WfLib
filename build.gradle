@@ -79,9 +79,9 @@ repositories {
     }
 
     // --- WarForge Factions Remaintained ------------------------------------------------------
-    // Its own release maven, then mavenLocal. Both scoped to com.flansmod.warforge so mavenLocal
-    // can never shadow a real dependency. repo.warfactory.co is still on 2.1.0 (1.20.1 Forge), so
-    // the 1.21.1 build (${warforge_version}) currently comes from mavenLocal (see gradle.properties).
+    // The 1.21.1 NeoForge build comes from the snapshots channel below (WarForge's multi-version CI publishes
+    // warforge-remaintained-1.21.1-neoforge:<version>-SNAPSHOT). Its release maven is still on 2.1.0 (1.20.1
+    // Forge); mavenLocal stays for a local WarForge build (`publishToMavenLocal` in its checkout).
     maven {
         name = 'Warfactory Releases'
         url = 'https://repo.warfactory.co/releases'
@@ -93,7 +93,7 @@ repositories {
     maven {
         name = 'Warfactory Snapshots'
         url = 'https://repo.warfactory.co/snapshots'
-        content { includeGroup 'com.wf.gemrender'; includeGroup 'com.norwood'; includeGroup 'warfactory.ultimateweight' }
+        content { includeGroup 'com.wf.gemrender'; includeGroup 'com.norwood'; includeGroup 'warfactory.ultimateweight'; includeGroup 'com.flansmod.warforge' }
         // Anonymous reads work on this server; only `publish` needs credentials. A present-but-null
         // credentials block makes Gradle refuse anonymous reads too, so omit it entirely when unset.
         def warfactoryUser = project.findProperty('warfactoryUser') ?: System.getenv('WARFACTORY_MAVEN_USER')
@@ -356,13 +356,13 @@ dependencies {
     //     compileOnly + transitive=false, same rationale as GregTech: WarForge is only present at
     //     runtime if the user installs it, and its LDLib2 dependency has no business on our
     //     compile classpath.
-    compileOnly("com.flansmod.warforge:warforge-remaintained:${warforge_version}") { transitive = false }
+    compileOnly("com.flansmod.warforge:warforge-remaintained-1.21.1-neoforge:${warforge_version}-SNAPSHOT") { transitive = false }
 
     // Dev-only: `-PwithWarforge` puts WarForge and its LDLib2 runtime dependency into the dev run
     // classpath so the integration can actually be exercised in-game. Off by default, since a dev
     // run without it is the "WarForge absent" path the compat layer also has to handle.
     if (project.hasProperty('withWarforge')) {
-        localRuntime("com.flansmod.warforge:warforge-remaintained:${warforge_version}") { transitive = false }
+        localRuntime("com.flansmod.warforge:warforge-remaintained-1.21.1-neoforge:${warforge_version}-SNAPSHOT") { transitive = false }
         localRuntime "com.lowdragmc.ldlib2:ldlib2-neoforge-${minecraft_version}:${ldlib2_version}:all"
     }
 
