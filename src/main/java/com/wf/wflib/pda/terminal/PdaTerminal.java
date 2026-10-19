@@ -35,7 +35,8 @@ public final class PdaTerminal {
     static final Pattern NAME = Pattern.compile("[A-Za-z0-9_-]{1,16}");
     /** < {@link TerminalReplyPacket} list cap. */
     private static final int MAX_LINES = 200;
-    private static final String HELP = "drones | nodes | sats | rename <drone|node|sat> <#n|name> <new|->";
+    private static final String HELP = "drones | nodes | sats | rename <drone|node|sat> <#n|name> <new|->"
+            + " | fastfetch [server] | cmatrix | clear";
 
     private PdaTerminal() {
     }
@@ -60,6 +61,8 @@ public final class PdaTerminal {
                 yield sats == null ? List.of("err: no uplink") : list(sats, s -> s.callsign() + "  "
                         + s.payload().getPath(), "no satellites on this net");
             }
+            case "fastfetch" -> w.length == 2 && w[1].equalsIgnoreCase("server") ? ServerFetch.lines(player)
+                    : List.of("fastfetch shows your machine; 'fastfetch server' shows the host");
             case "rename" -> List.of(w.length == 4 ? rename(player, w[1].toLowerCase(Locale.ROOT), w[2], w[3])
                     : "err: " + HELP);
             default -> List.of("err: unknown '" + w[0] + "' (help)");

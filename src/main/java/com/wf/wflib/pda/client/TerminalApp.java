@@ -12,11 +12,15 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static com.wf.wflib.ui.Ui.at;
 import static com.wf.wflib.ui.Ui.stack;
 
-/** Command line ({@code PdaTerminal}): list / rename drones, grid nodes, satellites. */
+/**
+ * Command line ({@code PdaTerminal}): list / rename drones, grid nodes, satellites. Local, never sent to the server:
+ * {@code clear}, {@code cmatrix} (Enter quits) and {@code fastfetch} (this machine).
+ */
 public final class TerminalApp implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "terminal");
     private static final int LOG_LINES = 200;
@@ -44,12 +48,20 @@ public final class TerminalApp implements PdaApp {
     }
 
     private static void submit(String line) {
-        log("> " + line, TEXT);
-        if (line.trim().equalsIgnoreCase("clear")) {
-            LOG.clear();
+        if (MatrixRain.active()) {
+            MatrixRain.stop();
             return;
         }
-        PacketDistributor.sendToServer(new TerminalCommandPacket(line));
+        log("> " + line, TEXT);
+        switch (line.trim().toLowerCase(Locale.ROOT)) {
+            case "clear" -> LOG.clear();
+            case "cmatrix" -> MatrixRain.start();
+            case "fastfetch" -> {
+                log("reading this machine...", DIM);
+                Fastfetch.run(lines -> lines.forEach(l -> log(l, TEXT)));
+            }
+            default -> PacketDistributor.sendToServer(new TerminalCommandPacket(line));
+        }
     }
 
     private static void log(String text, int colour) {
@@ -70,6 +82,11 @@ public final class TerminalApp implements PdaApp {
     }
 
     @Override
+    public void closed() {
+        MatrixRain.stop();
+    }
+
+    @Override
     public boolean visible(LocalPlayer player) {
         return PdaClient.held();
     }
@@ -81,6 +98,7 @@ public final class TerminalApp implements PdaApp {
         return stack(
                 at("8", "8", PdaShell.panel(w, h)),
                 at("12", "12", new PdaLog(LOG, w - 8, h - 26)),
+                at("12", "12", new MatrixRain(w - 8, h - 26)),
                 at("12", Float.toString(h - 10), new TextField(INPUT, "> ", w - 8, 13, 0xFF101210, 0xFF787F76,
                         ACCENT, TEXT, ACCENT)));
     }
