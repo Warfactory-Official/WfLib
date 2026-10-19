@@ -27,7 +27,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.Nullable;
 
 /** Cartridge item renderer (GemRender direct path) + trails behind entity-less rounds whose look has one. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class AmmoClient {
     /** Cartridge longest side, item cell units. */
     static final float FILL = 0.9f;

@@ -15,10 +15,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Handheld PDA. Use = raise / lower, handled client-side ({@code PdaClient}), never reaches the server;
@@ -60,15 +58,5 @@ public final class PdaItem extends Item {
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
         CameraChannels channels = stack.getOrDefault(ModDataComponents.CHANNELS.get(), CameraChannels.EMPTY);
         lines.add(Component.translatable("wflib.pda.cameras", channels.size()).withStyle(ChatFormatting.GRAY));
-    }
-
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-            @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return com.wf.wflib.pda.client.PdaRenderer.itemRenderer();
-            }
-        });
     }
 }

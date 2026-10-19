@@ -15,7 +15,7 @@ public final class ProbeDefaults {
     public static void register() {
         ProbeRegistry.addAnyBlock((info, ctx, state, pos, blockEntity) -> {
             info.titleFallback(state.getBlock().getName());
-            ItemStack pick = state.getBlock().getCloneItemStack(ctx.level(), pos, state);
+            ItemStack pick = state.getCloneItemStack(ctx.hit(), ctx.level(), pos, ctx.player());
             if (!pick.isEmpty()) {
                 info.titleIconFallback(new ProbeElement.Icon(pick, 12, false));
             }

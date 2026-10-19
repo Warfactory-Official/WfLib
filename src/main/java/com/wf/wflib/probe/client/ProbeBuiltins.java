@@ -19,7 +19,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import java.util.List;
 
 /** Probe panels for this mod's own blocks. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ProbeBuiltins {
 
     private ProbeBuiltins() {

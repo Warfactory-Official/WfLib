@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.cam;
 
+import net.minecraft.core.SectionPos;
 import com.wf.wflib.block.SecurityCameraBlock;
 import com.wf.wflib.config.WFConfig;
 import com.wf.wflib.orbital.SpotFeeds;
@@ -127,7 +128,7 @@ public final class CameraChunkStream {
                 return null;
             }
             BlockPos pos = at.pos();
-            if (level.hasChunkAt(pos)
+            if (level.hasChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()))
                     && !(level.getBlockState(pos).getBlock() instanceof SecurityCameraBlock)) {
                 StaticCameraFeeds.invalidate(level, pos);
                 return null;

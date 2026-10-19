@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** A revision counter for the subchunks that something is resting on. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class MineSectionWatch {
 
     /** The revision of a section nothing is watching. Never equal to a live revision. */

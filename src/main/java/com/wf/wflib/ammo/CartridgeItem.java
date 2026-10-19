@@ -30,18 +30,6 @@ public class CartridgeItem extends Item {
     }
 
     @Override
-    @net.neoforged.api.distmarker.OnlyIn(net.neoforged.api.distmarker.Dist.CLIENT)
-    public void initializeClient(java.util.function.Consumer<net.neoforged.neoforge.client.extensions.common
-            .IClientItemExtensions> consumer) {
-        consumer.accept(new net.neoforged.neoforge.client.extensions.common.IClientItemExtensions() {
-            @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return com.wf.wflib.ammo.client.AmmoClient.renderer();
-            }
-        });
-    }
-
-    @Override
     public Component getName(ItemStack stack) {
         return Component.literal(calibre.name() + " " + variant(stack).name());
     }

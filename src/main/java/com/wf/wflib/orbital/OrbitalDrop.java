@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital;
 
+import net.minecraft.core.SectionPos;
 import com.wf.wflib.sim.SimMissileManager;
 import com.wf.wflib.MissileEntity;
 import com.wf.wflib.sim.SimMissile;
@@ -70,7 +71,7 @@ public final class OrbitalDrop {
 
     public static double groundAt(ServerLevel level, double x, double z) {
         BlockPos at = BlockPos.containing(x, 0.0, z);
-        if (!level.hasChunkAt(at)) {
+        if (!level.hasChunk(SectionPos.blockToSectionCoord(at.getX()), SectionPos.blockToSectionCoord(at.getZ()))) {
             return 96.0;
         }
         return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(x), Mth.floor(z));

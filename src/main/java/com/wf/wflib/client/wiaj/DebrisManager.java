@@ -18,7 +18,7 @@ import org.joml.Matrix4f;
 import java.util.ArrayList;
 import java.util.List;
 
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class DebrisManager {
 
     /** Safety cap: a barrage of explosions can't pile up unbounded debris. */

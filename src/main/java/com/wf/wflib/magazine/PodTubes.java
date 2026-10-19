@@ -35,11 +35,23 @@ public record PodTubes(List<ItemStack> tubes) {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof PodTubes p && ItemStack.listMatches(tubes, p.tubes);
+        if (!(o instanceof PodTubes p) || tubes.size() != p.tubes.size()) {
+            return false;
+        }
+        for (int i = 0; i < tubes.size(); i++) {
+            if (!ItemStack.matches(tubes.get(i), p.tubes.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
     public int hashCode() {
-        return ItemStack.hashStackList(tubes);
+        int hash = 0;
+        for (ItemStack tube : tubes) {
+            hash = hash * 31 + ItemStack.hashItemAndComponents(tube);
+        }
+        return hash;
     }
 }

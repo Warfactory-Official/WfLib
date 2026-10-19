@@ -8,7 +8,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Registers the mod's custom payloads (replaces the old Forge SimpleChannel). */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class WFPayloadRegistrar {
 
     private WFPayloadRegistrar() {

@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class BackpackClient {
     private static final int NODE = 0xFF9ACD60;
     private static final int LOCKED = 0xFFE0B040;

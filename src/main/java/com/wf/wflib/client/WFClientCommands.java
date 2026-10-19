@@ -19,7 +19,7 @@ import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.util.Locale;
 
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class WFClientCommands {
 
     private WFClientCommands() {

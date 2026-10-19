@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Locale;
 
 /** What the probe says about a mine, and what you can do to it from where you are standing. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class MineProbe {
 
     private MineProbe() {

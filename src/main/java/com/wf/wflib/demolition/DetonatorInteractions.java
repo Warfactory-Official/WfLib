@@ -10,7 +10,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 /** Gives the detonator first claim on a right-click aimed at anything it can fire. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class DetonatorInteractions {
 
     private DetonatorInteractions() {

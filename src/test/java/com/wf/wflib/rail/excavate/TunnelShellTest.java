@@ -116,7 +116,7 @@ class TunnelShellTest {
         return new CarveVolume() {
             @Override
             public BoundingBox bounds() {
-                return a.bounds().encapsulate(b.bounds());
+                return BoundingBox.encapsulatingBoxes(java.util.List.of(a.bounds(), b.bounds())).orElseThrow();
             }
 
             @Override

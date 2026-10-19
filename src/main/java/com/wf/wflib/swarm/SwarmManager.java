@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Tracks missile <em>swarms</em>: families of missiles (typically a {@link
  * com.wf.wflib.warhead.RecursiveFrag} cluster) that share a non-zero {@code swarmId}.
  */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class SwarmManager {
 
     // level -> (swarmId -> members). Server-side only; the client never queries membership.

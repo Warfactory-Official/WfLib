@@ -54,7 +54,7 @@ public class BlockProcessorStandard implements IBlockProcessor {
                 continue;
             }
 
-            if (state.getBlock().dropFromExplosion(explosion.compat)) {
+            if (state.canDropFromExplosion(level, pos, explosion.compat)) {
                 float roll = chance != null
                         ? chance.mutateDropChance(explosion, state, pos.getX(), pos.getY(), pos.getZ(), dropChance)
                         : dropChance;

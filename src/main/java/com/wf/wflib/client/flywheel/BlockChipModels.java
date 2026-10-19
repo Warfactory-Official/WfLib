@@ -1,5 +1,6 @@
 package com.wf.wflib.client.flywheel;
 
+import net.neoforged.neoforge.client.model.data.ModelData;
 import com.wf.gemrender.particle.ParticleModels;
 import com.wf.gemrender.particle.ParticleQuad;
 import dev.engine_room.flywheel.api.model.Model;
@@ -22,8 +23,8 @@ public final class BlockChipModels {
     public static Model of(BlockState state) {
         TextureAtlasSprite sprite = Minecraft.getInstance()
                 .getBlockRenderer()
-                .getBlockModelShaper()
-                .getParticleIcon(state);
+                .getBlockModel(state)
+                .getParticleIcon(ModelData.EMPTY);
 
         return CHIPS.computeIfAbsent(sprite, s -> ParticleModels.sprite(
                 ParticleQuad.ofUv(s.getU0(), s.getV0(), s.getU1(), s.getV1()),

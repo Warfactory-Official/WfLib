@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 /** Keeps {@link IndustryRegistry} in step with the world. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class IndustryTracker {
 
     private static final Logger LOGGER = LogUtils.getLogger();

@@ -17,7 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 
 
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class GlyphidDeaths {
 
     /** One damage type's contribution, as hits landed and glyphids finished off. */

@@ -1,6 +1,7 @@
 package com.wf.wflib.client.flywheel;
 
 import com.wf.wflib.ModModels;
+import dev.engine_room.flywheel.api.material.CardinalLightingMode;
 import dev.engine_room.flywheel.api.material.Material;
 import dev.engine_room.flywheel.api.material.Transparency;
 import dev.engine_room.flywheel.api.model.Model;
@@ -16,13 +17,13 @@ public final class FlywheelModels {
     private static final Material PARTICLE = SimpleMaterial.builder()
             .transparency(Transparency.ADDITIVE)
             .cutout(CutoutShaders.EPSILON)
-            .diffuse(false)
+            .cardinalLightingMode(CardinalLightingMode.OFF)
             .mipmap(false)
             .build();
 
     private static final RendererReloadCache<PartialModel, Model> PARTICLE_MODEL =
             new RendererReloadCache<>(partial -> new BakedModelBuilder(partial.get())
-                    .materialFunc((renderType, shaded) -> PARTICLE)
+                    .materialFunc((renderType, shaded, ao) -> PARTICLE)
                     .build());
 
     /** Opaque: ORDER_INDEPENDENT blends alpha-1 texels too => parts show through each other, no depth. */
@@ -32,7 +33,7 @@ public final class FlywheelModels {
 
     private static final RendererReloadCache<PartialModel, Model> CUTOUT_MODEL =
             new RendererReloadCache<>(partial -> new BakedModelBuilder(partial.get())
-                    .materialFunc((renderType, shaded) -> CUTOUT)
+                    .materialFunc((renderType, shaded, ao) -> CUTOUT)
                     .build());
 
     private FlywheelModels() {

@@ -1,5 +1,6 @@
 package com.wf.wflib.client.gui.gallery;
 
+import net.neoforged.neoforge.client.model.data.ModelData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -152,7 +153,7 @@ public final class BakedEntry implements GalleryEntry {
     private static void emit(VertexConsumer consumer, Matrix4f matrix, BakedModel baked,
                              @Nullable Direction face) {
         RANDOM.setSeed(42L);
-        for (BakedQuad quad : baked.getQuads(null, face, RANDOM)) {
+        for (BakedQuad quad : baked.getQuads(null, face, RANDOM, ModelData.EMPTY, null)) {
             int[] vertices = quad.getVertices();
             int stride = vertices.length / 4;
             for (int i = 0; i < 4; i++) {

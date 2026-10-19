@@ -475,8 +475,9 @@ public class ExplosionNukeRayParallelized implements BombForkJoinPool.IJobCancel
     void loadMissingChunksUntil(long deadline) {
         while (System.nanoTime() < deadline
                 && chunksInFlight.size() + ticketsPendingFlush.size() < NukeConfig.chunksInFlight()) {
-            Long ck = chunkLoadQueue.poll();
-            if (ck == null) break;
+            Long polled = chunkLoadQueue.poll();
+            if (polled == null) break;
+            long ck = polled;
             if (chunksInFlight.containsKey(ck) || ticketsPendingFlush.contains(ck)) continue;
             if (ticketedChunks.add(ck)) NukeChunks.addBlastTicket(world, ck);
             ticketsPendingFlush.add(ck);

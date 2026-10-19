@@ -153,6 +153,8 @@ public final class JourneyMapHost implements MapHost {
         return new MapPolygon(points);
     }
 
+    // TODO: JM 26.2 moves Context -> journeymap.api.v2.common.Context; 1.21.1 API has no replacement.
+    @SuppressWarnings("deprecation")
     private static Overlay look(Overlay overlay, MapShape.Look look, int bandMin, int bandMax) {
         int minZoom = Math.max(bandMin, look.maxBlocksPerPixel() == Double.POSITIVE_INFINITY ? 0
                 : (int) Math.floor(512.0 / look.maxBlocksPerPixel()));

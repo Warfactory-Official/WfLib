@@ -26,9 +26,4 @@ public class NvgItem extends ArmorItem {
             tooltip.add(Component.translatable("item.wflib.nvg.ir"));
         }
     }
-
-    @Override
-    public void initializeClient(java.util.function.Consumer<net.neoforged.neoforge.client.extensions.common.IClientItemExtensions> consumer) {
-        consumer.accept(com.wf.wflib.nvg.client.NvgItemClient.INSTANCE);
-    }
 }

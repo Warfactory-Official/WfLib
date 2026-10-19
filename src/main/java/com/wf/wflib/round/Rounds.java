@@ -1,5 +1,6 @@
 package com.wf.wflib.round;
 
+import net.minecraft.core.SectionPos;
 import com.mojang.logging.LogUtils;
 import com.norwood.ahf.config.AhfConfig;
 import com.norwood.ahf.hit.HitRegistration;
@@ -1116,7 +1117,7 @@ public final class Rounds implements SimKind<RoundBatch> {
         double airburst = preset.airburstHeight();
         if (airburst > 0.0 && v.y < 0.0) {
             Vec3 down = at.subtract(0.0, airburst + v.length(), 0.0);
-            if (level.hasChunkAt(BlockPos.containing(at))) {
+            if (level.hasChunk(SectionPos.posToSectionCoord(at.x), SectionPos.posToSectionCoord(at.z))) {
                 BlockHitResult below = level.clip(new ClipContext(at, down, ClipContext.Block.COLLIDER,
                         ClipContext.Fluid.NONE, CollisionContext.empty()));
                 return below.getType() == HitResult.Type.BLOCK;

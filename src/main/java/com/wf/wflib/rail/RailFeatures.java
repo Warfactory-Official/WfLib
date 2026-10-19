@@ -18,7 +18,7 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import org.slf4j.Logger;
 
 /** Wires the rail package into the mod, and is the only place it touches the rest of it. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class RailFeatures {
 
     private static final Logger LOGGER = LogUtils.getLogger();

@@ -1,5 +1,6 @@
 package com.wf.wflib.client.particle;
 
+import net.neoforged.neoforge.client.model.data.ModelData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.ParticleRenderType;
@@ -14,7 +15,7 @@ public class BlockShrapnelParticle extends TextureSheetParticle {
     public BlockShrapnelParticle(ClientLevel level, double x, double y, double z,
                                  double xd, double yd, double zd, BlockState state) {
         super(level, x, y, z);
-        this.setSprite(Minecraft.getInstance().getBlockRenderer().getBlockModelShaper().getParticleIcon(state));
+        this.setSprite(Minecraft.getInstance().getBlockRenderer().getBlockModel(state).getParticleIcon(ModelData.EMPTY));
         this.xd = xd;
         this.yd = yd;
         this.zd = zd;

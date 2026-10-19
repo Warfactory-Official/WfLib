@@ -11,7 +11,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 
 /** The stock entity matchers, and the tag generation every {@link MineTarget} memo is keyed against. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class MineTargets {
 
     /** Anything at all. A mine that goes off for a thrown snowball, if that is what you want. */

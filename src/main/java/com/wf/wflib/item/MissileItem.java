@@ -22,12 +22,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 
 public class MissileItem extends Item implements ModelledItem {
@@ -192,15 +190,5 @@ public class MissileItem extends Item implements ModelledItem {
             String attack = preset.attackStageId() != null ? preset.attackStageId().getPath() : "attack";
             tooltip.add(kv("Flight profile", cruise + " / " + attack, ChatFormatting.DARK_AQUA));
         }
-    }
-
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-            @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return com.wf.wflib.client.render.MissileItemRenderer.instance();
-            }
-        });
     }
 }

@@ -154,7 +154,7 @@ import java.util.UUID;
 /**
  * Server-side global driver for the missile simulation system.
  */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class WFServerEvents {
     private WFServerEvents() {
     }
@@ -2952,7 +2952,7 @@ public final class WFServerEvents {
     // --- MOD bus subscribers ---
 
     /** Inner class on the MOD bus for events that must be registered there. */
-    @EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(modid = WFLib.MODID)
     public static final class ModBusEvents {
         private ModBusEvents() {
         }

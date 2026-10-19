@@ -10,7 +10,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
 /** The one thing about a door the client is not told: how many of its blocks are being powered. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class DoorProbeData {
 
     public static final String POWERED = "PoweredBlocks";

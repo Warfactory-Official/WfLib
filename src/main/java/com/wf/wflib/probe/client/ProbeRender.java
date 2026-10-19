@@ -1,5 +1,6 @@
 package com.wf.wflib.probe.client;
 
+import net.neoforged.neoforge.client.model.data.ModelData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.gemrender.ui.Canvas;
 import com.mojang.math.Axis;
@@ -14,8 +15,6 @@ import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import com.mojang.blaze3d.platform.Lighting;
@@ -255,7 +254,7 @@ public final class ProbeRender {
         pose.translate(-0.5, -0.5, -0.5);
 
         Lighting.setupFor3DItems();
-        blocks.renderSingleBlock(state, pose, buffers, 0x00F000F0, OverlayTexture.NO_OVERLAY);
+        blocks.renderSingleBlock(state, pose, buffers, 0x00F000F0, OverlayTexture.NO_OVERLAY, ModelData.EMPTY, null);
         buffers.endBatch();
         Lighting.setupForFlatItems();
         pose.popPose();

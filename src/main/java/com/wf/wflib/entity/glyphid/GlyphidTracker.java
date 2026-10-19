@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Per-level set of live glyphids from join/leave events. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class GlyphidTracker {
 
     private static final Map<Level, Set<EntityGlyphid>> BY_LEVEL = new ConcurrentHashMap<>();

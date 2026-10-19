@@ -1,5 +1,6 @@
 package com.wf.wflib.entity.mist;
 
+import net.minecraft.core.SectionPos;
 import com.wf.wflib.armor.ArmorExposure;
 import com.wf.wflib.armor.ProtectionType;
 import com.wf.wflib.config.WFConfig;
@@ -68,14 +69,14 @@ public class GlyphidAcidMistEffect implements MistEffect {
             int y = (int) Math.floor(mist.getY()) - level.random.nextInt(2);
 
             BlockPos pos = new BlockPos(x, y, z);
-            if (!level.hasChunkAt(pos)) {
+            if (!level.hasChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()))) {
                 continue;
             }
             BlockState state = level.getBlockState(pos);
             if (state.isAir() || !state.getFluidState().isEmpty()) {
                 continue;
             }
-            if (state.getBlock().getExplosionResistance() > CORROSION_LIMIT) {
+            if (state.getExplosionResistance(level, pos, null) > CORROSION_LIMIT) {
                 continue;
             }
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);

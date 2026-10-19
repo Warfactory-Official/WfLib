@@ -43,10 +43,20 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import org.slf4j.Logger;
+import java.util.function.Supplier;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.minecraft.world.item.Item;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import com.wf.wflib.fluid.WFFluids;
 
 import java.util.Map;
 
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public class WFLibClient {
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -257,5 +267,79 @@ public class WFLibClient {
                 return true;
             }
         });
+    }
+
+    private static final ResourceLocation WATER_STILL = ResourceLocation.withDefaultNamespace("block/water_still");
+    private static final ResourceLocation WATER_FLOW = ResourceLocation.withDefaultNamespace("block/water_flow");
+
+    @SubscribeEvent
+    public static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (event.isItemRegistered(item)) {
+                continue;
+            }
+            IClientItemExtensions extensions = switch (item) {
+                case com.wf.wflib.ammo.CartridgeItem ignored -> renderer(com.wf.wflib.ammo.client.AmmoClient::renderer);
+                case com.wf.wflib.armor.ArmorPieceItem armor -> com.wf.wflib.armor.client.ArmorPieceClient.of(armor.preset());
+                case com.wf.wflib.door.DoorItem ignored -> renderer(com.wf.wflib.door.client.DoorItemRenderer::instance);
+                case com.wf.wflib.item.MineItem mine -> mineRenderer(mine.preset().modelId());
+                case com.wf.wflib.item.MissileItem ignored -> renderer(com.wf.wflib.client.render.MissileItemRenderer::instance);
+                case com.wf.wflib.kinetic.KineticShellItem ignored -> renderer(com.wf.wflib.client.render.MissileItemRenderer::instance);
+                case com.wf.wflib.nvg.NvgItem ignored -> com.wf.wflib.nvg.client.NvgItemClient.INSTANCE;
+                case com.wf.wflib.pda.PdaItem ignored -> renderer(com.wf.wflib.pda.client.PdaRenderer::itemRenderer);
+                default -> null;
+            };
+            if (extensions != null) {
+                event.registerItem(extensions, item);
+            }
+        }
+        for (FluidType type : NeoForgeRegistries.FLUID_TYPES) {
+            int tint = switch (type) {
+                case WFFluids.GasFluidType gas -> gas.tint();
+                case WFFluids.KeroseneFluidType ignored -> WFFluids.KeroseneFluidType.TINT;
+                default -> -1;
+            };
+            if (tint >= 0 && !event.isFluidTypeRegistered(type)) {
+                event.registerFluidType(waterTinted(tint), type);
+            }
+        }
+    }
+
+    private static IClientItemExtensions renderer(Supplier<BlockEntityWithoutLevelRenderer> renderer) {
+        return new IClientItemExtensions() {
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return renderer.get();
+            }
+        };
+    }
+
+    private static IClientItemExtensions mineRenderer(ResourceLocation model) {
+        return new IClientItemExtensions() {
+            @Override
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                BlockEntityWithoutLevelRenderer renderer = MineItemRenderers.get(model);
+                return renderer != null ? renderer : IClientItemExtensions.super.getCustomRenderer();
+            }
+        };
+    }
+
+    private static IClientFluidTypeExtensions waterTinted(int rgb) {
+        return new IClientFluidTypeExtensions() {
+            @Override
+            public int getTintColor() {
+                return 0xFF000000 | rgb;
+            }
+
+            @Override
+            public ResourceLocation getStillTexture() {
+                return WATER_STILL;
+            }
+
+            @Override
+            public ResourceLocation getFlowingTexture() {
+                return WATER_FLOW;
+            }
+        };
     }
 }

@@ -52,7 +52,7 @@ public sealed interface ProbeElement {
                        int tint) implements ProbeElement {
 
         public static AtlasSprite blocks(ResourceLocation sprite, int size) {
-            return new AtlasSprite(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS,
+            return new AtlasSprite(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS,
                     sprite, size, size, 0xFFFFFFFF);
         }
     }

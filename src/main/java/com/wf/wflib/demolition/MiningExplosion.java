@@ -211,7 +211,7 @@ public final class MiningExplosion {
         } else if (isBreakable(state, tier) && state.getDestroySpeed(level, scratch) >= 0) {
             occludes = false; // the blast eats straight through anything it can break
         } else {
-            occludes = state.blocksMotion(); // decorations (torches, flowers, fluids) don't shield anything
+            occludes = !state.getCollisionShape(level, scratch).isEmpty(); // decorations (torches, flowers, fluids) don't shield anything
         }
         occluders.put(key, occludes);
         return occludes;

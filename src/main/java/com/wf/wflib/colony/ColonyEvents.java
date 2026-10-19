@@ -27,7 +27,7 @@ import java.util.Map;
  * FULL waits on this chunk (Sable's {@code LevelChunk#setBlockState} hook reads neighbour voxels) => server thread
  * parks forever. Settled on the level tick once all 8 neighbours are resident.
  */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class ColonyEvents {
 
     private static final Logger LOGGER = LogUtils.getLogger();

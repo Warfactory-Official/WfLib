@@ -132,7 +132,7 @@ public final class PenTable {
                 event.getCause() == DataMapsUpdatedEvent.UpdateCause.SERVER_RELOAD));
     }
 
-    @EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(modid = WFLib.MODID)
     public static final class Types {
         @SubscribeEvent
         public static void register(RegisterDataMapTypesEvent event) {

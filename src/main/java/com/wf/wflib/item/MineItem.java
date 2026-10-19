@@ -17,11 +17,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /** Lays one {@link MinePreset} where it is pointed. */
 public class MineItem extends Item {
@@ -177,17 +175,5 @@ public class MineItem extends Item {
     private static String toolName(@Nullable TagKey<Item> tool) {
         return tool == null ? "tool" : tool.location()
                 .getPath();
-    }
-
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-            @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer renderer =
-                        com.wf.wflib.client.render.MineItemRenderers.get(preset.modelId());
-                return renderer != null ? renderer : IClientItemExtensions.super.getCustomRenderer();
-            }
-        });
     }
 }

@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Per-level live drone bodies, so the scheduler doesn't sweep every entity each tick. {@link DroneEntity} joins via
  * entity events; other bodies {@link #track} themselves.
  */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = WFLib.MODID)
 public final class DroneTracker {
 
     private static final Map<Level, Set<DroneEntity>> BY_LEVEL = new ConcurrentHashMap<>();

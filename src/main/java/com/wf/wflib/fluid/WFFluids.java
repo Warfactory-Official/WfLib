@@ -1,20 +1,17 @@
 package com.wf.wflib.fluid;
 
 import com.wf.wflib.WFLib;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.BaseFlowingFluid;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
-import java.util.function.Consumer;
 
 public final class WFFluids {
 
@@ -50,9 +47,6 @@ public final class WFFluids {
 
     public static class GasFluidType extends FluidType {
 
-        private static final ResourceLocation STILL = ResourceLocation.withDefaultNamespace("block/water_still");
-        private static final ResourceLocation FLOW = ResourceLocation.withDefaultNamespace("block/water_flow");
-
         private final int tint;
 
         public GasFluidType(int rgb) {
@@ -70,32 +64,14 @@ public final class WFFluids {
             this.tint = rgb;
         }
 
-        @Override
-        public void initializeClient(Consumer<IClientFluidTypeExtensions> consumer) {
-            consumer.accept(new IClientFluidTypeExtensions() {
-                @Override
-                public int getTintColor() {
-                    return 0xFF000000 | tint;
-                }
-
-                @Override
-                public ResourceLocation getStillTexture() {
-                    return STILL;
-                }
-
-                @Override
-                public ResourceLocation getFlowingTexture() {
-                    return FLOW;
-                }
-            });
+        public int tint() {
+            return tint;
         }
     }
 
     public static class KeroseneFluidType extends FluidType {
 
-        private static final ResourceLocation STILL = ResourceLocation.withDefaultNamespace("block/water_still");
-        private static final ResourceLocation FLOW = ResourceLocation.withDefaultNamespace("block/water_flow");
-        private static final int TINT = 0xC8A64B; // amber
+        public static final int TINT = 0xC8A64B; // amber
 
         public KeroseneFluidType() {
             super(FluidType.Properties.create()
@@ -104,26 +80,6 @@ public final class WFFluids {
                     .temperature(300)
                     .canSwim(true)
                     .canDrown(true));
-        }
-
-        @Override
-        public void initializeClient(Consumer<IClientFluidTypeExtensions> consumer) {
-            consumer.accept(new IClientFluidTypeExtensions() {
-                @Override
-                public int getTintColor() {
-                    return 0xFF000000 | TINT;
-                }
-
-                @Override
-                public ResourceLocation getStillTexture() {
-                    return STILL;
-                }
-
-                @Override
-                public ResourceLocation getFlowingTexture() {
-                    return FLOW;
-                }
-            });
         }
     }    public static final BaseFlowingFluid.Properties PHOSGENE_PROPS =
             new BaseFlowingFluid.Properties(PHOSGENE_TYPE, PHOSGENE, FLOWING_PHOSGENE);

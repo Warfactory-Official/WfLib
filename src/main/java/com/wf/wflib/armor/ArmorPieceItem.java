@@ -13,10 +13,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /** A garment: what it protects against comes from its {@link ArmorPreset}, not from vanilla armour points. */
 public class ArmorPieceItem extends ArmorItem {
@@ -75,10 +73,5 @@ public class ArmorPieceItem extends ArmorItem {
         inserts.add(other.split(1));
         ArmorStacks.setInserts(stack, inserts);
         return true;
-    }
-
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(com.wf.wflib.armor.client.ArmorPieceClient.of(preset));
     }
 }

@@ -132,7 +132,7 @@ public class EntityGlyphidDigger extends EntityGlyphid {
         BlockState state = level().getBlockState(pos);
         if (state.isAir()
                 || !state.isSolidRender(level(), pos)
-                || state.getBlock().getExplosionResistance() >= SLAM_RESISTANCE
+                || state.getExplosionResistance(level(), pos, null) >= SLAM_RESISTANCE
                 || level().getBlockEntity(pos) != null) {
             return false;
         }

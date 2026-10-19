@@ -108,7 +108,7 @@ public enum PenMaterial {
         if (state.getDestroySpeed(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0.0f) {
             return IMPENETRABLE;
         }
-        float blast = state.getBlock().getExplosionResistance();
+        float blast = state.getExplosionResistance(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, null);
         if (blast >= 600.0f) {
             return ARMOR;
         }

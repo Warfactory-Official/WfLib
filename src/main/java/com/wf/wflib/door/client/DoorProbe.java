@@ -30,7 +30,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import java.util.List;
 
 /** What the probe says about a door. */
-@EventBusSubscriber(modid = WFLib.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class DoorProbe {
 
     private static final ResourceLocation REDSTONE =
@@ -145,7 +145,7 @@ public final class DoorProbe {
         if (powered > 0) {
             info.add(new ProbeElement.Row(List.of(
                     new ProbeElement.AtlasSprite(
-                            net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS,
+                            net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS,
                             REDSTONE, 10, 10, 0xFFFF4040),
                     ProbeElement.Text.of(
                             Component.translatable("probe.wflib.door.powered", powered),

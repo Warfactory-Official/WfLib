@@ -1,5 +1,6 @@
 package com.wf.wflib.probe.client;
 
+import net.neoforged.neoforge.client.model.data.ModelData;
 import com.wf.wflib.WFLib;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -69,9 +70,9 @@ public final class ProbeModels {
     private static float[] measure(BakedModel model) {
         float[] box = {Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE,
                 -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
-        accumulate(box, model.getQuads(null, null, RANDOM));
+        accumulate(box, model.getQuads(null, null, RANDOM, ModelData.EMPTY, null));
         for (net.minecraft.core.Direction face : net.minecraft.core.Direction.values()) {
-            accumulate(box, model.getQuads(null, face, RANDOM));
+            accumulate(box, model.getQuads(null, face, RANDOM, ModelData.EMPTY, null));
         }
         if (box[0] > box[3]) {
             return new float[] {0, 0, 0, 1, 1, 1};

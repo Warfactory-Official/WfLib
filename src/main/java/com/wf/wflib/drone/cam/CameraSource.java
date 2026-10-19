@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.cam;
 
+import net.minecraft.core.SectionPos;
 import com.wf.wflib.MissileEntity;
 import com.wf.wflib.block.SecurityCameraBlock;
 import com.wf.wflib.drone.DroneEntity;
@@ -82,7 +83,7 @@ public interface CameraSource {
      */
     @Nullable
     static CameraSource fixedAt(ServerLevel level, BlockPos pos) {
-        if (!level.hasChunkAt(pos)) {
+        if (!level.hasChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()))) {
             return null;
         }
         BlockState state = level.getBlockState(pos);

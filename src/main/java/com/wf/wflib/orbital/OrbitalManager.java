@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital;
 
+import net.minecraft.core.SectionPos;
 import com.wf.wflib.sim.SimMissileManager;
 import com.wf.wflib.sim.SimTier;
 import com.wf.wflib.compat.WarforgeCompat;
@@ -131,7 +132,7 @@ final class OrbitalManager {
             }
             return;
         }
-        if (level.hasChunkAt(station)
+        if (level.hasChunk(SectionPos.blockToSectionCoord(station.getX()), SectionPos.blockToSectionCoord(station.getZ()))
                 && level.getBlockEntity(station) instanceof ReconBound bound
                 && bound.netId() != sat.netId()) {
             sat.setNetId(bound.netId());

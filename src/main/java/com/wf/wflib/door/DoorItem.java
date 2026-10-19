@@ -8,10 +8,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.state.BlockState;
 
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /** The item that places a door. */
 public class DoorItem extends BlockItem {
@@ -61,16 +59,5 @@ public class DoorItem extends BlockItem {
             lines.add(Component.translatable("tooltip.wflib.door.skin", skinOf(stack) + 1, type.skins())
                     .withStyle(ChatFormatting.DARK_GRAY));
         }
-    }
-
-    /** The item is the mesh; see {@code DoorItemRenderer}. */
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-            @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return com.wf.wflib.door.client.DoorItemRenderer.instance();
-            }
-        });
     }
 }

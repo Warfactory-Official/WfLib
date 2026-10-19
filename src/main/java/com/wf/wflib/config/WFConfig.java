@@ -327,7 +327,7 @@ public final class WFConfig {
                         "Dirty industry is meant to score far higher than clean: a diesel farm should draw",
                         "attention long before an equivalent electric base does.",
                         "wfcore overrides these at runtime when it is installed.")
-                .defineList("machines", IndustryValues.DEFAULTS, o -> o instanceof String);
+                .defineList("machines", IndustryValues.DEFAULTS, () -> "", o -> o instanceof String);
         INDUSTRY_CELL_CHUNKS = b
                 .comment("Region cell size in chunks. Provocation is accumulated per cell, and bases are",
                         "detected by grouping neighbouring occupied cells. Larger cells are cheaper and",
