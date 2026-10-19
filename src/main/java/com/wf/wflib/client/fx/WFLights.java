@@ -29,6 +29,18 @@ public final class WFLights {
     /** Flash source this far over the blast point (usually on the ground). */
     static final double FLASH_LIFT = 1.5;
 
+    /**
+     * A screenshot sits on a whole tick, where a flash made that tick is at its peak (age 0), though its shot happened
+     * somewhere inside the tick: half a tick earlier on average. Without this a screenshot catches every flash
+     * several times brighter than the frames around it.
+     */
+    static final double SCREENSHOT_PHASE = 0.5;
+
+    /** Flash age, ticks: {@code now - start}, from {@code SCREENSHOT_PHASE} on for a Flashback screenshot. */
+    static double age(double now, double start, boolean screenshot) {
+        return now - start + (screenshot ? SCREENSHOT_PHASE : 0);
+    }
+
     /** {@code start}: game ticks. */
     private record Flash(double x, double y, double z, float range, int rgb, float peak, double start, float life) {
     }
@@ -91,9 +103,10 @@ public final class WFLights {
             return;
         }
         double now = mc.level.getGameTime() + partialTick;
-        FLASHES.removeIf(f -> now - f.start >= f.life);
+        boolean screenshot = !FLASHES.isEmpty() && FlashbackFrame.screenshot();
+        FLASHES.removeIf(f -> age(now, f.start, screenshot) >= f.life);
         for (Flash f : FLASHES) {
-            float k = 1 - (float) ((now - f.start) / f.life);
+            float k = 1 - (float) (age(now, f.start, screenshot) / f.life);
             sink.point(f.x, f.y, f.z, f.range, f.rgb, f.peak * k * k, true);
             flashes++;
         }
