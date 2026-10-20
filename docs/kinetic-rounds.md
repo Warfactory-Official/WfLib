@@ -404,12 +404,14 @@ Shared by WFLib, CombinedAssault, MineAssault. Reference: mcww3 `ww3/client/soun
 | `Sounds.at`, `SoundScheduler` | client | one-shots + travel time (`C` = 343 m/s), frame-precise; queue cap 512 |
 | `EnginePlayer`, `AlertChannel` | client | engine loops from an `EngineSound`; highest-priority alert loop |
 | `AudioMixer.addCabin` | client | enclosure muffle provider (max over providers) |
+| `Voices` | client | per-owner one-shot cap; displaced oldest `Emitter.fadeOut(2)` |
 
 - Gain: 1 to `ref = max(0.15 range, from)`, `(e^-3n - e^-3)/(1 - e^-3)` to `range`. Vanilla reach = `max(volume, 1) x attenuation` => never used for wflib sounds.
 - Air absorption (Emitter): `t = clamp((d/range - 0.2)/0.8)`, LF `1 - 0.25t`, HF `1 - 0.99t`.
 - Cabin: `m` slewed 0.25/tick x config `cabinMuffle`; LF `1 - 0.65 m s`, HF `1 - 0.85 m s`; share `s`: category (`EXPLOSIONS` 0.4, `ALERTS` 0, others 1), vanilla world sounds 1, relative 0.
 - Doppler: OpenAL, `alSpeedOfSound(17.15)` (blocks/tick), source velocity = Emitter displacement/tick - camera displacement/tick, listener 0. Step > 20 blocks => 0 that tick.
 - Filter: one EFX low-pass object; params copied at `AL_DIRECT_FILTER` attach => reuse safe. Applied at channel start (`PlaySoundSourceEvent`, sound thread) and after `SoundEngine.tickNonPaused`; unity => `AL_FILTER_NULL`.
+- Variant (`SoundDeck`, every `Emitter`): shuffled deck per event (entries x weight), reshuffle never leads with the last dealt; total weight > 64 => vanilla draw.
 - Volume: per-category config + Sound options sliders (`MixinSoundOptionsScreen`); vanilla category sliders do not reach wflib sounds.
 - Gap: no occlusion, no reverb, no `_in` interior assets (cabin = filtered exterior).
 

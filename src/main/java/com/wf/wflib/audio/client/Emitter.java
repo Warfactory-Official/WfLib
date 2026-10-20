@@ -5,6 +5,8 @@ import com.wf.wflib.audio.AudioCategory;
 import com.wf.wflib.audio.SoundSpec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
+import net.minecraft.client.sounds.SoundManager;
+import net.minecraft.client.sounds.WeighedSoundEvents;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -16,7 +18,7 @@ import java.util.function.Supplier;
 /**
  * wflib-managed world sound: no engine attenuation; gain = {@link SoundSpec#gain} at the camera x {@link #level} x
  * category slider, set every tick. Air absorption + Doppler (finite-difference velocity) applied per source by
- * {@link AudioMixer}. Source MASTER.
+ * {@link AudioMixer}. Variant: {@link SoundDeck}. Source MASTER.
  */
 public abstract class Emitter extends AbstractTickableSoundInstance {
     /** Per-tick displacement above this = teleport: no Doppler that tick. */
@@ -28,6 +30,7 @@ public abstract class Emitter extends AbstractTickableSoundInstance {
     private final float basePitch;
     private boolean primed;
     private boolean ownVelocity;
+    private int fadeTicks, fadeLeft;
     /** Read by the sound thread ({@link AudioMixer}). */
     volatile float vx, vy, vz;
     protected volatile float low = 1, high = 1;
@@ -112,6 +115,22 @@ public abstract class Emitter extends AbstractTickableSoundInstance {
         stop();
     }
 
+    /** Gain ramps to 0 over {@code ticks}, then stop; {@code ticks <= 0} => stop now. */
+    public void fadeOut(int ticks) {
+        if (ticks <= 0) {
+            stop();
+        } else if (fadeTicks == 0 || ticks < fadeLeft) {
+            fadeTicks = fadeLeft = ticks;
+        }
+    }
+
+    @Override
+    public WeighedSoundEvents resolve(SoundManager manager) {
+        WeighedSoundEvents events = manager.getSoundEvent(location);
+        sound = events == null ? SoundManager.EMPTY_SOUND : SoundDeck.deal(events, random);
+        return events;
+    }
+
     @Override
     public boolean canStartSilent() {
         return looping;
@@ -120,6 +139,10 @@ public abstract class Emitter extends AbstractTickableSoundInstance {
     /** Velocity = displacement since the previous tick, unless {@link #setVelocity} owns it. */
     @Override
     public void tick() {
+        if (fadeTicks > 0 && --fadeLeft <= 0) {
+            stop();
+            return;
+        }
         double px = x, py = y, pz = z;
         if (!refresh()) {
             stop();
@@ -146,7 +169,7 @@ public abstract class Emitter extends AbstractTickableSoundInstance {
         y = p.y;
         z = p.z;
         double d = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition().distanceTo(p);
-        volume = spec.gain(d) * level * AudioOptions.volume(category);
+        volume = spec.gain(d) * level * AudioOptions.volume(category) * (fadeTicks > 0 ? (float) fadeLeft / fadeTicks : 1);
         float t = Acoustics.absorption(d, spec.range());
         low = 1 - 0.25F * t;
         high = 1 - 0.99F * t;
