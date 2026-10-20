@@ -281,7 +281,8 @@ public class WFLibClient {
             }
             IClientItemExtensions extensions = switch (item) {
                 case com.wf.wflib.ammo.CartridgeItem ignored -> renderer(com.wf.wflib.ammo.client.AmmoClient::renderer);
-                case com.wf.wflib.armor.ArmorPieceItem armor -> com.wf.wflib.armor.client.ArmorPieceClient.of(armor.preset());
+                case com.wf.wflib.armor.ArmorPieceItem armor when armor.getClass() == com.wf.wflib.armor.ArmorPieceItem.class ->
+                        com.wf.wflib.armor.client.ArmorPieceClient.of(armor.preset());
                 case com.wf.wflib.door.DoorItem ignored -> renderer(com.wf.wflib.door.client.DoorItemRenderer::instance);
                 case com.wf.wflib.item.MineItem mine -> mineRenderer(mine.preset().modelId());
                 case com.wf.wflib.item.MissileItem ignored -> renderer(com.wf.wflib.client.render.MissileItemRenderer::instance);
