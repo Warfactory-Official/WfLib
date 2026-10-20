@@ -99,16 +99,19 @@ public class ExplosionAEF {
         Set<BlockPos> affectedBlocks = null;
         Map<Player, Vec3> affectedPlayers = null;
 
-        // 1 + 2: gather targets before anything is mutated.
+        // 1: gather block targets before anything is mutated (allocator reads block states).
         if (processBlocks) affectedBlocks = blockAllocator.allocate(this, level, posX, posY, posZ, size);
-        if (processEntities) affectedPlayers = entityProcessor.process(this, level, posX, posY, posZ, size);
 
         if (processBlocks && !this.bypassClaims) {
             WarforgeCompat.filterClaimProtected(level, this.igniterFaction, affectedBlocks);
         }
 
-        // 3 + 4: apply effects.
+        // 2: destroy blocks before entity exposure is computed, so entity LOS/knockback sees the
+        // post-blast level, not blocks the blast itself is in the middle of removing.
         if (processBlocks) blockProcessor.process(this, level, posX, posY, posZ, affectedBlocks);
+
+        // 3 + 4: entity damage, now against the already-breached level.
+        if (processEntities) affectedPlayers = entityProcessor.process(this, level, posX, posY, posZ, size);
         if (processEntities) playerProcessor.process(this, level, posX, posY, posZ, affectedPlayers);
 
         if (processBlocks) compat.getToBlow().addAll(affectedBlocks);

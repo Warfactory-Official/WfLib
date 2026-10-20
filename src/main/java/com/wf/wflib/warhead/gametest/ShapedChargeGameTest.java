@@ -15,6 +15,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -61,6 +63,27 @@ public class ShapedChargeGameTest {
                 lane.release();
                 helper.assertTrue(cow.isAlive() && cow.getHealth() >= full,
                         "cow beside the jet hurt, hp " + cow.getHealth());
+                helper.succeed();
+            });
+        });
+    }
+
+    /** Jet breaks a cobblestone wall on-axis; the mob behind it must still be hurt, not shielded by the wall. */
+    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    public static void aMobBehindAWallTheJetBreaksStillHurts(GameTestHelper helper) {
+        Lane lane = new Lane(helper, 5);
+        lane.whenTicking(() -> {
+            Cow cow = lane.cow(6.0);
+            float full = cow.getHealth();
+            AABB box = cow.getBoundingBox();
+            double midY = box.minY + box.getYsize() * 0.5;
+            double midZ = (box.minZ + box.maxZ) * 0.5;
+            BlockPos wall = BlockPos.containing(box.minX - 1.0, midY, midZ);
+            lane.level.setBlock(wall, Blocks.COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL);
+            Vec3 at = new Vec3(box.minX - 3.0, midY, midZ);
+            WarheadRegistry.SHAPED_CHARGE.detonate(carrier(lane.level, new Vec3(1.0, 0.0, 0.0)), at);
+            helper.runAfterDelay(2, () -> {
+                lane.assertHurt(cow, full, "mob behind a wall the jet breaks");
                 helper.succeed();
             });
         });
