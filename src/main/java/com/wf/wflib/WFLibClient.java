@@ -163,6 +163,7 @@ public class WFLibClient {
             com.wf.gemrender.volume.VolumeBuffer.getInstance().hideWhen(FeedPass::seesThroughSmoke);
             com.wf.gemrender.medium.CameraMedium.getInstance().hideWhen(FeedPass::seesThroughSmoke);
             com.wf.wflib.client.fx.WFLights.register();
+            com.wf.wflib.barrel.client.BarrelGlow.register();
             com.wf.wflib.nvg.client.NvgIllumination.register();
             com.wf.gemrender.light.Lights.irView(com.wf.wflib.nvg.client.NvgClient::irView);
             com.wf.gemrender.light.Lights.nightSky(com.wf.wflib.nvg.client.NvgClient::nightSky);

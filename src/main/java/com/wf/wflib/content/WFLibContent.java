@@ -7,6 +7,7 @@ import com.mojang.logging.LogUtils;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.ammo.Ammo;
 import com.wf.wflib.ammo.Calibre;
+import com.wf.wflib.barrel.Barrels;
 import com.wf.wflib.item.MissileItem;
 import com.wf.wflib.item.MissilePreset;
 import com.wf.wflib.item.MissilePresetRegistry;
@@ -50,7 +51,9 @@ public final class WFLibContent {
         MISSILE,
         WARHEAD,
         /** + its rounds (can: calibre, pod: missiles). */
-        MAGAZINE
+        MAGAZINE,
+        /** {@code wflib:spare_barrel} only. */
+        BARREL
     }
 
     private static final Logger LOG = LogUtils.getLogger();
@@ -84,6 +87,10 @@ public final class WFLibContent {
 
     public static void magazines(String source, String... paths) {
         request(Kind.MAGAZINE, source, paths);
+    }
+
+    public static void spareBarrel(String source) {
+        request(Kind.BARREL, source, Barrels.SPARE_ID);
     }
 
     /** {@code paths}: {@code wflib:} ids without namespace. */
@@ -130,6 +137,10 @@ public final class WFLibContent {
             request(Kind.MAGAZINE, source, item);
             return true;
         }
+        if (Barrels.SPARE_ID.equals(item)) {
+            spareBarrel(source);
+            return true;
+        }
         return false;
     }
 
@@ -174,6 +185,7 @@ public final class WFLibContent {
         MissilePresetRegistry.catalogue().forEach(p -> request(Kind.MISSILE, source, p.id()));
         WarheadRegistry.catalogue().forEach(id -> request(Kind.WARHEAD, source, id));
         MagazineItems.catalogue().forEach(id -> request(Kind.MAGAZINE, source, id));
+        spareBarrel(source);
     }
 
     public static boolean defined(Kind kind, ResourceLocation id) {
@@ -183,6 +195,7 @@ public final class WFLibContent {
             case MISSILE -> MissilePresetRegistry.catalogueEntry(id) != null;
             case WARHEAD -> WarheadRegistry.catalogue().contains(id);
             case MAGAZINE -> MagazineItems.defined(id);
+            case BARREL -> Barrels.SPARE_ID.equals(id);
         };
     }
 
@@ -218,6 +231,7 @@ public final class WFLibContent {
             rounds.forEach(r -> into.computeIfAbsent(r, k -> new LinkedHashSet<>()).add("magazine " + m));
         }
         MagazineItems.freeze(mags.keySet());
+        Barrels.freeze(!REQUESTS.get(Kind.BARREL).isEmpty());
         Ammo.freeze(REQUESTS.get(Kind.CALIBRE).keySet());
         KineticPresetRegistry.freeze(REQUESTS.get(Kind.KINETIC).keySet());
         MissilePresetRegistry.freeze(REQUESTS.get(Kind.MISSILE).keySet());
@@ -242,11 +256,11 @@ public final class WFLibContent {
         if (!problems.isEmpty()) {
             throw new IllegalStateException("wflib content: " + String.join("; ", problems));
         }
-        LOG.info("wflib content: calibres {} kinetic {} missiles {} warheads {} magazines {}",
+        LOG.info("wflib content: calibres {} kinetic {} missiles {} warheads {} magazines {} spare barrel {}",
                 ids(Ammo.calibres().stream().map(Calibre::id).toList()),
                 ids(KineticPresetRegistry.withItems().stream().map(KineticPreset::id).toList()),
                 ids(MissilePresetRegistry.withItems().stream().map(MissilePreset::id).toList()),
-                ids(WarheadRegistry.ids()), ids(MagazineItems.live()));
+                ids(WarheadRegistry.ids()), ids(MagazineItems.live()), Barrels.live());
     }
 
     private static void warhead(List<String> problems, String what, ResourceLocation id) {

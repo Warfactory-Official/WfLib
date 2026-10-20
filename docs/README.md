@@ -11,6 +11,7 @@ the look-at probe, recon/sonar, and the UI widget system other mods build HUDs f
 | [construction-and-salvage](construction-and-salvage.md) | blueprints, work queue, build drones, territory rules |
 | [kinetic-rounds](kinetic-rounds.md) | rounds, rockets, block penetration/damage, ricochet, shared ammo, countermeasures |
 | [magazines](magazines.md) | magazine contents, fill / unload, launch pods, shipped cans / drum / pods |
+| [barrels](barrels.md) | barrel heat, jams, cook-off, wear, quick-change spare barrels |
 | [ntm-doors](ntm-doors.md) | multiblock door roster, rendering |
 | [the-probe](the-probe.md) | look-at panel: elements, providers, action list |
 | [model-gallery](model-gallery.md) | model gallery screen |

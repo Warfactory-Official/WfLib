@@ -65,6 +65,7 @@ public final class WFCreativeTabs {
                                 .filter(v -> v.id().getNamespace().equals(WFLib.MODID))
                                 .forEach(v -> output.accept(com.wf.wflib.ammo.AmmoItems.stack(v, 1)));
                         com.wf.wflib.magazine.MagazineItems.creativeStacks().forEach(output::accept);
+                        com.wf.wflib.barrel.Barrels.creativeStacks().forEach(output::accept);
                         output.accept(com.wf.wflib.countermeasure.Countermeasures.FLARE_CARTRIDGE.get());
                         output.accept(com.wf.wflib.countermeasure.Countermeasures.SMOKE_GRENADE_ITEM.get());
                         output.accept(com.wf.wflib.countermeasure.Countermeasures.APS_GRENADE_ITEM.get());
