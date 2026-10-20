@@ -62,7 +62,7 @@ class ArmViewPoseTest {
         Quaternionf hand = new Quaternionf().rotateX(-1.3F).rotateZ(0.4F);
         Matrix4f upper = new Matrix4f(), lower = new Matrix4f();
         Vector3f elbow = new Vector3f();
-        ArmViewPose.solve(fist, hand, shoulder, ArmViewPose.RIGHT_POLE, LENGTHS, upper, lower, elbow);
+        float twist = ArmViewPose.solve(fist, hand, shoulder, ArmViewPose.RIGHT_POLE, LENGTHS, upper, lower, elbow);
 
         assertEquals(0, shoulder.distance(start), 1e-6F, "reachable => shoulder planted");
         assertEquals(LENGTHS.upper(), elbow.distance(shoulder), 1e-5F);
@@ -74,8 +74,15 @@ class ArmViewPoseTest {
         Vector3f handAxis = hand.transform(new Vector3f(0, 1, 0));
         Vector3f handSide = hand.transform(new Vector3f(1, 0, 0));
         Vector3f expectedSide = new Quaternionf().rotationTo(handAxis, forearm).transform(handSide);
-        assertEquals(0, lower.transformDirection(new Vector3f(1, 0, 0)).distance(expectedSide), 1e-5F,
-                "forearm = hand frame swung onto the forearm");
+        assertEquals(0, new Matrix4f(lower).rotateY(twist).transformDirection(new Vector3f(1, 0, 0))
+                .distance(expectedSide), 1e-5F, "lower x Ry(twist) = hand frame swung onto the forearm");
+        Vector3f hinge = upper.transformDirection(new Vector3f(1, 0, 0));
+        assertEquals(0, lower.transformDirection(new Vector3f(1, 0, 0)).distance(hinge), 1e-5F, "one hinge axis");
+        assertEquals(0, hinge.dot(forearm), 1e-5F, "hinge normal to the bend plane");
+        Vector3f line = new Vector3f(fist).sub(shoulder).normalize();
+        Vector3f off = new Vector3f(elbow).sub(shoulder);
+        off.fma(-off.dot(line), line);
+        assertTrue(upper.transformDirection(new Vector3f(0, 0, 1)).dot(off) > 0, "+Z elbow-out");
         assertTrue(elbow.y < fist.y, "elbow below the hand");
     }
 

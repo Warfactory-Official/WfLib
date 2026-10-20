@@ -27,8 +27,11 @@ import java.util.WeakHashMap;
 
 /**
  * First-person player arms: skinned {@link #MODEL} (MineAssault {@code tools/ma.py player-arms}), joints
- * {@code arm_{right,left}_{upper,lower}} (forearm + fist rigid) + {@code arm_{side}_fist} (= hand frame at the fist
- * end), frames +Y down the bone; segment lengths read from the rest pose. Wears the local player's skin through texture slots. Render thread.
+ * {@code arm_{right,left}_{upper,lower}} + {@code arm_{side}_twist{1..}} + {@code arm_{side}_fist} (= hand frame at the
+ * fist end), frames +Y down the bone; segment lengths read from the rest pose. Forearm twist: joint {@code k} of
+ * {@link #TWISTS} at {@code k/TWISTS} of the length turned {@code k/TWISTS} of the way to the hand. Side under worn
+ * armour: whole arm turned by the twist instead (rigid sleeves; TODO twist armour sleeves). Wears the local player's skin
+ * through texture slots. Render thread.
  *
  * <p>Worn glTF armour: {@code {side}_arm} node (vanilla arm part, glTF {@code S = diag(-1, -1, 1)}) remapped onto
  * the arm bones: across x {@link #ACROSS} about the vanilla arm axis, along piecewise at the elbow
@@ -43,6 +46,10 @@ public final class PlayerArms {
     /** {@code player_arms.glb} shoulder section (MA {@code malib/arms.py} PROFILE) / vanilla 4 px. */
     private static final float ACROSS = 0.125F / (4 / 16F);
     private static final String RING = ".ahf_ring", BENT = ".ahf_bent";
+    /** Forearm twist segments: joints lower, twist1..{@code TWISTS - 1}, fist. */
+    public static final int TWISTS = 6;
+    /** Unwrapped twist past this => the wrapped value (no unbounded corkscrew). */
+    private static final float MAX_TWIST = (float) (1.5 * Math.PI);
 
     /** Shoulder -> elbow; elbow -> fist end. */
     public record Lengths(float upper, float forearm) { }
@@ -55,6 +62,10 @@ public final class PlayerArms {
     private final Matrix4f[] rest;
     /** [side][upper, lower, fist] node slots. */
     private final int[][] joints = new int[2][3];
+    /** [side][twist k - 1] node slots. */
+    private final int[][] twists = new int[2][TWISTS - 1];
+    private final Matrix4f[] upper = {new Matrix4f(), new Matrix4f()}, lower = {new Matrix4f(), new Matrix4f()};
+    private final float[] twist = new float[2];
     public final Lengths lengths;
     private final Map<GemRenderGltfModel, Matrix4f[]> sleeves = new WeakHashMap<>();
 
@@ -70,6 +81,11 @@ public final class PlayerArms {
                 if (slot < 0) throw new IllegalStateException(MODEL + ": no node arm_" + SIDES[side] + "_" + names[j]);
                 joints[side][j] = slot;
             }
+            for (int k = 1; k < TWISTS; k++) {
+                int slot = table.slotOfName("arm_" + SIDES[side] + "_twist" + k);
+                if (slot < 0) throw new IllegalStateException(MODEL + ": no node arm_" + SIDES[side] + "_twist" + k);
+                twists[side][k - 1] = slot;
+            }
         }
         lengths = new Lengths(table.restTranslation(joints[0][1], 1), table.restTranslation(joints[0][2], 1));
     }
@@ -84,12 +100,44 @@ public final class PlayerArms {
         return cached;
     }
 
-    /** Joint globals of {@code side}, view space. */
+    /** Hinge joint globals of {@code side}, view space, no forearm twist. */
     public void pose(int side, Matrix4fc upper, Matrix4fc lower) {
+        this.upper[side].set(upper);
+        this.lower[side].set(lower);
+        twist[side] = 0;
+    }
+
+    /**
+     * Hinge joint globals of {@code side}, view space ({@link ArmViewPose#solve}); {@code twist} rad, unwrapped
+     * against the side's previous one.
+     */
+    public void pose(int side, Matrix4fc upper, Matrix4fc lower, float twist) {
+        this.upper[side].set(upper);
+        this.lower[side].set(lower);
+        float prev = this.twist[side];
+        float near = prev + (float) Math.IEEEremainder(twist - prev, 2 * Math.PI);
+        this.twist[side] = Math.abs(near) > MAX_TWIST ? twist : near;
+    }
+
+    private void palette(int side, boolean rigid) {
         int[] j = joints[side];
-        palette[j[0]].set(upper);
-        palette[j[1]].set(lower);
-        palette[j[2]].set(lower).translate(0, lengths.forearm(), 0);
+        float t = twist[side], forearm = lengths.forearm();
+        if (rigid) {
+            palette[j[0]].set(upper[side]).rotateY(t);
+            palette[j[1]].set(lower[side]).rotateY(t);
+            for (int k = 1; k < TWISTS; k++) {
+                palette[twists[side][k - 1]].set(palette[j[1]]).translate(0, forearm * k / TWISTS, 0);
+            }
+            palette[j[2]].set(palette[j[1]]).translate(0, forearm, 0);
+            return;
+        }
+        palette[j[0]].set(upper[side]);
+        palette[j[1]].set(lower[side]);
+        for (int k = 1; k < TWISTS; k++) {
+            palette[twists[side][k - 1]].set(lower[side]).translate(0, forearm * k / TWISTS, 0)
+                    .rotateY(t * k / TWISTS);
+        }
+        palette[j[2]].set(lower[side]).translate(0, forearm, 0).rotateY(t);
     }
 
     /** Both arms in {@code player}'s skin + worn glTF armour arms; a skin sleeve only while its layer shows, uncovered. */
@@ -98,7 +146,18 @@ public final class PlayerArms {
         for (ItemStack worn : player.getArmorSlots()) {
             GemRenderGltfModel armour = ArmorPieceClient.model(worn);
             if (armour != null) {
-                armour(armour, base, light, covered);
+                NodeTable table = armour.layout().nodeTable();
+                for (int side = 0; side < 2; side++) {
+                    covered[side] |= table.slotOfName(SIDES[side] + "_arm") >= 0;
+                }
+            }
+        }
+        palette(0, covered[0]);
+        palette(1, covered[1]);
+        for (ItemStack worn : player.getArmorSlots()) {
+            GemRenderGltfModel armour = ArmorPieceClient.model(worn);
+            if (armour != null) {
+                armour(armour, base, light);
             }
         }
         for (GltfPaletteLayout.SkinBlock block : model.layout().skins()) {
@@ -124,7 +183,7 @@ public final class PlayerArms {
     }
 
     /** {@code armour}'s arm nodes on the posed bones; other nodes collapsed. */
-    private void armour(GemRenderGltfModel armour, Matrix4f base, int light, boolean[] covered) {
+    private void armour(GemRenderGltfModel armour, Matrix4f base, int light) {
         NodeTable table = armour.layout().nodeTable();
         Matrix4f[] out = sleeves.computeIfAbsent(armour, GemRenderGltfModel::newPalette);
         for (Matrix4f m : out) {
@@ -137,7 +196,7 @@ public final class PlayerArms {
             if (owner < 0) {
                 continue;
             }
-            any = covered[side] = true;
+            any = true;
             float axis = (side == 0 ? -1 : 1) / 16F;
             out[owner].set(palette[joints[side][0]]).scale(ACROSS, lengths.upper() / ELBOW, ACROSS)
                     .translate(-axis, 0, 0).scale(-1, -1, 1);

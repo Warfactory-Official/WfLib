@@ -33,8 +33,9 @@ public final class ArmViewPose {
     private static final Vector3f T = new Vector3f();
     private static final Vector3f FOREARM = new Vector3f();
     private static final Vector3f UPPER = new Vector3f();
+    private static final Vector3f OUT = new Vector3f();
+    private static final Vector3f HINGE = new Vector3f();
     private static final Quaternionf Q = new Quaternionf();
-    private static final Quaternionf UPPER_Q = new Quaternionf();
     private static final Quaternionf LOWER_Q = new Quaternionf();
 
     private ArmViewPose() { }
@@ -59,18 +60,19 @@ public final class ArmViewPose {
 
     /**
      * Solves one arm to the fist end {@code wrist}. {@code hand}: hand frame (+Y forearm -> fist) or null. Elbow pole =
-     * where the forearm would lie along the hand's +Y, biased toward {@code pole}; forearm = hand frame swung minimally
-     * onto the solved forearm (keeps its roll); upper arm = forearm swung minimally onto the upper axis.
-     * {@code shoulder} is rewritten when the wrist is out of reach, or nearer than {@code minReach} x arm length (shoulder
-     * slides back along the arm line instead of the elbow folding). Joint frames out: {@code upper} at the shoulder,
-     * {@code lower} at {@code elbow}.
+     * where the forearm would lie along the hand's +Y, biased toward {@code pole}. Both bones = hinge frames: +Y along
+     * the bone, +Z elbow-out, +X = bend-plane normal shared across the elbow (pack hand roll never reaches the upper
+     * arm). {@code shoulder} is rewritten when the wrist is out of reach, or nearer than {@code minReach} x arm length
+     * (shoulder slides back along the arm line instead of the elbow folding). Joint frames out: {@code upper} at the
+     * shoulder, {@code lower} at {@code elbow}. Returns forearm twist, rad: {@code hand} swung minimally onto the forearm,
+     * about +Y from {@code lower}; 0 without {@code hand} ({@link PlayerArms#pose}).
      */
-    public static void solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
+    public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
                       PlayerArms.Lengths lengths, Matrix4f upper, Matrix4f lower, Vector3f elbow) {
-        solve(wrist, hand, shoulder, pole, lengths, 0, upper, lower, elbow);
+        return solve(wrist, hand, shoulder, pole, lengths, 0, upper, lower, elbow);
     }
 
-    public static void solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
+    public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
                       PlayerArms.Lengths lengths, float minReach, Matrix4f upper, Matrix4f lower, Vector3f elbow) {
         float l1 = lengths.upper(), l2 = lengths.forearm();
         DIR.set(wrist).sub(shoulder);
@@ -93,14 +95,16 @@ public final class ArmViewPose {
         elbow.set(shoulder).fma(along, DIR).fma(bend, PERP);
         FOREARM.set(wrist).sub(elbow).normalize();
         UPPER.set(elbow).sub(shoulder).normalize();
-        if (hand != null) {
-            LOWER_Q.set(hand).premul(Q.rotationTo(hand.transform(T.set(ARM_AXIS)), FOREARM));
-            UPPER_Q.set(LOWER_Q).premul(Q.rotationTo(FOREARM, UPPER));
-        } else {
-            UPPER_Q.set(REST).premul(Q.rotationTo(REST.transform(T.set(ARM_AXIS)), UPPER));
-            LOWER_Q.set(UPPER_Q).premul(Q.rotationTo(UPPER, FOREARM));
-        }
-        upper.translation(shoulder).rotate(UPPER_Q);
-        lower.translation(elbow).rotate(LOWER_Q);
+        OUT.set(PERP).mul(along / l1).fma(-bend / l1, DIR);
+        HINGE.set(UPPER).cross(OUT);
+        upper.set(HINGE.x, HINGE.y, HINGE.z, 0, UPPER.x, UPPER.y, UPPER.z, 0, OUT.x, OUT.y, OUT.z, 0,
+                shoulder.x(), shoulder.y(), shoulder.z(), 1);
+        OUT.set(HINGE).cross(FOREARM);
+        lower.set(HINGE.x, HINGE.y, HINGE.z, 0, FOREARM.x, FOREARM.y, FOREARM.z, 0, OUT.x, OUT.y, OUT.z, 0,
+                elbow.x, elbow.y, elbow.z, 1);
+        if (hand == null) return 0;
+        LOWER_Q.set(hand).premul(Q.rotationTo(hand.transform(T.set(ARM_AXIS)), FOREARM));
+        LOWER_Q.transform(T.set(1, 0, 0));
+        return (float) Math.atan2(OUT.set(HINGE).cross(T).dot(FOREARM), HINGE.dot(T));
     }
 }
