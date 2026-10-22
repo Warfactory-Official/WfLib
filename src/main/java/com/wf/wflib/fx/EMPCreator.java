@@ -17,8 +17,7 @@ public final class EMPCreator {
         CompoundTag data = new CompoundTag();
         data.putInt("radius", radius);
 
-        double range = Math.max(128.0, radius * 2.0);
-        WFNetwork.sendToAllAround(level, x, y, z, range, new AuxParticlePacket("emp", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.config.ViewRange.blocks, new AuxParticlePacket("emp", x, y, z, data));
     }
 
     public static void composeStun(Level level, double x, double y, double z) {

@@ -26,7 +26,7 @@ public final class WFNetwork {
      * localized effect.
      */
     public static void sendToTracking(Level level, double x, double z, CustomPacketPayload msg) {
-        if (!(level instanceof ServerLevel sl)) return;
+        if (!(level instanceof ServerLevel sl) || com.wf.wflib.fx.FxMute.active()) return;
         LevelChunk chunk = level.getChunk(SectionPos.blockToSectionCoord((int) Math.floor(x)),
                 SectionPos.blockToSectionCoord((int) Math.floor(z)));
         PacketDistributor.sendToPlayersTrackingChunk(sl, chunk.getPos(), msg);
@@ -43,7 +43,7 @@ public final class WFNetwork {
      * Radius-based fallback when an explicit cutoff (rather than view distance) is wanted.
      */
     public static void sendToAllAround(Level level, double x, double y, double z, double radius, CustomPacketPayload msg) {
-        if (!(level instanceof ServerLevel sl)) return;
+        if (!(level instanceof ServerLevel sl) || com.wf.wflib.fx.FxMute.active()) return;
         PacketDistributor.sendToPlayersNear(sl, null, x, y, z, radius, msg);
     }
 }

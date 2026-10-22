@@ -22,20 +22,17 @@ class ScopeMathTest {
     }
 
     @Test
-    void scopePictureMagnifiesTheLensAngleByZoom() {
-        float lensTan = 0.2F;
-        assertEquals(lensTan, tanHalf(ScopeMath.fovDeg(lensTan, 70, 70, 1)), 1e-6, "1x = what the lens covers");
-        assertEquals(lensTan / 4.5, tanHalf(ScopeMath.fovDeg(lensTan, 70, 70, 4.5F)), 1e-6);
-        // Hand projection narrower than the world's: the lens covers more world than its hand angle.
-        double world = lensTan * Math.tan(Math.toRadians(70) / 2) / Math.tan(Math.toRadians(55) / 2);
-        assertEquals(world / 10, tanHalf(ScopeMath.fovDeg(lensTan, 55, 70, 10)), 1e-6);
+    void scopePictureMagnifiesTheFieldBySurroundingsZoom() {
+        float fieldTan = 0.2F;
+        assertEquals(fieldTan, tanHalf(ScopeMath.fovDeg(fieldTan, 1)), 1e-6, "1x = what the field covers");
+        assertEquals(fieldTan / 4.5, tanHalf(ScopeMath.fovDeg(fieldTan, 4.5F)), 1e-6);
     }
 
     @Test
-    void turnSlowsByMagnificationOnlyWhileThePictureIsShown() {
+    void turnSlowsByMagnificationOnTopOfWorldZoomWhileThePictureIsShown() {
         assertEquals(1.5F, ScopeMath.turnZoom(1.5F, 10, 1, false), "third person / no lens: world zoom");
-        assertEquals(10F, ScopeMath.turnZoom(1.5F, 10, 1, true), 1e-6);
-        assertEquals(5.5F, ScopeMath.turnZoom(1.5F, 10, 0.5F, true), 1e-6);
+        assertEquals(15F, ScopeMath.turnZoom(1.5F, 10, 1, true), 1e-6);
+        assertEquals(8.25F, ScopeMath.turnZoom(1.5F, 10, 0.5F, true), 1e-6);
         assertEquals(1.5F, ScopeMath.turnZoom(1.5F, 10, 0, true), 1e-6);
     }
 
@@ -145,10 +142,6 @@ class ScopeMathTest {
         assertEquals(70 / zoom, 70 / ScopeMath.worldDivisor(zoom, ScopeMath.refZoom(70, ref), 1, 1), 1e-4F);
         float mid = 110 / ScopeMath.worldDivisor(zoom, ScopeMath.refZoom(110, ref), 0.5F, 1);
         assertEquals(true, mid < 110 && mid > ref / zoom, "eased");
-        float lensTan = 0.1F, mag = 4;
-        float a = ScopeMath.fovDeg(lensTan, ref / 1.1F, 90 / ScopeMath.refZoom(90, ref), mag);
-        float b = ScopeMath.fovDeg(lensTan, ref / 1.1F, 110 / ScopeMath.refZoom(110, ref), mag);
-        assertEquals(a, b, 1e-4F, "PiP picture");
     }
 
     /** Ctrl + wheel: geometric per notch, clamped to the listed range in either list order. */

@@ -34,7 +34,7 @@ public final class ExplosionSmallCreator {
         data.putFloat("speed", cloudSpeedMult);
         data.putInt("debris", DEBRIS);
 
-        WFNetwork.sendToAllAround(level, x, y, z, 200.0, new AuxParticlePacket("explosion_small", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.config.ViewRange.blocks, new AuxParticlePacket("explosion_small", x, y, z, data));
         WfAudio.at((ServerLevel) level, new Vec3(x, y, z), AudioCategory.EXPLOSIONS, Blasts.small());
     }
 }

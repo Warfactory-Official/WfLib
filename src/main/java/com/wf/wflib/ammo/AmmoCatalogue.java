@@ -1,9 +1,17 @@
 package com.wf.wflib.ammo;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.wf.wflib.api.ThreatKind;
 import com.wf.wflib.WFLib;
+import com.wf.wflib.round.effect.ImpactTrigger;
+import com.wf.wflib.warhead.TearGasWarhead;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
+
+import static com.wf.wflib.round.effect.ImpactEffects.IGNITE;
+import static com.wf.wflib.round.effect.ImpactEffects.MOB_EFFECT;
 
 /**
  * WFLib catalogue calibres + variants (nominal service loads; dims mm); live only once requested. Mass + muzzle velocity: published service loads
@@ -27,6 +35,11 @@ public final class AmmoCatalogue {
     static final int TIP_BLUE = 0x2F5DA8;
     private static final ResourceLocation STANDARD = rl("standard");
     private static final ResourceLocation SHAPED = rl("shaped_charge");
+
+    /** {@code tools/rpg_rockets.py} model; overall length incl. booster. */
+    private static ProjectileLook.Override rpg7(String key, float lengthMm, float diameterMm) {
+        return ProjectileLook.Override.NONE.withModel(rl("models/ammo/rpg7/" + key + ".gltf"), lengthMm, diameterMm);
+    }
     private static final ResourceLocation FRAG = rl("fragmentation");
     private static final ResourceLocation THERMOBARIC = rl("thermobaric");
 
@@ -75,6 +88,14 @@ public final class AmmoCatalogue {
         return new Cal(c, key, dpk);
     }
 
+    private static AmmoVariant.Effect onHit(ResourceLocation id, String params) {
+        return new AmmoVariant.Effect(id, ImpactTrigger.HIT, 1f, json(params));
+    }
+
+    private static JsonObject json(String s) {
+        return JsonParser.parseString(s).getAsJsonObject();
+    }
+
     private static void add(AmmoVariant.Builder b) {
         Ammo.define(b.build());
     }
@@ -112,6 +133,8 @@ public final class AmmoCatalogue {
                 "M1911 ball", 15f, 255, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("9x33r", ".357 Magnum", p, 9.07f, 32.8f, 9.63f, 9.63f, 11.2f, 40f, 15f, br, 16f, 13.5f),
                 "JSP", 10.24f, 378, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
+        smallArms(cal("11.43x33r", ".45 Colt", p, 11.48f, 32.6f, 12.19f, 12.01f, 12.95f, 40.6f, 16f, br, 23f, 12.5f),
+                "LRN", 16.5f, 260, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("10.9x33r", ".44 Magnum", p, 10.9f, 32.6f, 11.6f, 11.6f, 13.1f, 40.9f, 17f, br, 22f, 11.3f),
                 "JSP", 15.6f, 440, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("12.7x33", ".50 Action Express", p, 12.7f, 32.6f, 13.9f, 13.4f, 13.9f, 40.9f, 16f, br, 33f,
@@ -178,6 +201,32 @@ public final class AmmoCatalogue {
         add(AmmoVariant.builder(rl("12ga/slug"), ga.c().id(), "Foster slug")
                 .flight(480, 0.028f, quadDrag(18.5f, 28f, 0.50f)).damagePerKJ(5.5f)
                 .blockPen(ballPen("12ga", 18.5f, 28f, 480)));
+
+        // KS-23: pellet / slug / payload masses + speeds estimated (no published loads); Shrapnel-N = N deg pattern.
+        Cal ks = cal("23x75r", "23x75mmR", CalibreKind.SHOTSHELL, 23f, 75f, 25.5f, 25.5f, 28f, 75f, 30f,
+                CaseMaterial.POLYMER, 85f, 27.75f);
+        add(AmmoVariant.builder(rl("23x75r/shrapnel10"), ks.c().id(), "Shrapnel-10")
+                .flight(300, 0.005f, quadDrag(9.4f, 5f, 0.47f)).pellets(10).pattern(5).damagePerKJ(27.75f)
+                .blockPen(ballPen("23x75r", 9.4f, 5f, 300)));
+        add(AmmoVariant.builder(rl("23x75r/shrapnel25"), ks.c().id(), "Shrapnel-25")
+                .flight(300, 0.0035f, quadDrag(8.4f, 3.5f, 0.47f)).pellets(14).pattern(12.5f).damagePerKJ(27.75f)
+                .blockPen(ballPen("23x75r", 8.4f, 3.5f, 300)));
+        // Hardened steel: AP x1.5.
+        add(AmmoVariant.builder(rl("23x75r/barrikada"), ks.c().id(), "Barrikada")
+                .flight(300, 0.05f, quadDrag(23f, 50f, 0.60f)).damagePerKJ(5.5f)
+                .blockPen(Math.round(ballPen("23x75r", 23f, 50f, 300) * 3) / 2f));
+        add(AmmoVariant.builder(rl("23x75r/volna_r"), ks.c().id(), "Volna-R")
+                .flight(150, 0.025f, quadDrag(23f, 25f, 0.47f)).damagePerKJ(10f)
+                .effect(onHit(MOB_EFFECT, "{\"effect\": \"minecraft:slowness\", \"seconds\": 3, \"amplifier\": 2}")));
+        add(AmmoVariant.builder(rl("23x75r/volna"), ks.c().id(), "Volna")
+                .flight(120, 0.06f, quadDrag(23f, 60f, 0.60f)).damagePerKJ(5f).explosive(TearGasWarhead.ID, 3f));
+        add(AmmoVariant.builder(rl("23x75r/cheremukha7"), ks.c().id(), "Cheremukha-7")
+                .flight(110, 0.075f, quadDrag(23f, 75f, 0.60f)).damagePerKJ(5f).explosive(TearGasWarhead.ID, 4f));
+        // Burning star: tracer + light in flight, ignites what it lands on.
+        add(AmmoVariant.builder(rl("23x75r/star"), ks.c().id(), "Star")
+                .flight(110, 0.02f, quadDrag(23f, 20f, 0.80f)).damagePerKJ(5f).tracer(RED).light(32)
+                .effect(onHit(IGNITE, "{\"seconds\": 5}"))
+                .effect(new AmmoVariant.Effect(IGNITE, ImpactTrigger.BLOCK, 1f, json("{}"))));
 
         Cal g40 = cal("40x46", "40x46mm grenade", CalibreKind.GRENADE, 40f, 46f, 43.5f, 43.5f, 43.5f, 99f, 70f,
                 CaseMaterial.ALUMINIUM, 230f, 7.37f);
@@ -252,16 +301,20 @@ public final class AmmoCatalogue {
                 CaseMaterial.NONE, 2600f, 0.315f);
         // 115 m/s launch, 295 peak, 920 m at 4.5 s (self-destruct) => Cd, motor.
         add(rpg.variant("heat", "PG-7V", 2200, 115, 0.50f).explosive(SHAPED, 2.5f).armorPen(260)
-                .motor(430, 0.45f));
+                .motor(430, 0.45f).look(rpg7("pg7v", 950, 79)));
+        // 93 mm warhead, 2.6 kg; 112 m/s launch.
+        add(rpg.variant("heat_large", "PG-7VL", 2600, 112, 0.55f).explosive(SHAPED, 3f).armorPen(500)
+                .motor(400, 0.45f).look(rpg7("pg7vl", 950, 86)));
+        // Tandem 64 mm precursor + 105 mm main, 4.5 kg; 600 mm RHA behind ERA.
+        add(rpg.variant("tandem", "PG-7VR", 4500, 120, 0.60f).explosive(SHAPED, 3.5f).armorPen(600)
+                .motor(260, 0.45f).threat(ThreatKind.TANDEM_HEAT).look(rpg7("pg7vr", 931, 97)));
         // No sustainer.
         add(AmmoVariant.builder(rl("rpg7/frag"), rpg.c().id(), "OG-7V").flight(152, 1.35f, quadDrag(40f, 1350, 0.30f))
-                .damagePerKJ(rpg.dpk()).explosive(FRAG, 3f)
-                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.ROCKET, 590f, 40f)));
+                .damagePerKJ(rpg.dpk()).explosive(FRAG, 3f).look(rpg7("og7v", 930, 41)));
         // 4.5 kg complete round; motor = PG-7V thrust / 4.1 kg; Cd estimated.
         add(AmmoVariant.builder(rl("rpg7/thermobaric"), rpg.c().id(), "TBG-7V")
                 .flight(110, 4.1f, quadDrag(105f, 4100, 0.50f)).damagePerKJ(rpg.dpk()).explosive(THERMOBARIC, 5f)
-                .motor(230, 0.45f)
-                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.ROCKET, 1100f, 105f)));
+                .motor(230, 0.45f).look(rpg7("tbg7v", 937, 97)));
         Cal pzf = cal("pzf3", "Panzerfaust 3 rocket", CalibreKind.ROCKET, 110f, 1f, 60f, 60f, 60f, 1200f, 1200f,
                 CaseMaterial.NONE, 3900f, 0.3f);
         // 160 m/s launch, 243 peak; burn not published (0.3 s).

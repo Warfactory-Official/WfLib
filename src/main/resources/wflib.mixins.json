@@ -53,6 +53,7 @@
     "MixinWindowEmbedded",
     "MixinKeyboardHandler",
     "MixinLevelRendererOrtho",
+    "MixinGameRendererDepthFar",
     "MixinSectionOcclusionGraph",
     "xaero.worldmap.AccessorGuiMap",
     "xaero.worldmap.AccessorXaeroScreenBase",

@@ -64,6 +64,11 @@ public record ProjectileLook(boolean visible, Shape shape, @Nullable ResourceLoc
         public Override withShape(Shape s, @Nullable Float lengthMm, @Nullable Float diameterMm) {
             return new Override(visible, s, model, lengthMm, diameterMm, body, band, spinRps, trail, flame);
         }
+
+        /** glTF {@code model} (metres, base at the origin, nose +Z) of overall {@code lengthMm} x {@code diameterMm}. */
+        public Override withModel(ResourceLocation model, float lengthMm, float diameterMm) {
+            return new Override(visible, shape, model, lengthMm, diameterMm, body, band, spinRps, trail, flame);
+        }
     }
 
     /** Visible: calibre kind grenade/autocannon/tank/rocket, bullet >= 20 mm, or a motor. */

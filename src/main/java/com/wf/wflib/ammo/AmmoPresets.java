@@ -28,6 +28,9 @@ public final class AmmoPresets {
         if (v.tracer() != AmmoVariant.NONE) {
             b.tracer(v.tracer());
         }
+        if (v.light() > 0) {
+            b.light(v.light());
+        }
         if (v.pierce() != null) {
             b.pierce(v.pierce().dt(), v.pierce().dr());
         }
@@ -37,7 +40,9 @@ public final class AmmoPresets {
         if (v.motor() != null) {
             b.motor(v.motor().accel() / 400.0, Math.round(v.motor().burn() * 20));
         }
-        if (v.explosive() == null && v.armorPenMm() > 0 && c.bulletMm() >= 20) {
+        if (v.threat() != null) {
+            b.threat(v.threat());
+        } else if (v.explosive() == null && v.armorPenMm() > 0 && c.bulletMm() >= 20) {
             b.threat(ThreatKind.KINETIC);
         }
         for (AmmoVariant.Effect e : v.effects()) {

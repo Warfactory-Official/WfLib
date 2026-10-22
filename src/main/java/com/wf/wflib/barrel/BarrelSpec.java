@@ -5,6 +5,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -19,9 +20,18 @@ import java.util.Optional;
  * @param cookOff chambered-round ignition rate, 1/s, by temperature; value 0 = never. Closed breech only (consumer)
  * @param wear    permanent damage while hotter than {@link Wear#from}
  * @param swap    barrel change times
+ * @param variants other barrels of {@code type} by id (spare {@link SpareBarrel#variant}); absent id = standard
  */
 public record BarrelSpec(Optional<ResourceLocation> type, float perShot, float tau, float max, Ramp spread, Jam jam,
-                         Ramp cookOff, Wear wear, Swap swap) {
+                         Ramp cookOff, Wear wear, Swap swap, Map<String, Variant> variants) {
+    /** {@code length}: m, consumer's barrel length (muzzle); {@code velocity}: muzzle speed factor. */
+    public record Variant(float length, float velocity) {
+        public static final Codec<Variant> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.floatRange(0.01F, Float.MAX_VALUE).fieldOf("length").forGetter(Variant::length),
+                Codec.floatRange(0.01F, 10).optionalFieldOf("velocity", 1F).forGetter(Variant::velocity)
+        ).apply(i, Variant::new));
+    }
+
     /** {@code value * clamp((t - from) / (to - from), 0, 1)}. */
     public record Ramp(float from, float to, float value) {
         public static final Codec<Ramp> CODEC = RecordCodecBuilder.<Ramp>create(i -> i.group(
@@ -81,7 +91,7 @@ public record BarrelSpec(Optional<ResourceLocation> type, float perShot, float t
     static final Swap SWAP = new Swap(6, 2.5F);
 
     public static final BarrelSpec DEFAULT = new BarrelSpec(Optional.empty(), 2, 120, 800, DEFAULT_SPREAD, JAM,
-            DEFAULT_COOK_OFF, WEAR, SWAP);
+            DEFAULT_COOK_OFF, WEAR, SWAP, Map.of());
 
     public static final Codec<BarrelSpec> CODEC = RecordCodecBuilder.<BarrelSpec>create(i -> i.group(
             ResourceLocation.CODEC.optionalFieldOf("type").forGetter(BarrelSpec::type),
@@ -92,7 +102,9 @@ public record BarrelSpec(Optional<ResourceLocation> type, float perShot, float t
             Jam.CODEC.optionalFieldOf("jam", JAM).forGetter(BarrelSpec::jam),
             Ramp.CODEC.optionalFieldOf("cookOff", DEFAULT_COOK_OFF).forGetter(BarrelSpec::cookOff),
             Wear.CODEC.optionalFieldOf("wear", WEAR).forGetter(BarrelSpec::wear),
-            Swap.CODEC.optionalFieldOf("swap", SWAP).forGetter(BarrelSpec::swap)
+            Swap.CODEC.optionalFieldOf("swap", SWAP).forGetter(BarrelSpec::swap),
+            Codec.unboundedMap(Codec.STRING, Variant.CODEC).optionalFieldOf("variants", Map.of())
+                    .forGetter(BarrelSpec::variants)
     ).apply(i, BarrelSpec::new)).validate(BarrelSpec::check);
 
     private static DataResult<BarrelSpec> check(BarrelSpec s) {
@@ -101,6 +113,9 @@ public record BarrelSpec(Optional<ResourceLocation> type, float perShot, float t
         }
         if (s.wear.from <= BarrelState.AMBIENT || s.wear.from >= s.max) {
             return DataResult.error(() -> "wear.from " + s.wear.from + " outside (ambient, max)");
+        }
+        if (!s.variants.isEmpty() && s.type.isEmpty()) {
+            return DataResult.error(() -> "variants without a quick-change type");
         }
         return DataResult.success(s);
     }

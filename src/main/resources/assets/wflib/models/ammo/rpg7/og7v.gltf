@@ -1,0 +1,207 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "wflib tools/rpg_rockets.py",
+  "copyright": "low-poly RPG-7 granades by DU1701 (sketchfab.com/3d-models/5ff10c54456343d6b1f65cd20efb80ac), CC-BY 4.0"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "og7v",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0,
+      "NORMAL": 1,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 4,
+      "NORMAL": 5,
+      "TEXCOORD_0": 6
+     },
+     "indices": 7,
+     "material": 0
+    }
+   ]
+  }
+ ],
+ "materials": [
+  {
+   "name": "og7v",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0.0
+   },
+   "alphaMode": "OPAQUE"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9728,
+   "minFilter": 9728
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "mimeType": "image/png",
+   "uri": "og7v.png",
+   "extras": {
+    "resourceLocation": "wflib:models/ammo/rpg7/og7v.png"
+   }
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 102352,
+   "uri": "og7v.bin",
+   "extras": {
+    "resourceLocation": "wflib:models/ammo/rpg7/og7v.bin"
+   }
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 31416,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 31416,
+   "byteLength": 31416,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 62832,
+   "byteLength": 20944,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 83776,
+   "byteLength": 15816,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 99592,
+   "byteLength": 864,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 100456,
+   "byteLength": 864,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 101320,
+   "byteLength": 576,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 101896,
+   "byteLength": 456,
+   "target": 34963
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 2618,
+   "type": "VEC3",
+   "min": [
+    -0.020338766218719946,
+    -0.020338745419755958,
+    0.0
+   ],
+   "max": [
+    0.020338766218719904,
+    0.020338745419755958,
+    0.8305448590203607
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 2618,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 2618,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5125,
+   "count": 3954,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 72,
+   "type": "VEC3",
+   "min": [
+    -0.017783847836710345,
+    -0.017783784853026202,
+    0.830544854780376
+   ],
+   "max": [
+    0.01778372186934799,
+    0.01778378485303197,
+    0.9304362264725116
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5126,
+   "count": 72,
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 6,
+   "componentType": 5126,
+   "count": 72,
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 7,
+   "componentType": 5125,
+   "count": 114,
+   "type": "SCALAR"
+  }
+ ]
+}

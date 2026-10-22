@@ -30,6 +30,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL33;
 
@@ -98,16 +99,20 @@ public final class PipLens {
     private CameraMode sensor;
     @Nullable
     private TextureTarget target;
+    static final int SIZE_STEP = 128, MIN_SIZE = 128;
+    static final float SHRINK = 0.6F;
     private final double[] pose = new double[6];
     private float driftX, driftY;
     /** Share of the rendered picture the lens shows ({@link ScopeMath#crop}). */
     private float crop = 1;
 
     private boolean lensValid;
-    private float lensTan;
+    /** tan of the field stop's angular radius from the exit pupil: lens radius / eye relief. */
+    private float fieldTan;
+    /** Lens apparent size / field stop: lens coords x this = picture coords (closer => image kept, ring beyond). */
+    private float fieldScale = 1;
     /** tan of the last picture's half FOV. */
     private float pictureTan = 1;
-    private float handFov = 70;
     /** Shadow hole {@code {x, y, radius}}, lens radii. */
     public final float[] hole = new float[3];
     /** Last lens on screen, window px {@code {x, y, radius}}. */
@@ -207,9 +212,10 @@ public final class PipLens {
     /**
      * Scope pass for this frame from the last {@link #draw}; {@code active} false => none (freed after idle).
      *
-     * @param baseFovDeg naked-eye FOV the magnification is relative to
+     * @param maxSize picture px cap; picture = last picture screen diameter / {@link #crop} (texel per screen px)
      */
-    public boolean frame(DeltaTracker delta, boolean active, float baseFovDeg, int size, Entity viewer, Pose camera) {
+    public boolean frame(DeltaTracker delta, boolean active, int maxSize, Entity viewer,
+                         Pose camera) {
         rendered = false;
         Minecraft mc = Minecraft.getInstance();
         long now = System.nanoTime();
@@ -224,6 +230,7 @@ public final class PipLens {
             return false;
         }
         lastPass = now;
+        int size = pictureSize(2 * lensPx[2] / (crop * fieldScale), target == null ? 0 : target.width, maxSize);
         if (target == null || target.width != size) {
             if (target != null) {
                 target.destroyBuffers();
@@ -232,6 +239,11 @@ public final class PipLens {
             // Boxy PRECISE distant-entity depth asks the pass's "main" target for a stencil.
             target.enableStencil();
             target.setClearColor(0, 0, 0, 1);
+            // Lens past the field stop (eye inside the relief) samples outside the picture => black, not edge texels.
+            RenderSystem.bindTexture(target.getColorTextureId());
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_BORDER);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_BORDER);
+            RenderSystem.bindTexture(0);
         }
         if (view == null) {
             view = new SightSensor(OffscreenView.sharedGrid());
@@ -258,7 +270,7 @@ public final class PipLens {
             }
         }
 
-        float fov = ScopeMath.fovDeg(lensTan, handFov, baseFovDeg, magnification);
+        float fov = ScopeMath.fovDeg(fieldTan, magnification);
         if (!(fov < MAX_FOV)) {
             return false;
         }
@@ -280,6 +292,16 @@ public final class PipLens {
             cpuSamples++;
         }
         return rendered;
+    }
+
+    /**
+     * Picture px for {@code wanted} (lens screen px / crop): up to {@link #SIZE_STEP} multiples, within
+     * {@link #MIN_SIZE}..{@code maxSize}; {@code current} kept while >= wanted and wanted >= {@link #SHRINK} x it (no
+     * reallocation per frame as the lens moves).
+     */
+    static int pictureSize(float wanted, int current, int maxSize) {
+        int size = Math.clamp((int) Math.ceil(wanted / SIZE_STEP) * SIZE_STEP, MIN_SIZE, Math.max(MIN_SIZE, maxSize));
+        return current >= size && size >= SHRINK * current && current <= maxSize ? current : size;
     }
 
     /** Shadow over the lens part ({@link #crop}) of the level picture; main target bound after. */
@@ -355,13 +377,11 @@ public final class PipLens {
      * @param modelToF    model -> scope frame F
      * @param fToView     F -> this frame's view space
      * @param modelToView model -> this frame's view space (lens triangles; model view stack identity while drawn)
-     * @param handFovDeg  vertical FOV of {@code proj}
      * @param flexDeg     reticle drift {@code {yaw, pitch}} deg
      */
     public void draw(GemRenderGltfModel model, int lens, Matrix4fc modelToF, Matrix4fc fToView, Matrix4fc modelToView,
-                     Matrix4fc proj, float handFovDeg, float[] flexDeg) {
+                     Matrix4fc proj, float[] flexDeg) {
         lensValid = false;
-        handFov = handFovDeg;
         Optic o = optic;
         if (o == null) {
             return;
@@ -390,11 +410,11 @@ public final class PipLens {
         if (r < 1e-6F) {
             return;
         }
-        lensTan = r / dF;
-        driftX = (float) Math.tan(Math.toRadians(flexDeg[0])) / lensTan;
-        driftY = (float) Math.tan(Math.toRadians(flexDeg[1])) / lensTan;
         Float er = o.eyeRelief();
         float relief = er != null ? er : dF;
+        fieldTan = r / relief;
+        driftX = (float) Math.tan(Math.toRadians(flexDeg[0])) / fieldTan;
+        driftY = (float) Math.tan(Math.toRadians(flexDeg[1])) / fieldTan;
         g.set(fToView);
         g.transformPosition(p.set(0, 0, relief - dF));
         g.transformPosition(c);
@@ -407,6 +427,7 @@ public final class PipLens {
             return;
         }
         lensValid = true;
+        fieldScale = r / (c.dot(a) * fieldTan);
         var win = Minecraft.getInstance().getWindow();
         lensPx[0] = (1 + proj.m00() * c.x / -c.z) / 2 * win.getWidth();
         lensPx[1] = (1 - proj.m11() * c.y / -c.z) / 2 * win.getHeight();
@@ -520,18 +541,24 @@ public final class PipLens {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, target.getColorTextureId());
         // Colour attachment origin bottom-left = picture +y up.
-        lensPass(r, crop, crop, 0, 0);
+        lensPass(r, crop, crop, 0, 0, fieldScale);
         RenderSystem.depthMask(false);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderTexture(0, s.reticle() != null ? s.reticle() : duplex());
+        if (s.reticle() != null) {
+            RenderSystem.setShaderTexture(0, ReticleTextures.id(s.reticle()));
+        } else {
+            RenderSystem.setShaderTexture(0, duplex());
+        }
         // reticleSize > 0: image width in the world; reticleZoom > 0 => at that magnification (second focal plane).
-        float k = s.reticleSize() <= 0 ? 1 : pictureTan * (s.reticleZoom() > 0 ? magnification / s.reticleZoom() : 1)
-                / (float) Math.tan(s.reticleSize() * ReticleMath.MOA_RAD / 2);
-        lensPass(r, k, -k, driftX, driftY);
+        // Image narrower than the picture (k > 1) => fills it: true subtension only once the image spans the lens.
+        float k = s.reticleSize() <= 0 ? 1 : Math.min(1, pictureTan
+                * (s.reticleZoom() > 0 ? magnification / s.reticleZoom() : 1)
+                / (float) Math.tan(s.reticleSize() * ReticleMath.MOA_RAD / 2));
+        lensPass(r, k, -k, driftX, driftY, fieldScale);
         if (s.mask() != null) {
             RenderSystem.setShaderTexture(0, s.mask());
-            lensPass(r, 1, -1, 0, 0);
+            lensPass(r, 1, -1, 0, 0, 1);
         }
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
@@ -542,8 +569,11 @@ public final class PipLens {
         RenderSystem.applyModelViewMatrix();
     }
 
-    /** Lens triangles, uv = {@code 0.5 + 0.5 (sx (lx - ox), sy (ly - oy))}; lens coords {@code lx, ly} in radii. */
-    private void lensPass(float r, float sx, float sy, float ox, float oy) {
+    /**
+     * Lens triangles, uv = {@code 0.5 + 0.5 (sx (q lx - ox), sy (q ly - oy))}; lens coords {@code lx, ly} in radii,
+     * {@code q} lens -> layer coords.
+     */
+    private void lensPass(float r, float sx, float sy, float ox, float oy, float q) {
         float[] tris = lensTris;
         float plane = c.dot(a);
         BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX);
@@ -552,7 +582,7 @@ public final class PipLens {
             float along = lv.dot(a);
             float k = Math.abs(along) < 1e-6F ? 1 : plane / along;
             float dx = lv.x * k - c.x, dy = lv.y * k - c.y, dz = lv.z * k - c.z;
-            float lx = (dx * x.x + dy * x.y + dz * x.z) / r, ly = (dx * y.x + dy * y.y + dz * y.z) / r;
+            float lx = q * (dx * x.x + dy * x.y + dz * x.z) / r, ly = q * (dx * y.x + dy * y.y + dz * y.z) / r;
             b.addVertex(lv.x * PULL, lv.y * PULL, lv.z * PULL).setUv(0.5F + 0.5F * sx * (lx - ox), 0.5F + 0.5F * sy * (ly - oy));
         }
         BufferUploader.drawWithShader(b.buildOrThrow());

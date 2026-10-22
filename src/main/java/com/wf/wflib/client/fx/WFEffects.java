@@ -37,6 +37,13 @@ public final class WFEffects {
         }
     }
 
+    /** Camera distance past which blasts drop debris (sub-pixel, physics per piece); clouds thin in GemRender. */
+    private static final double FAR_FX = 256.0;
+
+    private static boolean far(double x, double y, double z) {
+        return Minecraft.getInstance().gameRenderer.getMainCamera().getPosition().distanceToSqr(x, y, z) > FAR_FX * FAR_FX;
+    }
+
     /** Multiplier on the fallback's puff count. */
     private static final int INSTANCED_SMOKE_DENSITY = 9;
 
@@ -167,8 +174,10 @@ public final class WFEffects {
             }
         }
 
-        com.wf.wflib.client.wiaj.BlastDebris.schedule(level, x, y, z, debrisCount * INSTANCED_DEBRIS_DENSITY,
-                debrisVelocity, vent);
+        if (!far(x, y, z)) {
+            com.wf.wflib.client.wiaj.BlastDebris.schedule(level, x, y, z, debrisCount * INSTANCED_DEBRIS_DENSITY,
+                    debrisVelocity, vent);
+        }
 
     }
 
@@ -273,6 +282,9 @@ public final class WFEffects {
     }
 
     private static void spawnDebris(ClientLevel level, double x, double y, double z, CompoundTag data) {
+        if (far(x, y, z)) {
+            return;
+        }
         BlockState surface = nearbySurface(level, x, y, z);
         if (surface != null && !surface.isAir()) {
             int debris = data.contains("debris") ? data.getInt("debris") : 15;

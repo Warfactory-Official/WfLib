@@ -52,5 +52,6 @@ public final class MistEffects {
         register(WFFluids.PHOSGENE.get(), new PhosgeneMistEffect());
         register(WFFluids.MUSTARD_GAS.get(), new MustardGasMistEffect());
         register(WFFluids.GLYPHID_ACID.get(), new GlyphidAcidMistEffect());
+        register(WFFluids.TEAR_GAS.get(), new TearGasMistEffect());
     }
 }

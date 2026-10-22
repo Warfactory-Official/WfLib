@@ -9,7 +9,7 @@ public final class AimInput {
     public static final int HOLD_TICKS = 4;
     /**
      * World FOV divisor at full hold, on top of the sight zoom. 70 deg -> 50 deg: close look without losing the
-     * periphery; PiP ring grows by the same factor (magnification in the picture unchanged).
+     * periphery; PiP lens and picture scale with it.
      */
     public static final float HOLD_ZOOM = 1.4F;
     /** Hold ease progress per tick: 0.15 s in or out. */

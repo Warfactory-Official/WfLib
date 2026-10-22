@@ -29,6 +29,7 @@ public final class ImpactEffects {
     public static final ResourceLocation DAMAGE = rl("damage");
     public static final ResourceLocation EXPLODE = rl("explode");
     public static final ResourceLocation THERMAL = rl("thermal");
+    public static final ResourceLocation MOB_EFFECT = rl("mob_effect");
 
     static {
         BuiltinEffects.register();

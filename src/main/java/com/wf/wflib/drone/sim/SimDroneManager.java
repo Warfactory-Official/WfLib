@@ -5,6 +5,7 @@ import com.wf.wflib.WFLib;
 import com.wf.wflib.api.WFEventType;
 import com.wf.wflib.config.ViewRange;
 import com.wf.wflib.sim.SimKind;
+import com.wf.wflib.sim.SimTargets;
 import com.wf.wflib.sim.SimTier;
 import com.wf.wflib.sim.SimWorld;
 import com.wf.wflib.api.WFTelemetryService;
@@ -108,7 +109,7 @@ public final class SimDroneManager implements SimKind<SimDrone> {
         if (!offloadEnabled) {
             return false;
         }
-        if (!drone.isAlive() || drone.isRemoved()) {
+        if (!drone.isAlive() || drone.isRemoved() || SimTargets.kept(drone)) {
             return false;
         }
         if (drone.cameraSpec() != null

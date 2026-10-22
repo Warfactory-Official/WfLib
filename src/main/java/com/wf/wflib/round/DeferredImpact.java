@@ -12,9 +12,11 @@ import java.util.UUID;
 /**
  * World effect owed to an unloaded chunk: a virtual round's block impact ({@code landed == false}: impact event,
  * then land or warhead) or a resting round whose chunk unloaded ({@code landed}: rests again for {@code fuse}).
+ * {@code announced}: blast FX + sound already sent at impact time => applied with {@link com.wf.wflib.fx.FxMute}.
  */
 public record DeferredImpact(boolean landed, ResourceLocation preset, Vec3 at, Vec3 velocity, BlockPos block,
-                             Direction face, @Nullable UUID shooter, @Nullable UUID faction, int fuse, float burrow) {
+                             Direction face, @Nullable UUID shooter, @Nullable UUID faction, int fuse, float burrow,
+                             boolean announced) {
 
     CompoundTag save() {
         CompoundTag tag = new CompoundTag();
@@ -36,6 +38,7 @@ public record DeferredImpact(boolean landed, ResourceLocation preset, Vec3 at, V
         }
         tag.putInt("fuse", fuse);
         tag.putFloat("burrow", burrow);
+        tag.putBoolean("announced", announced);
         return tag;
     }
 
@@ -45,6 +48,7 @@ public record DeferredImpact(boolean landed, ResourceLocation preset, Vec3 at, V
                 new Vec3(tag.getDouble("vx"), tag.getDouble("vy"), tag.getDouble("vz")),
                 BlockPos.of(tag.getLong("block")), Direction.from3DDataValue(tag.getByte("face")),
                 tag.hasUUID("shooter") ? tag.getUUID("shooter") : null,
-                tag.hasUUID("faction") ? tag.getUUID("faction") : null, tag.getInt("fuse"), tag.getFloat("burrow"));
+                tag.hasUUID("faction") ? tag.getUUID("faction") : null, tag.getInt("fuse"), tag.getFloat("burrow"),
+                tag.getBoolean("announced"));
     }
 }

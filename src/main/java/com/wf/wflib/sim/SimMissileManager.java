@@ -43,6 +43,18 @@ public final class SimMissileManager implements SimKind<SimMissile> {
         return tier(level).find(sm -> sm.id.equals(id));
     }
 
+    /** Record or swarm member {@code id} -> its whole formation respawned in place. */
+    public static boolean onload(ServerLevel level, UUID id) {
+        SimTier<SimMissile> tier = tier(level);
+        SimMissile sm = tier.find(r -> r.id.equals(id) || r.swarmMembers.stream().anyMatch(m -> m.id.equals(id)));
+        if (sm == null) {
+            return false;
+        }
+        respawn(level, sm, sm.pos);
+        tier.remove(sm);
+        return true;
+    }
+
     @Override
     public ResourceLocation id() {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "missile");

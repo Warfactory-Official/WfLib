@@ -30,6 +30,7 @@ public final class WFConfig {
     public static final ModConfigSpec.DoubleValue INTERCEPTOR_GRAZE_DAMAGE;
     public static final ModConfigSpec.DoubleValue MIN_PROJECTILE_DAMAGE;
     public static final ModConfigSpec.BooleanValue REWIND_WHOLE_FLIGHT;
+    public static final ModConfigSpec.DoubleValue UNLOADED_PRELOAD_BLAST;
     public static final ModConfigSpec.BooleanValue BLOCK_DAMAGE;
     public static final ModConfigSpec.DoubleValue BLOCK_TOUGHNESS_SCALE;
     public static final ModConfigSpec.DoubleValue STEALTH_RCS;
@@ -39,6 +40,7 @@ public final class WFConfig {
     public static final ModConfigSpec.IntValue DEFAULT_FUEL_TICKS;
     public static final ModConfigSpec.BooleanValue FIRE_BOMBLETS_AS_FIREBALLS;
     public static final ModConfigSpec.DoubleValue VIEW_RANGE;
+    public static final ModConfigSpec.DoubleValue SIM_VIEW_RANGE;
     public static final ModConfigSpec.DoubleValue SIM_TERMINAL_RANGE;
     public static final ModConfigSpec.DoubleValue SIM_SPAWN_MARGIN;
     public static final ModConfigSpec.IntValue SIM_CRUISE_DELAY_TICKS;
@@ -176,6 +178,11 @@ public final class WFConfig {
                 .comment("Lag compensation: true = every step of a round sweeps targets as its shooter saw them;",
                         "false = first step only, later steps sweep live targets.")
                 .define("rewindWholeFlight", true);
+        UNLOADED_PRELOAD_BLAST = b
+                .comment("A round hitting unloaded ground with at least this blast size loads the blast's chunks",
+                        "(async) and waits for them; smaller ones show their blast at once and apply it to the",
+                        "world when the chunk next loads.")
+                .defineInRange("unloadedPreloadBlast", 4.0, 0.0, 1000.0);
         BLOCK_DAMAGE = b
                 .comment("Rounds crack and break blocks by the momentum they lose in them (no drops).")
                 .define("blockDamage", true);
@@ -224,6 +231,10 @@ public final class WFConfig {
                 .comment("Blocks from a player within which missiles and drones stay real (ticking, chunk-loading,",
                         "rendered) entities and kinetic rounds are sent to that player.")
                 .defineInRange("viewRange", 1536.0, 16.0, 4096.0);
+        SIM_VIEW_RANGE = b
+                .comment("Blocks from a player within which off-world (simulated) missiles and drones are drawn as",
+                        "render-only ghosts. 0 = never.")
+                .defineInRange("simViewRange", 4096.0, 0.0, 16384.0);
 
         b.comment("Off-world missile simulation: when a cruising missile is swapped between a real, ticking,",
                         "rendered entity and a lightweight off-world sim. Larger ranges keep missiles real (and",
@@ -573,6 +584,7 @@ public final class WFConfig {
         MissileSimConfig.INTERCEPTOR_GRAZE_DAMAGE = INTERCEPTOR_GRAZE_DAMAGE.get().floatValue();
         MissileSimConfig.MIN_PROJECTILE_DAMAGE = MIN_PROJECTILE_DAMAGE.get().floatValue();
         com.wf.wflib.round.Rounds.rewindWholeFlight = REWIND_WHOLE_FLIGHT.get();
+        com.wf.wflib.round.Rounds.preloadBlast = UNLOADED_PRELOAD_BLAST.get().floatValue();
         com.wf.wflib.round.pen.BlockDamage.enabled = BLOCK_DAMAGE.get();
         com.wf.wflib.round.pen.BlockDamage.toughnessScale = BLOCK_TOUGHNESS_SCALE.get().floatValue();
         MissileSimConfig.STEALTH_RCS = STEALTH_RCS.get().floatValue();
@@ -582,6 +594,7 @@ public final class WFConfig {
         MissileEntity.DEFAULT_FUEL_TICKS = DEFAULT_FUEL_TICKS.get();
         com.wf.wflib.warhead.FireCluster.asFireballs = FIRE_BOMBLETS_AS_FIREBALLS.get();
         ViewRange.blocks = VIEW_RANGE.get();
+        ViewRange.sim = SIM_VIEW_RANGE.get();
         MissileSimConfig.DESTINATION_RANGE = SIM_TERMINAL_RANGE.get();
         MissileSimConfig.LISTENER_SPAWN_MARGIN = SIM_SPAWN_MARGIN.get();
         MissileSimConfig.CRUISE_SIM_DELAY_TICKS = SIM_CRUISE_DELAY_TICKS.get();

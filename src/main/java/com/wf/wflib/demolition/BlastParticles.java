@@ -21,20 +21,25 @@ public final class BlastParticles {
      */
     public static void burst(ServerLevel level, ParticleOptions type, double x, double y, double z,
                              int count, double spreadX, double spreadY, double spreadZ, double speed) {
+        burst(level, type, x, y, z, count, spreadX, spreadY, spreadZ, speed, RANGE);
+    }
+
+    public static void burst(ServerLevel level, ParticleOptions type, double x, double y, double z,
+                             int count, double spreadX, double spreadY, double spreadZ, double speed, double range) {
         send(level, new ClientboundLevelParticlesPacket(type, true, x, y, z,
-                (float) spreadX, (float) spreadY, (float) spreadZ, (float) speed, count), x, y, z);
+                (float) spreadX, (float) spreadY, (float) spreadZ, (float) speed, count), x, y, z, range);
     }
 
     /** One particle with a velocity of its own. */
     public static void directed(ServerLevel level, ParticleOptions type, double x, double y, double z,
                                 Vec3 velocity, double speed) {
         send(level, new ClientboundLevelParticlesPacket(type, true, x, y, z,
-                (float) velocity.x, (float) velocity.y, (float) velocity.z, (float) speed, 0), x, y, z);
+                (float) velocity.x, (float) velocity.y, (float) velocity.z, (float) speed, 0), x, y, z, RANGE);
     }
 
     private static void send(ServerLevel level, ClientboundLevelParticlesPacket packet,
-                             double x, double y, double z) {
-        double rangeSq = RANGE * RANGE;
+                             double x, double y, double z, double range) {
+        double rangeSq = range * range;
         for (ServerPlayer player : level.players()) {
             if (player.distanceToSqr(x, y, z) <= rangeSq) {
                 player.connection.send(packet);

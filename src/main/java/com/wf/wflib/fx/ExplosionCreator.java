@@ -23,7 +23,7 @@ public final class ExplosionCreator {
      * @param waveScale                 shockwave ring radius (blocks)
      * @param debrisCount               debris chunk cap (x3 client side); chunks = removed blocks only
      * @param debrisVelocity            debris launch speed (blocks/tick)
-     * @param soundRange                near layer reach ({@link Blasts#large}); FX broadcast at least 300
+     * @param soundRange                near layer reach ({@link Blasts#large})
      */
     public static void composeEffect(Level level, double x, double y, double z,
                                      int cloudCount, float cloudScale, float cloudSpeedMult, float waveScale,
@@ -40,8 +40,7 @@ public final class ExplosionCreator {
         data.putFloat("debrisVelocity", debrisVelocity);
         data.putFloat("soundRange", soundRange);
 
-        double range = Math.max(300.0, soundRange);
-        WFNetwork.sendToAllAround(level, x, y, z, range, new AuxParticlePacket("explosion_large", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.config.ViewRange.blocks, new AuxParticlePacket("explosion_large", x, y, z, data));
         WfAudio.at((ServerLevel) level, new Vec3(x, y, z), AudioCategory.EXPLOSIONS, Blasts.large(soundRange));
     }
 
@@ -54,7 +53,7 @@ public final class ExplosionCreator {
         }
         CompoundTag data = new CompoundTag();
         data.putFloat("waveScale", waveScale);
-        WFNetwork.sendToAllAround(level, x, y, z, 256.0, new AuxParticlePacket("sonic_boom", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.config.ViewRange.blocks, new AuxParticlePacket("sonic_boom", x, y, z, data));
         WfAudio.at((ServerLevel) level, new Vec3(x, y, z), AudioCategory.EXPLOSIONS, Blasts.sonicBoom());
     }
 

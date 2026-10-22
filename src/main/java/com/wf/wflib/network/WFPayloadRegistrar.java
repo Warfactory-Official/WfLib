@@ -33,6 +33,8 @@ public final class WFPayloadRegistrar {
 
         r.playToClient(SimGlyphidSyncPacket.TYPE, SimGlyphidSyncPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleSimGlyphids(pkt)));
+        r.playToClient(SimGhostSyncPacket.TYPE, SimGhostSyncPacket.STREAM_CODEC,
+                (pkt, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleSimGhosts(pkt)));
         r.playToClient(ScopeFramePacket.TYPE, ScopeFramePacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleScopeFrame(pkt)));
         r.playToClient(CameraFeedPacket.TYPE, CameraFeedPacket.STREAM_CODEC,

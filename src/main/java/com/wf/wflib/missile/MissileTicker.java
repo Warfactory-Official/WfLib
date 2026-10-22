@@ -6,6 +6,7 @@ import com.wf.wflib.flight.FlightContext;
 import com.wf.wflib.sim.MissileListenerRegistry;
 import com.wf.wflib.sim.MissileSimConfig;
 import com.wf.wflib.sim.SimMissileManager;
+import com.wf.wflib.sim.SimTargets;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -114,6 +115,7 @@ public final class MissileTicker {
                 || m.flight().getPhase() != Phase.CRUISE
                 || m.flight().cruiseTicks() <= MissileSimConfig.CRUISE_SIM_DELAY_TICKS
                 || ctx.horizontalDist() <= MissileSimConfig.DESTINATION_RANGE
+                || SimTargets.kept(m)
                 || SimMissileManager.nearAnyListener(level, m.position())) {
             return false;
         }

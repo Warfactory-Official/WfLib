@@ -43,6 +43,6 @@ void flw_instanceVertex(in FlwInstance i) {
     flw_vertexNormal = -vec3(flw_viewInverse[2]);
     flw_vertexColor = vec4(clamp(mix(flame, smoke, burnt) * p.tintScale, 0.0, 1.0),
                            clamp(alpha * ramp, 0.0, 1.0) * near);
-    flw_vertexOverlay = gemrender_particleOverlay(s.glow * (1.0 - burnt));
+    flw_vertexOverlay = gemrender_particleOverlay(s.glow * (1.0 - burnt), center, 0.5 * size);
     flw_vertexLight = mix(vec2(1.0), s.light, burnt);
 }

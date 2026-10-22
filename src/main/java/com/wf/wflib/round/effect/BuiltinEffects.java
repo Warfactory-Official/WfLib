@@ -12,6 +12,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
@@ -28,7 +30,8 @@ import java.util.UUID;
  * | {@code damage} | {@code type}, {@code amount} | HIT (i-frames ignored) |
  * | {@code explode} | {@code warhead}, {@code size} (warhead's), {@code breaksBlocks} (true) | all |
  * | {@code thermal} | {@code pen} mm (0), {@code wear} x (1) | HIT: threat pen +, armour plate/insert wear x |
- * {@code type}, {@code warhead}: existence checked at server start ({@link ImpactEffects#check}).
+ * | {@code mob_effect} | {@code effect}, {@code seconds} (5), {@code amplifier} int (0) | HIT: living target gets it |
+ * {@code type}, {@code warhead}, {@code effect}: existence checked at server start ({@link ImpactEffects#check}).
  */
 final class BuiltinEffects {
 
@@ -77,6 +80,32 @@ final class BuiltinEffects {
                 public void check(RegistryAccess registries) {
                     if (!WarheadRegistry.exists(warhead)) {
                         throw new IllegalStateException("explode: warhead " + warhead + " not registered");
+                    }
+                }
+            };
+        });
+        ImpactEffects.registerFactory(ImpactEffects.MOB_EFFECT, (on, p) -> {
+            hitOnly(on);
+            ResourceKey<MobEffect> effect = ResourceKey.create(Registries.MOB_EFFECT, p.reqRl("effect"));
+            int ticks = (int) Math.round(p.num("seconds", 5.0, 0.05, 3600.0) * 20);
+            double amplifier = p.num("amplifier", 0.0, 0.0, 255.0);
+            if (amplifier != Math.floor(amplifier)) {
+                throw new IllegalArgumentException("amplifier: expected integer, got " + amplifier);
+            }
+            return new ImpactEffect() {
+                @Override
+                public void apply(ImpactContext ctx) {
+                    if (ctx.entity() instanceof LivingEntity living) {
+                        living.addEffect(new MobEffectInstance(ctx.level().registryAccess()
+                                .registryOrThrow(Registries.MOB_EFFECT).getHolderOrThrow(effect), ticks,
+                                (int) amplifier), ctx.shooter());
+                    }
+                }
+
+                @Override
+                public void check(RegistryAccess registries) {
+                    if (registries.registryOrThrow(Registries.MOB_EFFECT).getHolder(effect).isEmpty()) {
+                        throw new IllegalStateException("mob_effect: effect " + effect.location() + " not registered");
                     }
                 }
             };

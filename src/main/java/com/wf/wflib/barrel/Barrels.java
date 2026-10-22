@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 /** Spare barrel component + item ({@link WFLibContent.Kind#BARREL}: registered iff requested). */
@@ -50,9 +51,19 @@ public final class Barrels {
     }
 
     public static ItemStack spare(ResourceLocation type, BarrelState state) {
+        return spare(new SpareBarrel(type, Optional.empty(), state));
+    }
+
+    public static ItemStack spare(SpareBarrel barrel) {
         ItemStack s = new ItemStack(SPARE_ITEM.get());
-        s.set(SPARE.get(), new SpareBarrel(type, state));
+        s.set(SPARE.get(), barrel);
         return s;
+    }
+
+    /** Variant display name: lang {@code barrel.<type ns>.<type path>.<variant>}; empty = the type's name. */
+    public static Component name(ResourceLocation type, Optional<String> variant) {
+        return variant.<Component>map(v -> Component.translatable("barrel_type." + type.getNamespace() + "."
+                + type.getPath().replace('/', '.') + "." + v)).orElseGet(() -> BarrelTypes.name(type));
     }
 
     @Nullable
@@ -82,17 +93,17 @@ public final class Barrels {
     }
 
     /**
-     * Swap in place: {@code spare} (a stack still in its container) takes the barrel coming off; the spare's state is
-     * returned for the gun. Spec = the type's.
+     * Swap in place: {@code spare} (a stack still in its container) takes the barrel coming off ({@code removed},
+     * its variant); the spare's barrel, cooled to now, is returned for the gun. Spec = the type's.
      */
-    public static BarrelState exchange(ItemStack spare, BarrelState removed, long now) {
+    public static SpareBarrel exchange(ItemStack spare, Optional<String> removedVariant, BarrelState removed, long now) {
         SpareBarrel b = spareOf(spare);
         if (b == null) {
             throw new IllegalArgumentException("not a spare barrel: " + spare);
         }
         BarrelSpec spec = BarrelTypes.spec(b.type());
-        spare.set(SPARE.get(), new SpareBarrel(b.type(), removed.at(spec, now)));
-        return b.state().at(spec, now);
+        spare.set(SPARE.get(), new SpareBarrel(b.type(), removedVariant, removed.at(spec, now)));
+        return new SpareBarrel(b.type(), b.variant(), b.state().at(spec, now));
     }
 
     /** Tooltip lines: temperature cooled to {@link #clientClock} (unknown => as stored) + wear. */
@@ -105,11 +116,15 @@ public final class Barrels {
                 .withStyle(ChatFormatting.DARK_GRAY));
     }
 
-    /** One new spare per registered type. */
+    /** One new spare per registered type and variant. */
     public static List<ItemStack> creativeStacks() {
         List<ItemStack> out = new ArrayList<>();
         if (live) {
-            BarrelTypes.all().forEach(t -> out.add(spare(t.id(), BarrelState.NEW)));
+            for (BarrelTypes.Type t : BarrelTypes.all()) {
+                out.add(spare(t.id(), BarrelState.NEW));
+                t.spec().variants().keySet().stream().sorted().forEach(v ->
+                        out.add(spare(new SpareBarrel(t.id(), Optional.of(v), BarrelState.NEW))));
+            }
         }
         return out;
     }

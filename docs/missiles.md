@@ -115,6 +115,7 @@ What the missile does on impact. Pick by registered id. Built-ins:
 | `fragmentation` | scatters `fragmentCount` bomblets (pairs well with an airburst)   |
 | `recursive_frag`| splits into child missiles `splitDepth` times before the leaves detonate |
 | `gas`           | chemical cloud                                                    |
+| `tear_gas`      | irritant cloud (blind, nausea, slow, weak; no damage), radius = blast size (3) |
 | `fire`          | incendiary                                                        |
 | `thermobaric`   | STANDARD blast at size (default 6), entity reach x2, 5 s fireball |
 | `agent_orange` | defoliant spray, falls 1 block/tick over a disc (radius = blast size, default 12): `#wflib:defoliant_targets` (leaves, logs) -> air, column stops at any other solid or fluid. Claims respected; entities untouched |
@@ -412,6 +413,18 @@ simulation advances them cheaply and rematerializes the real entity when it near
 is invisible to design: your missile's speed, fuel, and warhead all carry through and travel time matches.
 An offloaded missile carries its full entity NBT (`SimMissile.body`) and comes back from it; synthetic records
 (orbital drops, sim interceptors) have no body and are rebuilt from their fields.
+
+Drawn while off-world: `SimGhostTracking` (every 10 ticks) -> `SimGhostSyncPacket` to players within
+`simViewRange` (4096): kind, model, exhaust colour, sim UUID, position + velocity; no target/owner. Client
+`SimGhostEntities` = render-only entities (id `GHOST_ID_BASE` + handle) in the client level, extrapolated per tick;
+removed when the real entity (same UUID) joins. Sim drones the same. Far plane >= `max(viewRange, simViewRange) + 64`.
+
+Locking sims (`SimTargets`):
+- Client-picked id -> `resolve(player, id)`: ghost id sent to that player => sim onloaded, real entity returned.
+- Server scan -> `onloadWhere(level, gate)` before the entity query.
+- `keep(e)` per tick (seeker/interceptor lock, launcher lock holders) => no offload for `KEEP_TICKS`.
+- Client lock holders: `SimGhostEntities.current(e)` hands a replaced ghost's lock to the real entity.
+- Ghosts exist only past `viewRange` => lockable only when a launcher's range exceeds it.
 
 ### 7a. Sim registry (`com.wf.wflib.sim`)
 

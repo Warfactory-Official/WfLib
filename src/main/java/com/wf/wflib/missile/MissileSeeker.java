@@ -9,6 +9,7 @@ import com.wf.wflib.api.TargetIlluminator;
 import com.wf.wflib.api.WFEventType;
 import com.wf.wflib.recon.Band;
 import com.wf.wflib.recon.SignatureRegistry;
+import com.wf.wflib.sim.SimTargets;
 import com.wf.wflib.drone.cam.CameraSource;
 import com.wf.wflib.drone.cam.CameraSpec;
 import com.wf.wflib.tv.TvGuidance;
@@ -117,7 +118,11 @@ public final class MissileSeeker {
             return null;
         }
         Entity e = level.getEntity(this.designatedTargetId);
-        return e != null && e.isAlive() && e != this.missile ? e : null;
+        if (e == null || !e.isAlive() || e == this.missile) {
+            return null;
+        }
+        SimTargets.keep(e);
+        return e;
     }
 
     /** Lock kept => aim at its lead point (warn if emitting); lost => fly on to the last aim point. */

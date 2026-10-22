@@ -82,6 +82,14 @@ public class VirtualFlightGameTest {
     private static final List<StrikeContext> STRIKES = new CopyOnWriteArrayList<>();
     private static final List<BlockHitResult> IMPACTS = new CopyOnWriteArrayList<>();
 
+    /** Detonation position + {@link com.wf.wflib.fx.FxMute} state, per preload test (lanes run concurrently). */
+    private static final ResourceLocation RECORD_BIG = WarheadRegistry.rl("test_virtual_record_big");
+    private static final ResourceLocation RECORD_SMALL = WarheadRegistry.rl("test_virtual_record_small");
+    private static final List<Boolean> BIG_MUTED = new CopyOnWriteArrayList<>();
+    private static final List<Boolean> SMALL_MUTED = new CopyOnWriteArrayList<>();
+    private static final ResourceLocation SHELL_BIG = KineticPresetRegistry.rl("test_virtual_shell_big");
+    private static final ResourceLocation SHELL_SMALL = KineticPresetRegistry.rl("test_virtual_shell_small");
+
     private static final ResourceLocation CROSSING = KineticPresetRegistry.rl("test_virtual_crossing");
     private static final ResourceLocation SHELL = KineticPresetRegistry.rl("test_virtual_shell");
     /** Drag, quadratic drag, gravity, water: every term of the recurrence. */
@@ -90,9 +98,19 @@ public class VirtualFlightGameTest {
     private static final ResourceLocation WATCHED_PEN = KineticPresetRegistry.rl("test_virtual_watched_pen");
     /** Planted-chunk regions off every lane and build row (lanes +0, builds +{@link #BUILD_OFFSET}), blocks +Z. */
     private static final int SIDE_ROW = 1024;
+    /** Preload tests' rows, blocks +Z: wall chunks shared with a lane 40 blocks over => one test loads the other's. */
+    private static final int PRELOAD_ROW = 3072;
 
     static {
         WarheadRegistry.register(RECORDING_WARHEAD, (source, pos) -> DETONATIONS.add(pos));
+        WarheadRegistry.register(RECORD_BIG, (source, pos) -> BIG_MUTED.add(com.wf.wflib.fx.FxMute.active()));
+        WarheadRegistry.register(RECORD_SMALL, (source, pos) -> SMALL_MUTED.add(com.wf.wflib.fx.FxMute.active()));
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(SHELL_BIG, null, RECORD_BIG).speed(12.0)
+                .drag(0.0).gravity(0.0).life(200).caliber(120.0).blast(Rounds.preloadBlast + 2.0, false)
+                .noChunkLoading().build());
+        KineticPresetRegistry.registerItemless(KineticPreset.builder(SHELL_SMALL, null, RECORD_SMALL).speed(12.0)
+                .drag(0.0).gravity(0.0).life(200).caliber(40.0).blast(Math.max(0.5, Rounds.preloadBlast - 2.0), false)
+                .noChunkLoading().build());
         ResourceLocation inert = WarheadRegistry.rl("inert");
         KineticPresetRegistry.registerItemless(KineticPreset.builder(CROSSING, null, inert).speed(12.0).drag(0.0)
                 .gravity(0.0).life(200).impactDamage(5.0).caliber(7.62).noChunkLoading().build());
@@ -253,6 +271,82 @@ public class VirtualFlightGameTest {
                     ForcedChunks.set(level, chunk.x, chunk.z, false);
                 })
                 .thenSucceed();
+    }
+
+    /** Blast >= preload size on unloaded ground: its chunk is loaded for it and it goes off live, nothing owed. */
+    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    public static void aLargeBlastOnUnloadedGroundLoadsItsChunk(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        Vec3 start = lane(helper, 180.0).add(0.0, 0.0, PRELOAD_ROW);
+        int wallX = BlockPos.containing(start).getX() - 1200;
+        BlockPos wall = new BlockPos(wallX, BlockPos.containing(start).getY(), BlockPos.containing(start).getZ());
+        ChunkPos chunk = new ChunkPos(wall);
+        long[] key = new long[1];
+        plantWall(helper, level, wall, chunk)
+                .thenExecute(() -> {
+                    BIG_MUTED.clear();
+                    key[0] = Rounds.launch(level, KineticPresetRegistry.get(SHELL_BIG), start,
+                            new Vec3(-12.0, 0.0, 0.0), null, null);
+                })
+                .thenWaitUntil(() -> helper.assertTrue(Rounds.position(level, key[0]) == null, "still flying at "
+                        + Rounds.position(level, key[0])))
+                .thenExecute(() -> {
+                    helper.assertTrue(BIG_MUTED.equals(List.of(false)), "detonations (muted?) " + BIG_MUTED);
+                    helper.assertTrue(DeferredImpacts.pending(level, chunk).isEmpty(), "impact owed");
+                })
+                .thenSucceed();
+    }
+
+    /** Blast under preload size: owed to the chunk, announced (FX sent at impact), applied muted on load. */
+    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    public static void aSmallBlastOnUnloadedGroundIsAnnouncedThenAppliedMuted(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        Vec3 start = lane(helper, 180.0).add(0.0, 0.0, PRELOAD_ROW + 256);
+        int wallX = BlockPos.containing(start).getX() - 1200;
+        BlockPos wall = new BlockPos(wallX, BlockPos.containing(start).getY(), BlockPos.containing(start).getZ());
+        ChunkPos chunk = new ChunkPos(wall);
+        long[] key = new long[1];
+        plantWall(helper, level, wall, chunk)
+                .thenExecute(() -> {
+                    SMALL_MUTED.clear();
+                    key[0] = Rounds.launch(level, KineticPresetRegistry.get(SHELL_SMALL), start,
+                            new Vec3(-12.0, 0.0, 0.0), null, null);
+                })
+                .thenWaitUntil(() -> helper.assertTrue(Rounds.position(level, key[0]) == null, "still flying at "
+                        + Rounds.position(level, key[0])))
+                .thenExecute(() -> {
+                    helper.assertFalse(loaded(level, chunk), "the impact loaded the wall chunk");
+                    helper.assertTrue(SMALL_MUTED.isEmpty(), "warhead went off in an unloaded chunk");
+                    List<DeferredImpact> owed = DeferredImpacts.pending(level, chunk).stream()
+                            .filter(d -> d.preset().equals(SHELL_SMALL)).toList();
+                    helper.assertTrue(owed.size() == 1 && owed.get(0).announced(), "owed " + owed);
+                    ForcedChunks.set(level, chunk.x, chunk.z, true);
+                })
+                .thenWaitUntil(() -> helper.assertFalse(SMALL_MUTED.isEmpty(), "no detonation after load"))
+                .thenExecute(() -> {
+                    helper.assertTrue(SMALL_MUTED.equals(List.of(true)), "detonations (muted?) " + SMALL_MUTED);
+                    ForcedChunks.set(level, chunk.x, chunk.z, false);
+                })
+                .thenSucceed();
+    }
+
+    /** Stone 5x5 at {@code wall} saved into unloaded {@code chunk} (built in a far chunk, planted). */
+    private static net.minecraft.gametest.framework.GameTestSequence plantWall(GameTestHelper helper, ServerLevel level,
+                                                                               BlockPos wall, ChunkPos chunk) {
+        ChunkPos build = new ChunkPos(chunk.x, chunk.z + BUILD_OFFSET);
+        BlockPos built = wall.offset(0, 0, BUILD_OFFSET * 16);
+        return helper.startSequence()
+                .thenExecute(() -> ForcedChunks.set(level, build.x, build.z, true))
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, build), "build chunk not loaded"))
+                .thenExecute(() -> {
+                    for (int dy = -2; dy <= 2; dy++) {
+                        for (int dz = -2; dz <= 2; dz++) {
+                            level.setBlockAndUpdate(built.offset(0, dy, dz), Blocks.STONE.defaultBlockState());
+                        }
+                    }
+                    plant(level, build, chunk);
+                    ForcedChunks.set(level, build.x, build.z, false);
+                });
     }
 
     /**

@@ -32,6 +32,9 @@ public final class WfAudio {
     /** {@code skip}: players that play it themselves (shooter prediction, entity trackers). */
     public static void at(ServerLevel level, Vec3 at, AudioCategory category, @Nullable Predicate<ServerPlayer> skip,
                           List<SoundSpec> layers) {
+        if (com.wf.wflib.fx.FxMute.active()) {
+            return;
+        }
         double reach = 0;
         for (SoundSpec s : layers) {
             reach = Math.max(reach, s.range());

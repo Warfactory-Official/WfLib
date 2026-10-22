@@ -6,6 +6,8 @@ package com.wf.wflib.config;
  */
 public final class ViewRange {
     public static double blocks = 1536.0;
+    /** Past {@link #blocks}: off-world missiles/drones drawn as client ghosts out to this. */
+    public static double sim = 4096.0;
 
     private ViewRange() {
     }

@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * GemRender models per variant: cartridge (item) + projectile look (procedural or pack glTF) + motor flame.
+ * GemRender models per variant: cartridge (item; caseless with a look model => that model) + projectile look
+ * (procedural or glTF) + motor flame.
  * Palette built at client setup from every registered colour; models built lazily by GemRender off-thread.
  */
 public final class AmmoModels {
@@ -62,7 +63,8 @@ public final class AmmoModels {
             Calibre c = Ammo.calibre(v.calibre());
             ProjectileLook look = Ammo.look(v.id());
             anyTrail |= look.visible() && look.trail() && v.motor() == null;
-            CARTRIDGES.put(v.id(), GemRenderModels.built(id(v.id(), "cartridge"),
+            CARTRIDGES.put(v.id(), look.model() != null && !c.hasCase() ? GemRenderModels.handle(look.model())
+                    : GemRenderModels.built(id(v.id(), "cartridge"),
                     id -> rig(id, AmmoMeshes.cartridge(c, look, JACKET, palette))));
             LOOKS.put(v.id(), look.model() != null ? GemRenderModels.handle(look.model())
                     : GemRenderModels.built(id(v.id(), "projectile"),

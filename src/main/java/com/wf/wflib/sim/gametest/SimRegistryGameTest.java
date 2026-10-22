@@ -5,7 +5,9 @@ import com.wf.wflib.ModEntities;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.drone.cam.CameraSpec;
 import com.wf.wflib.sim.SimMissile;
+import com.wf.wflib.sim.MissileSimConfig;
 import com.wf.wflib.sim.SimMissileManager;
+import com.wf.wflib.sim.SimTargets;
 import com.wf.wflib.sim.SimWorld;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class SimRegistryGameTest {
 
     private static final String TEMPLATE = "empty";
+    private static final int KEPT_TICKS = MissileSimConfig.CRUISE_SIM_DELAY_TICKS + 60;
 
     private static MissileEntity armedCruiser(ServerLevel level, Vec3 at, Vec3 target) {
         MissileEntity m = MissileEntity.builder(ModEntities.STEALTH_MISSILE.get(), level)
@@ -89,6 +92,30 @@ public class SimRegistryGameTest {
             return;
         }
         helper.succeed();
+    }
+
+    /** Lock onloads the sim (same UUID); kept past the cruise offload delay => stays real. */
+    @GameTest(template = TEMPLATE, timeoutTicks = 300)
+    public static void aLockedSimComesBackAndStays(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        Vec3 at = helper.absoluteVec(new Vec3(1.5, 40.0, 1.5));
+        MissileEntity m = armedCruiser(level, at, at.add(3000.0, 0.0, 0.0));
+        UUID id = m.getUUID();
+        SimMissileManager.startSim(m);
+        Entity back = SimTargets.onload(level, id);
+        if (!(back instanceof MissileEntity) || SimMissileManager.find(level, id) != null) {
+            helper.fail("onload by UUID: entity " + back + ", record left " + (SimMissileManager.find(level, id) != null));
+            return;
+        }
+        helper.onEachTick(() -> SimTargets.keep(back));
+        helper.runAtTickTime(KEPT_TICKS, () -> {
+            if (back.isRemoved() || SimMissileManager.find(level, id) != null) {
+                helper.fail("kept missile offloaded again");
+                return;
+            }
+            back.discard();
+            helper.succeed();
+        });
     }
 
     /** Persistent kind survives save -> load through the kind codec, body included. */

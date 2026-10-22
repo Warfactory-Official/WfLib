@@ -30,9 +30,9 @@ public final class ScopeMath {
         return (1 + (sightZoom * refZoom - 1) * adsEased) * holdDivisor;
     }
 
-    /** Mouse-turn divisor: {@code shown} = scope picture drawn => magnification eased by ADS, never below world zoom. */
+    /** Mouse-turn divisor: {@code shown} = scope picture drawn => world zoom x magnification eased by ADS. */
     public static float turnZoom(float worldZoom, float magnification, float adsEased, boolean shown) {
-        return shown ? Math.max(worldZoom, 1 + (magnification - 1) * adsEased) : worldZoom;
+        return shown ? worldZoom * (1 + (magnification - 1) * adsEased) : worldZoom;
     }
 
     /**
@@ -62,14 +62,13 @@ public final class ScopeMath {
     }
 
     /**
-     * Vertical FOV of the (square) scope picture filling the lens disc.
+     * Vertical FOV of the (square) scope picture filling the field stop: magnification relative to the projection the
+     * lens is drawn with (surroundings) => 1x seamless under any world zoom.
      *
-     * @param lensTan tan of the lens angular radius under the hand projection
-     * @param baseFovDeg naked-eye FOV {@code min(configured, adsReferenceFovDeg)}: magnification is relative to it
+     * @param fieldTan tan of the field stop's angular radius from the exit pupil
      */
-    public static float fovDeg(float lensTan, float handFovDeg, float baseFovDeg, float zoom) {
-        double world = lensTan * Math.tan(Math.toRadians(baseFovDeg) / 2) / Math.tan(Math.toRadians(handFovDeg) / 2);
-        return (float) Math.toDegrees(2 * Math.atan(world / zoom));
+    public static float fovDeg(float fieldTan, float zoom) {
+        return (float) Math.toDegrees(2 * Math.atan(fieldTan / zoom));
     }
 
     /**

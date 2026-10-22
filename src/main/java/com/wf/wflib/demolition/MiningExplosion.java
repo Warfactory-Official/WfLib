@@ -296,7 +296,7 @@ public final class MiningExplosion {
         double cx = center.getX() + 0.5;
         double cy = center.getY() + 0.5;
         double cz = center.getZ() + 0.5;
-        WFNetwork.sendToAllAround(level, cx, cy, cz, BlastParticles.RANGE,
+        WFNetwork.sendToAllAround(level, cx, cy, cz, com.wf.wflib.config.ViewRange.blocks,
                 new AuxParticlePacket("mining_blast", cx, cy, cz, data));
     }
 

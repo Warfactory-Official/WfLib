@@ -1,6 +1,7 @@
 package com.wf.wflib.ammo;
 
 import com.google.gson.JsonObject;
+import com.wf.wflib.api.ThreatKind;
 import com.wf.wflib.round.effect.ImpactTrigger;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -10,13 +11,15 @@ import java.util.List;
 /**
  * One load of a {@link Calibre}; SI units: speed m/s, masses kg, gravity m/s^2, {@code quadraticDrag} 1/m,
  * {@code drag} fraction per tick, {@code blockPen} / {@code armorPenMm} mm. {@code tracer} / {@code tip} rgb, -1 =
- * none. {@code look} = override onto the per-shape defaults in {@link ProjectileLook#resolve}.
+ * none. {@code look} = override onto the per-shape defaults in {@link ProjectileLook#resolve}. {@code threat}: null =>
+ * derived from the warhead / pen ({@code Rounds.threat}). {@code patternDeg}: pellet cone half-angle about the shot
+ * line, 0 => every pellet draws the gun's cone. {@code light}: point light carried in flight, range blocks, 0 = none.
  */
 public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String name, float speed,
                           float projectileMassKg, float drag, float quadraticDrag, float gravity, float damagePerKJ,
-                          int pellets, int tracer, int tip, @Nullable Pierce pierce, @Nullable Explosive explosive,
-                          @Nullable Motor motor, float blockPen, float armorPenMm, List<Effect> effects,
-                          ProjectileLook.Override look) {
+                          int pellets, float patternDeg, int tracer, int tip, float light, @Nullable Pierce pierce,
+                          @Nullable Explosive explosive, @Nullable Motor motor, float blockPen, float armorPenMm,
+                          List<Effect> effects, ProjectileLook.Override look, @Nullable ThreatKind threat) {
 
     public static final int NONE = -1;
     /** Unset {@code armorPenMm}, no explosive => {@code blockPen} x this. Estimate. */
@@ -33,6 +36,9 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         }
         if (pellets < 1 || pellets > 256) {
             throw new IllegalArgumentException(id + ": pellets " + pellets + " not 1..256");
+        }
+        if (!(patternDeg >= 0 && patternDeg < 90) || !(light >= 0 && light <= 256)) {
+            throw new IllegalArgumentException(id + ": patternDeg " + patternDeg + " / light " + light);
         }
         if (tracer == 0) {
             throw new IllegalArgumentException(id + ": tracer 0 (WFLib none); use -1");
@@ -75,8 +81,10 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         private float gravity = 9.8f;
         private float damagePerKJ;
         private int pellets = 1;
+        private float pattern;
         private int tracer = NONE;
         private int tip = NONE;
+        private float light;
         private Pierce pierce;
         private Explosive explosive;
         private Motor motor;
@@ -84,6 +92,8 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         private float armorPenMm;
         private final List<Effect> effects = new java.util.ArrayList<>();
         private ProjectileLook.Override look = ProjectileLook.Override.NONE;
+        @Nullable
+        private ThreatKind threat;
 
         private Builder(ResourceLocation id, ResourceLocation calibre, String name) {
             this.id = id;
@@ -115,6 +125,16 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
 
         public Builder pellets(int n) {
             this.pellets = n;
+            return this;
+        }
+
+        public Builder pattern(float halfAngleDeg) {
+            this.pattern = halfAngleDeg;
+            return this;
+        }
+
+        public Builder light(float rangeBlocks) {
+            this.light = rangeBlocks;
             return this;
         }
 
@@ -163,11 +183,17 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
             return this;
         }
 
+        public Builder threat(ThreatKind threat) {
+            this.threat = threat;
+            return this;
+        }
+
         public AmmoVariant build() {
             float armor = armorPenMm > 0 || explosive != null ? armorPenMm
                     : Math.round(blockPen * RHA_PER_BLOCK_PEN * 2) / 2f;
             return new AmmoVariant(id, calibre, name, speed, mass, drag, quadraticDrag, gravity, damagePerKJ,
-                    pellets, tracer, tip, pierce, explosive, motor, blockPen, armor, effects, look);
+                    pellets, pattern, tracer, tip, light, pierce, explosive, motor, blockPen, armor, effects, look,
+                    threat);
         }
     }
 }

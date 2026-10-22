@@ -130,6 +130,7 @@ public final class WarheadRegistry {
         define(rl("shaped_charge"), SHAPED_CHARGE);
         define(RecursiveFrag.ID, RecursiveFrag::detonate);
         define(GasWarhead.ID, GasWarhead::detonate);
+        define(TearGasWarhead.ID, TearGasWarhead::detonate);
         define(FireWarhead.ID, FireWarhead::detonate);
         define(ThermobaricWarhead.ID, ThermobaricWarhead::detonate);
         define(AgentOrangeWarhead.ID, AgentOrangeWarhead::detonate);

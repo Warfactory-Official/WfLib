@@ -35,6 +35,8 @@ import com.wf.wflib.sim.SimKind;
 import com.wf.wflib.sim.SimTier;
 import com.wf.wflib.sim.SimWorld;
 import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.fx.ExplosionCreator;
+import com.wf.wflib.fx.FxMute;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -92,6 +94,12 @@ public final class Rounds implements SimKind<RoundBatch> {
     private static final double HEAD_HALF_HEIGHT = 0.25;
     /** Pick slack on plain AABB targets, as vanilla's projectile sweep. */
     public static final double PICK_INFLATE = 0.3;
+    public static float preloadBlast = 4.0f;
+    static final int PRELOAD_WAIT = 100;
+    /** Round key -> ticks spent waiting on a preload. */
+    private static final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap PRELOAD_WAITED =
+            new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+
     /** Chunk ticket ids: {@code key} in the low half. */
     private static final long TICKET_HIGH = 0x524F554E44L;
     /** Steps per tick for an unwatched round over unloaded ground. */
@@ -347,7 +355,7 @@ public final class Rounds implements SimKind<RoundBatch> {
             }
         } else if (b.rest[i] >= 0 && !loaded(level, b.x[i], b.z[i])) {
             Vec3 at = new Vec3(b.x[i], b.y[i], b.z[i]);
-            defer(level, b, i, true, at, Vec3.ZERO, BlockPos.containing(at), Direction.UP);
+            defer(level, b, i, true, at, Vec3.ZERO, BlockPos.containing(at), Direction.UP, false);
             end(level, b, i, RoundEnd.DEFERRED);
             return false;
         }
@@ -550,7 +558,10 @@ public final class Rounds implements SimKind<RoundBatch> {
             }
             Vec3 at = pass == null ? block.getLocation() : pass.point();
             if (unloaded) {
-                defer(level, b, i, false, at, velocity, hitPos, block.getDirection());
+                if (preload(level, b, i, hitPos)) {
+                    return true;
+                }
+                defer(level, b, i, false, at, velocity, hitPos, block.getDirection(), announce(level, preset, at));
                 end(level, b, i, at, RoundEnd.BLOCK, true);
                 return false;
             }
@@ -931,15 +942,63 @@ public final class Rounds implements SimKind<RoundBatch> {
     }
 
     private static void defer(ServerLevel level, RoundBatch b, int i, boolean landed, Vec3 at, Vec3 velocity,
-                              BlockPos block, Direction face) {
+                              BlockPos block, Direction face, boolean announced) {
         Entity shooter = b.shooter[i] < 0 ? null : level.getEntity(b.shooter[i]);
         DeferredImpacts.get(level).add(ChunkPos.asLong(block.getX() >> 4, block.getZ() >> 4),
                 new DeferredImpact(landed, b.preset[i].id(), at, velocity, block, face,
-                        shooter == null ? null : shooter.getUUID(), b.faction[i], b.rest[i], b.burrow[i]));
+                        shooter == null ? null : shooter.getUUID(), b.faction[i], b.rest[i], b.burrow[i], announced));
+    }
+
+    /**
+     * Impact on an unloaded column, blast >= {@link #preloadBlast}: blast footprint ticketed (async load), round
+     * waits in place, life refunded, <= {@link #PRELOAD_WAIT} ticks. @return waiting
+     */
+    private static boolean preload(ServerLevel level, RoundBatch b, int i, BlockPos hit) {
+        float blast = b.preset[i].blastSize();
+        long key = b.key[i];
+        if (blast < preloadBlast || PRELOAD_WAITED.addTo(key, 1) >= PRELOAD_WAIT) {
+            PRELOAD_WAITED.remove(key);
+            return false;
+        }
+        if (b.chunks[i].length == 0) {
+            int r = Mth.ceil(blast);
+            LongArrayList held = new LongArrayList();
+            for (int cx = (hit.getX() - r) >> 4; cx <= (hit.getX() + r) >> 4; cx++) {
+                for (int cz = (hit.getZ() - r) >> 4; cz <= (hit.getZ() + r) >> 4; cz++) {
+                    held.add(ChunkPos.asLong(cx, cz));
+                    DetonationChunkGuard.CONTROLLER.forceChunk(level, ticket(key), cx, cz, true, true);
+                }
+            }
+            b.chunks[i] = held.toLongArray();
+        }
+        b.life[i]++;
+        return true;
+    }
+
+    /** Below the preload size: blast FX + sound now; the owed detonation runs muted. @return sent */
+    private static boolean announce(ServerLevel level, KineticPreset preset, Vec3 at) {
+        float blast = preset.blastSize();
+        if (blast <= 0.0f) {
+            return false;
+        }
+        if (blast >= WarheadRegistry.STANDARD_BLAST_SIZE * 0.5f) {
+            ExplosionCreator.composeEffectLarge(level, at.x, at.y, at.z);
+        } else {
+            ExplosionCreator.composeEffectSmall(level, at.x, at.y, at.z);
+        }
+        return true;
     }
 
     /** Owed impact, its chunk now loaded: impact event then warhead or landing, as a loaded-ground hit. */
     static void applyDeferred(ServerLevel level, DeferredImpact d) {
+        if (d.announced()) {
+            FxMute.run(() -> applyOwed(level, d));
+        } else {
+            applyOwed(level, d);
+        }
+    }
+
+    private static void applyOwed(ServerLevel level, DeferredImpact d) {
         KineticPreset preset = KineticPresetRegistry.get(d.preset());
         if (preset == null) {
             LOGGER.warn("Deferred impact of unknown round {} at {} dropped", d.preset(), d.at());
@@ -1003,6 +1062,7 @@ public final class Rounds implements SimKind<RoundBatch> {
      */
     private static void end(ServerLevel level, RoundBatch b, int i, Vec3 at, RoundEnd reason, boolean owed) {
         release(level, b, i);
+        PRELOAD_WAITED.remove(b.key[i]);
         RoundNetwork.ended(level, b, i, at, reason);
         KineticPreset preset = b.preset[i];
         if (owed || !preset.hasEffects(ImpactTrigger.END) || !loaded(level, at.x, at.z)) {

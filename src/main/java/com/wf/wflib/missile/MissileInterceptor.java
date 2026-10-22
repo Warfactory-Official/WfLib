@@ -9,6 +9,7 @@ import com.wf.wflib.entity.InterceptTarget;
 import com.wf.wflib.recon.ContactClass;
 import com.wf.wflib.sim.MissileListenerRegistry;
 import com.wf.wflib.sim.MissileSimConfig;
+import com.wf.wflib.sim.SimTargets;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -119,6 +120,7 @@ public final class MissileInterceptor {
         if (this.mode == InterceptMode.LOCK) {
             if (this.lockTargetId != null && level.getEntity(this.lockTargetId) instanceof InterceptTarget t
                     && t.interceptEngageable()) {
+                SimTargets.keep(t.interceptEntity());
                 return t;
             }
             return null;
@@ -217,9 +219,10 @@ public final class MissileInterceptor {
 
     /** Readable at range: big burst + boom on a kill, small puff + pop on a miss. */
     private static void burst(ServerLevel level, Vec3 p, boolean kill) {
-        level.sendParticles(ParticleTypes.EXPLOSION, p.x, p.y, p.z, kill ? 3 : 1, 1.0, 1.0, 1.0, 0.0);
-        level.sendParticles(ParticleTypes.FLAME, p.x, p.y, p.z, kill ? 24 : 6, 1.4, 1.4, 1.4, 0.06);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, kill ? 14 : 5, 1.6, 1.6, 1.6, 0.02);
+        double range = com.wf.wflib.config.ViewRange.blocks;
+        com.wf.wflib.demolition.BlastParticles.burst(level, ParticleTypes.EXPLOSION, p.x, p.y, p.z, kill ? 3 : 1, 1.0, 1.0, 1.0, 0.0, range);
+        com.wf.wflib.demolition.BlastParticles.burst(level, ParticleTypes.FLAME, p.x, p.y, p.z, kill ? 24 : 6, 1.4, 1.4, 1.4, 0.06, range);
+        com.wf.wflib.demolition.BlastParticles.burst(level, ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, kill ? 14 : 5, 1.6, 1.6, 1.6, 0.02, range);
         WfAudio.at(level, p, AudioCategory.EXPLOSIONS, kill ? Blasts.small() : Blasts.pop(150, 1.5F));
     }
 

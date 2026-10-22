@@ -18,7 +18,7 @@ public class SpareBarrelItem extends Item {
     public Component getName(ItemStack stack) {
         SpareBarrel b = stack.get(Barrels.SPARE.get());
         return b == null ? super.getName(stack)
-                : Component.translatable("item.wflib.spare_barrel.typed", BarrelTypes.name(b.type()));
+                : Component.translatable("item.wflib.spare_barrel.typed", Barrels.name(b.type(), b.variant()));
     }
 
     @Override

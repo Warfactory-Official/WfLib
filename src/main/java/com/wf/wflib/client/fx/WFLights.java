@@ -23,6 +23,11 @@ public final class WFLights {
             MUZZLE_RGB = 0xFFB860;
     /** Muzzle range cap, blocks. */
     static final float MUZZLE_RANGE = 48;
+    /** Near-field irradiance cap (multiple of albedo): muzzle smoke spawns ~0 blocks from the flash, inside the
+     * {@code d^2+1} floor, else it saturates to peak (up to ~250) => flat white, not {@link #FIRE_RANGE} fire's
+     * trap (lifted off the floor instead). Softness {@code sqrt(peak / this)} keeps range-distance irradiance
+     * near its unsoftened value ({@code soft^2 << range^2}). */
+    static final float MUZZLE_NEAR_CAP = 6;
     /** Fire: range = this + footprint radius; flicker depth. Source {@link #LIFT} over the flame tops: 1 block off
      * the floor => E ~ I/2 there, floor saturates white. */
     static final float FIRE_RANGE = 10, FIRE_INTENSITY = 13, PHOSPHORUS_INTENSITY = 30, FLICKER = 0.2F, LIFT = 0.5F;
@@ -41,8 +46,9 @@ public final class WFLights {
         return now - start + (screenshot ? SCREENSHOT_PHASE : 0);
     }
 
-    /** {@code start}: game ticks. */
-    private record Flash(double x, double y, double z, float range, int rgb, float peak, double start, float life) {
+    /** {@code start}: game ticks; {@code softness} as {@link com.wf.gemrender.light.LightSink#point}'s. */
+    private record Flash(double x, double y, double z, float range, int rgb, float peak, double start, float life,
+                          float softness) {
     }
 
     private static final List<Flash> FLASHES = new ArrayList<>();
@@ -59,9 +65,14 @@ public final class WFLights {
 
     /** Peak irradiance ~ {@code peak / (d^2 + 1)}, quadratic fade to 0 over {@code life} ticks. */
     public static void flash(double x, double y, double z, float range, int rgb, float peak, float life) {
+        flash(x, y, z, range, rgb, peak, life, 0);
+    }
+
+    private static void flash(double x, double y, double z, float range, int rgb, float peak, float life,
+                               float softness) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null && Lights.shading()) {
-            FLASHES.add(new Flash(x, y, z, range, rgb, peak, mc.level.getGameTime(), life));
+            FLASHES.add(new Flash(x, y, z, range, rgb, peak, mc.level.getGameTime(), life, softness));
         }
     }
 
@@ -78,7 +89,8 @@ public final class WFLights {
 
     /** Gun / cannon flash at the muzzle; range: E ~ 0.25 at the edge. */
     public static void muzzle(double x, double y, double z, float peak, float life) {
-        flash(x, y, z, Math.min(MUZZLE_RANGE, 2 * (float) Math.sqrt(peak) + 2), MUZZLE_RGB, peak, life);
+        flash(x, y, z, Math.min(MUZZLE_RANGE, 2 * (float) Math.sqrt(peak) + 2), MUZZLE_RGB, peak, life,
+                (float) Math.sqrt(peak / MUZZLE_NEAR_CAP));
     }
 
     /** @return false => caller must light the fire another way. */
@@ -107,7 +119,7 @@ public final class WFLights {
         FLASHES.removeIf(f -> age(now, f.start, screenshot) >= f.life);
         for (Flash f : FLASHES) {
             float k = 1 - (float) (age(now, f.start, screenshot) / f.life);
-            sink.point(f.x, f.y, f.z, f.range, f.rgb, f.peak * k * k, true);
+            sink.point(f.x, f.y, f.z, f.range, f.rgb, f.peak * k * k, true, false, f.softness);
             flashes++;
         }
         FIRES.removeIf(f -> f.isRemoved() || f.level() != mc.level);

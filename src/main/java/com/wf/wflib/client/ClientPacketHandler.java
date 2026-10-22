@@ -36,6 +36,10 @@ public final class ClientPacketHandler {
         SimGlyphids.accept(pkt);
     }
 
+    public static void handleSimGhosts(com.wf.wflib.network.SimGhostSyncPacket pkt) {
+        com.wf.wflib.client.render.SimGhostEntities.accept(pkt);
+    }
+
     public static void handleScopeFrame(ScopeFramePacket pkt) {
         ScopeCache.accept(pkt.frame());
     }

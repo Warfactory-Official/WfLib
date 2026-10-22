@@ -147,6 +147,9 @@ public class WFLibClient {
         event.registerReloadListener((barrier, manager, prepProfiler, reloadProfiler, background, game) ->
                 barrier.wait(net.minecraft.Util.NIL_UUID)
                         .thenRunAsync(MineRigs::init, game));
+        event.registerReloadListener((barrier, manager, prepProfiler, reloadProfiler, background, game) ->
+                barrier.wait(net.minecraft.Util.NIL_UUID)
+                        .thenRunAsync(com.wf.wflib.client.sight.ReticleTextures::clear, game));
     }
 
     @SubscribeEvent
@@ -163,6 +166,7 @@ public class WFLibClient {
             com.wf.gemrender.volume.VolumeBuffer.getInstance().hideWhen(FeedPass::seesThroughSmoke);
             com.wf.gemrender.medium.CameraMedium.getInstance().hideWhen(FeedPass::seesThroughSmoke);
             com.wf.wflib.client.fx.WFLights.register();
+            com.wf.wflib.round.client.RoundLights.register();
             com.wf.wflib.barrel.client.BarrelGlow.register();
             com.wf.wflib.nvg.client.NvgIllumination.register();
             com.wf.gemrender.light.Lights.irView(com.wf.wflib.nvg.client.NvgClient::irView);

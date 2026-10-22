@@ -30,6 +30,6 @@ void flw_instanceVertex(in FlwInstance i) {
     float fade = max(s.alphaFalloff, 1e-4);
     flw_vertexColor = vec4(clamp(s.tint * p.tintScale, 0.0, 1.0),
                            s.alphaScale * clamp((1.0 - unitAge) / fade, 0.0, 1.0));
-    flw_vertexOverlay = ivec2(0, 10);
+    flw_vertexOverlay = gemrender_particleOverlay(0.0, center, 0.5 * size);
     flw_vertexLight = s.light;
 }

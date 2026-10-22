@@ -4,6 +4,7 @@ import com.wf.wflib.MissileEntity;
 import com.wf.wflib.MissileEntity.Phase;
 import com.wf.wflib.api.WFEventType;
 import com.wf.wflib.sim.SimMissileManager;
+import com.wf.wflib.sim.SimTargets;
 import com.wf.wflib.swarm.SwarmManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -83,7 +84,7 @@ public final class MissileSwarm {
             if (!m.isAlive() || m.isRemoved() || m.swarm().brokeFormation || m.swarm().commander) {
                 return null;
             }
-            if (SimMissileManager.nearAnyListener(level, m.position())) {
+            if (SimTargets.kept(m) || SimMissileManager.nearAnyListener(level, m.position())) {
                 return null;
             }
             subs.add(m);

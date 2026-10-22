@@ -53,6 +53,7 @@ public final class KineticPreset {
     private final ThreatKind threatKind;
     private final boolean loadsChunks;
     private final int tracerColor;
+    private final float light;
     private final int stackSize;
 
     private final float motorAccel;
@@ -98,6 +99,7 @@ public final class KineticPreset {
         this.threatKind = b.threatKind;
         this.loadsChunks = b.loadsChunks;
         this.tracerColor = b.tracerColor;
+        this.light = b.light;
         this.stackSize = b.stackSize;
         this.motorAccel = b.motorAccel;
         this.burnTicks = b.burnTicks;
@@ -276,6 +278,11 @@ public final class KineticPreset {
         return tracerColor;
     }
 
+    /** Point light carried in flight, range blocks; 0 = none. */
+    public float light() {
+        return light;
+    }
+
     public int stackSize() {
         return stackSize;
     }
@@ -383,6 +390,7 @@ public final class KineticPreset {
         private ThreatKind threatKind;
         private boolean loadsChunks = true;
         private int tracerColor = 0;
+        private float light = 0.0f;
         private int stackSize = 16;
 
         private float motorAccel = 0.0f;
@@ -517,6 +525,11 @@ public final class KineticPreset {
 
         public Builder tracer(int rgb) {
             this.tracerColor = rgb;
+            return this;
+        }
+
+        public Builder light(float rangeBlocks) {
+            this.light = rangeBlocks;
             return this;
         }
 

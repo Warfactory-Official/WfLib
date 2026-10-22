@@ -23,7 +23,7 @@ public interface RoundRenderer {
 
     /** Rocket, each client tick while burning. */
     default void exhaust(ClientLevel level, RocketEntity rocket) {
-        level.addParticle(ParticleTypes.CLOUD, rocket.xo, rocket.yo, rocket.zo, 0.0, 0.0, 0.0);
+        level.addParticle(ParticleTypes.CLOUD, true, rocket.xo, rocket.yo, rocket.zo, 0.0, 0.0, 0.0);
     }
 
     /** Rocket, first client tick. */

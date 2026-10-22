@@ -192,6 +192,7 @@ public final class WFServerEvents {
             GlyphidSquads.tick(level);
             SimScheduler.post(level, SimKind.Slot.LATE);
             SimGlyphidTracking.tick(level);
+            com.wf.wflib.sim.SimGhostTracking.tick(level);
             GlyphidSeparation.tick(level);
             GlyphidBridges.tick(level);
             // Last, so a field built this tick is flooded from terrain the diggers have already changed.

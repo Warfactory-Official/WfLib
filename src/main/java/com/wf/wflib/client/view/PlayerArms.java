@@ -28,9 +28,8 @@ import java.util.WeakHashMap;
 /**
  * First-person player arms: skinned {@link #MODEL} (MineAssault {@code tools/ma.py player-arms}), joints
  * {@code arm_{right,left}_{upper,lower}} + {@code arm_{side}_twist{1..}} + {@code arm_{side}_fist} (= hand frame at the
- * fist end), frames +Y down the bone; segment lengths read from the rest pose. Forearm twist: joint {@code k} of
- * {@link #TWISTS} at {@code k/TWISTS} of the length turned {@code k/TWISTS} of the way to the hand. Side under worn
- * armour: whole arm turned by the twist instead (rigid sleeves; TODO twist armour sleeves). Wears the local player's skin
+ * fist end), frames +Y down the bone; segment lengths read from the rest pose. Twist: {@link #joints}. Side under worn
+ * armour: whole arm turned by the fist roll instead (rigid sleeves; TODO twist armour sleeves). Wears the local player's skin
  * through texture slots. Render thread.
  *
  * <p>Worn glTF armour: {@code {side}_arm} node (vanilla arm part, glTF {@code S = diag(-1, -1, 1)}) remapped onto
@@ -48,8 +47,6 @@ public final class PlayerArms {
     private static final String RING = ".ahf_ring", BENT = ".ahf_bent";
     /** Forearm twist segments: joints lower, twist1..{@code TWISTS - 1}, fist. */
     public static final int TWISTS = 6;
-    /** Unwrapped twist past this => the wrapped value (no unbounded corkscrew). */
-    private static final float MAX_TWIST = (float) (1.5 * Math.PI);
 
     /** Shoulder -> elbow; elbow -> fist end. */
     public record Lengths(float upper, float forearm) { }
@@ -65,7 +62,10 @@ public final class PlayerArms {
     /** [side][twist k - 1] node slots. */
     private final int[][] twists = new int[2][TWISTS - 1];
     private final Matrix4f[] upper = {new Matrix4f(), new Matrix4f()}, lower = {new Matrix4f(), new Matrix4f()};
-    private final float[] twist = new float[2];
+    private final float[] roll = new float[2], base = new float[2];
+    private final ForearmTwist[] twistState = {new ForearmTwist(), new ForearmTwist()};
+    private final long[] posedAt = new long[2];
+    private final Matrix4f[] twistOut = new Matrix4f[TWISTS - 1];
     public final Lengths lengths;
     private final Map<GemRenderGltfModel, Matrix4f[]> sleeves = new WeakHashMap<>();
 
@@ -104,24 +104,44 @@ public final class PlayerArms {
     public void pose(int side, Matrix4fc upper, Matrix4fc lower) {
         this.upper[side].set(upper);
         this.lower[side].set(lower);
-        twist[side] = 0;
+        roll[side] = base[side] = 0;
+        twistState[side].reset();
+        posedAt[side] = 0;
     }
 
     /**
-     * Hinge joint globals of {@code side}, view space ({@link ArmViewPose#solve}); {@code twist} rad, unwrapped
-     * against the side's previous one.
+     * Hinge joint globals of {@code side}, view space ({@link ArmViewPose#solve}); {@code twist} rad, through the
+     * side's {@link ForearmTwist} (wall clock).
      */
     public void pose(int side, Matrix4fc upper, Matrix4fc lower, float twist) {
         this.upper[side].set(upper);
         this.lower[side].set(lower);
-        float prev = this.twist[side];
-        float near = prev + (float) Math.IEEEremainder(twist - prev, 2 * Math.PI);
-        this.twist[side] = Math.abs(near) > MAX_TWIST ? twist : near;
+        long now = System.nanoTime();
+        float dt = posedAt[side] == 0 ? 0 : Math.min((now - posedAt[side]) * 1e-9F, 0.1F);
+        posedAt[side] = now;
+        twistState[side].update(twist, dt);
+        roll[side] = twistState[side].roll();
+        base[side] = twistState[side].base();
+    }
+
+    /**
+     * Skinned joint globals from hinge globals: upper + lower turned {@code base} (rigid), twist joint {@code k} at
+     * {@code k/TWISTS} of the forearm turned {@code k/TWISTS} of the way to {@code roll}, fist at {@code roll}
+     * ({@link ForearmTwist}). {@code twists}: {@link #TWISTS} - 1 outputs.
+     */
+    public static void joints(Matrix4fc upper, Matrix4fc lower, float roll, float base, float forearm,
+                              Matrix4f upperOut, Matrix4f lowerOut, Matrix4f[] twists, Matrix4f fist) {
+        upperOut.set(upper).rotateY(base);
+        lowerOut.set(lower).rotateY(base);
+        for (int k = 1; k < TWISTS; k++) {
+            twists[k - 1].set(lower).translate(0, forearm * k / TWISTS, 0).rotateY(base + (roll - base) * k / TWISTS);
+        }
+        fist.set(lower).translate(0, forearm, 0).rotateY(roll);
     }
 
     private void palette(int side, boolean rigid) {
         int[] j = joints[side];
-        float t = twist[side], forearm = lengths.forearm();
+        float t = roll[side], forearm = lengths.forearm();
         if (rigid) {
             palette[j[0]].set(upper[side]).rotateY(t);
             palette[j[1]].set(lower[side]).rotateY(t);
@@ -131,13 +151,10 @@ public final class PlayerArms {
             palette[j[2]].set(palette[j[1]]).translate(0, forearm, 0);
             return;
         }
-        palette[j[0]].set(upper[side]);
-        palette[j[1]].set(lower[side]);
         for (int k = 1; k < TWISTS; k++) {
-            palette[twists[side][k - 1]].set(lower[side]).translate(0, forearm * k / TWISTS, 0)
-                    .rotateY(t * k / TWISTS);
+            twistOut[k - 1] = palette[twists[side][k - 1]];
         }
-        palette[j[2]].set(lower[side]).translate(0, forearm, 0).rotateY(t);
+        joints(upper[side], lower[side], t, base[side], forearm, palette[j[0]], palette[j[1]], twistOut, palette[j[2]]);
     }
 
     /** Both arms in {@code player}'s skin + worn glTF armour arms; a skin sleeve only while its layer shows, uncovered. */

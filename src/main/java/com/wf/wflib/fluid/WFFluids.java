@@ -108,6 +108,16 @@ public final class WFFluids {
     public static final BaseFlowingFluid.Properties SMOKE_PROPS =
             new BaseFlowingFluid.Properties(SMOKE_TYPE, SMOKE, FLOWING_SMOKE);
 
+    /** Riot-control irritant (CS / CN): incapacitates, no damage. */
+    public static final DeferredHolder<FluidType, FluidType> TEAR_GAS_TYPE =
+            FLUID_TYPES.register("tear_gas", () -> new GasFluidType(0xE4E4D0));
+    public static final DeferredHolder<net.minecraft.world.level.material.Fluid, BaseFlowingFluid> TEAR_GAS =
+            FLUIDS.register("tear_gas", () -> new BaseFlowingFluid.Source(WFFluids.TEAR_GAS_PROPS));
+    public static final DeferredHolder<net.minecraft.world.level.material.Fluid, BaseFlowingFluid> FLOWING_TEAR_GAS =
+            FLUIDS.register("flowing_tear_gas", () -> new BaseFlowingFluid.Flowing(WFFluids.TEAR_GAS_PROPS));
+    public static final BaseFlowingFluid.Properties TEAR_GAS_PROPS =
+            new BaseFlowingFluid.Properties(TEAR_GAS_TYPE, TEAR_GAS, FLOWING_TEAR_GAS);
+
     public static final DeferredHolder<net.minecraft.world.level.material.Fluid, BaseFlowingFluid>KEROSENE =
             FLUIDS.register("kerosene", () -> new BaseFlowingFluid.Source(WFFluids.KEROSENE_PROPS));
     public static final DeferredHolder<net.minecraft.world.level.material.Fluid, BaseFlowingFluid>FLOWING_KEROSENE =

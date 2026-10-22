@@ -122,9 +122,13 @@ Non-chunk-loading round over unloaded ground (1.4.0; before: `LOST` at the first
   step/tick (client copy flies 1/tick).
 - Resync/pierce/end packets: audience now + viewers still in the level (a round flown past `ViewRange.blocks` still ends on the
   client that drew it). Queue full => lookup waits, no stat; region-file existence cached per region.
-- Block hit in an unloaded chunk: round ends `BLOCK` there; `DeferredImpact` stored (`DeferredImpacts`, saved with the
+- Block hit in an unloaded chunk, `blastSize >= rounds.unloadedPreloadBlast` (4): blast footprint (`ceil(blast)`
+  blocks) ticketed (async load), round waits in place, life refunded, <= 100 ticks; loaded => normal impact. Else /
+  timeout: blast FX + sound now (`ExplosionCreator` small/large by size), round ends `BLOCK` there; `DeferredImpact`
+  stored (`announced` => applied under `FxMute`: no second FX) (`DeferredImpacts`, saved with the
   level, 4096 max, overflow dropped + warned), applied at the first rounds resolve after the chunk loads (never in
-  `ChunkEvent.Load`): `RoundImpactEvent`, then land (fuse/burrow) or warhead, shooter by UUID. Resting round whose
+  `ChunkEvent.Load`): `RoundImpactEvent`, then land (fuse/burrow) or warhead, shooter by UUID.
+  Gap: announced blast damages no entity in a loaded neighbour chunk until the owed impact applies. Resting round whose
   chunk unloads => `DEFERRED`, rests again on load with the fuse left. In-flight rounds: transient (life-bounded; client
   copies and keys not restorable).
 - Divergences from loaded ground: no drilling (first solid voxel stops; `blockPen` pierces, §29b); face from the collision shape only (no
@@ -290,6 +294,7 @@ decides (`ProjectileStrikeEvent`).
   | `wflib:damage` | `type` (damage type id; unregistered => server start refused), `amount` | `hit` only; i-frames ignored |
   | `wflib:explode` | `warhead` (unregistered => server start refused), `size` (warhead's), `breaksBlocks` (true) | all |
   | `wflib:thermal` | `pen` mm (0), `wear` x (1) | `hit` only: threat `penetrationMm + pen`, `wearFactor x wear` |
+  | `wflib:mob_effect` | `effect` (unregistered => server start refused), `seconds` (5), `amplifier` int (0) | `hit` only: living target |
 - Target systems stay separate: vehicle armour reads `Threat.penetrationMm`; WFLib armour DT/DR plus
   `Threat.wearFactor` (plate/insert wear points x factor, ceil; `ArmorSystem` via `StrikeContext`).
 - Armour pen at impact (`Rounds.threat(preset, v)`, strike path): KINETIC/SMALL_ARMS `armorPenetrationMm x |v|^2 /
@@ -352,7 +357,7 @@ Calibre + variant registry; startup only (code, mod construction), no datapack.
   `12ga` buck (9 pellets) / slug; `40x46`, `40x53` he; `vog25`, `30x29` (VOG-17M) he; `76mm_discharger` frag (vehicle discharger, gravity 28);
   `20x102` he/ap/tracer, `23x115`, `23x152b`, `25x137`, `27x145b`, `30x165`, `30x150b`, `30x173` he/ap; `105mm`,
   `120mm`, `125mm` apfsds/heat/he; `88x571r` he/ap; `60mm`, `81mm` he, `127mm_naval` he, `406mm_naval` he/ap (kind `tank`, linear drag only:
-  CombinedAssault solver exact); `rpg7` heat/frag/thermobaric, `73mm_spg9` heat/frag (`RocketEntity`).
+  CombinedAssault solver exact); `rpg7` heat (PG-7V) / heat_large (PG-7VL) / tandem (PG-7VR, `TANDEM_HEAT`) / frag (OG-7V) / thermobaric (TBG-7V; models `tools/rpg_rockets.py`, also the item), `73mm_spg9` heat/frag (`RocketEntity`).
 - Tank `damagePerKJ`: apfsds 0.3, heat 0.06, he 0.03 (CombinedAssault hull balance: 125 APFSDS ~2100). Flight = MineAssault converter calibre table
   (`modular-archive-gltf/convert_mineassault.py`; its `wflib_ammo.py` mirrors this file, `tools/test_wflib_ammo.py`
   checks); `damagePerKJ` = median over converted packs; `blockPen` §29b anchors else `31.58 (E/mm)^0.8517`, AP x1.5,
