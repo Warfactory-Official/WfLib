@@ -235,4 +235,29 @@ public final class BeltChain {
     public Vector3fc position(int k) {
         return x[k];
     }
+
+    /**
+     * Link {@code k} frame {@code shift} pitches back from the feed (advance in flight: decays to 0 per fired round);
+     * {@code k >= -1}: -1 = the link being stripped into the feed. Slots past either end extend along the end links.
+     */
+    public Matrix4f link(int k, float shift, Matrix4f dest) {
+        float at = k + shift;
+        int j = (int) Math.floor(at);
+        float f = at - j;
+        slot(j, a0);
+        slot(j + 1, a1);
+        a0.lerp(a1, f);
+        int i0 = Math.clamp(j, 0, links - 1), i1 = Math.clamp(j + 1, 0, links - 1);
+        Vector3f xa = d.set(dir[i0]).lerp(dir[i1], f).normalize();
+        Vector3f za = t.set(axis[i0]).lerp(axis[i1], f);
+        za.fma(-za.dot(xa), xa).normalize();
+        c.set(za).cross(xa);
+        return dest.set(xa.x, xa.y, xa.z, 0, c.x, c.y, c.z, 0, za.x, za.y, za.z, 0, a0.x, a0.y, a0.z, 1);
+    }
+
+    private void slot(int j, Vector3f dest) {
+        if (j < 0) dest.set(dir[0]).mul(j * pitch).add(x[0]);
+        else if (j >= links) dest.set(dir[links - 1]).mul((j - links + 1) * pitch).add(x[links - 1]);
+        else dest.set(x[j]);
+    }
 }

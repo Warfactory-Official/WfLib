@@ -257,5 +257,11 @@ public final class MissilePresetRegistry {
 
         define(VehicleOrdnance.missile(rl("fim_92"), MissileModels.rl("guided_rocket"), ThreatKind.HE, 70, 99, 8, 2,
                 10.1, 1616, 600, 0.0505, 18, 6, SeekerMode.INFRARED, 30));
+        // 9K32M Strela-2M: ~60% of the FIM-92's cruise, 1.15 kg warhead, softer turn, narrower seeker.
+        define(VehicleOrdnance.missile(rl("9m32m"), MissileModels.rl("guided_rocket"), ThreatKind.HE, 72, 80, 6, 2,
+                9.15, 605, 600, 0.05, 12, 6, SeekerMode.INFRARED, 20));
+        // FGM-148 Javelin: soft launch, top attack (70 deg dive), tandem HEAT.
+        define(VehicleOrdnance.topAttack(rl("fgm_148"), MissileModels.rl("atgm"), ThreatKind.TANDEM_HEAT, 127, 150,
+                3, 11.8, 384, 400, 0.06, 30, 3, SeekerMode.INFRARED, 20, 70));
     }
 }

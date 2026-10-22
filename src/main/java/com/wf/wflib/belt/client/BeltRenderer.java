@@ -25,21 +25,22 @@ public final class BeltRenderer {
     }
 
     /**
-     * Links {@code [0, count)} at {@code frame * link(k)}; {@code clip} (projection * frame) non-null => stops after the
-     * first link below the screen. -> links drawn.
+     * Links {@code [0, count)} at {@code frame * link(k, shift)} (shift > 0 => link -1 too); {@code clip} (projection *
+     * frame) non-null => stops after the first link below the screen. -> links drawn.
      */
-    public static int submit(GemRenderGltfModel link, BeltChain chain, int count, Matrix4fc frame,
+    public static int submit(GemRenderGltfModel link, BeltChain chain, int count, float shift, Matrix4fc frame,
                              @Nullable Matrix4fc clip, int light, int overlay, DirectPass pass) {
         int n = Math.min(count, chain.links());
-        for (int k = 0; k < n; k++) {
-            POSE.set(frame).mul(chain.link(k, LINK));
+        int first = shift > 0 && n > 0 ? -1 : 0;
+        for (int k = first; k < n; k++) {
+            chain.link(k, shift, LINK);
+            POSE.set(frame).mul(LINK);
             DirectRenderer.submit(link, null, 0, POSE, light, overlay, 0xFFFFFFFF, pass, VariantUv.NONE);
             if (clip != null) {
-                var p = chain.position(k);
-                clip.transform(CLIP.set(p.x(), p.y(), p.z(), 1));
-                if (CLIP.w > 0 && CLIP.y / CLIP.w < OFF_SCREEN) return k + 1;
+                clip.transform(CLIP.set(LINK.m30(), LINK.m31(), LINK.m32(), 1));
+                if (CLIP.w > 0 && CLIP.y / CLIP.w < OFF_SCREEN) return k - first + 1;
             }
         }
-        return n;
+        return n - first;
     }
 }

@@ -95,4 +95,46 @@ class ArmViewPoseTest {
         assertEquals((LENGTHS.upper() + LENGTHS.forearm()) * ArmViewPose.MAX_REACH, fist.distance(shoulder), 1e-4F);
         assertEquals(LENGTHS.upper(), elbow.distance(shoulder), 1e-5F);
     }
+
+    /** Hand turned through a full roll about the arm line: elbow stays on the pole side, never jumps between frames. */
+    @Test
+    void handRollNeverFlipsTheElbow() {
+        Vector3f fist = new Vector3f(0.12F, -0.15F, -0.35F);
+        Vector3f shoulder = ArmViewPose.shoulder(false, new Vector3f());
+        Vector3f line = new Vector3f(fist).sub(shoulder).normalize();
+        Vector3f elbow = new Vector3f(), last = null;
+        Vector3f pole = new Vector3f(ArmViewPose.RIGHT_POLE);
+        pole.fma(-pole.dot(line), line);
+        for (int i = 0; i <= 720; i++) {
+            Quaternionf hand = new Quaternionf().rotateAxis(i * (float) Math.PI / 360, line).rotateX(-1.3F);
+            ArmViewPose.solve(fist, hand, ArmViewPose.shoulder(false, new Vector3f()), ArmViewPose.RIGHT_POLE,
+                    LENGTHS, new Matrix4f(), new Matrix4f(), elbow);
+            Vector3f off = new Vector3f(elbow).sub(shoulder);
+            assertTrue(off.fma(-off.dot(line), line).dot(pole) > 0, "pole side at step " + i);
+            if (last != null) assertTrue(elbow.distance(last) < 0.01F, "elbow step " + elbow.distance(last) + " at " + i);
+            last = new Vector3f(elbow);
+        }
+    }
+
+    /** Target side switch (pole flipped across the arm line): held state sweeps over frames, settles on the target. */
+    @Test
+    void bendStateSweepsASideSwitch() {
+        Vector3f fist = new Vector3f(0.12F, -0.15F, -0.35F);
+        ArmViewPose.Bend bend = new ArmViewPose.Bend();
+        Vector3f elbow = new Vector3f(), last = new Vector3f(), free = new Vector3f();
+        ArmViewPose.solve(fist, null, ArmViewPose.shoulder(false, new Vector3f()), ArmViewPose.RIGHT_POLE, LENGTHS, 0,
+                bend, 1 / 60F, new Matrix4f(), new Matrix4f(), last);
+        Vector3f flipped = new Vector3f(ArmViewPose.RIGHT_POLE).mul(-1, 1, 1);
+        ArmViewPose.solve(fist, null, ArmViewPose.shoulder(false, new Vector3f()), flipped, LENGTHS, new Matrix4f(),
+                new Matrix4f(), free);
+        float worst = 0, total = last.distance(free);
+        for (int i = 0; i < 60; i++) {
+            ArmViewPose.solve(fist, null, ArmViewPose.shoulder(false, new Vector3f()), flipped, LENGTHS, 0, bend,
+                    1 / 60F, new Matrix4f(), new Matrix4f(), elbow);
+            worst = Math.max(worst, elbow.distance(last));
+            last.set(elbow);
+        }
+        assertTrue(worst < 0.4F * total, "per-frame step " + worst + " of " + total);
+        assertEquals(0, elbow.distance(free), 1e-3F, "settled");
+    }
 }

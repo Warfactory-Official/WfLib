@@ -7,6 +7,7 @@ import com.wf.wflib.MissileEntity;
 import com.wf.wflib.MissileModels;
 import com.wf.wflib.ModEntities;
 import com.wf.wflib.drone.cam.CameraSpec;
+import com.wf.wflib.flight.AttackProfile;
 import com.wf.wflib.flight.FlightStageRegistry;
 import com.wf.wflib.sim.MissileSimConfig;
 import net.minecraft.resources.ResourceLocation;
@@ -48,6 +49,7 @@ public final class MissilePreset {
     private final ResourceLocation attackStageId;
     private final MissileEntity.Medium medium;
     private final double attackAngle;
+    private final AttackProfile attackProfile;
     private final double minDiveAngle;
     private final double maxDiveAngle;
     private final float rcs;
@@ -107,6 +109,7 @@ public final class MissilePreset {
         this.attackStageId = b.attackStageId;
         this.medium = b.medium;
         this.attackAngle = b.attackAngle;
+        this.attackProfile = b.attackProfile;
         this.minDiveAngle = b.minDiveAngle;
         this.maxDiveAngle = b.maxDiveAngle;
         this.rcs = b.rcs;
@@ -242,6 +245,10 @@ public final class MissilePreset {
         return attackAngle;
     }
 
+    public AttackProfile attackProfile() {
+        return attackProfile;
+    }
+
     public double minDiveAngle() {
         return minDiveAngle;
     }
@@ -362,6 +369,7 @@ public final class MissilePreset {
         if (!Double.isNaN(attackAngle)) {
             b.attackAngle(attackAngle);
         }
+        b.attackProfile(attackProfile);
         b.diveAngleRange(minDiveAngle, maxDiveAngle);
         b.rcs(rcs);
         if (evasion > 0.0f) {
@@ -451,6 +459,7 @@ public final class MissilePreset {
         private MissileEntity.Medium medium = MissileEntity.Medium.AIR;
         private ResourceLocation attackStageId = null;
         private double attackAngle = Double.NaN;
+        private AttackProfile attackProfile = AttackProfile.SPEED;
         private double minDiveAngle = MissileEntity.DEFAULT_MIN_DIVE_ANGLE;
         private double maxDiveAngle = MissileEntity.DEFAULT_MAX_DIVE_ANGLE;
         private float rcs = 1.0f;
@@ -641,6 +650,12 @@ public final class MissilePreset {
         /** Explicit preferred dive angle in degrees below horizontal (90 = straight down), uncapped. */
         public Builder attackAngle(double degrees) {
             this.attackAngle = degrees;
+            return this;
+        }
+
+        /** Terminal trade when the dive angle does not fit the turn radius; {@code LOFT} = climb over the target. */
+        public Builder attackProfile(AttackProfile profile) {
+            this.attackProfile = profile;
             return this;
         }
 

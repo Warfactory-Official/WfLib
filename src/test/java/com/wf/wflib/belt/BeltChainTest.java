@@ -80,4 +80,21 @@ class BeltChainTest {
         assertEquals(5, b.links());
         assertChain(b);
     }
+
+    @Test
+    void shiftedLinksSlideOnePitchTowardTheFeed() {
+        BeltChain b = new BeltChain(PITCH);
+        b.update(FEED, LEFT, BACK, null, null, 20, G, 1 / 60F);
+        Matrix4f m = new Matrix4f(), n = new Matrix4f();
+        for (int k = 0; k < 19; k++) {
+            assertEquals(0, b.link(k, 0, m).getTranslation(new Vector3f()).distance(b.position(k)), E, "rest " + k);
+            assertEquals(0, b.link(k, 1, m).getTranslation(new Vector3f()).distance(b.position(k + 1)), E, "k " + k);
+            assertEquals(0, b.link(k, 1, m).getColumn(0, new Vector3f()).distance(b.link(k + 1, n).getColumn(0,
+                    new Vector3f())), E, "dir " + k);
+        }
+        assertEquals(0, b.link(-1, 1, m).getTranslation(new Vector3f()).distance(FEED), E, "stripped link at feed");
+        assertEquals(PITCH, b.link(-1, 0.5F, m).getTranslation(new Vector3f()).distance(b.link(-1, 1.5F, n)
+                .getTranslation(new Vector3f())), E, "uniform slide");
+        assertEquals(PITCH, b.link(19, 1, m).getTranslation(new Vector3f()).distance(b.position(19)), E, "tail");
+    }
 }

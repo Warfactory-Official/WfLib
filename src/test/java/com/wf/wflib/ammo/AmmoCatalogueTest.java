@@ -29,7 +29,7 @@ class AmmoCatalogueTest {
     void specCalibresWithTheirVariants() {
         Map<ResourceLocation, List<AmmoVariant>> by = byCalibre();
         for (String c : List.of("9x19", "11.43x23", "5.56x45", "5.45x39", "7.62x39", "7.62x51", "7.62x54r",
-                "8.6x70", "12.7x99", "12.7x108")) {
+                "9.3x64", "8.6x70", "12.7x99", "12.7x108")) {
             assertNotNull(Ammo.catalogueCalibre(rl(c)), c);
             assertEquals(rl(c + "/ball"), by.get(rl(c)).getFirst().id(), c + " default = ball");
         }

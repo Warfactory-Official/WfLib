@@ -164,6 +164,8 @@ public final class AmmoCatalogue {
                 3.65f), "M80", 9.5f, 840, 0.30f, "M62", RED, TIP_ORANGE, "M993", 8.2f, 910, null, 0, 0);
         smallArms(cal("7.62x54r", "7.62x54mmR", r, 7.92f, 53.72f, 12.37f, 8.53f, 14.48f, 77.16f, 32f, st, 22f,
                 4.83f), "57-N-323S", 9.6f, 825, 0.30f, "T-46", GREEN, TIP_GREEN, "7N13", 9.4f, 830, null, 0, 0);
+        smallArms(cal("9.3x64", "9.3x64mm Brenneke", r, 9.3f, 64f, 11.95f, 9.95f, 11.95f, 88f, 32f, st, 29f, 4.4f),
+                "7N33", 16.5f, 770, 0.30f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("7.62x63", ".30-06 Springfield", r, 7.82f, 63.3f, 11.96f, 8.63f, 12.01f, 84.8f, 30f, br, 25f,
                 8.57f), "M2 ball", 9.72f, 835, 0.30f, "M25", RED, TIP_ORANGE, "M2 AP", 10.74f, 828, null, 0, 0);
         smallArms(cal("7.92x33", "7.92x33mm Kurz", r, 8.2f, 33f, 11.9f, 8.9f, 11.9f, 48f, 26f, st, 17f, 2.9f),
@@ -184,12 +186,26 @@ public final class AmmoCatalogue {
                 2.33f), "57-B-541", 48f, 820, 0.28f, "BZT-44", GREEN, TIP_VIOLET, "B-32", 48.3f, 830, null, 0, 0);
         smallArms(cal("14.5x114", "14.5x114mm", r, 14.88f, 114f, 26.95f, 16.4f, 26.95f, 155.8f, 66f, st, 200f,
                 2f), "B-32 API", 64f, 1000, 0.28f, "BZT", GREEN, TIP_VIOLET, "BS-41", 65f, 976, null, 0, 0);
+        smallArms(cal("20x82", "20x82mm Mauser", r, 20.3f, 82f, 24.7f, 22.5f, 24.7f, 153f, 75f, br, 230f,
+                1.8f), "Panzergranate", 119f, 710, 0.30f, "Brandgranate", RED, TIP_ORANGE, null, 0, 0, null, 0, 0);
+        smallArms(cal("25x59b", "25x59mm OCSW", r, 25f, 59f, 32f, 29f, 32f, 120f, 55f, br, 195f,
+                1.5f), "XM1049 HEDP", 137f, 425, 0.30f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("7.62x33", ".30 Carbine", r, 7.85f, 32.8f, 9.04f, 8.4f, 9.14f, 42.67f, 17f, br, 12.5f, 7.2f),
                 "M1 ball", 7.13f, 607, 0.30f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("7.65x17", ".32 ACP", p, 7.94f, 17.3f, 8.6f, 8.6f, 9.1f, 25f, 12f, br, 7.5f, 40f), "FMJ",
                 4.6f, 276, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("8x50r", "8x50mmR Lebel", r, 8.3f, 50.5f, 13.8f, 8.9f, 16f, 70f, 39f, br, 29f, 6.34f),
                 "Balle D", 12.8f, 730, 0.28f, null, 0, 0, null, 0, 0, null, 0, 0);
+        smallArms(cal("7.7x56r", ".303 British", r, 7.92f, 56.4f, 11.68f, 8.64f, 13.72f, 77f, 31f, br, 25.5f, 6.0f),
+                "Mk VII", 11.3f, 744, 0.30f, "G Mk VI", RED, TIP_RED, null, 0, 0, null, 0, 0);
+        smallArms(cal("7.7x58", "7.7x58mm Arisaka", r, 7.92f, 57.8f, 12f, 8.6f, 12f, 80.5f, 32f, br, 26f, 6.2f),
+                "Type 99 ball", 11.8f, 730, 0.30f, null, 0, 0, null, 0, 0, null, 0, 0);
+        smallArms(cal("8x22", "8x22mm Nambu", p, 8.13f, 21.6f, 10.4f, 8.8f, 10.5f, 31.6f, 15f, br, 10.6f, 14f),
+                "Type 14 ball", 6.6f, 325, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
+        smallArms(cal("7.65x20", "7.65x20mm Longue", p, 7.85f, 19.8f, 8.5f, 8.4f, 8.5f, 30.2f, 13f, br, 9f, 22f),
+                "Mle 1935", 5.5f, 345, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
+        smallArms(cal("11.55x19r", ".455 Webley", p, 11.56f, 19.3f, 12.2f, 12.2f, 13.5f, 31.2f, 18f, br, 21f, 13f),
+                "Mk II", 17.2f, 190, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("7.62x67", ".300 Winchester Magnum", r, 7.82f, 66.5f, 13f, 8.6f, 13.5f, 84.8f, 38f, br, 33f,
                 4.1f), "Mk 248 Mod 1", 14.26f, 869, 0.26f, null, 0, 0, null, 0, 0, null, 0, 0);
 
@@ -327,6 +343,25 @@ public final class AmmoCatalogue {
         add(AmmoVariant.builder(rl("73mm_spg9/frag"), spg9.c().id(), "OG-9V")
                 .flight(316, 3.7f, quadDrag(73f, 3700, 0.30f)).damagePerKJ(spg9.dpk()).explosive(FRAG, 4f)
                 .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.ROCKET, 700f, 73f)));
+        // SMAW Mk 153: encased rocket, burns out in the tube (no sustainer), 220 m/s.
+        Cal smaw = cal("83mm_smaw", "SMAW 83 mm rocket", CalibreKind.ROCKET, 83f, 1f, 83f, 83f, 83f, 760f, 540f,
+                CaseMaterial.NONE, 6300f, 0.315f);
+        add(smaw.variant("hedp", "Mk 3 HEDP", 2900, 220, 0.40f).explosive(STANDARD, 3f).armorPen(300)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.ROCKET, 540f, 83f)));
+        add(smaw.variant("heaa", "Mk 6 HEAA", 3200, 220, 0.40f).explosive(SHAPED, 2.5f).armorPen(600)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.ROCKET, 560f, 83f)));
+        // Instalaza C90-CR (M3): disposable, burns out in the tube, 210 m/s.
+        Cal c90 = cal("90mm_c90", "C90 90 mm rocket", CalibreKind.ROCKET, 90f, 1f, 90f, 90f, 90f, 840f, 590f,
+                CaseMaterial.NONE, 2200f, 0.315f);
+        add(c90.variant("heat", "C90-CR M3", 2200, 210, 0.40f).explosive(SHAPED, 2.5f).armorPen(400)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.ROCKET, 590f, 90f)));
+        // Guided rounds: item + 28 m/s eject only; flight = missile preset of the same id.
+        Cal strela = cal("9m32m", "9M32M Strela-2M missile", CalibreKind.ROCKET, 72f, 1f, 72f, 72f, 72f, 1440f,
+                1440f, CaseMaterial.NONE, 9150f, 0.315f);
+        add(strela.variant("missile", "9M32M", 9150, 28, 0.30f));
+        Cal javelin = cal("fgm_148", "FGM-148 Javelin missile", CalibreKind.ROCKET, 127f, 1f, 127f, 127f, 127f,
+                1100f, 1100f, CaseMaterial.NONE, 11800f, 0.315f);
+        add(javelin.variant("missile", "FGM-148", 11800, 28, 0.30f));
     }
 
     private static void autocannon(Cal c, String he, float heG, float heMs, float blast, String ap, float apG,

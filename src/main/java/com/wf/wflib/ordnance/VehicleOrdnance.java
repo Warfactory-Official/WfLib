@@ -3,6 +3,7 @@ package com.wf.wflib.ordnance;
 import com.wf.wflib.MissileEntity;
 import com.wf.wflib.MissileModels;
 import com.wf.wflib.api.ThreatKind;
+import com.wf.wflib.flight.AttackProfile;
 import com.wf.wflib.flight.FlightStageRegistry;
 import com.wf.wflib.item.MissilePreset;
 import com.wf.wflib.kinetic.KineticPreset;
@@ -23,6 +24,7 @@ public final class VehicleOrdnance {
     static final double G = 9.8 / 400.0;
     private static final double ACTIVE_RADAR_RANGE = 1024.0;
     private static final ResourceLocation DIRECT = FlightStageRegistry.rl("direct");
+    private static final ResourceLocation ATTACK = FlightStageRegistry.rl("attack");
     private static final ResourceLocation AIR_LAUNCH = FlightStageRegistry.rl("air_launch");
 
     private VehicleOrdnance() {
@@ -102,6 +104,21 @@ public final class VehicleOrdnance {
                 .attackStage(DIRECT)
                 .terrainFollow(0.0)
                 .seekerMode(seeker, fov, seeker == SeekerMode.BEAM_RIDING ? 0.0 : ACTIVE_RADAR_RANGE)
+                .build();
+    }
+
+    /** {@link #missile} with a LOFT terminal: climbs over, dives onto the target at {@code diveDeg}. */
+    public static MissilePreset topAttack(ResourceLocation id, ResourceLocation model, ThreatKind threat,
+                                          float calibre, float damage, float blast, double mass, double thrust,
+                                          int burnTicks, double cdA, double maxG, double refSpeed, SeekerMode seeker,
+                                          float fov, double diveDeg) {
+        return base(id, model, threat, calibre, damage, blast, 0, mass, thrust, burnTicks, cdA, maxG, refSpeed, true)
+                .cruiseStage(DIRECT)
+                .attackStage(ATTACK)
+                .attackAngle(diveDeg)
+                .attackProfile(AttackProfile.LOFT)
+                .terrainFollow(0.0)
+                .seekerMode(seeker, fov, ACTIVE_RADAR_RANGE)
                 .build();
     }
 
