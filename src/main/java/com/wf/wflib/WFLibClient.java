@@ -144,6 +144,7 @@ public class WFLibClient {
     public static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener(new com.wf.wflib.nvg.client.NvgOptics.Loader());
         event.registerReloadListener(new com.wf.wflib.radio.client.RadioCatalog());
+        event.registerReloadListener(new com.wf.wflib.wiki.client.WikiLoader());
         event.registerReloadListener((barrier, manager, prepProfiler, reloadProfiler, background, game) ->
                 barrier.wait(net.minecraft.Util.NIL_UUID)
                         .thenRunAsync(MineRigs::init, game));

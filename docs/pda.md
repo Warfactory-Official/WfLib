@@ -43,6 +43,7 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 | Satellites | `SatStatusPacket` per 40 ticks to every carrier: own net's birds, empty without uplink; next pass = `OrbitalNet.nextPass` sampled 40 ticks to 20 min. Console: typed `[callsign\|#n\|n] verb args` -> `SatCommandPacket` (own net + held + uplink) -> `OrbitalNet.commandBy`, issuer = player; replies `SatReplyPacket` + changed `reply()` lines. Local: help, sats, select, clear. IMAGERY tab = `SurveyCache` tiles around the player |
 | Alerts | `PdaAlerts` history (32), badge = unread |
 | Terminal | line -> `TerminalCommandPacket` -> `PdaTerminal.run` (held PDA): `drones` (held `CHANNELS`, loaded), `nodes` / `sats` (own net + uplink), `rename drone\|node\|sat <#n\|name> <new\|->` (name 1-16 `[A-Za-z0-9_-]`, `-` = default). Drone -> `DroneEntity` callsign (datalink label); node -> `NamedNode` block entity (hub, probe, orbital node), label applied at its next registration; sat -> `callsign` command-bus verb |
+| Wiki | in-game tutorials, see 104 |
 | other mods | bodies: `RemoteBody.register(entity -> body)` at common setup (status, cells, ammo, `connectRefusal`, `connect`). Apps: `PdaApps.register` at client setup; panels `PdaShell.panel`; feed rights for non-`CHANNELS` links: `CameraNet.entitle` |
 
 ## 100. Uplink (`pda/uplink/Uplink`)
@@ -70,3 +71,15 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 
 - Register while loaded: `DroneDispatchers.add` / `remove`. Permitted: `side()` null, same side, or WarForge allies; no range limit, no uplink gate.
 - `DronePadBlockEntity`: idle non-`DroneEntity` body within 8 blocks flying the kind takes it first (`DroneTasking.assign`, home = pad); else offers LOITER; DELIVER with pad cargo (rides leader); STRIKE / MINELAY when the configured mission slings a warhead / mines. Run = configured mission copy, DIRECT, program = one step, home = pad, operator = dispatching player (hears the datalink without a side).
+
+## 104. Wiki (`wiki/`, client `wiki/client/`)
+
+- Article = client resource `assets/<ns>/wiki/<path>.md` -> id `<ns>:<path>`; `WikiLoader` reload listener replaces all (`Wiki.replace`); packs add / override.
+- Markdown: commonmark-java 0.24.0 (jarJar) + tables, strikethrough, task lists, front matter. `TaskListItemMarker` = ListItem child BEFORE the `Paragraph`.
+- Front matter, all optional: `title` (= first heading), `summary` (= first paragraph), `icon` (item id | `.png` texture id; = first bound item), `items` (`ns:id` | `#tag`), `keywords`, `priority` (higher first), `hidden` (links + bindings only).
+- Links: `http(s)`/`mailto` external; `#a` same article; `ns:path`; `/path` ns root; else relative to folder, `../` ok, `.md` optional; unknown => red. Images: `item:<id>` inline icon; else `Wiki.resolveAsset` (relative to article folder under `wiki/`), scaled down to page width.
+- `ArticleLayout`: markdown -> boxes / pics / spans / hit table; unit-testable via `Metrics`; relaid on width change. `WikiApp`: list + search (`Wiki.search`: title prefix > word > substring > keyword > summary > body), article view, history (back, INDEX), scroll kept per history entry.
+- Binding: `Wiki.forStack` (highest priority match, cached per `Item`, cleared on `TagsUpdatedEvent` / reload). `ItemTooltipEvent` line `wflib.wiki.tooltip` on bound items.
+- F1 (`wflib.wiki` key + `MixinKeyboardHandler.keyPress` HEAD: vanilla F1 hide-GUI is not a key mapping; also `ScreenEvent.KeyPressed.Pre` in containers): `WikiAccess` -> bound stack (hovered slot, else main hand, offhand, hotbar) -> held PDA, else carried PDA moved to hand => `PdaClient.raiseWhenHeld` -> Wiki app on article. No PDA => nothing.
+- Writing guide: `assets/wflib/wiki/guides/writing-articles.md`.
+- Gap: texture image embed, offhand / container F1 paths unverified in game.

@@ -218,6 +218,6 @@ public final class PdaRenderer {
                     arms.lengths, UPPER, LOWER, ELBOW);
             arms.pose(side, UPPER, LOWER);
         }
-        arms.submit(VIEW, light, player);
+        arms.submit(VIEW, light, 0xFFFFFFFF, player);
     }
 }

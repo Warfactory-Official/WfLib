@@ -1,6 +1,7 @@
 package com.wf.wflib.mixin;
 
 import com.wf.wflib.ui.input.UiKeyboard;
+import com.wf.wflib.wiki.client.WikiAccess;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
@@ -27,6 +28,14 @@ public abstract class MixinKeyboardHandler {
             target.key(key, scan, modifiers);
         }
         ci.cancel();
+    }
+
+    @Inject(method = "keyPress", at = @At("HEAD"), cancellable = true)
+    private void wflib$wikiKey(long window, int key, int scan, int action, int modifiers, CallbackInfo ci) {
+        if (action == GLFW.GLFW_PRESS && window == Minecraft.getInstance().getWindow().getWindow()
+                && UiKeyboard.focused() == null && WikiAccess.key(key, scan)) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)

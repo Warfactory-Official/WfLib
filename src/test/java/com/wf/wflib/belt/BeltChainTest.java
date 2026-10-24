@@ -2,6 +2,8 @@ package com.wf.wflib.belt;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BeltChainTest {
     private static final Vector3f FEED = new Vector3f(), LEFT = new Vector3f(-1, 0, 0), BACK = new Vector3f(0, 0, 1),
             G = new Vector3f(0, -9.81F, 0);
+    private static final Matrix4f I = new Matrix4f();
     private static final float PITCH = 0.0127F, E = 1e-4F;
 
     private static void assertChain(BeltChain b) {
@@ -29,7 +32,7 @@ class BeltChainTest {
     @Test
     void freeBeltHangsDownAtTheTail() {
         BeltChain b = new BeltChain(PITCH);
-        b.update(FEED, LEFT, BACK, null, null, 30, G, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), null, null, 30, G, I, 1 / 60F);
         assertChain(b);
         Vector3f tail = new Vector3f(b.position(29)).sub(b.position(28)).normalize();
         assertTrue(tail.y < -0.99F, "tail " + tail);
@@ -40,7 +43,7 @@ class BeltChainTest {
     void boxBeltLeavesAlongTheTrayAndEntersTheMouth() {
         BeltChain b = new BeltChain(PITCH);
         Vector3f box = new Vector3f(-0.058F, -0.035F, 0), down = new Vector3f(0, -1, 0);
-        for (int i = 0; i < 60; i++) b.update(FEED, LEFT, BACK, box, down, 200, G, 1 / 60F);
+        for (int i = 0; i < 60; i++) b.update(FEED, LEFT, BACK, List.of(), box, down, 200, G, I, 1 / 60F);
         assertChain(b);
         int n = b.links();
         assertTrue(n >= 7 && n <= 10, "links " + n);
@@ -54,7 +57,7 @@ class BeltChainTest {
     @Test
     void tooFewRoundsForTheBoxHang() {
         BeltChain b = new BeltChain(PITCH);
-        b.update(FEED, LEFT, BACK, new Vector3f(-0.058F, -0.035F, 0), new Vector3f(0, -1, 0), 3, G, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), new Vector3f(-0.058F, -0.035F, 0), new Vector3f(0, -1, 0), 3, G, I, 1 / 60F);
         assertEquals(3, b.links());
         assertChain(b);
     }
@@ -62,9 +65,9 @@ class BeltChainTest {
     @Test
     void sidewaysJerkLagsTheTail() {
         BeltChain b = new BeltChain(PITCH);
-        b.update(FEED, LEFT, BACK, null, null, 20, G, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), null, null, 20, G, I, 1 / 60F);
         Vector3f before = new Vector3f(b.position(19));
-        b.update(new Vector3f(0.03F, 0, 0), LEFT, BACK, null, null, 20, G, 1 / 60F);
+        b.update(new Vector3f(0.03F, 0, 0), LEFT, BACK, List.of(), null, null, 20, G, I, 1 / 60F);
         float tail = b.position(19).x() - before.x;
         assertTrue(tail < 0.015F, "hanging tail lags a sideways jerk: " + tail);
         assertChain(b);
@@ -73,10 +76,10 @@ class BeltChainTest {
     @Test
     void growingAndShrinkingKeepsThePitch() {
         BeltChain b = new BeltChain(PITCH);
-        b.update(FEED, LEFT, BACK, null, null, 10, G, 1 / 60F);
-        b.update(FEED, LEFT, BACK, null, null, 25, G, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), null, null, 10, G, I, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), null, null, 25, G, I, 1 / 60F);
         assertChain(b);
-        b.update(FEED, LEFT, BACK, null, null, 5, G, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), null, null, 5, G, I, 1 / 60F);
         assertEquals(5, b.links());
         assertChain(b);
     }
@@ -84,7 +87,7 @@ class BeltChainTest {
     @Test
     void shiftedLinksSlideOnePitchTowardTheFeed() {
         BeltChain b = new BeltChain(PITCH);
-        b.update(FEED, LEFT, BACK, null, null, 20, G, 1 / 60F);
+        b.update(FEED, LEFT, BACK, List.of(), null, null, 20, G, I, 1 / 60F);
         Matrix4f m = new Matrix4f(), n = new Matrix4f();
         for (int k = 0; k < 19; k++) {
             assertEquals(0, b.link(k, 0, m).getTranslation(new Vector3f()).distance(b.position(k)), E, "rest " + k);

@@ -291,6 +291,18 @@ dependencies {
     }
     additionalRuntimeClasspath "io.github.jaredmdobson:concentus:1.0.2"
 
+    // --- commonmark-java: PDA wiki articles ---------------------------------------------------
+    ['commonmark', 'commonmark-ext-gfm-tables', 'commonmark-ext-gfm-strikethrough',
+     'commonmark-ext-task-list-items', 'commonmark-ext-yaml-front-matter'].each { artifact ->
+        jarJar(implementation("org.commonmark:${artifact}")) {
+            version {
+                strictly '[0.24.0,1)'
+                prefer '0.24.0'
+            }
+        }
+        additionalRuntimeClasspath "org.commonmark:${artifact}:0.24.0"
+    }
+
     // --- AHF (humanoid hit parts, lag-comp history): required both sides ----------------------
     implementation "com.norwood:ahf-1.21.1-neoforge:${ahf_version}-SNAPSHOT"
 
@@ -478,6 +490,8 @@ sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    // ./gradlew test --tests '*BeltReplayTest' -PbeltReplay=<capture.jsonl>
+    systemProperty 'belt.replay', project.findProperty('beltReplay') ?: ''
     testLogging {
         events 'passed', 'skipped', 'failed'
         exceptionFormat = 'full'

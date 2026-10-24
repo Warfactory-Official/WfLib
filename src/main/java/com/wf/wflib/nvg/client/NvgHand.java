@@ -66,6 +66,6 @@ public final class NvgHand {
         arms.pose(1, UPPER, LOWER);
         arms.pose(0, HIDDEN, HIDDEN);
         VIEW.set(event.getPoseStack().last().pose());
-        arms.submit(VIEW, event.getPackedLight(), player);
+        arms.submit(VIEW, event.getPackedLight(), 0xFFFFFFFF, player);
     }
 }

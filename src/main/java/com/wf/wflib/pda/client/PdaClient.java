@@ -51,6 +51,8 @@ public final class PdaClient {
     private static PdaApp app;
     /** Feed on the whole screen; 0 = none. */
     private static int fullscreenFeed;
+    private static Runnable pendingRaise;
+    private static int pendingTicks;
 
     private PdaClient() {
     }
@@ -102,6 +104,22 @@ public final class PdaClient {
         focused = true;
         CameraLink.open(feedId);
         fullscreen(feedId);
+    }
+
+    /** Raise, then run {@code then}, as soon as the PDA is in the main hand (waits up to 1 s for an equip swap). */
+    public static void raiseWhenHeld(Runnable then) {
+        pendingRaise = then;
+        pendingTicks = 20;
+        if (held && Minecraft.getInstance().screen == null) {
+            runPending();
+        }
+    }
+
+    private static void runPending() {
+        Runnable then = pendingRaise;
+        pendingRaise = null;
+        focused = true;
+        then.run();
     }
 
     /** Null = home grid. */
@@ -175,6 +193,13 @@ public final class PdaClient {
         // Own prompt (marker name) keeps it raised.
         if (!held || mc.screen != null && !(mc.screen instanceof EmbeddedScreen.Standalone) || !player.isAlive()) {
             lower();
+        }
+        if (pendingRaise != null) {
+            if (held && mc.screen == null) {
+                runPending();
+            } else if (--pendingTicks <= 0) {
+                pendingRaise = null;
+            }
         }
         if (!mc.options.keyUse.isDown()) {
             useLatch = false;

@@ -29,13 +29,13 @@ public final class BeltRenderer {
      * frame) non-null => stops after the first link below the screen. -> links drawn.
      */
     public static int submit(GemRenderGltfModel link, BeltChain chain, int count, float shift, Matrix4fc frame,
-                             @Nullable Matrix4fc clip, int light, int overlay, DirectPass pass) {
+                             @Nullable Matrix4fc clip, int light, int overlay, int argb, DirectPass pass) {
         int n = Math.min(count, chain.links());
         int first = shift > 0 && n > 0 ? -1 : 0;
         for (int k = first; k < n; k++) {
             chain.link(k, shift, LINK);
             POSE.set(frame).mul(LINK);
-            DirectRenderer.submit(link, null, 0, POSE, light, overlay, 0xFFFFFFFF, pass, VariantUv.NONE);
+            DirectRenderer.submit(link, null, 0, POSE, light, overlay, argb, pass, VariantUv.NONE);
             if (clip != null) {
                 clip.transform(CLIP.set(LINK.m30(), LINK.m31(), LINK.m32(), 1));
                 if (CLIP.w > 0 && CLIP.y / CLIP.w < OFF_SCREEN) return k - first + 1;

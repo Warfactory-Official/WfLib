@@ -33,17 +33,17 @@ import java.util.WeakHashMap;
  * through texture slots. Render thread.
  *
  * <p>Worn glTF armour: {@code {side}_arm} node (vanilla arm part, glTF {@code S = diag(-1, -1, 1)}) remapped onto
- * the arm bones: across x {@link #ACROSS} about the vanilla arm axis, along piecewise at the elbow
- * ({@code [0, ELBOW]} -> upper, {@code [ELBOW, FIST]} -> forearm). AHF's {@code .ahf_ring} / {@code .ahf_bent}
- * joints (vertices sliced at that elbow) ride the forearm; absent => whole sleeve on the upper bone.
+ * the arm bones: across x {@link #UPPER_ACROSS} / {@link #FOREARM_ACROSS} about the vanilla arm axis, along
+ * piecewise at the elbow ({@code [0, ELBOW]} -> upper, {@code [ELBOW, FIST]} -> forearm). AHF's {@code .ahf_ring} /
+ * {@code .ahf_bent} joints (vertices sliced at that elbow) ride the forearm; absent => whole sleeve on the upper bone.
  */
 public final class PlayerArms {
     public static final ResourceLocation MODEL = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/arms/player_arms.glb");
     private static final String[] SIDES = {"right", "left"};
     /** Vanilla arm, part px / 16: elbow = AHF {@code player_wide.glb} elbow pivot; fist end = MA reach. */
     private static final float ELBOW = 4 / 16F, FIST = 10 / 16F;
-    /** {@code player_arms.glb} shoulder section (MA {@code malib/arms.py} PROFILE) / vanilla 4 px. */
-    private static final float ACROSS = 0.125F / (4 / 16F);
+    /** {@code player_arms.glb} shoulder / elbow section (MA {@code malib/arms.py} PROFILE) / vanilla 4 px. */
+    private static final float UPPER_ACROSS = 0.12F / (4 / 16F), FOREARM_ACROSS = 0.105F / (4 / 16F);
     private static final String RING = ".ahf_ring", BENT = ".ahf_bent";
     /** Forearm twist segments: joints lower, twist1..{@code TWISTS - 1}, fist. */
     public static final int TWISTS = 6;
@@ -158,7 +158,7 @@ public final class PlayerArms {
     }
 
     /** Both arms in {@code player}'s skin + worn glTF armour arms; a skin sleeve only while its layer shows, uncovered. */
-    public void submit(Matrix4f base, int light, AbstractClientPlayer player) {
+    public void submit(Matrix4f base, int light, int argb, AbstractClientPlayer player) {
         boolean[] covered = new boolean[2];
         for (ItemStack worn : player.getArmorSlots()) {
             GemRenderGltfModel armour = ArmorPieceClient.model(worn);
@@ -174,7 +174,7 @@ public final class PlayerArms {
         for (ItemStack worn : player.getArmorSlots()) {
             GemRenderGltfModel armour = ArmorPieceClient.model(worn);
             if (armour != null) {
-                armour(armour, base, light);
+                armour(armour, base, light, argb);
             }
         }
         for (GltfPaletteLayout.SkinBlock block : model.layout().skins()) {
@@ -195,12 +195,12 @@ public final class PlayerArms {
                     case "player_sleeve_left" -> leftSleeve ? texture : null;
                     default -> throw new IllegalStateException(MODEL + ": unknown texture slot " + slot);
                 };
-        DirectRenderer.submit(model, palette, null, base, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF, DirectPass.HAND,
+        DirectRenderer.submit(model, palette, null, base, light, OverlayTexture.NO_OVERLAY, argb, DirectPass.HAND,
                 VariantUv.NONE, Paint.NONE, 0, rest, slots);
     }
 
     /** {@code armour}'s arm nodes on the posed bones; other nodes collapsed. */
-    private void armour(GemRenderGltfModel armour, Matrix4f base, int light) {
+    private void armour(GemRenderGltfModel armour, Matrix4f base, int light, int argb) {
         NodeTable table = armour.layout().nodeTable();
         Matrix4f[] out = sleeves.computeIfAbsent(armour, GemRenderGltfModel::newPalette);
         for (Matrix4f m : out) {
@@ -215,17 +215,18 @@ public final class PlayerArms {
             }
             any = true;
             float axis = (side == 0 ? -1 : 1) / 16F;
-            out[owner].set(palette[joints[side][0]]).scale(ACROSS, lengths.upper() / ELBOW, ACROSS)
+            out[owner].set(palette[joints[side][0]]).scale(UPPER_ACROSS, lengths.upper() / ELBOW, UPPER_ACROSS)
                     .translate(-axis, 0, 0).scale(-1, -1, 1);
             int bent = table.slotOfName(name + BENT);
             if (bent >= 0) {
-                out[bent].set(palette[joints[side][1]]).scale(ACROSS, lengths.forearm() / (FIST - ELBOW), ACROSS)
+                out[bent].set(palette[joints[side][1]]).scale(FOREARM_ACROSS, lengths.forearm() / (FIST - ELBOW),
+                        FOREARM_ACROSS)
                         .translate(-axis, -ELBOW, 0).scale(-1, -1, 1);
                 out[table.slotOfName(name + RING)].set(out[bent]);
             }
         }
         if (any) {
-            DirectRenderer.submit(armour, out, null, base, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF, DirectPass.HAND,
+            DirectRenderer.submit(armour, out, null, base, light, OverlayTexture.NO_OVERLAY, argb, DirectPass.HAND,
                     VariantUv.NONE, Paint.NONE, 0, out);
         }
     }

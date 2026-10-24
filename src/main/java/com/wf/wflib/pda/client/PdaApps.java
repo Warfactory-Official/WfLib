@@ -43,6 +43,7 @@ public final class PdaApps {
         SatellitesApp.register();
         AlertsApp.register();
         TerminalApp.register();
+        com.wf.wflib.wiki.client.WikiApp.register();
         PdaAlerts.register();
     }
 
