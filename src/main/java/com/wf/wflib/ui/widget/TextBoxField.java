@@ -60,7 +60,8 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
             textX = x + PAD;
             float room = w - 2 * PAD;
             if (text.length() == 0 && !focused) {
-                canvas.text(placeholder, textX, ty, colours.placeholder(), false);
+                if (PdaSkin.active()) com.wf.wflib.pda.client.PdaText.line(ev, placeholder, textX, ty, room, colours.placeholder());
+                else canvas.text(placeholder, textX, ty, colours.placeholder(), false);
             }
             int cursor = box.cursor();
             start = Math.min(start, text.length());
