@@ -2,7 +2,6 @@ package com.wf.wflib.pda.client;
 
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.WFLib;
-import com.wf.wflib.WFSounds;
 import com.wf.wflib.pda.alerts.PdaAlert;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.UiEval;
@@ -14,7 +13,6 @@ import com.wf.wflib.ui.WidgetDef;
 import com.wf.wflib.ui.widget.Point;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -73,7 +71,7 @@ public final class PdaAlerts {
             ENTRIES.removeLast();
         }
         unread = Math.min(unread + 1, HISTORY);
-        mc.getSoundManager().play(SimpleSoundInstance.forUI(WFSounds.PDA_BUZZ.get(), 1.0f, 0.8f));
+        com.wf.wflib.pda.client.theme.PdaSounds.request(com.wf.wflib.pda.client.theme.PdaSounds.Event.ALERT);
     }
 
     /** HH:MM, day starting 06:00. */

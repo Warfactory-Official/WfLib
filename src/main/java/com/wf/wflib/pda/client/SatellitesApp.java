@@ -371,7 +371,7 @@ public final class SatellitesApp implements PdaApp {
     }
 
     private static WidgetDef tab(String label, String active, Runnable action, float right, float y) {
-        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> action.run(), "true",
+        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> { com.wf.wflib.pda.client.theme.PdaSounds.tab(); action.run(); }, "true",
                 active + " ? " + PdaShell.PRESS + " : " + PdaShell.PANEL, PdaShell.HOVER, PdaShell.PRESS,
                 PdaShell.EDGE, 1, 0, 4, 1, 0, 0, Point.TOP_RIGHT, text(label, PdaShell.TEXT)));
     }

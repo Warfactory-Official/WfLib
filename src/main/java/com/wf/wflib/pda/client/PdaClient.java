@@ -91,6 +91,7 @@ public final class PdaClient {
         held = true;
         focusPlayer = player;
         focusSlot = player.getInventory().selected;
+        if (!focused) com.wf.wflib.pda.client.theme.PdaSounds.request(com.wf.wflib.pda.client.theme.PdaSounds.Event.OPEN);
         focused = true;
         return true;
     }
@@ -163,6 +164,7 @@ public final class PdaClient {
         if (!held || feedId == 0) {
             return;
         }
+        if (!focused) com.wf.wflib.pda.client.theme.PdaSounds.request(com.wf.wflib.pda.client.theme.PdaSounds.Event.OPEN);
         focused = true;
         CameraLink.open(feedId);
         fullscreen(feedId);
@@ -180,6 +182,7 @@ public final class PdaClient {
     private static void runPending() {
         Runnable then = pendingRaise;
         pendingRaise = null;
+        if (!focused) com.wf.wflib.pda.client.theme.PdaSounds.request(com.wf.wflib.pda.client.theme.PdaSounds.Event.OPEN);
         focused = true;
         then.run();
     }
@@ -193,6 +196,7 @@ public final class PdaClient {
         if (app == next) {
             return;
         }
+        if (focused) com.wf.wflib.pda.client.theme.PdaSounds.tab();
         UiKeyboard.blur();
         if (app != null) {
             app.closed();
@@ -217,6 +221,7 @@ public final class PdaClient {
         fullscreenFeed = 0;
         UiKeyboard.blur();
         if (focused) {
+            com.wf.wflib.pda.client.theme.PdaSounds.request(com.wf.wflib.pda.client.theme.PdaSounds.Event.CLOSE);
             focused = false;
             pressed = false;
             pressLatch = false;

@@ -32,29 +32,15 @@ public record ThemeLayer() implements WidgetDef {
                 if (t.hazard()) {
                     hazard(c, t);
                 }
-                if (PdaThemeState.effects()) {
-                    float flick = PdaThemeState.flicker() ? 1 - PdaTheme.MAX_FLICKER * Math.max(t.flicker() / 0.04f, 1) * pulse(time) : 1;
-                    if (PdaThemeState.vignette() && t.vignette() > 0) {
-                        vignette(c, Math.min(t.vignette(), PdaTheme.MAX_VIGNETTE) * flick);
-                    }
-                    if (PdaThemeState.scanlines() && t.scanlines() > 0) {
-                        scanlines(c, Math.min(t.scanlines(), PdaTheme.MAX_SCANLINES) * flick);
-                    }
-                    if (PdaThemeState.noise() && t.noise() > 0) {
-                        noise(c, Math.min(t.noise(), PdaTheme.MAX_NOISE), time);
-                    }
-                    if (t.bezel() != 0) {
-                        bezel(c, t);
-                    }
-                }
+                PdaEffects.Frame frame = PdaEffects.frame(t, PdaThemeState.effects(), PdaThemeState.scanlines(),
+                        PdaThemeState.vignette(), PdaThemeState.noise(), PdaThemeState.flicker(), time);
+                if (frame.vignette() > 0) vignette(c, frame.vignette());
+                if (frame.scanlines() > 0) scanlines(c, frame.scanlines());
+                if (frame.noise() > 0) noise(c, frame.noise(), time);
+                if (frame.flicker() > 0) c.fill(0, 0, W, H, alpha(0, frame.flicker()));
+                if (PdaThemeState.effects() && t.bezel() != 0) bezel(c, t);
             }
         };
-    }
-
-    /** 0..1 spiky pulse, about 7 Hz with a slow beat, from the layout clock. */
-    private static float pulse(double time) {
-        double a = Math.sin(time * 43) * Math.sin(time * 7.3);
-        return (float) Math.max(0, a);
     }
 
     private static int alpha(int argb, float a) {

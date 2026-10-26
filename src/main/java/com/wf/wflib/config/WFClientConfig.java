@@ -48,6 +48,7 @@ public final class WFClientConfig {
     public static final ModConfigSpec.BooleanValue PDA_NOISE;
     public static final ModConfigSpec.BooleanValue PDA_VIGNETTE;
     public static final ModConfigSpec.BooleanValue PDA_SOUNDS;
+    public static final ModConfigSpec.ConfigValue<String> PDA_SOUND_DIRECTORY;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -150,7 +151,10 @@ public final class WFClientConfig {
         PDA_FLICKER = b.define("flicker", false);
         PDA_NOISE = b.define("noise", true);
         PDA_VIGNETTE = b.define("vignette", true);
-        PDA_SOUNDS = b.comment("Click sounds on the PDA.").define("sounds", true);
+        PDA_SOUNDS = b.comment("PDA click, navigation, open/close and alert sounds.").define("sounds", true);
+        PDA_SOUND_DIRECTORY = b.comment("Optional local directory containing sounds.properties (click/tab/open/close/alert = Ogg paths).",
+                "Empty uses built-in sounds. Local third-party audio is never copied into the mod.")
+                .define("localSoundDirectory", "");
         b.pop();
 
         SPEC = b.build();

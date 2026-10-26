@@ -4,9 +4,6 @@ import com.wf.wflib.config.WFClientConfig;
 import com.wf.wflib.pda.client.PdaClient;
 import com.wf.wflib.ui.Signals;
 import com.wf.wflib.ui.Subject;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.sounds.SoundEvents;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 
@@ -25,7 +22,6 @@ public final class PdaThemeState {
     static boolean inPda;
     private PdaTheme theme;
     private boolean menu;
-    private long lastClick;
 
     private PdaThemeState() {
     }
@@ -65,6 +61,7 @@ public final class PdaThemeState {
     }
 
     public static void select(PdaTheme next) {
+        if (theme() != next) PdaSounds.tab();
         INSTANCE.theme = next;
         try {
             WFClientConfig.PDA_THEME.set(next.id());
@@ -114,12 +111,7 @@ public final class PdaThemeState {
 
     /** Short click for menu and PDA buttons; rate-limited, off when sounds are off. */
     public static void click() {
-        long now = System.currentTimeMillis();
-        if (!sounds() || now - INSTANCE.lastClick < 50 || !PdaClient.focused()) {
-            return;
-        }
-        INSTANCE.lastClick = now;
-        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1.6f, 0.35f));
+        if (PdaClient.focused()) PdaSounds.request(PdaSounds.Event.CLICK);
     }
 
     public static void register() {
