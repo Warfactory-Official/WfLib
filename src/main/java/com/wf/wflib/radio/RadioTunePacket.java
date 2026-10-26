@@ -48,7 +48,7 @@ public record RadioTunePacket(UUID carrier, String station) implements CustomPac
         if (player.getRootVehicle() == e.getRootVehicle() && player.getVehicle() != null) {
             return true;
         }
-        if (!PdaDrones.channels(Pda.heldStack(player)).has(FeedTarget.ofDrone(e.getUUID()))) {
+        if (!PdaDrones.channels(Pda.carriedStack(player)).has(FeedTarget.ofDrone(e.getUUID()))) {
             return false;
         }
         ControllableDrone body = DroneTracker.byId(player.serverLevel(), e.getUUID());

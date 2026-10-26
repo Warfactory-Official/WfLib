@@ -42,8 +42,8 @@ public final class PdaTerminal {
     }
 
     public static List<String> run(ServerPlayer player, String line) {
-        if (!Pda.held(player)) {
-            return List.of("err: no PDA in hand");
+        if (!Pda.carries(player)) {
+            return List.of("err: no PDA carried");
         }
         String[] w = line.trim().split("\\s+");
         return switch (w[0].toLowerCase(Locale.ROOT)) {
@@ -149,7 +149,7 @@ public final class PdaTerminal {
 
     /** Held PDA's channel drones, loaded, channel order. */
     private static List<ControllableDrone> drones(ServerPlayer player) {
-        CameraChannels channels = Pda.heldStack(player).getOrDefault(ModDataComponents.CHANNELS.get(),
+        CameraChannels channels = Pda.carriedStack(player).getOrDefault(ModDataComponents.CHANNELS.get(),
                 CameraChannels.EMPTY);
         List<ControllableDrone> out = new ArrayList<>();
         for (FeedTarget target : channels.targets()) {

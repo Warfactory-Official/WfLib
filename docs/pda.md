@@ -6,7 +6,7 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 
 | state | input |
 |---|---|
-| not held | `Pda.carries` (inventory) still gates telemetry, TV keys |
+| carried, not raised | `Pda.carries` (inventory or equipped Curios) gates telemetry/TV; assigned PDA keys can raise without moving it |
 | held (main hand), rest | mouse-look; use => focus; sneak + use => item action (monitor => copy channels) |
 | focused | mouse -> cursor (`MixinMouseHandler`: PDA before TV), LMB = pointer, wheel -> screen, WASD walks; use / Esc / slot change / any Screen => rest |
 | fullscreen (`PdaClient.fullscreen(feedId)`) | feed letterboxed on the HUD, PDA hidden; mouse pans `CameraLink`, wheel zooms; use / Esc => focused; link lost => focused. Drone/mounted feed: `DroneCamHud` overlay; attack = CONNECT the Drones row showing it. `PdaClient.watch(feedId)` = raise + fullscreen (CA: on leaving a remote UAV) |
@@ -15,7 +15,44 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 - `startUseItem` repeats while use held => latch until key up.
 - Press + release between two frames => `pressLatch` delivers one down frame (synthetic clicks).
 - Crosshair layer hidden while focused.
-- Off-hand item hidden while held (both `RenderHandEvent`s cancelled).
+- Off-hand item hidden while the PDA is presented, including virtual carry access (both `RenderHandEvent`s cancelled).
+
+### Carried access and optional Curios (1.21.1)
+
+Controls > WFLib includes **PDA: raise / lower**, **PDA: open Terminal**, and
+**PDA: open Pluginless**. All start unbound to avoid stealing existing keys. Assign any
+keys you prefer. Direct app keys do nothing if that app is absent or unavailable.
+They do not fire while a UI text field owns keyboard input; Esc first blurs that
+field, then another Esc lowers the PDA.
+
+A key can raise the PDA from another hotbar slot, main inventory, offhand, or an
+active equipped Curios slot. `Pda.carriedStack` chooses main hand, offhand,
+inventory order, then equipped Curios; linked channels use that same actual stack
+on the server. `Pda.held`/`heldStack` still mean physical hands. No inventory swap,
+copy, or server trust in the client view is involved. Only equipped functional
+Curios slots count, not cosmetic/inactive slots or a PDA inside another container.
+
+While raised from a non-main-hand slot, `PdaClient.virtualHand()` is true and
+`PdaClient.held()` reports the presented two-handed main-hand view. Both physical
+hand items are hidden by the existing renderer. Lowering immediately restores
+normal rendering of those unchanged items. Attack/pick/use cannot reach them while
+focused; drop and swap-hand key clicks are consumed. A hotbar selection change,
+loss of the last carried PDA, death, disconnect, or opening another Screen lowers
+the view. Wheel input remains app scroll while focused. Raising refuses while an
+item is already being used (finish eating, blocking, drawing a bow, etc. first).
+
+Curios is optional: only its isolated helper links its API when the mod is loaded.
+Build-time API is `curios-neoforge:9.5.1+1.21.1` compile-only; it is never shaded.
+Use `-PwithCurios` only for dev runs that need it. No Curios is required for normal
+inventory/keybind operation.
+
+Default mod data only tags the PDA as `curios:charm`; it does not add slots or
+change slot counts. The world/modpack must already enable a charm slot (Curios
+alone need not supply one). A higher-priority datapack can replace the charm tag
+or assign the PDA to another slot. `docs/datapacks/pda-slot` is an opt-in example
+for a dedicated `pda` slot, not automatically enabled. Its README explains keeping both choices or
+replacing the charm tag while preserving other mods' entries. See the [Curios 1.21.x datapack
+format](https://docs.illusivesoulworks.com/curios/slots/datapack-example).
 
 ## 98. Rendering
 
@@ -34,15 +71,15 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 | app | data |
 |---|---|
 | Telemetry | event log: `TelemetryLog` (reporter `recordEvent` while `datalink()` non-null; DAMAGED / OFFLOAD / ONLOAD silent; ring 256, not saved) -> carriers per `TelemetryLink.receives`, pushed per server tick; history `TelemetryLogRequestPacket(after seq)` on open. Rows = ALL + reporters (live `TelemetryClient` fix or last event); classified drones => no datalink |
-| Cameras | held PDA `CHANNELS` -> `CameraPanelPacket` (`PdaCamerasRequestPacket` on open, `CameraControlPacket` refresh); owns `CameraLink` while open unless a TV round holds it; FULL => fullscreen |
-| Drones | held PDA `CHANNELS` drone targets, every mod's bodies -> `DroneStatusRequestPacket` per 10 ticks while open -> `DroneStatusPacket` (status, task, fuel, link, `RemoteBody` cells/ammo/refusal, offered kinds; unloaded => `DroneRecall` + `HostWakeup` record). `DroneActionPacket`: SELECT (unloaded => wake, feed subscribed), CONNECT (`RemoteBody.connect` after wake; PDA lowers), REMOVE. Feed via `CameraLink`, FULL. DISPATCH: selected body with offered kinds => `DroneTasking.assign`, else nearest dispatcher; kind + target (own position / side marker) -> `DroneDispatchPacket`; pad launches -> held PDA `CHANNELS`. Classified => NO LINK: no feed (`CameraNet.entitled` refuses), no connect, no orders |
+| Cameras | carried PDA `CHANNELS` -> `CameraPanelPacket` (`PdaCamerasRequestPacket` on open, `CameraControlPacket` refresh); owns `CameraLink` while open unless a TV round holds it; FULL => fullscreen |
+| Drones | carried PDA `CHANNELS` drone targets, every mod's bodies -> `DroneStatusRequestPacket` per 10 ticks while open -> `DroneStatusPacket` (status, task, fuel, link, `RemoteBody` cells/ammo/refusal, offered kinds; unloaded => `DroneRecall` + `HostWakeup` record). `DroneActionPacket`: SELECT (unloaded => wake, feed subscribed), CONNECT (`RemoteBody.connect` after wake; PDA lowers), REMOVE. Feed via `CameraLink`, FULL. DISPATCH: selected body with offered kinds => `DroneTasking.assign`, else nearest dispatcher; kind + target (own position / side marker) -> `DroneDispatchPacket`; pad launches -> carried PDA `CHANNELS`. Classified => NO LINK: no feed (`CameraNet.entitled` refuses), no connect, no orders |
 | Radio | Drones status rows with `radio`: station `<` / `>` (catalogue order, off between last and first), OFF -> `RadioTunePacket` |
 | Map | host's fullscreen map (`WFMaps.openFullscreen()`: JourneyMap `UIManager` internal, Xaero `GuiMap`) inside the app area via `EmbeddedScreen`; LMB / drag / wheel / RMB menu forwarded; map closes itself => home; hidden without a host |
 | Markers (`MarkerClient` map tool) | map menu add (name prompt) / remove; `MarkerStore` SavedData per side (faction, else player), cap 64, pushed to online side members; layer `wflib:markers`, current dimension |
 | Radar | `PdaRadarSubscribePacket(range)` while open -> `PdaRadarPacket` per 20 ticks: own net `TrackPicture` as a `ScopeFrame` about the player (not `ScopeCache`: frames keyed by net, hub frames would overwrite). Sonar = tracks with the SONAR band bit (rings) |
-| Satellites | `SatStatusPacket` per 40 ticks to every carrier: own net's birds, empty without uplink; next pass = `OrbitalNet.nextPass` sampled 40 ticks to 20 min. Console: typed `[callsign\|#n\|n] verb args` -> `SatCommandPacket` (own net + held + uplink) -> `OrbitalNet.commandBy`, issuer = player; replies `SatReplyPacket` + changed `reply()` lines. Local: help, sats, select, clear. IMAGERY tab = `SurveyCache` tiles around the player |
+| Satellites | `SatStatusPacket` per 40 ticks to every carrier: own net's birds, empty without uplink; next pass = `OrbitalNet.nextPass` sampled 40 ticks to 20 min. Console: typed `[callsign\|#n\|n] verb args` -> `SatCommandPacket` (own net + carried PDA + uplink) -> `OrbitalNet.commandBy`, issuer = player; replies `SatReplyPacket` + changed `reply()` lines. Local: help, sats, select, clear. IMAGERY tab = `SurveyCache` tiles around the player |
 | Alerts | `PdaAlerts` history (32), badge = unread |
-| Terminal | line -> `TerminalCommandPacket` -> `PdaTerminal.run` (held PDA): `drones` (held `CHANNELS`, loaded), `nodes` / `sats` (own net + uplink), `rename drone\|node\|sat <#n\|name> <new\|->` (name 1-16 `[A-Za-z0-9_-]`, `-` = default). Drone -> `DroneEntity` callsign (datalink label); node -> `NamedNode` block entity (hub, probe, orbital node), label applied at its next registration; sat -> `callsign` command-bus verb |
+| Terminal | line -> `TerminalCommandPacket` -> `PdaTerminal.run` (carried PDA): `drones` (held `CHANNELS`, loaded), `nodes` / `sats` (own net + uplink), `rename drone\|node\|sat <#n\|name> <new\|->` (name 1-16 `[A-Za-z0-9_-]`, `-` = default). Drone -> `DroneEntity` callsign (datalink label); node -> `NamedNode` block entity (hub, probe, orbital node), label applied at its next registration; sat -> `callsign` command-bus verb |
 | Wiki | in-game tutorials, see 104 |
 | other mods | bodies: `RemoteBody.register(entity -> body)` at common setup (status, cells, ammo, `connectRefusal`, `connect`). Apps: `PdaApps.register` at client setup; panels `PdaShell.panel`; feed rights for non-`CHANNELS` links: `CameraNet.entitle` |
 

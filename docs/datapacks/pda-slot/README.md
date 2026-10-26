@@ -1,0 +1,3 @@
+Copy this folder into a 1.21.1 world's datapacks/ and reload/rejoin with Curios 9.5.1 installed on both sides. This grants players one dedicated pda slot and accepts wflib:pda there. It is an example only, not auto-enabled or bundled as active mod data.
+
+Default charm compatibility remains available, so the player may choose either slot. This pack does not replace another mod's item tags. To restrict a modpack to the dedicated slot, a higher-priority data/curios/tags/item/charm.json can use replace:true and a values list that preserves all wanted charm items except wflib:pda. Vanilla tag replacement replaces the whole tag, so preserve other mods' entries. Curios slot configuration/data is the user's choice.

@@ -90,3 +90,11 @@ type = "optional"
 versionRange = "*"
 ordering = "AFTER"
 side = "BOTH"
+
+# PDA may be equipped in an enabled Curios slot; ordinary inventory works without Curios.
+[[dependencies.wflib]]
+modId = "curios"
+type = "optional"
+versionRange = "[9.5.1,10)"
+ordering = "AFTER"
+side = "BOTH"

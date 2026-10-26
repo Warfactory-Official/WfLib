@@ -10,6 +10,7 @@ import com.wf.wflib.ui.input.UiKeyboard;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
@@ -37,6 +38,11 @@ public final class PdaClient {
     private static boolean carried;
     private static boolean held;
     private static boolean focused;
+    /** Presentation only: the actual PDA never leaves its source inventory/Curios slot. */
+    private static boolean virtualHand;
+    private static int focusSlot = -1;
+    private static LocalPlayer focusPlayer;
+
     /** Use key still down since the last toggle: {@code startUseItem} repeats while held. */
     private static boolean useLatch;
     private static float raise;
@@ -62,9 +68,65 @@ public final class PdaClient {
         return carried;
     }
 
-    /** Main hand: drawn two-handed in first person. */
+    /** Presented in the main-hand view (physical main hand or raised carried PDA). */
     public static boolean held() {
         return held;
+    }
+
+    /** Whether the two-handed view temporarily replaces the physical held items. */
+    public static boolean virtualHand() {
+        return virtualHand;
+    }
+
+    /** Raise a carried PDA without moving it; don't interrupt an item already being used. */
+    public static boolean raiseCarried() {
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer player = mc.player;
+        if (player == null || !player.isAlive() || mc.screen != null || UiKeyboard.focused() != null
+                || player.isUsingItem() || !Pda.carries(player)) {
+            return false;
+        }
+        carried = true;
+        virtualHand = !Pda.is(player.getMainHandItem());
+        held = true;
+        focusPlayer = player;
+        focusSlot = player.getInventory().selected;
+        focused = true;
+        return true;
+    }
+
+    public static void toggleCarried() {
+        if (UiKeyboard.focused() != null) {
+            return;
+        }
+        if (focused) {
+            lower();
+        } else {
+            raiseCarried();
+        }
+    }
+
+    /** Missing/hidden optional apps leave the current state untouched. */
+    public static boolean openCarried(ResourceLocation id) {
+        Minecraft mc = Minecraft.getInstance();
+        PdaApp next = PdaApps.get(id);
+        if (next == null || mc.player == null || !Pda.carries(mc.player)) {
+            return false;
+        }
+        // Built-in apps require held(), so evaluate visibility with the prospective presentation.
+        boolean wasHeld = held;
+        held = true;
+        boolean visible;
+        try {
+            visible = next.visible(mc.player);
+        } finally {
+            held = wasHeld;
+        }
+        if (!visible || !raiseCarried()) {
+            return false;
+        }
+        open(next);
+        return true;
     }
 
     public static boolean focused() {
@@ -147,12 +209,18 @@ public final class PdaClient {
 
     /** Lowers to rest; the open app stays. */
     public static void lower() {
+        virtualHand = false;
+        focusSlot = -1;
+        focusPlayer = null;
+        LocalPlayer player = Minecraft.getInstance().player;
+        held = player != null && Pda.is(player.getMainHandItem());
         fullscreenFeed = 0;
         UiKeyboard.blur();
         if (focused) {
             focused = false;
             pressed = false;
             pressLatch = false;
+            secondaryLatch = false;
             wheel = 0;
             UiInput input = UiSurfaces.input(PdaRenderer.SURFACE);
             if (input != null) {
@@ -186,16 +254,25 @@ public final class PdaClient {
             lower();
             open(null);
             raise = raiseO = 0;
+            pendingRaise = null;
+            useLatch = false;
             return;
         }
         carried = Pda.carries(player);
-        held = Pda.is(player.getMainHandItem());
+        held = Pda.is(player.getMainHandItem()) || virtualHand;
         // Own prompt (marker name) keeps it raised.
-        if (!held || mc.screen != null && !(mc.screen instanceof EmbeddedScreen.Standalone) || !player.isAlive()) {
+        if ((focused || virtualHand) && (!carried || !held
+                || mc.screen != null && !(mc.screen instanceof EmbeddedScreen.Standalone)
+                || !player.isAlive() || focusPlayer != null && (focusPlayer != player
+                || focusSlot != player.getInventory().selected))) {
             lower();
         }
+        if (focused && focusPlayer == null) {
+            focusPlayer = player;
+            focusSlot = player.getInventory().selected;
+        }
         if (pendingRaise != null) {
-            if (held && mc.screen == null) {
+            if (held && player.isAlive() && mc.screen == null) {
                 runPending();
             } else if (--pendingTicks <= 0) {
                 pendingRaise = null;
@@ -209,12 +286,33 @@ public final class PdaClient {
         }
         raise = focused ? Math.min(1, raise + RAISE_STEP) : Math.max(0, raise - RAISE_STEP);
         PdaApps.refresh(player);
+        // Drain clicks even when a screen/text field owns input: never replay a typing key later.
+        while (PdaKeys.TOGGLE.consumeClick()) {
+            if (mc.screen == null && UiKeyboard.focused() == null) {
+                toggleCarried();
+            }
+        }
+        while (PdaKeys.TERMINAL.consumeClick()) {
+            openCarried(ResourceLocation.fromNamespaceAndPath("wflib", "terminal"));
+        }
+        while (PdaKeys.PLUGINLESS.consumeClick()) {
+            openCarried(ResourceLocation.fromNamespaceAndPath("pluginless", "pluginless"));
+        }
     }
 
     @SubscribeEvent
     static void onInteraction(InputEvent.InteractionKeyMappingTriggered event) {
         Minecraft mc = Minecraft.getInstance();
-        if (!held || mc.screen != null || mc.player == null) {
+        if (mc.screen != null || mc.player == null) {
+            return;
+        }
+        // A use that lowers a virtual PDA must not fall through to the real offhand afterwards.
+        if (useLatch && event.isUseItem()) {
+            event.setCanceled(true);
+            event.setSwingHand(false);
+            return;
+        }
+        if (!held) {
             return;
         }
         if (event.isUseItem()) {
@@ -233,11 +331,20 @@ public final class PdaClient {
             } else if (focused) {
                 lower();
             } else {
-                focused = true;
+                raiseCarried();
             }
         } else if (focused) {
             event.setCanceled(true);
             event.setSwingHand(false);
+        }
+    }
+
+    @SubscribeEvent
+    static void onKey(InputEvent.Key event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (focused && mc.screen == null) {
+            while (mc.options.keyDrop.consumeClick()) { }
+            while (mc.options.keySwapOffhand.consumeClick()) { }
         }
     }
 
