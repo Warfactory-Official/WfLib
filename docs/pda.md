@@ -83,3 +83,20 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 - F1 (`wflib.wiki` key + `MixinKeyboardHandler.keyPress` HEAD: vanilla F1 hide-GUI is not a key mapping; also `ScreenEvent.KeyPressed.Pre` in containers): `WikiAccess` -> bound stack (hovered slot, else main hand, offhand, hotbar) -> held PDA, else carried PDA moved to hand => `PdaClient.raiseWhenHeld` -> Wiki app on article. No PDA => nothing.
 - Writing guide: `assets/wflib/wiki/guides/writing-articles.md`.
 - Gap: texture image embed, offhand / container F1 paths unverified in game.
+
+## 105. Text fields (`ui/input/TextBox`, `ui/widget/TextBoxField`, `pda/client/PdaTextBox`)
+
+- Typing inside the PDA, no `Screen`: `PdaTextBox.field(box, "PLACEHOLDER", width)` (14 units high). Click it to focus (caret goes where you click, drag selects); `UiKeyboard` then sends every key and character to the box and none to key mappings (`MixinKeyboardHandler`), so WASD / hotkeys / Esc-to-pause are inert while typing, and held movement keys are released on focus.
+- Leave it with Esc or a click anywhere else (`UiInput.dispatch` blurs on any press that is not a text field's own); lowering the PDA, opening another app, fullscreen or any `Screen` blurs too. Esc blurs first: the PDA stays raised.
+- Model `TextBox`: `text(maxLength)`, `integer(maxLength, min, max)`, `decimal(maxLength, decimals, min, max)` (',' types '.', '-' only if `min < 0`). Keys: letters / digits, Backspace / Delete (Ctrl+Backspace = word), Left / Right / Home / End (+ Shift = select), Ctrl+A / C / X / V, key repeat. Enter => `onSubmit(text)` (numbers clamped, text kept); blur clamps too. `onChange`, `accepting(predicate)` (whole-text filter, e.g. a name pattern).
+- Reading: `box.text()`, `box.number()` (NaN if empty / partial), `box.integer(fallback)`, `box.error()` (partial or out-of-range number => red edge until clamped), `box.set(String)`.
+- Drawing: placeholder while empty and unfocused; long input scrolls to keep the caret in view and is cut at the box edge by measured width (never overflows).
+
+```java
+private static final TextBox COUNT = TextBox.integer(5, 1, 1000).onSubmit(s -> buy(Long.parseLong(s)));
+... at("12", "24", PdaTextBox.field(COUNT, "COUNT", 100))
+```
+
+- `TextLine` + `TextField` remain for command lines (history, Enter clears: Terminal, Wiki search).
+- Demo: `PdaFieldsDemo` (count 1..100, price 2 decimals, name), registered only with `-Dwflib.pda.fieldsDemo=true`; test: `Pluginless/tools/pda/run.py --apps wflib:fields_demo` with a script that clicks a field and types (`pointer` / `click` / `text` / `key`).
+- Gap: IME composition, Ctrl+Z, double-click word select unimplemented; paste only through `KeyboardHandler.getClipboard` (system clipboard); scroll of a very long box checked by reading, not screenshot.
