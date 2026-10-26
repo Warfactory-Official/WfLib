@@ -25,7 +25,10 @@ public abstract class MixinPdaCanvasFont {
         RenderType type = glyph.renderType(Font.DisplayMode.NORMAL);
         boolean intensity = wflib$intensityTypes.computeIfAbsent(type, key -> {
             String name = key.toString();
-            return name.equals("text_intensity") || name.startsWith("text_intensity:") || name.startsWith("RenderType[text_intensity:");
+            int start = name.startsWith("RenderType[") ? "RenderType[".length() : 0;
+            int end = name.indexOf(':', start);
+            String family = name.substring(start, end < 0 ? name.length() : end);
+            return family.equals("text_intensity") || family.equals("neoforge_text_intensity");
         });
         if (intensity) cir.setReturnValue(cir.getReturnValueI() | 0x80000000);
     }
