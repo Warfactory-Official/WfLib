@@ -50,8 +50,8 @@ Default mod data only tags the PDA as `curios:charm`; it does not add slots or
 change slot counts. The world/modpack must already enable a charm slot (Curios
 alone need not supply one). A higher-priority datapack can replace the charm tag
 or assign the PDA to another slot. `docs/datapacks/pda-slot` is an opt-in example
-for a dedicated `pda` slot, not automatically enabled. Its README explains the
-charm override and preserving other mods' entries. See the [Curios 1.21.x datapack
+for a dedicated `pda` slot, not automatically enabled. Its README explains keeping both choices or
+replacing the charm tag while preserving other mods' entries. See the [Curios 1.21.x datapack
 format](https://docs.illusivesoulworks.com/curios/slots/datapack-example).
 
 ## 98. Rendering
