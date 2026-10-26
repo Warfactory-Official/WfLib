@@ -9,7 +9,7 @@ public final class PdaThemes {
     private static final Map<String, PdaTheme> THEMES = new LinkedHashMap<>();
 
     static {
-        for (PdaTheme theme : List.of(PdaTheme.CLASSIC, PdaTheme.TACTICAL, PdaTheme.ZONE, PdaTheme.PHOSPHOR)) {
+        for (PdaTheme theme : List.of(PdaTheme.CLASSIC, PdaTheme.GAMMA, PdaTheme.ZONE, PdaTheme.PHOSPHOR)) {
             THEMES.put(theme.id(), theme);
         }
     }
@@ -18,7 +18,7 @@ public final class PdaThemes {
     }
 
     public static PdaTheme get(String id) {
-        return THEMES.getOrDefault(id, PdaTheme.CLASSIC);
+        return THEMES.getOrDefault("tactical".equals(id) ? "gamma" : id, PdaTheme.CLASSIC);
     }
 
     public static List<PdaTheme> all() {

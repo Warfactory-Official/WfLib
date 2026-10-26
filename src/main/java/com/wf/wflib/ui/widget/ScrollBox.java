@@ -1,6 +1,7 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.PdaSkin;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.ColorProp;
 import com.wf.wflib.ui.NumProp;
@@ -28,6 +29,7 @@ public record ScrollBox(String w, String h, float step, String bar, WidgetDef ch
         private final ColorProp thumb;
         private final int itemSlot;
         private final Widget node;
+        private final ScrollRail rail = new ScrollRail();
         private float scroll;
 
         Node(NumProp pw, NumProp ph, ColorProp thumb, int itemSlot, Widget node) {
@@ -63,9 +65,13 @@ public record ScrollBox(String w, String h, float step, String bar, WidgetDef ch
                 boolean bar = (argb >>> 24) != 0 && content > height;
                 node.draw(ev, x, y - scroll, bar ? width - ListView.BAR_WIDTH - 1 : width, content);
                 if (bar) {
+                    if (PdaSkin.active()) {
+                        rail.draw(ev, x + width - 2, y, height, content, scroll, step, value -> scroll = (float) value);
+                    } else {
                     float size = Math.max(4, height * height / content);
                     float at = y + (height - size) * scroll / (content - height);
                     canvas.fill(x + width - ListView.BAR_WIDTH, at, x + width, at + size, argb);
+                    }
                 }
             } finally {
                 canvas.popClip();

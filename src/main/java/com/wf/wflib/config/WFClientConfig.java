@@ -144,7 +144,7 @@ public final class WFClientConfig {
         b.pop();
 
         b.comment("PDA look. Also changed from the gear in the PDA's top bar.").push("pda");
-        PDA_THEME = b.comment("Theme id: classic, tactical, zone or phosphor.").define("theme", "classic");
+        PDA_THEME = b.comment("Theme id: classic, gamma, zone or phosphor (old tactical selects gamma).").define("theme", "classic");
         PDA_EFFECTS = b.comment("Master switch for the screen effects (scanlines, flicker, noise, vignette, bezel).")
                 .define("effects", true);
         PDA_SCANLINES = b.define("scanlines", true);

@@ -1,6 +1,7 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.PdaSkin;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.ColorProp;
 import com.wf.wflib.ui.ItemsRef;
@@ -47,6 +48,7 @@ public record ListView(String items, float rowHeight, float gap, String w, Strin
         private final ItemsRef<?> ref;
         private final RepeatScope scope;
         private final Widget node;
+        private final ScrollRail rail = new ScrollRail();
         private float scroll;
         private float content;
 
@@ -98,9 +100,13 @@ public record ListView(String items, float rowHeight, float gap, String w, Strin
                     node.draw(ev, x, top, rowWidth, rowHeight);
                 }
                 if (bar) {
+                    if (PdaSkin.active()) {
+                        rail.draw(ev, x + width - 2, y, height, content, scroll, rowHeight + gap, value -> scroll = (float) value);
+                    } else {
                     float size = Math.max(4, height * height / content);
                     float at = y + (height - size) * scroll / (content - height);
                     canvas.fill(x + width - BAR_WIDTH, at, x + width, at + size, argb);
+                    }
                 }
             } finally {
                 ev.restoreItem(ref, saved);

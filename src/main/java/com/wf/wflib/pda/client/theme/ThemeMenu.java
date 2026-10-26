@@ -46,7 +46,8 @@ public final class ThemeMenu {
         return stack(
                 at(Float.toString(PANEL_X + 8), Float.toString(y + 3), text(label, T)),
                 at(Float.toString(PANEL_X + PANEL_W - 64), Float.toString(y),
-                        button(item -> PdaThemeState.toggle(value), 56, 12, text("{pda_theme." + signal + "}", ACC))));
+                        PdaSkin.role(PdaSkin.Role.TOGGLE, "pda_theme." + signal.replace("v_", ""),
+                                button(item -> PdaThemeState.toggle(value), 56, 12, text("{pda_theme." + signal + "}", ACC)))));
     }
 
     /** Gear button, drawn last in the bar. */

@@ -1,6 +1,8 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.PdaSkin;
+import com.wf.wflib.pda.client.theme.PdaTheme;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.UiEval;
 import com.wf.wflib.ui.Widget;
@@ -35,6 +37,12 @@ public record TextField(TextLine line, String prompt, float w, float h, int back
         public void draw(UiEval ev, float x, float y, float bw, float bh) {
             Canvas canvas = ev.canvas;
             boolean focused = line.focused();
+            boolean gamma = PdaSkin.active();
+            int back = gamma ? PdaTheme.GAMMA.field() : TextField.this.back;
+            int edge = gamma ? PdaTheme.GAMMA.edge() : TextField.this.edge;
+            int focusEdge = gamma ? PdaTheme.GAMMA.text() : TextField.this.focusEdge;
+            int textColour = gamma ? PdaTheme.GAMMA.text() : TextField.this.textColour;
+            int promptColour = gamma ? PdaTheme.GAMMA.dim() : TextField.this.promptColour;
             canvas.fill(x, y, x + w, y + h, focused ? focusEdge : edge);
             canvas.fill(x + 1, y + 1, x + w - 1, y + h - 1, back);
             float ty = y + (h - canvas.lineHeight()) / 2 + 1;

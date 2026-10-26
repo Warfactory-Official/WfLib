@@ -1,6 +1,8 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.PdaSkin;
+import com.wf.wflib.pda.client.theme.PdaPopup;
 import com.wf.gemrender.ui.TextBuffer;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.ColorProp;
@@ -84,6 +86,12 @@ public record Text(String text, String color, boolean shadow, String scale, Stri
                     return;
                 }
                 Canvas canvas = ev.canvas;
+                if (PdaSkin.active() && !raw.contentEquals(buffer) && ev.input != null) {
+                    // The label remains part of its parent button's hit rectangle.
+                    if (ev.input.pointerX() >= x && ev.input.pointerX() <= x + width
+                            && ev.input.pointerY() >= y && ev.input.pointerY() <= y + height)
+                        PdaPopup.show("DETAILS", "", raw.toString());
+                }
                 if (s == 1) {
                     canvas.text(buffer, x, y, argb, shadow);
                     return;

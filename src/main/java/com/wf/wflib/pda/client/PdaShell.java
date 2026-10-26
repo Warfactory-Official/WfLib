@@ -7,6 +7,7 @@ import com.wf.wflib.pda.client.theme.PdaThemeState.Token;
 import com.wf.wflib.pda.client.theme.ThemeLayer;
 import com.wf.wflib.pda.client.theme.ThemeMenu;
 import com.wf.wflib.pda.client.theme.ThemeScope;
+import com.wf.wflib.pda.client.theme.GammaHeader;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.Signals;
 import com.wf.wflib.ui.Subject;
@@ -110,13 +111,16 @@ public final class PdaShell {
                     rect(WIDTH, HEIGHT, BACK),
                     rect(WIDTH, BAR, BAR_BACK),
                     at("0", Float.toString(BAR - 1), rect(WIDTH, 1, EDGE)),
+                    when("!pda_theme.gamma", stack(
                     when("pda.home", at("8", "5", text("{pda.title}", TEXT)),
                             stack(at("2", "2", new Button(item -> PdaClient.home(), "true", "0", HOVER, PRESS, EDGE,
                                             1, 0, 6, 2, 0, 13, Point.CENTER, text("< HOME", TEXT))),
                                     at("64", "5", text("{pda.title}", TEXT)))),
                     place(Float.toString(WIDTH - 8), "5", Point.TOP_RIGHT,
-                            text("{world.hour|02}:{world.minute|02}", TEXT)),
+                            text("{world.hour|02}:{world.minute|02}", TEXT)))),
+                    when("pda_theme.gamma", GammaHeader.build()),
                     at("0", Float.toString(BAR), new AppHost(apps, roots, home())),
+                    com.wf.wflib.pda.client.theme.PdaPopup.layer(),
                     ThemeMenu.panel(),
                     ThemeMenu.gear(),
                     when("pda_theme.booting", new Button(item -> PdaThemeState.skipBoot(), "true", "0", "0", "0", "0", 0, 0, 0, 0,

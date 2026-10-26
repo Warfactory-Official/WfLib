@@ -2,6 +2,7 @@ package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.pda.client.theme.Chamfer;
+import com.wf.wflib.pda.client.theme.PdaSkin;
 import com.wf.wflib.pda.client.theme.PdaThemeState;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.ColorProp;
@@ -42,7 +43,9 @@ public record Box(String background, String border, float borderWidth, float rad
                 int e = edge.get(ev);
                 float x1 = x + width;
                 float y1 = y + height;
-                if (radius > 0) {
+                if (PdaSkin.active()) {
+                    PdaSkin.panel(canvas, x, y, width, height, b, e, borderWidth);
+                } else if (radius > 0) {
                     if ((b >>> 24) != 0) {
                         canvas.roundRect(x, y, x1, y1, radius, b);
                     }

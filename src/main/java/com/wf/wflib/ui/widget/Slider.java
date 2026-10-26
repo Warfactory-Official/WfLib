@@ -1,6 +1,7 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.PdaSkin;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.ColorProp;
 import com.wf.wflib.ui.NumProp;
@@ -65,10 +66,20 @@ public record Slider(String w, String h, String value, UiSetter set, float step,
             }
             Canvas canvas = ev.canvas;
             float at = x + (float) (current * width);
-            canvas.fill(x, y, x + width, y + height, back.get(ev));
-            canvas.fill(x, y, at, y + height, front.get(ev));
-            float half = Math.max(1, height * 0.25f);
-            canvas.fill(at - half, y - 1, at + half, y + height + 1, handle.get(ev));
+            if (PdaSkin.active()) {
+                float cy = y + height / 2;
+                canvas.fill(x, cy - .5f, x + width, cy + .5f, 0xFF737B80);
+                canvas.fill(x, cy - .5f, at, cy + .5f, 0xFFDADCDD);
+                float k = Math.max(1, Math.min(2, height / 3));
+                float center = Math.clamp(at, x + k, Math.max(x + k, x + width - k));
+                canvas.fill(center - k, y, center + k, y + height, 0xFFB7BDC1);
+                canvas.line(center, y + 1, center, y + height - 1, .5f, 0xFF343A3D);
+            } else {
+                canvas.fill(x, y, x + width, y + height, back.get(ev));
+                canvas.fill(x, y, at, y + height, front.get(ev));
+                float half = Math.max(1, height * 0.25f);
+                canvas.fill(at - half, y - 1, at + half, y + height + 1, handle.get(ev));
+            }
         }
 
         @Override

@@ -31,6 +31,9 @@ public class WFMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.endsWith("MixinPdaCanvas") || mixinClassName.endsWith("MixinPdaCanvasFont")) {
+            return isModLoaded("gemrender");
+        }
         if (mixinClassName.endsWith("MixinLevelRenderer")) {
             return !isSodiumFamilyLoaded();
         }

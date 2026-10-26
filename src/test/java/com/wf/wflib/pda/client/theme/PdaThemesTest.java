@@ -11,7 +11,10 @@ class PdaThemesTest {
     void unknownSavedThemesFallbackAndMenuCyclesBothWays() {
         assertSame(PdaTheme.CLASSIC, PdaThemes.get("missing-resource-pack"));
         assertSame(PdaTheme.CLASSIC, PdaThemes.get(null));
-        assertSame(PdaTheme.TACTICAL, PdaThemes.step("classic", 1));
+        assertSame(PdaTheme.GAMMA, PdaThemes.get("tactical"));
+        assertFalse(PdaTheme.GAMMA.hazard());
+        assertEquals(0, PdaTheme.GAMMA.chamfer());
+        assertSame(PdaTheme.GAMMA, PdaThemes.step("classic", 1));
         assertSame(PdaTheme.PHOSPHOR, PdaThemes.step("classic", -1));
         assertSame(PdaTheme.CLASSIC, PdaThemes.step("phosphor", 1));
         assertSame(PdaTheme.CLASSIC, PdaThemes.step("classic", 4));
@@ -19,7 +22,7 @@ class PdaThemesTest {
 
     @Test
     void registeredBuiltinsKeepTheirOrderAndStayWithinEffectCaps() {
-        assertEquals(List.of("classic", "tactical", "zone", "phosphor"),
+        assertEquals(List.of("classic", "gamma", "zone", "phosphor"),
                 PdaThemes.all().stream().map(PdaTheme::id).toList());
         assertThrows(UnsupportedOperationException.class, () -> PdaThemes.all().clear());
         for (PdaTheme theme : PdaThemes.all()) {
@@ -34,6 +37,6 @@ class PdaThemesTest {
     void argbExpressionsPreserveAllUnsignedColourBits() {
         assertEquals(4294967295d, PdaTheme.unsigned(0xFFFFFFFF));
         assertEquals(0d, PdaTheme.unsigned(0));
-        assertEquals(4294941230d, PdaTheme.unsigned(PdaTheme.TACTICAL.accent()));
+        assertEquals(4293060070d, PdaTheme.unsigned(PdaTheme.GAMMA.accent()));
     }
 }

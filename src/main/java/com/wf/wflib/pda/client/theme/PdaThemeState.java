@@ -78,6 +78,8 @@ public final class PdaThemeState {
         }
     }
 
+    public static boolean gamma() { return theme() == PdaTheme.GAMMA; }
+
     public static boolean inPda() { return inPda; }
 
     public static boolean effects() { return flag(WFClientConfig.PDA_EFFECTS, true); }
@@ -150,6 +152,17 @@ public final class PdaThemeState {
     }
 
     public static void register() {
+        Signals.bool(THEME, "gamma", s -> gamma());
+        for (String app : new String[]{"map", "alerts", "terminal"}) {
+            Signals.bool(THEME, app, s -> PdaClient.app() != null && PdaClient.app().id().toString().equals("wflib:" + app));
+        }
+        Signals.bool(THEME, "effects", s -> effects());
+        Signals.bool(THEME, "scanlines", s -> flag(WFClientConfig.PDA_SCANLINES, true));
+        Signals.bool(THEME, "flicker", s -> flag(WFClientConfig.PDA_FLICKER, false));
+        Signals.bool(THEME, "noise", s -> flag(WFClientConfig.PDA_NOISE, true));
+        Signals.bool(THEME, "vignette", s -> flag(WFClientConfig.PDA_VIGNETTE, true));
+        Signals.bool(THEME, "sounds", s -> sounds());
+        Signals.bool(THEME, "boot", s -> boot());
         for (Token token : Token.values()) {
             Signals.num(THEME, token.signal, s -> PdaTheme.unsigned(token.of(theme())));
         }

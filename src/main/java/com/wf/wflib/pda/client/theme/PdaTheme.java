@@ -16,13 +16,15 @@ public record PdaTheme(String id, String name, int back, int bar, int panel, int
             0xFFD2D6CC, 0xFF8D9488, 0xFFA9D46C, 0xFFD0584A, 0xFF2C2F2C, 0xFFA9D46C, 0x66A9D46C,
             0, 0, 0, 0, 0, 0, 0, false, false, List.of());
 
-    /** Anomaly / GAMMA: charcoal panels, orange accent, steel bezel with studs, hazard strip under the bar. */
-    public static final PdaTheme TACTICAL = new PdaTheme("tactical", "TACTICAL",
-            0xFF14171A, 0xFF0D0F11, 0xFF1E2327, 0xFF2B3238, 0xFF39434B, 0xFF4B565F, 0xFFFF9A2E,
-            0xFFD8DDE0, 0xFF7B858C, 0xFFFF9A2E, 0xFFFF4A4A, 0xFF0D0F11, 0xFFFF9A2E, 0x66FF9A2E,
-            4, 0.10f, 0.35f, 0.03f, 0.04f, 0xFF4B565F, 0xFFFF9A2E, true, false,
-            List.of("PLUGINLESS PDA  v1.0", "BIOS CHECK .......... OK", "UPLINK .............. SEARCHING",
-                    "SERVER LINK ......... OK", "LOADING ZONE DATA   [#########-]"));
+    /** Neutral, flat GAMMA screen. Hardware lives outside the original screen quad. */
+    public static final PdaTheme GAMMA = new PdaTheme("gamma", "GAMMA",
+            0xFF17191B, 0xFF111315, 0xD52B2D2F, 0xFF414446, 0xFF55595C, 0xFF787C7E, 0xFFE2E5E6,
+            0xFFDADCDD, 0xFF969B9E, 0xFFE2E5E6, 0xFFF2F2F2, 0xE0141618, 0xFFE2E5E6, 0x666D777C,
+            0, 0.025f, 0.08f, 0.009f, 0, 0, 0, false, false,
+            List.of("PERSONAL DATA ASSISTANT", "SYSTEM CHECK .......... OK", "NETWORK ............... CONNECTED"));
+
+    /** Saved tactical preferences migrate to the replacement skin. */
+    @Deprecated public static final PdaTheme TACTICAL = GAMMA;
 
     public static final PdaTheme ZONE = new PdaTheme("zone", "ZONE",
             0xFF2A2F26, 0xFF1C2018, 0xFF363C30, 0xFF454D3C, 0xFF566048, 0xFF6F7A5C, 0xFF8F9B78,

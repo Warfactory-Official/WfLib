@@ -13,9 +13,15 @@ public record ThemeScope(WidgetDef child) implements WidgetDef {
         return new Widget() {
             @Override
             public void measure(UiEval ev) {
-                node.measure(ev);
-                width = node.width();
-                height = node.height();
+                boolean before = PdaThemeState.inPda;
+                PdaThemeState.inPda = true;
+                try {
+                    node.measure(ev);
+                    width = node.width();
+                    height = node.height();
+                } finally {
+                    PdaThemeState.inPda = before;
+                }
             }
 
             @Override

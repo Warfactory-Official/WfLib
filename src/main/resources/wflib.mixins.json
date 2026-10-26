@@ -59,7 +59,9 @@
     "xaero.worldmap.AccessorXaeroScreenBase",
     "xaero.worldmap.MixinGuiMap",
     "xaero.minimap.AccessorMinimapFBORenderer",
-    "xaero.minimap.AccessorMinimapElementMapRendererHandler"
+    "xaero.minimap.AccessorMinimapElementMapRendererHandler",
+    "MixinPdaCanvasFont",
+    "MixinPdaCanvas"
   ],
   "injectors": {
     "defaultRequire": 1

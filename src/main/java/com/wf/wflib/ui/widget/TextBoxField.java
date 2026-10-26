@@ -1,6 +1,9 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.PdaSkin;
+import com.wf.wflib.pda.client.theme.PdaFont;
+import com.wf.wflib.pda.client.theme.PdaTheme;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.UiEval;
 import com.wf.wflib.ui.Widget;
@@ -33,6 +36,7 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
         private int start;
         private float textX;
         private Canvas canvas;
+        private boolean gamma;
 
         @Override
         public void measure(UiEval ev) {
@@ -45,6 +49,9 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
             this.canvas = ev.canvas;
             Canvas canvas = ev.canvas;
             boolean focused = box.focused();
+            gamma = PdaSkin.active();
+            PdaTheme t = PdaTheme.GAMMA;
+            Colours colours = gamma ? new Colours(t.field(), t.edge(), t.text(), t.alert(), t.text(), t.dim(), t.select()) : TextBoxField.this.colours;
             int edge = box.error() ? colours.errorEdge() : focused ? colours.focusEdge() : colours.edge();
             canvas.fill(x, y, x + w, y + h, edge);
             canvas.fill(x + 1, y + 1, x + w - 1, y + h - 1, colours.back());
@@ -96,7 +103,7 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
             int best = start;
             float bestGap = Float.MAX_VALUE;
             for (int i = start; i <= text.length(); i++) {
-                float gap = Math.abs(canvas.width(text, start, i) - target);
+                float gap = Math.abs(PdaFont.width(canvas, text, start, i, gamma) - target);
                 if (gap < bestGap) {
                     bestGap = gap;
                     best = i;

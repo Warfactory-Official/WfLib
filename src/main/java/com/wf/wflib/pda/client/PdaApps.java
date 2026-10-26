@@ -44,6 +44,7 @@ public final class PdaApps {
         AlertsApp.register();
         TerminalApp.register();
         PdaFieldsDemo.register();
+        GammaWidgetsDemo.register();
         com.wf.wflib.wiki.client.WikiApp.register();
         PdaAlerts.register();
     }
