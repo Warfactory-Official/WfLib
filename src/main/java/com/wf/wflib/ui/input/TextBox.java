@@ -185,7 +185,8 @@ public final class TextBox implements UiKeyboard.Target {
 
     @Override
     public void key(int key, int scan, int modifiers) {
-        boolean ctrl = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
+        boolean ctrl = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0
+                && (modifiers & GLFW.GLFW_MOD_ALT) == 0;
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
         switch (key) {
             case GLFW.GLFW_KEY_ESCAPE -> UiKeyboard.blur();
@@ -242,7 +243,11 @@ public final class TextBox implements UiKeyboard.Target {
 
     @Override
     public void character(int codepoint, int modifiers) {
-        if (Character.isISOControl(codepoint)) {
+        // GLFW's char-mods callback can emit the printable shortcut letter after key().
+        // It must not overwrite a selection or insert another c/x/v. Ctrl+Alt is AltGr text input.
+        boolean shortcut = (modifiers & GLFW.GLFW_MOD_SUPER) != 0
+                || (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && (modifiers & GLFW.GLFW_MOD_ALT) == 0;
+        if (shortcut || Character.isISOControl(codepoint)) {
             return;
         }
         insert(new String(Character.toChars(codepoint)));

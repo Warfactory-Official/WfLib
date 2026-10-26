@@ -11,6 +11,35 @@ class TextBoxTest {
     }
 
     @Test
+    void selectAllCharacterCallbackDoesNotCorruptTypedColour() {
+        var box = TextBox.text(8).accepting(value -> value.matches("[#&]?[0-9A-Fa-f]{0,6}"));
+        type(box, "#112233");
+        box.key(GLFW.GLFW_KEY_A, 0, GLFW.GLFW_MOD_CONTROL);
+        // GLFW char-mods may follow the shortcut key event with its printable letter.
+        box.character('a', GLFW.GLFW_MOD_CONTROL);
+        assertEquals("#112233", box.text().toString());
+        assertEquals(0, box.selectionStart());
+        assertEquals(7, box.selectionEnd());
+        type(box, "#ff8800");
+        assertEquals("#ff8800", box.text().toString());
+    }
+
+    @Test
+    void shortcutCharactersStayOutButShiftAndAltGrStillType() {
+        var box = TextBox.text(24);
+        type(box, "Q");
+        for (int key : new int[]{'a', 'c', 'x', 'v'}) box.character(key, GLFW.GLFW_MOD_CONTROL);
+        box.character('v', GLFW.GLFW_MOD_SUPER);
+        assertEquals("Q", box.text().toString());
+        box.character('A', GLFW.GLFW_MOD_SHIFT);
+        int altGr = GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT;
+        box.key(GLFW.GLFW_KEY_A, 0, altGr);
+        assertFalse(box.hasSelection());
+        box.character('@', altGr);
+        assertEquals("QA@", box.text().toString());
+    }
+
+    @Test
     void integerBoxKeepsOnlyDigitsAndClampsOnEnter() {
         var submitted = new String[1];
         var box = TextBox.integer(5, 1, 100).onSubmit(s -> submitted[0] = s);
