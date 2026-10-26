@@ -41,12 +41,12 @@ public final class GammaWidgetsDemo implements PdaApp {
                     new PdaControls.Action("TRACK", item -> tracked = n + 1))));
         }
         return stack(
-                at("8", "7", PdaControls.button(91, 16, "REFRESH TASKS", item -> refreshes++)),
-                at("108", "10", text("{pda_widgets.state}", PdaShell.DIM)),
+                at("8", "7", PdaControls.button(108, 16, "REFRESH TASKS", item -> refreshes++)),
+                at("124", "10", text("{pda_widgets.state}", PdaShell.DIM)),
                 at("8", "29", PdaControls.toggle(100, "AVAILABLE", "pda_widgets.checked", item -> checked = !checked, true)),
                 at("112", "29", PdaControls.toggle(99, "LOCAL", "pda_widgets.radio", item -> radio = !radio, false)),
                 at("218", "29", new Slider("56", "14", "pda_widgets.volume", (item, value) -> volume = value, .05f, PdaShell.BAR_BACK, PdaShell.TEXT, PdaShell.TEXT)),
-                at("8", "49", PdaTextBox.field(SEARCH, "FILTER REPORTS", 364)),
+                at("8", "49", PdaTextBox.field(SEARCH, "REPORT NOTE", 364)),
                 at("8", "71", new ScrollBox("368", "144", 34, PdaShell.EDGE, stack(cards.toArray(WidgetDef[]::new)))),
                 at("281", "29", new PdaControls.Dropdown(91, List.of("ALL REPORTS", "ACTIVE", "ARCHIVED"), () -> selected, value -> selected = value)));
     }

@@ -54,6 +54,8 @@ public final class PdaSkin {
             c.fill(x, y + h - .5f, x + w, y + h, 0x707A8084);
             // Four units were already reserved as row padding; no text space is taken away.
             c.roundFrame(x + .5f, y + h / 2 - 1.25f, x + 3, y + h / 2 + 1.25f, 1.25f, .5f, ink);
+            c.line(x + w - 3, y + h / 2 - 1.5f, x + w - 1.5f, y + h / 2, .5f, ink);
+            c.line(x + w - 1.5f, y + h / 2, x + w - 3, y + h / 2 + 1.5f, .5f, ink);
         } else {
             panel(c, x, y, w, h, back, edge, line);
             if (use == Role.TOGGLE || use == Role.CHECKBOX) {
