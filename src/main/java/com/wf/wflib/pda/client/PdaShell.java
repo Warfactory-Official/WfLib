@@ -2,6 +2,11 @@ package com.wf.wflib.pda.client;
 
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.WFLib;
+import com.wf.wflib.pda.client.theme.PdaThemeState;
+import com.wf.wflib.pda.client.theme.PdaThemeState.Token;
+import com.wf.wflib.pda.client.theme.ThemeLayer;
+import com.wf.wflib.pda.client.theme.ThemeMenu;
+import com.wf.wflib.pda.client.theme.ThemeScope;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.Signals;
 import com.wf.wflib.ui.Subject;
@@ -39,19 +44,20 @@ public final class PdaShell {
     public static final float APP_WIDTH = WIDTH;
     public static final float APP_HEIGHT = HEIGHT - BAR;
 
-    /** STALKER-panel palette, ARGB expressions; apps reuse it. */
-    public static final String BACK = "#ff3a3e3a";
-    public static final String BAR_BACK = "#ff2c2f2c";
-    public static final String PANEL = "#ff454a45";
-    public static final String HOVER = "#ff545b53";
-    public static final String PRESS = "#ff626b5f";
-    public static final String EDGE = "#ff787f76";
-    public static final String TEXT = "#ffd2d6cc";
-    public static final String DIM = "#ff8d9488";
-    public static final String ACCENT = "#ffa9d46c";
-    public static final String ALERT = "#ffd0584a";
-    static final int CLEAR = 0xFF3A3E3A;
-    private static final int CURSOR = 0xFFA9D46C;
+    /**
+     * Palette, ARGB expressions that read the active theme ({@code pda_theme.*}): apps reuse it and re-skin with the
+     * theme. {@code classic} holds the original STALKER-panel values.
+     */
+    public static final String BACK = Token.BACK.expr();
+    public static final String BAR_BACK = Token.BAR.expr();
+    public static final String PANEL = Token.PANEL.expr();
+    public static final String HOVER = Token.HOVER.expr();
+    public static final String PRESS = Token.PRESS.expr();
+    public static final String EDGE = Token.EDGE.expr();
+    public static final String TEXT = Token.TEXT.expr();
+    public static final String DIM = Token.DIM.expr();
+    public static final String ACCENT = Token.ACCENT.expr();
+    public static final String ALERT = Token.ALERT.expr();
     private static final int CURSOR_EDGE = 0xFF141614;
 
     public static final Subject<PdaShell> PDA = Subject.register("pda", PdaShell.class, PdaShell::instance);
@@ -68,7 +74,13 @@ public final class PdaShell {
         return INSTANCE;
     }
 
+    /** Surface clear colour: the active theme's background. */
+    static int clear() {
+        return Token.BACK.argb();
+    }
+
     static void register() {
+        PdaThemeState.register();
         Signals.text(PDA, "title", 32, s -> PdaClient.app() == null ? "PDA" : title(PdaClient.app()));
         Signals.bool(PDA, "home", s -> PdaClient.app() == null);
         Signals.bool(PDA, "focused", s -> PdaClient.focused());
@@ -94,7 +106,7 @@ public final class PdaShell {
             for (PdaApp app : apps) {
                 roots.add(app.build());
             }
-            layout = new UiLayout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda"), stack(
+            layout = new UiLayout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda"), new ThemeScope(stack(
                     rect(WIDTH, HEIGHT, BACK),
                     rect(WIDTH, BAR, BAR_BACK),
                     at("0", Float.toString(BAR - 1), rect(WIDTH, 1, EDGE)),
@@ -105,7 +117,12 @@ public final class PdaShell {
                     place(Float.toString(WIDTH - 8), "5", Point.TOP_RIGHT,
                             text("{world.hour|02}:{world.minute|02}", TEXT)),
                     at("0", Float.toString(BAR), new AppHost(apps, roots, home())),
-                    new Cursor()), 0);
+                    ThemeMenu.panel(),
+                    ThemeMenu.gear(),
+                    when("pda_theme.booting", new Button(item -> PdaThemeState.skipBoot(), "true", "0", "0", "0", "0", 0, 0, 0, 0,
+                            WIDTH, HEIGHT, Point.TOP_LEFT, null)),
+                    new ThemeLayer(),
+                    new Cursor())), 0);
         }
         return layout;
     }
@@ -172,7 +189,7 @@ public final class PdaShell {
                     float cx = PdaClient.cursorX();
                     float cy = PdaClient.cursorY();
                     canvas.triangle(cx - 1, cy - 2, cx - 1, cy + 14, cx + 10, cy + 10, CURSOR_EDGE);
-                    canvas.triangle(cx, cy, cx, cy + 11, cx + 7.5f, cy + 8.5f, CURSOR);
+                    canvas.triangle(cx, cy, cx, cy + 11, cx + 7.5f, cy + 8.5f, Token.ACCENT.argb());
                 }
             };
         }

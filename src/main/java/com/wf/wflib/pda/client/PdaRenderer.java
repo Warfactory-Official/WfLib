@@ -179,7 +179,7 @@ public final class PdaRenderer {
         pixelsPerUnit = pixelsPerUnit(mc);
         surface = UiSurfaces.request(SURFACE, PdaShell.layout(), UiContext.EMPTY,
                 (int) PdaShell.WIDTH * pixelsPerUnit, (int) PdaShell.HEIGHT * pixelsPerUnit, PdaShell.WIDTH, PdaShell.HEIGHT, PdaClient.focused() ? 0 : REST_FPS,
-                PdaShell.CLEAR);
+                PdaShell.clear());
         int light = event.getPackedLight();
         DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF, DirectPass.HAND,
                 VariantUv.NONE, SLOTS);

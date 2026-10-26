@@ -1,6 +1,8 @@
 package com.wf.wflib.ui.widget;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.pda.client.theme.Chamfer;
+import com.wf.wflib.pda.client.theme.PdaThemeState;
 import com.wf.wflib.ui.Binder;
 import com.wf.wflib.ui.BoolProp;
 import com.wf.wflib.ui.ColorProp;
@@ -85,11 +87,21 @@ public record Button(UiAction action, String enabled, String background, String 
                     canvas.roundFrame(x, y, x1, y1, radius, borderWidth, e);
                 }
             } else {
-                if ((b >>> 24) != 0) {
-                    canvas.fill(x, y, x1, y1, b);
-                }
-                if ((e >>> 24) != 0 && borderWidth > 0) {
-                    canvas.frame(x, y, x1, y1, borderWidth, e);
+                float cut = PdaThemeState.inPda() ? Chamfer.cut(x1 - x, y1 - y) : 0;
+                if (cut > 0) {
+                    if ((b >>> 24) != 0) {
+                        Chamfer.fill(canvas, x, y, x1, y1, cut, b);
+                    }
+                    if ((e >>> 24) != 0 && borderWidth > 0) {
+                        Chamfer.frame(canvas, x + borderWidth / 2, y + borderWidth / 2, x1 - borderWidth / 2, y1 - borderWidth / 2, cut, borderWidth, e);
+                    }
+                } else {
+                    if ((b >>> 24) != 0) {
+                        canvas.fill(x, y, x1, y1, b);
+                    }
+                    if ((e >>> 24) != 0 && borderWidth > 0) {
+                        canvas.frame(x, y, x1, y1, borderWidth, e);
+                    }
                 }
             }
             if (node != null) {
@@ -103,6 +115,9 @@ public record Button(UiAction action, String enabled, String background, String 
         @Override
         public void release(Object item, float x, float y, boolean inside) {
             if (inside) {
+                if (PdaThemeState.inPda()) {
+                    PdaThemeState.click();
+                }
                 action.run(item);
             }
         }

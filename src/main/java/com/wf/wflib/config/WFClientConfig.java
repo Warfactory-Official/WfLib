@@ -41,6 +41,15 @@ public final class WFClientConfig {
     public static final ModConfigSpec.DoubleValue[] AUDIO_VOLUME;
     public static final ModConfigSpec.DoubleValue CABIN_MUFFLE;
 
+    public static final ModConfigSpec.ConfigValue<String> PDA_THEME;
+    public static final ModConfigSpec.BooleanValue PDA_EFFECTS;
+    public static final ModConfigSpec.BooleanValue PDA_SCANLINES;
+    public static final ModConfigSpec.BooleanValue PDA_FLICKER;
+    public static final ModConfigSpec.BooleanValue PDA_NOISE;
+    public static final ModConfigSpec.BooleanValue PDA_VIGNETTE;
+    public static final ModConfigSpec.BooleanValue PDA_SOUNDS;
+    public static final ModConfigSpec.BooleanValue PDA_BOOT;
+
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
 
@@ -132,6 +141,18 @@ public final class WFClientConfig {
         CABIN_MUFFLE = b
                 .comment("How strongly a closed vehicle cabin muffles outside sound, 0 (off) to 1.")
                 .defineInRange("cabinMuffle", 1.0, 0.0, 1.0);
+        b.pop();
+
+        b.comment("PDA look. Also changed from the gear in the PDA's top bar.").push("pda");
+        PDA_THEME = b.comment("Theme id: classic, tactical, zone or phosphor.").define("theme", "classic");
+        PDA_EFFECTS = b.comment("Master switch for the screen effects (scanlines, flicker, noise, vignette, bezel).")
+                .define("effects", true);
+        PDA_SCANLINES = b.define("scanlines", true);
+        PDA_FLICKER = b.define("flicker", false);
+        PDA_NOISE = b.define("noise", true);
+        PDA_VIGNETTE = b.define("vignette", true);
+        PDA_SOUNDS = b.comment("Click sounds on the PDA.").define("sounds", true);
+        PDA_BOOT = b.comment("Short boot sequence when the PDA is raised (themes that have one).").define("bootAnimation", true);
         b.pop();
 
         SPEC = b.build();
