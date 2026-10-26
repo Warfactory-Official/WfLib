@@ -261,9 +261,10 @@ public final class PdaClient {
         carried = Pda.carries(player);
         held = Pda.is(player.getMainHandItem()) || virtualHand;
         // Own prompt (marker name) keeps it raised.
-        if (!carried || !held || mc.screen != null && !(mc.screen instanceof EmbeddedScreen.Standalone)
-                || !player.isAlive() || focused && focusPlayer != null && (focusPlayer != player
-                || focusSlot != player.getInventory().selected)) {
+        if ((focused || virtualHand) && (!carried || !held
+                || mc.screen != null && !(mc.screen instanceof EmbeddedScreen.Standalone)
+                || !player.isAlive() || focusPlayer != null && (focusPlayer != player
+                || focusSlot != player.getInventory().selected))) {
             lower();
         }
         if (focused && focusPlayer == null) {
