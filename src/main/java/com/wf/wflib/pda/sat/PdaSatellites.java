@@ -79,7 +79,7 @@ public final class PdaSatellites {
         SatId id = new SatId(satId);
         long net = ReconOwners.netOf(player);
         SatView view = OrbitalNet.view(level, id).orElse(null);
-        String refused = view == null || view.netId() != net || !Pda.held(player) || !Uplink.allows(player, net)
+        String refused = view == null || view.netId() != net || !Pda.carries(player) || !Uplink.allows(player, net)
                 ? "err: no uplink to that satellite"
                 : !view.payload().equals(SatPayloads.IMAGERY) ? "err: no imaging payload"
                 : !view.inContact() ? "err: out of contact"
@@ -103,7 +103,7 @@ public final class PdaSatellites {
         SatId id = new SatId(satId);
         long net = ReconOwners.netOf(player);
         SatView view = OrbitalNet.view(level, id).orElse(null);
-        if (view == null || view.netId() != net || !Pda.held(player) || !Uplink.allows(player, net)) {
+        if (view == null || view.netId() != net || !Pda.carries(player) || !Uplink.allows(player, net)) {
             PacketDistributor.sendToPlayer(player, new SatReplyPacket(satId,
                     "err: no uplink to that satellite"));
             return;

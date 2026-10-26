@@ -14,7 +14,24 @@ public final class Pda {
     }
 
     public static boolean carries(Player player) {
-        return player.getInventory().hasAnyMatching(Pda::is);
+        return !carriedStack(player).isEmpty();
+    }
+
+
+    /** Actual carried stack, never a copy: hands first, then inventory order, then equipped Curios.
+     * Multiple PDAs use this same deterministic choice on client and server. */
+    public static ItemStack carriedStack(Player player) {
+        ItemStack held = heldStack(player);
+        if (!held.isEmpty()) {
+            return held;
+        }
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (is(stack)) {
+                return stack;
+            }
+        }
+        return PdaCurios.stack(player);
     }
 
     public static boolean held(Player player) {

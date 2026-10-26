@@ -27,7 +27,7 @@ public final class PdaCameras {
         if (!(player.level() instanceof ServerLevel level)) {
             return;
         }
-        ItemStack stack = Pda.heldStack(player);
+        ItemStack stack = Pda.carriedStack(player);
         if (stack.isEmpty()) {
             return;
         }

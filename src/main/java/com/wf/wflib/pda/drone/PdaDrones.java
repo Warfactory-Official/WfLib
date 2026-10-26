@@ -100,7 +100,7 @@ public final class PdaDrones {
 
     /** Gametest seam. */
     public static DroneStatusPacket status(ServerPlayer player) {
-        CameraChannels channels = channels(Pda.heldStack(player));
+        CameraChannels channels = channels(Pda.carriedStack(player));
         List<DroneStatusPacket.Entry> out = new ArrayList<>();
         for (FeedTarget target : channels.targets()) {
             target.drone().ifPresent(id -> out.add(entry(player, id, target)));
@@ -171,7 +171,7 @@ public final class PdaDrones {
     }
 
     public static void act(ServerPlayer player, Action action, int index) {
-        ItemStack pda = Pda.heldStack(player);
+        ItemStack pda = Pda.carriedStack(player);
         UUID id = channelDrone(pda, index);
         if (id == null) {
             return;
@@ -223,10 +223,10 @@ public final class PdaDrones {
      * @return reply line; pad launches join the held PDA's channels
      */
     public static String dispatch(ServerPlayer player, DroneTask.Kind kind, Vec3 at, Optional<UUID> drone) {
-        if (!Pda.held(player)) {
-            return "err: no PDA in hand";
+        if (!Pda.carries(player)) {
+            return "err: no PDA carried";
         }
-        ItemStack pda = Pda.heldStack(player);
+        ItemStack pda = Pda.carriedStack(player);
         if (drone.isPresent()) {
             UUID id = drone.get();
             if (!channels(pda).has(FeedTarget.ofDrone(id))) {

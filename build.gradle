@@ -46,6 +46,11 @@ sourceSets.main.resources {
 
 repositories {
     maven {
+        name = 'Curios'
+        url = 'https://maven.theillusivec4.top/'
+        content { includeGroup 'top.theillusivec4.curios' }
+    }
+    maven {
         name = 'NeoForged'
         url = 'https://maven.neoforged.net/releases'
     }
@@ -249,6 +254,11 @@ configurations {
 }
 
 dependencies {
+    // Optional integration only: the guarded helper is never linked without Curios.
+    compileOnly("top.theillusivec4.curios:curios-neoforge:9.5.1+1.21.1") { transitive = false }
+    if (project.hasProperty('withCurios')) {
+        localRuntime("top.theillusivec4.curios:curios-neoforge:9.5.1+1.21.1") { transitive = false }
+    }
     // --- Benchmarking company ----------------------------------------------------------------
     // Lithium is dev-runtime only and never published. It is here so the swarm work is measured in
     // the environment it will actually ship into, and (more pointedly), so that anywhere we patch

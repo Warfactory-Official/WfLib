@@ -17,6 +17,43 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 - Crosshair layer hidden while focused.
 - Off-hand item hidden while held (both `RenderHandEvent`s cancelled).
 
+### Carried access and optional Curios (1.21.1)
+
+Controls > WFLib includes **PDA: raise / lower**, **PDA: open Terminal**, and
+**PDA: open Pluginless**. All start unbound to avoid stealing existing keys. Assign any
+keys you prefer. Direct app keys do nothing if that app is absent or unavailable.
+They do not fire while a UI text field owns keyboard input; Esc first blurs that
+field, then another Esc lowers the PDA.
+
+A key can raise the PDA from another hotbar slot, main inventory, offhand, or an
+active equipped Curios slot. `Pda.carriedStack` chooses main hand, offhand,
+inventory order, then equipped Curios; linked channels use that same actual stack
+on the server. `Pda.held`/`heldStack` still mean physical hands. No inventory swap,
+copy, or server trust in the client view is involved. Only equipped functional
+Curios slots count, not cosmetic/inactive slots or a PDA inside another container.
+
+While raised from a non-main-hand slot, `PdaClient.virtualHand()` is true and
+`PdaClient.held()` reports the presented two-handed main-hand view. Both physical
+hand items are hidden by the existing renderer. Lowering immediately restores
+normal rendering of those unchanged items. Attack/pick/use cannot reach them while
+focused; drop and swap-hand key clicks are consumed. A hotbar selection change,
+loss of the last carried PDA, death, disconnect, or opening another Screen lowers
+the view. Wheel input remains app scroll while focused. Raising refuses while an
+item is already being used (finish eating, blocking, drawing a bow, etc. first).
+
+Curios is optional: only its isolated helper links its API when the mod is loaded.
+Build-time API is `curios-neoforge:9.5.1+1.21.1` compile-only; it is never shaded.
+Use `-PwithCurios` only for dev runs that need it. No Curios is required for normal
+inventory/keybind operation.
+
+Default mod data only tags the PDA as `curios:charm`; it does not add slots or
+change slot counts. The world/modpack must already enable a charm slot (Curios
+alone need not supply one). A higher-priority datapack can replace the charm tag
+or assign the PDA to another slot. `docs/datapacks/pda-slot` is an opt-in example
+for a dedicated `pda` slot, not automatically enabled. Its README explains the
+charm override and preserving other mods' entries. See the [Curios 1.21.x datapack
+format](https://docs.illusivesoulworks.com/curios/slots/datapack-example).
+
 ## 98. Rendering
 
 - `PdaRenderer` (HAND pass): glTF `wflib:models/pda/pda.glb` (placeholder: MineAssault `tools/ma.py pda-placeholder`), nodes `grip_left` / `grip_right` = wrist goals for `client.view.PlayerArms` + `ArmViewPose` (shared with MineAssault).
