@@ -106,6 +106,7 @@ public final class PdaControls {
         private final class Node extends Widget implements Interactive {
             boolean open;
             final Interactive dismiss = new Interactive() {
+                public boolean feedback() { return false; }
                 public void press(Object item, float x, float y) { open = false; }
             };
             public void measure(UiEval ev) { width = w; height = 14; }
@@ -122,12 +123,14 @@ public final class PdaControls {
                     if (i == at) c.fill(x + 1, y + (i + 1) * 14, x + w - 1, y + (i + 2) * 14, PdaThemeState.Token.HOVER.argb());
                     c.text(fit(c, options.get(i), w - 8), x + 4, y + (i + 1) * 14 + 3, PdaThemeState.Token.TEXT.argb(), false);
                 }
-                if (ev.input != null) ev.input.hit(x, y, x + w, y + count * 14, this, null);
+                if (ev.input != null) for (int row = 0; row < count; row++)
+                    ev.input.hit(x, y + row * 14, x + w, y + (row + 1) * 14, this, row);
             }
             public void release(Object item, float x, float y, boolean inside) {
                 if (!inside) { open = false; return; }
-                if (y < 14) open = !open;
-                else { int at = (int) (y / 14) - 1; if (at >= 0 && at < options.size()) set.accept(at); open = false; }
+                int row = (Integer) item;
+                if (row == 0) open = !open;
+                else { int at = row - 1; if (at >= 0 && at < options.size()) set.accept(at); open = false; }
             }
         }
     }

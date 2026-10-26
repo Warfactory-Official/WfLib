@@ -34,10 +34,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 /** PDA-owned UI audio, through Minecraft's normal sound engine/master volume. No asset registration or copying. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class PdaSounds {
-    public enum Event { CLICK, TAB, OPEN, CLOSE, ALERT }
+    public enum Event { HOVER, CLICK, TAB, OPEN, CLOSE, ALERT }
+    // One-line mapping switch: false = hit.wav click / beep.wav hover; true swaps them.
+    private static final boolean SWAP_CLICK_AND_HOVER = false;
     private static Event pending;
     private static boolean alert;
-    private static long lastUi, lastAlert, checked;
+    private static long lastUi, lastHover, lastAlert, checked;
     private static String directory = "";
     private static Map<String, Path> files = Map.of();
     private static final List<SoundInstance> owned = new ArrayList<>();
@@ -63,7 +65,10 @@ public final class PdaSounds {
         long now = Util.getMillis();
         if (pending != null) {
             Event next = pending; pending = null;
-            if (next == Event.OPEN || next == Event.CLOSE || now - lastUi >= 50) { lastUi = now; play(next); }
+            if (next == Event.HOVER) {
+                // Dropped entries are never replayed later while the pointer rests.
+                if (now - lastHover >= 140 && now - lastUi >= 140) { lastHover = now; play(next); }
+            } else if (next == Event.OPEN || next == Event.CLOSE || now - lastUi >= 50) { lastUi = now; play(next); }
         }
         if (alert) {
             alert = false;
@@ -85,19 +90,26 @@ public final class PdaSounds {
         return files;
     }
     private static SimpleSoundInstance fallback(Event event) {
+        // Permanent user-provided mapping: hit.wav = click; beep.wav = hover (sounds.json).
+        if (event == Event.HOVER || event == Event.CLICK || event == Event.TAB) {
+            boolean hover = (event == Event.HOVER) != SWAP_CLICK_AND_HOVER;
+            return SimpleSoundInstance.forUI((hover ? WFSounds.PDA_HOVER : WFSounds.PDA_CLICK).get(), 1, .35f);
+        }
         return event == Event.ALERT ? SimpleSoundInstance.forUI(WFSounds.PDA_BUZZ.get(), 1, .8f)
                 : SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), event == Event.CLICK ? 1.6f : 1.2f, .35f);
     }
     private static void play(Event event) {
         String key = event.name().toLowerCase(Locale.ROOT);
-        Path path = files().get(key);
+        // External GAMMA configuration cannot replace permanent click/hover assets.
+        boolean builtIn = event == Event.CLICK || event == Event.HOVER;
+        Path path = builtIn ? null : files().get(key);
         var fallback = fallback(event);
         SoundInstance instance = path == null ? fallback : new Local(event, path, fallback);
         owned.add(instance);
         Minecraft.getInstance().getSoundManager().play(instance);
         if (AUDIT) {
             if (receipts.size() == 256) receipts.removeFirst();
-            receipts.add(Map.of("event", key, "route", path == null ? "fallback" : "local", "path", path == null ? "" : path.toString()));
+            receipts.add(Map.of("event", key, "time_ms", Util.getMillis(), "route", builtIn ? "builtin" : path == null ? "fallback" : "local", "path", path == null ? "" : path.toString()));
         }
     }
     public static void resetDiagnostics() { if (AUDIT) { receipts.clear(); decoded.set(0); failed.set(0); } }

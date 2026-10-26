@@ -5,6 +5,9 @@ package com.wf.wflib.ui.input;
  * relative to the box's top-left (NaN when a capture is cancelled); {@code item} = the hit's item.
  */
 public interface Interactive {
+    /** False for scroll backgrounds and modal catchers, which are not audible controls. */
+    default boolean feedback() { return true; }
+
     default void press(Object item, float x, float y) {
     }
 

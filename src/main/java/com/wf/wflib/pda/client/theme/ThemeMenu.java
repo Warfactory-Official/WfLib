@@ -35,7 +35,6 @@ public final class ThemeMenu {
 
     private static Button button(UiAction action, float w, float h, WidgetDef child) {
         return new Button(item -> {
-            PdaThemeState.click();
             action.run(item);
         }, "true", PdaThemeState.Token.PANEL.expr(), PdaThemeState.Token.HOVER.expr(), PdaThemeState.Token.PRESS.expr(),
                 PdaThemeState.Token.EDGE.expr(), 1, 0, 0, 0, w, h, Point.CENTER, child);
@@ -53,7 +52,6 @@ public final class ThemeMenu {
     /** Gear button, drawn last in the bar. */
     public static WidgetDef gear() {
         Button b = new Button(item -> {
-            PdaThemeState.click();
             PdaThemeState.toggleMenu();
         }, "true", "0", PdaThemeState.Token.HOVER.expr(), PdaThemeState.Token.PRESS.expr(), "0", 0, 0, 0, 0, 14, 14,
                 Point.CENTER, new GearIcon());

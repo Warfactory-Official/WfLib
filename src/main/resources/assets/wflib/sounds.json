@@ -1,4 +1,6 @@
 {
+  "pda.click": { "sounds": ["wflib:pda/click"] },
+  "pda.hover": { "sounds": ["wflib:pda/hover"] },
   "radio": {
     "sounds": [
       {

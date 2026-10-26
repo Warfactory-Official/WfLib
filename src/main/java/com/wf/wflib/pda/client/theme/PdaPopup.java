@@ -29,6 +29,7 @@ public final class PdaPopup {
                 float px = Math.clamp(com.wf.wflib.pda.client.PdaClient.cursorX() + 8, 4, 380 - width);
                 float py = Math.clamp(com.wf.wflib.pda.client.PdaClient.cursorY() + 12, 20, 236 - height);
                 PdaPopup.draw(c, px, py, width, height, title, stamp, lines);
+                if (ev.input != null) ev.input.coverFeedback(px, py, px + width, py + height);
                 if (AUDIT) lastDisclosure = java.util.Map.of("source", body, "lines", java.util.List.copyOf(lines),
                         "x", px, "y", py, "width", width, "height", height);
             }

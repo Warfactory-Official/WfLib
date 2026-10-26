@@ -117,6 +117,8 @@ public record ListView(String items, float rowHeight, float gap, String w, Strin
             }
         }
 
+        @Override public boolean feedback() { return false; }
+
         @Override
         public boolean wheel(Object item, float amount) {
             float before = scroll;

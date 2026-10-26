@@ -13,6 +13,16 @@ import java.util.Objects;
  * the canvas transform/clip stack through {@link #push}/{@link #pop}/{@link #pushClip}/{@link #popClip}.
  */
 public final class UiInput {
+    /** Optional shared control feedback, retained with each recorded hit. */
+    public interface Feedback { void hover(); void click(); }
+    private static final Interactive FEEDBACK_COVER = new Interactive() { };
+    private Feedback recordingFeedback;
+    private Feedback[] frontFeedback = new Feedback[16], backFeedback = new Feedback[16];
+    private Feedback captureFeedback;
+    private float lastX = Float.NaN, lastY = Float.NaN;
+    /** Scopes feedback while recording controls; returns the enclosing scope. */
+    public Feedback feedback(Feedback next) { var previous = recordingFeedback; recordingFeedback = next; return previous; }
+
     public static final int PRIMARY = 1;
     public static final int SECONDARY = 2;
 
@@ -76,6 +86,8 @@ public final class UiInput {
         captureItem = null;
         hoverOwner = null;
         hoverItem = null;
+        captureFeedback = null;
+        lastX = lastY = Float.NaN;
         buttons = 0;
         lastButtons = 0;
         wheel = 0;
@@ -94,6 +106,11 @@ public final class UiInput {
     /** Resolves the pointer against the last recorded table and runs callbacks. Before evaluation. */
     public void dispatch() {
         int top = topmost(px, py);
+        boolean entered = top >= 0 && (hoverOwner != frontOwners[top] || !Objects.equals(hoverItem, frontItems[top]));
+        boolean moved = px != lastX || py != lastY;
+        lastX = px; lastY = py;
+        if (entered && moved && buttons == 0 && lastButtons == 0 && captureOwner == null && wheel == 0 && frontFeedback[top] != null && !feedbackCovered(top, px, py))
+            frontFeedback[top].hover();
         hoverOwner = top < 0 ? null : frontOwners[top];
         hoverItem = top < 0 ? null : frontItems[top];
         boolean down = (buttons & PRIMARY) != 0;
@@ -116,7 +133,10 @@ public final class UiInput {
             if (!down) {
                 captureOwner = null;
                 captureItem = null;
-                owner.release(item, lx, ly, top >= 0 && frontOwners[top] == owner && Objects.equals(frontItems[top], item));
+                boolean inside = top >= 0 && frontOwners[top] == owner && Objects.equals(frontItems[top], item);
+                if (inside && captureFeedback != null) captureFeedback.click();
+                captureFeedback = null;
+                owner.release(item, lx, ly, inside);
             } else {
                 owner.drag(item, lx, ly);
             }
@@ -127,6 +147,7 @@ public final class UiInput {
         if (captureOwner == null && down && !wasDown && top >= 0) {
             captureOwner = frontOwners[top];
             captureItem = frontItems[top];
+            captureFeedback = frontFeedback[top];
             System.arraycopy(front, top * STRIDE, capture, 0, STRIDE);
             captureOwner.press(captureItem, localX(capture, px, py), localY(capture, px, py));
         }
@@ -144,6 +165,7 @@ public final class UiInput {
     /** Starts recording this frame's table at host identity. */
     public void begin() {
         backCount = 0;
+        recordingFeedback = null;
         affineDepth = 0;
         clipDepth = 0;
         setIdentity(0);
@@ -165,9 +187,12 @@ public final class UiInput {
         Object[] it = frontItems;
         frontItems = backItems;
         backItems = it;
+        Feedback[] feedbacks = frontFeedback;
+        frontFeedback = backFeedback; backFeedback = feedbacks;
         frontCount = backCount;
         Arrays.fill(backOwners, 0, stale, null);
         Arrays.fill(backItems, 0, stale, null);
+        Arrays.fill(backFeedback, 0, stale, null);
         backCount = 0;
     }
 
@@ -304,6 +329,7 @@ public final class UiInput {
             back = Arrays.copyOf(back, n * STRIDE);
             backOwners = Arrays.copyOf(backOwners, n);
             backItems = Arrays.copyOf(backItems, n);
+            backFeedback = Arrays.copyOf(backFeedback, n);
         }
         int at = backCount * STRIDE;
         back[at + HX0] = hx0;
@@ -321,6 +347,7 @@ public final class UiInput {
         back[at + LY] = y0;
         back[at + LW] = x1 - x0;
         back[at + LH] = y1 - y0;
+        backFeedback[backCount] = owner.feedback() ? recordingFeedback : null;
         backOwners[backCount] = owner;
         backItems[backCount] = item;
         backCount++;
@@ -336,9 +363,20 @@ public final class UiInput {
         affine[at + 5] = 0;
     }
 
+    /** A read-only popup hides feedback below it without changing click or scroll routing. */
+    public void coverFeedback(float x0, float y0, float x1, float y1) {
+        hit(x0, y0, x1, y1, FEEDBACK_COVER, null);
+    }
+
+    private boolean feedbackCovered(int top, float x, float y) {
+        for (int i = frontCount - 1; i > top; i--)
+            if (frontOwners[i] == FEEDBACK_COVER && contains(front, i, x, y)) return true;
+        return false;
+    }
+
     private int topmost(float x, float y) {
         for (int i = frontCount - 1; i >= 0; i--) {
-            if (contains(front, i, x, y)) {
+            if (frontOwners[i] != FEEDBACK_COVER && contains(front, i, x, y)) {
                 return i;
             }
         }

@@ -81,6 +81,8 @@ public record ScrollBox(String w, String h, float step, String bar, WidgetDef ch
             }
         }
 
+        @Override public boolean feedback() { return false; }
+
         @Override
         public boolean wheel(Object item, float amount) {
             float before = scroll;

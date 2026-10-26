@@ -158,6 +158,64 @@ class UiInputTest {
         assertEquals(List.of("wheel u"), under.log);
     }
 
+    private static final class FeedbackProbe implements UiInput.Feedback {
+        int enters, clicks;
+        public void hover() { enters++; }
+        public void click() { clicks++; }
+    }
+
+    @Test
+    void feedbackEntersOncePerOwnerAndItemAndIgnoresStationaryLayoutChanges() {
+        UiInput input = new UiInput(); Probe owner = new Probe(); FeedbackProbe audio = new FeedbackProbe();
+        String[] item = {"a"};
+        Runnable draw = () -> { input.feedback(audio); input.hit(0, 0, 20, 20, owner, item[0]); };
+        frame(input, draw); input.pointer(3, 3, 0); frame(input, draw);
+        for (int i = 0; i < 50; i++) frame(input, draw);
+        assertEquals(1, audio.enters);
+        item[0] = "b"; frame(input, draw); frame(input, draw);
+        assertEquals(1, audio.enters); // A row scrolling under a resting pointer is not an enter.
+        input.pointer(30, 3, 0); frame(input, draw);
+        input.pointer(4, 3, 0); frame(input, draw);
+        assertEquals(2, audio.enters);
+        input.pointer(4, 3, UiInput.PRIMARY); frame(input, draw);
+        input.pointer(4, 3, 0); frame(input, draw);
+        assertEquals(1, audio.clicks);
+    }
+
+    @Test
+    void feedbackIgnoresWheelAndCaptureAndDoesNotQueueDelayedEnters() {
+        UiInput input = new UiInput(); Probe owner = new Probe(); FeedbackProbe audio = new FeedbackProbe();
+        Runnable draw = () -> { input.feedback(audio); input.hit(0, 0, 10, 10, owner, "a"); input.hit(10, 0, 20, 10, owner, "b"); };
+        frame(input, draw); input.pointer(3, 3, 0); input.wheel(1); frame(input, draw);
+        frame(input, draw); assertEquals(0, audio.enters);
+        input.pointer(3, 3, UiInput.PRIMARY); frame(input, draw);
+        input.pointer(13, 3, UiInput.PRIMARY); frame(input, draw);
+        input.pointer(13, 3, 0); frame(input, draw); frame(input, draw);
+        assertEquals(0, audio.enters); assertEquals(0, audio.clicks);
+        input.pointer(30, 3, 0); frame(input, draw); input.pointer(13, 3, 0); frame(input, draw);
+        assertEquals(1, audio.enters);
+    }
+
+    @Test
+    void feedbackHonoursTopmostModalAndReadOnlyPopupAndScopes() {
+        UiInput input = new UiInput(); Probe under = new Probe(); FeedbackProbe audio = new FeedbackProbe();
+        Interactive modal = new Interactive() { public boolean feedback() { return false; } };
+        boolean[] popup = {true};
+        Runnable draw = () -> {
+            input.feedback(audio); input.hit(0, 0, 40, 20, under, null);
+            if (popup[0]) { input.hit(0, 0, 10, 20, modal, null); input.coverFeedback(10, 0, 20, 20); }
+            input.feedback(null); input.hit(40, 0, 50, 20, under, null);
+        };
+        frame(input, draw); input.pointer(3, 3, 0); frame(input, draw);
+        input.pointer(13, 3, 0); frame(input, draw); assertEquals(0, audio.enters);
+        input.pointer(43, 3, 0); frame(input, draw); assertEquals(0, audio.enters);
+        popup[0] = false; frame(input, draw); input.pointer(23, 3, 0); frame(input, draw);
+        // Same owner/item despite a different box: still a single control.
+        assertEquals(0, audio.enters);
+        input.pointer(60, 3, 0); frame(input, draw); input.pointer(23, 3, 0); frame(input, draw);
+        assertEquals(1, audio.enters);
+    }
+
     @Test
     void steadyStateAllocatesNothing() {
         UiInput input = new UiInput();

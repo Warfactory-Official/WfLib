@@ -41,7 +41,6 @@ public record Button(UiAction action, String enabled, String background, String 
         private final ColorProp edge;
         private final int itemSlot;
         private final Widget node;
-        private boolean pda;
 
         Node(BoolProp on, ColorProp back, ColorProp over, ColorProp down, ColorProp edge, int itemSlot, Widget node) {
             this.on = on;
@@ -68,7 +67,6 @@ public record Button(UiAction action, String enabled, String background, String 
 
         @Override
         public void draw(UiEval ev, float x, float y, float w, float h) {
-            pda = PdaThemeState.inPda();
             Canvas canvas = ev.canvas;
             UiInput input = ev.input;
             Object item = ev.item(itemSlot);
@@ -119,12 +117,11 @@ public record Button(UiAction action, String enabled, String background, String 
             }
         }
 
+        @Override public boolean feedback() { return node != null; }
+
         @Override
         public void release(Object item, float x, float y, boolean inside) {
             if (inside) {
-                if (pda) {
-                    PdaThemeState.click();
-                }
                 action.run(item);
             }
         }
