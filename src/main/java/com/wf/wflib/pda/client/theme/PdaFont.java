@@ -17,6 +17,15 @@ public final class PdaFont {
         try { return canvas.width(text, start, end); }
         finally { measuring = before; }
     }
+    /** Neutralise legacy widget tints too; real image pixels and cyan map markers retain their colours. */
+    public static int chrome(int original) {
+        if (!active()) return original;
+        int r = original >>> 16 & 255, g = original >>> 8 & 255, b = original & 255;
+        if (b > r + 24 && g > r + 24) return original;
+        if (Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b)) < 18) return original;
+        int grey = (r + g + b) / 3;
+        return original & 0xFF000000 | grey << 16 | grey << 8 | grey;
+    }
     public static int ink(int original) {
         if (!active()) return original;
         int r = original >>> 16 & 255, g = original >>> 8 & 255, b = original & 255;

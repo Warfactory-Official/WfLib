@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = Canvas.class, remap = false)
 public abstract class MixinPdaCanvas {
+    @ModifyVariable(method = "vertex", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private int wflib$neutralChrome(int original) { return PdaFont.chrome(original); }
     @Inject(method = "fontVersion", at = @At("RETURN"), cancellable = true)
     private void wflib$fontVersion(CallbackInfoReturnable<Integer> cir) {
         cir.setReturnValue(cir.getReturnValueI() * 2 + (PdaFont.active() ? 1 : 0));

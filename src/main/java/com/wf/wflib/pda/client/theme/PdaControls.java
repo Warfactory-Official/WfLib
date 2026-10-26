@@ -90,24 +90,35 @@ public final class PdaControls {
         }
         return result;
     }
+    private static String fit(com.wf.gemrender.ui.Canvas c, String value, float width) {
+        if (c.width(value) <= width) return value;
+        String fitted = value;
+        while (!fitted.isEmpty() && c.width(fitted + "...") > width)
+            fitted = fitted.substring(0, fitted.offsetByCodePoints(fitted.length(), -1));
+        return fitted + "...";
+    }
     /** Popup is drawn/hit after the selector. Add after sibling fields so options remain on top. */
     public record Dropdown(float w, List<String> options, IntSupplier selected, IntConsumer set) implements WidgetDef {
         public Dropdown { options = List.copyOf(options); if (options.isEmpty()) throw new IllegalArgumentException("empty dropdown"); }
         public Widget create(Binder binder) { return new Node(); }
         private final class Node extends Widget implements Interactive {
             boolean open;
+            final Interactive dismiss = new Interactive() {
+                public void press(Object item, float x, float y) { open = false; }
+            };
             public void measure(UiEval ev) { width = w; height = 14; }
             public void draw(UiEval ev, float x, float y, float bw, float bh) {
                 var c = ev.canvas; int count = open ? options.size() + 1 : 1;
+                if (open && ev.input != null) ev.input.hit(0, 0, PdaShell.WIDTH, PdaShell.HEIGHT, dismiss, null);
                 c.fill(x, y, x + w, y + count * 14, PdaThemeState.Token.BAR.argb());
                 c.frame(x, y, x + w, y + count * 14, .7f, PdaThemeState.Token.EDGE.argb());
                 int at = Math.clamp(selected.getAsInt(), 0, options.size() - 1);
                 String current = options.get(at);
-                c.text(current, x + 4, y + 3, PdaThemeState.Token.TEXT.argb(), false);
+                c.text(fit(c, current, w - 18), x + 4, y + 3, PdaThemeState.Token.TEXT.argb(), false);
                 c.triangle(x + w - 10, y + 5, x + w - 4, y + 5, x + w - 7, y + 9, PdaThemeState.Token.DIM.argb());
                 if (open) for (int i = 0; i < options.size(); i++) {
                     if (i == at) c.fill(x + 1, y + (i + 1) * 14, x + w - 1, y + (i + 2) * 14, PdaThemeState.Token.HOVER.argb());
-                    c.text(options.get(i), x + 4, y + (i + 1) * 14 + 3, PdaThemeState.Token.TEXT.argb(), false);
+                    c.text(fit(c, options.get(i), w - 8), x + 4, y + (i + 1) * 14 + 3, PdaThemeState.Token.TEXT.argb(), false);
                 }
                 if (ev.input != null) ev.input.hit(x, y, x + w, y + count * 14, this, null);
             }
