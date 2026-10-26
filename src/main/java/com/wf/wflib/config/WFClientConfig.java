@@ -48,7 +48,6 @@ public final class WFClientConfig {
     public static final ModConfigSpec.BooleanValue PDA_NOISE;
     public static final ModConfigSpec.BooleanValue PDA_VIGNETTE;
     public static final ModConfigSpec.BooleanValue PDA_SOUNDS;
-    public static final ModConfigSpec.BooleanValue PDA_BOOT;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -152,7 +151,6 @@ public final class WFClientConfig {
         PDA_NOISE = b.define("noise", true);
         PDA_VIGNETTE = b.define("vignette", true);
         PDA_SOUNDS = b.comment("Click sounds on the PDA.").define("sounds", true);
-        PDA_BOOT = b.comment("Short boot sequence when the PDA is raised (themes that have one).").define("bootAnimation", true);
         b.pop();
 
         SPEC = b.build();

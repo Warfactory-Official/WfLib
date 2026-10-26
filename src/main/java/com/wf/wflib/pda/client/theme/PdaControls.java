@@ -47,10 +47,12 @@ public final class PdaControls {
         }; }
     }
     /** Text wrapping uses the loaded font; full body is available through the shared tooltip layer. */
-    public record Paragraph(String text, float w, int maxLines, String title, String stamp) implements WidgetDef {
-        public Paragraph(String text, float w, int maxLines) { this(text, w, maxLines, "DETAILS", ""); }
+    public record Paragraph(String text, float w, int maxLines, String title, String stamp, String colour) implements WidgetDef {
+        public Paragraph(String text, float w, int maxLines) { this(text, w, maxLines, "DETAILS", "", PdaShell.TEXT); }
+        public Paragraph(String text, float w, int maxLines, String title, String stamp) { this(text, w, maxLines, title, stamp, PdaShell.TEXT); }
         public Widget create(Binder binder) {
             TextProp template = binder.text(text);
+            ColorProp ink = binder.color(colour);
             var buffer = new com.wf.gemrender.ui.TextBuffer(template.capacity());
             return new Widget() {
                 String full = ""; List<String> lines = List.of();
@@ -59,7 +61,7 @@ public final class PdaControls {
                     lines = wrap(ev.canvas, full, w, maxLines); width = w; height = lines.size() * ev.canvas.lineHeight();
                 }
                 public void draw(UiEval ev, float x, float y, float bw, float bh) {
-                    for (int i = 0; i < lines.size(); i++) ev.canvas.text(lines.get(i), x, y + i * ev.canvas.lineHeight(), PdaThemeState.Token.TEXT.argb(), false);
+                    for (int i = 0; i < lines.size(); i++) ev.canvas.text(lines.get(i), x, y + i * ev.canvas.lineHeight(), ink.get(ev), false);
                     if (ev.input != null) {
                         if (ev.input.over(x, y, x + width, y + height)) PdaPopup.show(title, stamp, full);
                     }
@@ -72,14 +74,16 @@ public final class PdaControls {
         while (!rest.isEmpty() && result.size() < maxLines) {
             int end = 0; int space = -1;
             while (end < rest.length()) {
+                if (rest.charAt(end) == '\n') break;
                 int next = end + Character.charCount(rest.codePointAt(end));
                 if (c.width(rest, 0, next) > w) break;
                 if (Character.isWhitespace(rest.charAt(end))) space = end;
                 end = next;
             }
-            if (end == 0) end = Character.charCount(rest.codePointAt(0));
-            if (end < rest.length() && space > 0) end = space;
-            String line = rest.substring(0, end).stripTrailing(); rest = rest.substring(end).stripLeading();
+            boolean newline = end < rest.length() && rest.charAt(end) == '\n';
+            if (end == 0 && !newline) end = Character.charCount(rest.codePointAt(0));
+            if (!newline && end < rest.length() && space > 0) end = space;
+            String line = rest.substring(0, end).stripTrailing(); rest = rest.substring(end + (newline ? 1 : 0)).stripLeading();
             if (result.size() == maxLines - 1 && !rest.isEmpty()) {
                 while (!line.isEmpty() && c.width(line + "...") > w) line = line.substring(0, line.offsetByCodePoints(line.length(), -1));
                 line += "...";

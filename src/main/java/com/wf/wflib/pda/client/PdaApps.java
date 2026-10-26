@@ -11,6 +11,7 @@ import java.util.List;
 public final class PdaApps {
     private static final List<PdaApp> ALL = new ArrayList<>();
     private static final List<PdaApp> VISIBLE = new ArrayList<>();
+    private static final List<PdaApp> HOME = new ArrayList<>();
     private static boolean sealed;
 
     private PdaApps() {
@@ -44,7 +45,6 @@ public final class PdaApps {
         AlertsApp.register();
         TerminalApp.register();
         PdaFieldsDemo.register();
-        GammaWidgetsDemo.register();
         com.wf.wflib.wiki.client.WikiApp.register();
         PdaAlerts.register();
     }
@@ -64,7 +64,13 @@ public final class PdaApps {
     }
 
     static List<PdaApp> visible() {
-        return VISIBLE;
+        if (!com.wf.wflib.pda.client.theme.PdaThemeState.gamma()) return VISIBLE;
+        HOME.clear();
+        for (PdaApp app : VISIBLE) {
+            String id = app.id().toString();
+            if (!id.equals("wflib:map") && !id.equals("wflib:alerts") && !id.equals("wflib:terminal")) HOME.add(app);
+        }
+        return HOME;
     }
 
     static void refresh(LocalPlayer player) {

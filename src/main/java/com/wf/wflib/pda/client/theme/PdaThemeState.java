@@ -17,8 +17,6 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  */
 public final class PdaThemeState {
     public static final String THEME_PROPERTY = "wflib.pda.theme";
-    /** Boot sequence length, ms; any click skips it. */
-    private static final long BOOT_MS = 1400;
 
     public static final Subject<PdaThemeState> THEME = Subject.register("pda_theme", PdaThemeState.class, PdaThemeState::instance);
     private static final PdaThemeState INSTANCE = new PdaThemeState();
@@ -27,8 +25,6 @@ public final class PdaThemeState {
     static boolean inPda;
     private PdaTheme theme;
     private boolean menu;
-    private boolean wasFocused;
-    private long bootStart = -BOOT_MS;
     private long lastClick;
 
     private PdaThemeState() {
@@ -88,7 +84,6 @@ public final class PdaThemeState {
     public static boolean noise() { return effects() && flag(WFClientConfig.PDA_NOISE, true); }
     public static boolean vignette() { return effects() && flag(WFClientConfig.PDA_VIGNETTE, true); }
     public static boolean sounds() { return flag(WFClientConfig.PDA_SOUNDS, true); }
-    public static boolean boot() { return flag(WFClientConfig.PDA_BOOT, true); }
 
     /** Flips one of the gear-menu switches. */
     static void toggle(ModConfigSpec.BooleanValue value) {
@@ -115,7 +110,6 @@ public final class PdaThemeState {
         write(WFClientConfig.PDA_NOISE, true);
         write(WFClientConfig.PDA_VIGNETTE, true);
         write(WFClientConfig.PDA_SOUNDS, true);
-        write(WFClientConfig.PDA_BOOT, true);
     }
 
     /** Short click for menu and PDA buttons; rate-limited, off when sounds are off. */
@@ -126,29 +120,6 @@ public final class PdaThemeState {
         }
         INSTANCE.lastClick = now;
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1.6f, 0.35f));
-    }
-
-    /**
-     * Watched every frame by the shell: a PDA raised from rest starts the boot sequence once. Reads the focus edge here
-     * so no input code has to change.
-     */
-    public static boolean booting() {
-        boolean focused = PdaClient.focused();
-        PdaThemeState s = INSTANCE;
-        if (focused && !s.wasFocused && boot() && !theme().boot().isEmpty()) {
-            s.bootStart = System.currentTimeMillis();
-        }
-        s.wasFocused = focused;
-        return focused && System.currentTimeMillis() - s.bootStart < BOOT_MS;
-    }
-
-    public static void skipBoot() {
-        INSTANCE.bootStart = -BOOT_MS;
-    }
-
-    /** 0..1 through the boot sequence. */
-    public static float bootProgress() {
-        return Math.clamp((System.currentTimeMillis() - INSTANCE.bootStart) / (float) BOOT_MS, 0f, 1f);
     }
 
     public static void register() {
@@ -162,12 +133,10 @@ public final class PdaThemeState {
         Signals.bool(THEME, "noise", s -> flag(WFClientConfig.PDA_NOISE, true));
         Signals.bool(THEME, "vignette", s -> flag(WFClientConfig.PDA_VIGNETTE, true));
         Signals.bool(THEME, "sounds", s -> sounds());
-        Signals.bool(THEME, "boot", s -> boot());
         for (Token token : Token.values()) {
             Signals.num(THEME, token.signal, s -> PdaTheme.unsigned(token.of(theme())));
         }
         Signals.bool(THEME, "menu", s -> s.menu);
-        Signals.bool(THEME, "booting", s -> booting());
         Signals.text(THEME, "name", 12, s -> theme().name());
         Signals.text(THEME, "v_effects", 4, s -> onOff(effects()));
         Signals.text(THEME, "v_scanlines", 4, s -> onOff(flag(WFClientConfig.PDA_SCANLINES, true)));
@@ -175,7 +144,6 @@ public final class PdaThemeState {
         Signals.text(THEME, "v_noise", 4, s -> onOff(flag(WFClientConfig.PDA_NOISE, true)));
         Signals.text(THEME, "v_vignette", 4, s -> onOff(flag(WFClientConfig.PDA_VIGNETTE, true)));
         Signals.text(THEME, "v_sounds", 4, s -> onOff(sounds()));
-        Signals.text(THEME, "v_boot", 4, s -> onOff(boot()));
     }
 
     private static String onOff(boolean on) {

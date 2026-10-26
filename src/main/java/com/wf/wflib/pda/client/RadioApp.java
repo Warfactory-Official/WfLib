@@ -49,12 +49,12 @@ final class RadioApp implements PdaApp {
         Signals.num(APP, "count", a -> rows().size());
         Signals.items(APP, "rows", a -> rows(), ROW);
         Signals.bool(APP, "chosen", a -> current() != null);
-        Signals.text(APP, "name", 32, a -> current() == null ? "" : current().name());
-        Signals.text(APP, "station", 48, a -> current() == null ? ""
+        Signals.text(APP, "name", PdaShell.TEXT_MAX, a -> current() == null ? "" : current().name());
+        Signals.text(APP, "station", PdaShell.TEXT_MAX, a -> current() == null ? ""
                 : RadioCatalog.name(current().entry().station()).getString().toUpperCase(Locale.ROOT));
-        Signals.text(APP, "stations", 24, a -> RadioCatalog.stations().size() + " STATIONS");
-        Signals.text(ROW, "name", 32, DronesApp.Row::name);
-        Signals.text(ROW, "station", 32, r -> RadioCatalog.name(r.entry().station()).getString()
+        Signals.text(APP, "stations", PdaShell.TEXT_MAX, a -> RadioCatalog.stations().size() + " STATIONS");
+        Signals.text(ROW, "name", PdaShell.TEXT_MAX, DronesApp.Row::name);
+        Signals.text(ROW, "station", PdaShell.TEXT_MAX, r -> RadioCatalog.name(r.entry().station()).getString()
                 .toUpperCase(Locale.ROOT));
         Signals.bool(ROW, "selected", r -> r == current());
         NeoForge.EVENT_BUS.addListener(RadioApp::onTick);
@@ -135,8 +135,8 @@ final class RadioApp implements PdaApp {
         WidgetDef row = new Button(item -> selected = (DronesApp.Row) item, "true",
                 "pda_radio_row.selected ? " + PdaShell.PRESS + " : 0", PdaShell.HOVER, PdaShell.PRESS, "0", 0, 0, 0,
                 0, rowW, 24, Point.TOP_LEFT, new Sized(Float.toString(rowW), "24", Point.TOP_LEFT, false, stack(
-                        at("5", "3", text("{pda_radio_row.name}", PdaShell.TEXT)),
-                        at("5", "13", text("{pda_radio_row.station}", PdaShell.DIM)))));
+                        at("5", "3", PdaShell.fit("{pda_radio_row.name}", PdaShell.TEXT, rowW - 10)),
+                        at("5", "13", PdaShell.fit("{pda_radio_row.station}", PdaShell.DIM, rowW - 10)))));
         float viewX = listW + 16;
         float viewW = PdaShell.APP_WIDTH - viewX - 8;
         String vx = Float.toString(viewX + 6);
@@ -146,13 +146,13 @@ final class RadioApp implements PdaApp {
                 at("12", "26", list("pda_radio.rows", 24, 1, Float.toString(rowW), Float.toString(h - 22),
                         PdaShell.EDGE, row)),
                 when("pda_radio.count == 0", stack(at("14", "34", text("NO LINKED RADIO", PdaShell.DIM)),
-                        at("14", "46", text("LINK A BODY CARRYING ONE", PdaShell.DIM)))),
+                        at("14", "46", PdaShell.wrap("LINK A BODY CARRYING ONE", PdaShell.DIM, listW - 12, 3)))),
                 at(Float.toString(viewX), "8", PdaShell.panel(viewW, h)),
                 at(vx, "13", text("{pda_radio.stations}", PdaShell.DIM)),
                 when("pda_radio.chosen", stack(
-                        at(vx, "30", text("{pda_radio.name}", PdaShell.TEXT)),
+                        at(vx, "30", PdaShell.fit("{pda_radio.name}", PdaShell.TEXT, viewW - 12)),
                         at(vx, "46", button("<", () -> tune(-1))),
-                        at(Float.toString(viewX + 24), "48", text("{pda_radio.station}", PdaShell.ACCENT)),
+                        at(Float.toString(viewX + 24), "48", PdaShell.fit("{pda_radio.station}", PdaShell.ACCENT, viewW - 50)),
                         at(Float.toString(viewX + viewW - 20), "46", button(">", () -> tune(1))),
                         at(vx, "66", button("OFF", () -> tune(0))))));
     }

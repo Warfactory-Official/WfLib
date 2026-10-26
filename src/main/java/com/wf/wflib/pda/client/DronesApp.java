@@ -115,23 +115,23 @@ public final class DronesApp implements PdaApp {
         Signals.items(APP, "rows", a -> ROWS, ROW);
         Signals.num(APP, "feed", a -> feed());
         Signals.bool(APP, "picture", a -> feed() != 0 && CameraFeedCache.drawable(feed()));
-        Signals.text(ROW, "name", 32, Row::name);
-        Signals.text(ROW, "detail", 32, Row::detail);
+        Signals.text(ROW, "name", PdaShell.TEXT_MAX, Row::name);
+        Signals.text(ROW, "detail", PdaShell.TEXT_MAX, Row::detail);
         Signals.bool(ROW, "selected", r -> r == current());
         Signals.bool(ROW, "live", Row::live);
-        Signals.text(SELECTED, "name", 32, Row::name);
-        Signals.text(SELECTED, "status", 24, r -> r.entry().status());
-        Signals.text(SELECTED, "info", 64, Row::info);
-        Signals.text(SELECTED, "task", 96, r -> r.entry().task().isEmpty() ? "" : "TASK " + r.entry().task());
-        Signals.text(SELECTED, "ammo", 128, Row::ammo);
-        Signals.text(SELECTED, "refusal", 64, r -> r.entry().refusal().toUpperCase(Locale.ROOT));
+        Signals.text(SELECTED, "name", PdaShell.TEXT_MAX, Row::name);
+        Signals.text(SELECTED, "status", PdaShell.TEXT_MAX, r -> r.entry().status());
+        Signals.text(SELECTED, "info", PdaShell.TEXT_MAX, Row::info);
+        Signals.text(SELECTED, "task", PdaShell.TEXT_MAX, r -> r.entry().task().isEmpty() ? "" : "TASK " + r.entry().task());
+        Signals.text(SELECTED, "ammo", PdaShell.TEXT_MAX, Row::ammo);
+        Signals.text(SELECTED, "refusal", PdaShell.TEXT_MAX, r -> r.entry().refusal().toUpperCase(Locale.ROOT));
         Signals.bool(SELECTED, "live", Row::live);
         Signals.bool(SELECTED, "low", r -> r.entry().loaded() && r.entry().fuel() < 0.2f);
         Signals.bool(SELECTED, "connectable", Row::connectable);
         Signals.bool(APP, "dispatch", a -> dispatchTab);
         Signals.bool(APP, "routed", a -> !route.isEmpty());
-        Signals.text(APP, "route", 48, a -> route);
-        Signals.text(APP, "target", 48, a -> targetLabel);
+        Signals.text(APP, "route", PdaShell.TEXT_MAX, a -> route);
+        Signals.text(APP, "target", PdaShell.TEXT_MAX, a -> targetLabel);
         Signals.bool(APP, "ready", a -> !route.isEmpty() && OFFERED[kind]);
         for (int i = 0; i < KINDS.length; i++) {
             int k = i;
@@ -367,13 +367,13 @@ public final class DronesApp implements PdaApp {
         WidgetDef row = new Button(DronesApp::select, "true", "pda_drone.selected ? " + PdaShell.PRESS + " : 0",
                 PdaShell.HOVER, PdaShell.PRESS, "0", 0, 0, 0, 0, rowW, 24, Point.TOP_LEFT,
                 new Sized(Float.toString(rowW), "24", Point.TOP_LEFT, false, stack(
-                        at("5", "3", text("{pda_drone.name}", "pda_drone.live ? " + PdaShell.ACCENT + " : "
-                                + PdaShell.TEXT)),
-                        at("5", "13", text("{pda_drone.detail}", PdaShell.DIM)))));
+                        at("5", "3", PdaShell.fit("{pda_drone.name}", "pda_drone.live ? " + PdaShell.ACCENT + " : "
+                                + PdaShell.TEXT, rowW - 10)),
+                        at("5", "13", PdaShell.fit("{pda_drone.detail}", PdaShell.DIM, rowW - 10)))));
         float viewX = listW + 16;
         float viewW = PdaShell.APP_WIDTH - viewX - 8;
         float feedW = viewW - 8;
-        float feedH = (float) Math.floor(feedW * 9 / 16);
+        float feedH = Math.min((float) Math.floor(feedW * 9 / 16), h - 104);
         String fw = Float.toString(feedW);
         String fh = Float.toString(feedH);
         UiDrag pan = new UiDrag() {
@@ -400,28 +400,28 @@ public final class DronesApp implements PdaApp {
         float right = viewX + viewW - 4;
         WidgetDef feedView = stack(
                 when("pda_dronesel.present", place(Float.toString(right - 112), "13", Point.TOP_RIGHT,
-                        text("{pda_dronesel.status}", "pda_dronesel.live ? " + PdaShell.ACCENT + " : "
-                                + PdaShell.DIM))),
+                        PdaShell.fit("{pda_dronesel.status}", "pda_dronesel.live ? " + PdaShell.ACCENT + " : "
+                                + PdaShell.DIM, 34))),
                 at(vx, "24", drag(fw, fh, pan, stack(
                         rect(fw, fh, "#ff101210"),
                         new Feed("pda_drones.feed", fw, fh),
                         when("!pda_drones.picture && pda_dronesel.present", place(Float.toString(feedW / 2),
-                                Float.toString(feedH / 2 - 4), Point.TOP, text("{pda_dronesel.status}",
-                                        PdaShell.DIM)))))),
+                                Float.toString(feedH / 2 - 4), Point.TOP, PdaShell.fit("{pda_dronesel.status}",
+                                        PdaShell.DIM, feedW - 12)))))),
                 when("pda_dronesel.present", stack(
-                        at(vx, Float.toString(infoY), text("{pda_dronesel.info}",
-                                "pda_dronesel.low ? " + PdaShell.ALERT + " : " + PdaShell.TEXT)),
+                        at(vx, Float.toString(infoY), PdaShell.fit("{pda_dronesel.info}",
+                                "pda_dronesel.low ? " + PdaShell.ALERT + " : " + PdaShell.TEXT, viewW - 8)),
                         at(vx, Float.toString(infoY + 11), new Cells(feedW)),
-                        at(vx, Float.toString(infoY + 24), text("{pda_dronesel.task}", PdaShell.DIM)),
-                        at(vx, Float.toString(infoY + 35), text("{pda_dronesel.ammo}", PdaShell.DIM)),
-                        when("!pda_dronesel.connectable", place(Float.toString(right), Float.toString(buttonsY - 12),
-                                Point.TOP_RIGHT, text("{pda_dronesel.refusal}", PdaShell.DIM))))),
+                        at(vx, Float.toString(infoY + 24), PdaShell.fit("{pda_dronesel.task}", PdaShell.DIM, viewW - 8)),
+                        at(vx, Float.toString(infoY + 35), PdaShell.fit("{pda_dronesel.ammo}", PdaShell.DIM, viewW - 8)),
+                        when("!pda_dronesel.connectable", place(Float.toString(right), Float.toString(infoY + 46),
+                                Point.TOP_RIGHT, PdaShell.fit("{pda_dronesel.refusal}", PdaShell.DIM, viewW - 8))))),
                 at(vx, Float.toString(buttonsY), button("CONNECT", "pda_dronesel.present && pda_dronesel.connectable",
                         () -> {
                             act(PdaDrones.Action.CONNECT);
                             PdaClient.lower();
                         })),
-                at(Float.toString(viewX + 66), Float.toString(buttonsY), button("REMOVE", "pda_dronesel.present",
+                at(Float.toString(viewX + 80), Float.toString(buttonsY), button("REMOVE", "pda_dronesel.present",
                         () -> act(PdaDrones.Action.REMOVE))),
                 place(Float.toString(right), Float.toString(buttonsY), Point.TOP_RIGHT, button("FULL",
                         "pda_drones.feed != 0", () -> PdaClient.fullscreen(feed()))));
@@ -433,19 +433,19 @@ public final class DronesApp implements PdaApp {
             kinds[i] = at(Float.toString(kx), "52", new Button(item -> kind = k, "pda_drones.offer_" + id,
                     "pda_drones.kind_" + id + " ? " + PdaShell.PRESS + " : " + PdaShell.PANEL, PdaShell.HOVER,
                     PdaShell.PRESS, PdaShell.EDGE, 1, 0, 3, 2, 42, 0, Point.CENTER,
-                    text(id.toUpperCase(Locale.ROOT), "pda_drones.offer_" + id + " ? " + PdaShell.TEXT + " : "
-                            + PdaShell.DIM)));
+                    new com.wf.wflib.ui.widget.Text(id.toUpperCase(Locale.ROOT), "pda_drones.offer_" + id + " ? " + PdaShell.TEXT + " : "
+                            + PdaShell.DIM, false, "0.8", "36")));
             kx += 45;
         }
         float logY = 104;
         WidgetDef dispatchView = stack(
-                at(vx, "26", when("pda_drones.routed", text("{pda_drones.route}", PdaShell.TEXT),
-                        text("NO AUTONOMOUS DRONE OR PAD", PdaShell.ALERT))),
+                at(vx, "26", when("pda_drones.routed", PdaShell.fit("{pda_drones.route}", PdaShell.TEXT, viewW - 8),
+                        PdaShell.fit("NO AUTONOMOUS DRONE OR PAD", PdaShell.ALERT, viewW - 8))),
                 at(vx, "40", text("MISSION", PdaShell.DIM)),
                 stack(kinds),
                 at(vx, "70", text("TARGET", PdaShell.DIM)),
                 at(vx, "81", small("<", () -> target(-1))),
-                at(Float.toString(viewX + 18), "83", text("{pda_drones.target}", PdaShell.TEXT)),
+                at(Float.toString(viewX + 18), "83", PdaShell.fit("{pda_drones.target}", PdaShell.TEXT, viewW - 48)),
                 place(Float.toString(right), "81", Point.TOP_RIGHT, small(">", () -> target(1))),
                 place(Float.toString(right), "40", Point.TOP_RIGHT, new Button(item -> send(), "pda_drones.ready",
                         PdaShell.PANEL, PdaShell.HOVER, PdaShell.PRESS, PdaShell.EDGE, 1, 0, 8, 2, 0, 0, Point.CENTER,
@@ -456,13 +456,12 @@ public final class DronesApp implements PdaApp {
                 at("14", "13", text("DRONES  {pda_drones.count}", PdaShell.DIM)),
                 at("12", "26", list("pda_drones.rows", 24, 1, Float.toString(rowW), Float.toString(h - 22),
                         PdaShell.EDGE, row)),
-                when("pda_drones.count == 0", stack(at("14", "34", text("NO DRONES LINKED", PdaShell.DIM)),
-                        at("14", "46", text("SNEAK+USE PDA ON ONE", PdaShell.DIM)),
-                        at("14", "58", text("OR DISPATCH FROM A PAD", PdaShell.DIM)))),
+                when("pda_drones.count == 0", stack(at("14", "34", PdaShell.fit("NO DRONES LINKED", PdaShell.DIM, listW - 12)),
+                        at("14", "46", PdaShell.wrap("SNEAK+USE PDA ON ONE\nOR DISPATCH FROM A PAD", PdaShell.DIM, listW - 12, 6)))),
                 at(Float.toString(viewX), "8", PdaShell.panel(viewW, h)),
                 when("pda_dronesel.present",
-                        at(Float.toString(viewX + 6), "13", text("{pda_dronesel.name}", PdaShell.TEXT))),
-                tab("FEED", "!pda_drones.dispatch", () -> dispatchTab = false, right - 54, 10),
+                        at(Float.toString(viewX + 6), "13", PdaShell.fit("{pda_dronesel.name}", PdaShell.TEXT, 72))),
+                tab("FEED", "!pda_drones.dispatch", () -> dispatchTab = false, right - 74, 10),
                 tab("DISPATCH", "pda_drones.dispatch", () -> dispatchTab = true, right, 10),
                 when("pda_drones.dispatch", dispatchView, feedView));
     }
@@ -510,15 +509,17 @@ public final class DronesApp implements PdaApp {
                     Canvas canvas = ev.canvas;
                     float cx = x;
                     for (RemoteBody.Cell cell : row.entry().cells()) {
-                        float cw = canvas.width(cell.label()) + 6;
+                        float cw = Math.min(w, canvas.width(cell.label()) + 6);
                         if (cx + cw > x + w) {
                             break;
                         }
                         canvas.fill(cx, y, cx + cw, y + CELL_H, colour(cell.ratio()));
-                        canvas.text(cell.label(), cx + 3, y + 1, cell.ratio() <= 0 ? 0xFFFFFFFF : 0xFF202020,
-                                false);
+                        PdaText.line(ev, cell.label(), cx + 3, y + 1, cw - 6, cell.ratio() <= 0 ? 0xFFFFFFFF : 0xFF202020);
                         cx += cw + GAP;
                     }
+                    if (ev.input != null && ev.input.over(x, y, x + w, y + CELL_H))
+                        com.wf.wflib.pda.client.theme.PdaPopup.show("SYSTEMS", "", String.join("; ",
+                                row.entry().cells().stream().map(cell -> cell.label() + " " + Math.round(cell.ratio() * 100) + "%").toList()));
                 }
             };
         }

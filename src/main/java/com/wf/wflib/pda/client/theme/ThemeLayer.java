@@ -8,8 +8,7 @@ import com.wf.wflib.ui.Widget;
 import com.wf.wflib.ui.WidgetDef;
 
 /**
- * Last layer of the PDA surface (under the cursor): hazard strip, bezel, scanlines, vignette, noise and the boot
- * sequence. Draws only decoration over fixed rectangles; strengths are capped by {@link PdaTheme}.
+ * Last layer of the PDA surface (under the cursor): hazard strip, bezel, scanlines, vignette and noise. Draws only decoration over fixed rectangles; strengths are capped by {@link PdaTheme}.
  */
 public record ThemeLayer() implements WidgetDef {
     private static final float W = PdaShell.WIDTH;
@@ -47,9 +46,6 @@ public record ThemeLayer() implements WidgetDef {
                     if (t.bezel() != 0) {
                         bezel(c, t);
                     }
-                }
-                if (PdaThemeState.booting()) {
-                    boot(c, t);
                 }
             }
         };
@@ -128,18 +124,4 @@ public record ThemeLayer() implements WidgetDef {
         }
     }
 
-    private static void boot(Canvas c, PdaTheme t) {
-        c.fill(0, 0, W, H, t.bar());
-        float p = PdaThemeState.bootProgress();
-        int shown = (int) Math.ceil(p * 1.15f * t.boot().size());
-        for (int i = 0; i < Math.min(shown, t.boot().size()); i++) {
-            String line = t.boot().get(i);
-            if (i == shown - 1 && p < 0.97f) {
-                line = line.substring(0, Math.max(1, (int) (line.length() * ((p * 1.15f * t.boot().size()) % 1f + 0.2f)) % (line.length() + 1)));
-            }
-            boolean head = i == 0 || i == t.boot().size() - 1;
-            c.text(line, 24, 40 + i * 14, head ? t.accent() : t.text(), false);
-        }
-        c.fill(24, H - 40, 24 + (W - 48) * p, H - 38, t.accent());
-    }
 }

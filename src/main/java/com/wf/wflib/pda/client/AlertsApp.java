@@ -83,7 +83,7 @@ final class AlertsApp implements PdaApp {
                         return;
                     }
                     float tx = ev.canvas.text(e.clock(), x + 2, y + 2, 0xFF8D9488, false);
-                    ev.canvas.text(e.text(), tx + 6, y + 2, PdaAlerts.colour(e.tier()), false);
+                    PdaText.line(ev, e.text(), tx + 6, y + 2, x + w - tx - 6, PdaAlerts.colour(e.tier()));
                 }
             };
         }

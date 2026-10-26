@@ -55,13 +55,13 @@ public final class CamerasApp implements PdaApp {
         Signals.num(APP, "feed", a -> current());
         Signals.bool(APP, "picture", a -> current() != 0 && CameraFeedCache.drawable(current()));
         Signals.num(APP, "zoom", a -> CameraLink.zoom());
-        Signals.text(APP, "mode", 12, a -> CameraLink.mode().name());
+        Signals.text(APP, "mode", PdaShell.TEXT_MAX, a -> CameraLink.mode().name());
         Signals.num(APP, "link", a -> feedValue(current(), true));
         Signals.num(APP, "battery", a -> feedValue(current(), false));
         Signals.bool(CHANNEL, "selected", id -> selected >= 0 && selected < CHANNELS.size()
                 && CHANNELS.get(selected).equals(id));
         Signals.bool(CHANNEL, "live", id -> id != 0 && CameraFeedCache.live(id));
-        Signals.text(CHANNEL, "kind", 8, CamerasApp::kind);
+        Signals.text(CHANNEL, "kind", PdaShell.TEXT_MAX, CamerasApp::kind);
         PdaApps.register(instance);
     }
 
@@ -184,14 +184,14 @@ public final class CamerasApp implements PdaApp {
         float buttonsY = 24 + feedH + 8;
         return stack(
                 at("8", "8", PdaShell.panel(listW, h)),
-                at("14", "13", text("CHANNELS  {pda_cams.count}", PdaShell.DIM)),
+                at("14", "13", PdaShell.fit("CHANNELS  {pda_cams.count}", PdaShell.DIM, listW - 12)),
                 at("12", "28", list("pda_cams.channels", 20, 1, Float.toString(rowW), Float.toString(h - 24),
                         PdaShell.EDGE, row)),
                 when("pda_cams.count == 0", stack(at("14", "34", text("NO CAMERAS", PdaShell.DIM)),
-                        at("14", "46", text("SNEAK+USE A MONITOR", PdaShell.DIM)))),
+                        at("14", "46", PdaShell.wrap("SNEAK+USE A MONITOR", PdaShell.DIM, listW - 12, 3)))),
                 at(Float.toString(viewX), "8", PdaShell.panel(viewW, h)),
-                at(Float.toString(viewX + 6), "13", text("{pda_cams.mode}  x{pda_cams.zoom|.1}  LINK {pda_cams.link}%"
-                        + "  BAT {pda_cams.battery}%", PdaShell.DIM)),
+                at(Float.toString(viewX + 6), "13", PdaShell.fit("{pda_cams.mode}  x{pda_cams.zoom|.1}  LINK {pda_cams.link}%"
+                        + "  BAT {pda_cams.battery}%", PdaShell.DIM, viewW - 12)),
                 at(Float.toString(viewX + 4), "24", drag(fw, fh, pan, stack(
                         rect(fw, fh, "#ff101210"),
                         new Feed("pda_cams.feed", fw, fh),
@@ -200,7 +200,7 @@ public final class CamerasApp implements PdaApp {
                 at(Float.toString(viewX + 4), Float.toString(buttonsY), new Button(item -> CameraLink.cycleMode(),
                         "pda_cams.feed != 0", PdaShell.PANEL, PdaShell.HOVER, PdaShell.PRESS, PdaShell.EDGE, 1, 0, 8,
                         4, 0, 0, Point.CENTER, text("MODE", PdaShell.TEXT))),
-                at(Float.toString(viewX + 60), Float.toString(buttonsY), new Button(
+                at(Float.toString(viewX + 74), Float.toString(buttonsY), new Button(
                         item -> CameraLink.pan(-CameraLink.yaw(), -CameraLink.pitch()), "pda_cams.feed != 0",
                         PdaShell.PANEL, PdaShell.HOVER, PdaShell.PRESS, PdaShell.EDGE, 1, 0, 8, 4, 0, 0, Point.CENTER,
                         text("CENTRE", PdaShell.TEXT))),

@@ -79,8 +79,8 @@ public final class TelemetryApp implements PdaApp {
         Signals.bool(ROW, "all", r -> r == ALL);
         Signals.num(ROW, "events", r -> ENTRIES.size());
         Signals.bool(SELECTED, "all", r -> r == ALL);
-        Signals.text(SELECTED, "kind", 8, Row::kind);
-        Signals.text(SELECTED, "fix", 48, Row::fix);
+        Signals.text(SELECTED, "kind", PdaShell.TEXT_MAX, Row::kind);
+        Signals.text(SELECTED, "fix", PdaShell.TEXT_MAX, Row::fix);
         Signals.num(SELECTED, "bearing", r -> bearing(TelemetryClient.track(r.id())));
         Signals.num(SELECTED, "alt", r -> {
             Track t = TelemetryClient.track(r.id());
@@ -101,8 +101,8 @@ public final class TelemetryApp implements PdaApp {
     }
 
     private static void row(Subject<Row> subject) {
-        Signals.text(subject, "callsign", 32, Row::callsign);
-        Signals.text(subject, "last", 40, Row::last);
+        Signals.text(subject, "callsign", PdaShell.TEXT_MAX, Row::callsign);
+        Signals.text(subject, "last", PdaShell.TEXT_MAX, Row::last);
         Signals.bool(subject, "own", Row::own);
         Signals.bool(subject, "live", r -> live(TelemetryClient.track(r.id())));
         Signals.num(subject, "range", r -> distance(TelemetryClient.track(r.id())));
@@ -275,10 +275,10 @@ public final class TelemetryApp implements PdaApp {
         WidgetDef row = new Button(TelemetryApp::select, "true", "pda_track.selected ? " + PdaShell.PRESS + " : 0",
                 PdaShell.HOVER, PdaShell.PRESS, "0", 0, 0, 0, 0, rowW, 22, Point.TOP_LEFT,
                 new Sized(Float.toString(rowW), "22", Point.TOP_LEFT, false, stack(
-                        at("4", "3", text("{pda_track.callsign}", colour)),
-                        at("4", "12", when("pda_track.all", text("{pda_track.events} EVENTS", PdaShell.DIM),
-                                when("pda_track.live", text("LIVE  {pda_track.range} m", PdaShell.ACCENT),
-                                        text("{pda_track.last}", PdaShell.DIM)))))));
+                        at("4", "3", PdaShell.fit("{pda_track.callsign}", colour, rowW - 8)),
+                        at("4", "12", when("pda_track.all", PdaShell.fit("{pda_track.events} EVENTS", PdaShell.DIM, rowW - 8),
+                                when("pda_track.live", PdaShell.fit("LIVE  {pda_track.range} m", PdaShell.ACCENT, rowW - 8),
+                                        PdaShell.fit("{pda_track.last}", PdaShell.DIM, rowW - 8)))))));
         float viewX = listW + 16;
         float viewW = PdaShell.APP_WIDTH - viewX - 8;
         float bodyY = 38;
@@ -289,12 +289,12 @@ public final class TelemetryApp implements PdaApp {
                 at("12", "25", list("pda_telemetry.rows", 22, 1, Float.toString(rowW), Float.toString(h - 21),
                         PdaShell.EDGE, row)),
                 at(Float.toString(viewX), "8", PdaShell.panel(viewW, h)),
-                at(vx, "13", text("{pda_tsel.callsign}  {pda_tsel.kind}", "pda_tsel.own ? " + PdaShell.ACCENT
-                        + " : " + PdaShell.TEXT)),
-                at(vx, "25", when("pda_tsel.all", text("DATALINK EVENTS, OWN SIDE + ALLIES", PdaShell.DIM),
-                        when("pda_tsel.live", text("RNG {pda_tsel.range} m  BRG {pda_tsel.bearing|03}  ALT "
-                                        + "{pda_tsel.alt}  HDG {pda_tsel.heading|03}", PdaShell.TEXT),
-                                text("{pda_tsel.fix}", PdaShell.DIM)))),
+                at(vx, "13", PdaShell.fit("{pda_tsel.callsign}  {pda_tsel.kind}", "pda_tsel.own ? " + PdaShell.ACCENT
+                        + " : " + PdaShell.TEXT, viewW - 8)),
+                at(vx, "25", when("pda_tsel.all", PdaShell.fit("DATALINK EVENTS, OWN SIDE + ALLIES", PdaShell.DIM, viewW - 8),
+                        when("pda_tsel.live", PdaShell.fit("RNG {pda_tsel.range} m  BRG {pda_tsel.bearing|03}  ALT "
+                                        + "{pda_tsel.alt}  HDG {pda_tsel.heading|03}", PdaShell.TEXT, viewW - 8),
+                                PdaShell.fit("{pda_tsel.fix}", PdaShell.DIM, viewW - 8)))),
                 at(vx, Float.toString(bodyY), new PdaLog(LINES, viewW - 8, h - bodyY + 4)));
     }
 }

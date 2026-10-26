@@ -40,6 +40,7 @@ import static com.wf.wflib.ui.Ui.when;
  */
 public final class PdaShell {
     public static final float WIDTH = 384;
+    public static final int TEXT_MAX = 1200;
     public static final float HEIGHT = 240;
     public static final float BAR = 18;
     public static final float APP_WIDTH = WIDTH;
@@ -82,17 +83,26 @@ public final class PdaShell {
 
     static void register() {
         PdaThemeState.register();
-        Signals.text(PDA, "title", 32, s -> PdaClient.app() == null ? "PDA" : title(PdaClient.app()));
+        Signals.text(PDA, "title", TEXT_MAX, s -> PdaClient.app() == null ? "PDA" : title(PdaClient.app()));
         Signals.bool(PDA, "home", s -> PdaClient.app() == null);
         Signals.bool(PDA, "focused", s -> PdaClient.focused());
         Signals.items(PDA, "apps", s -> PdaApps.visible(), APP);
-        Signals.text(APP, "title", 24, PdaShell::title);
+        Signals.text(APP, "title", TEXT_MAX, PdaShell::title);
         Signals.num(APP, "badge", PdaApp::badge);
     }
 
     /** App panel: {@link #PANEL} fill, 1-unit {@link #EDGE} border. */
     public static WidgetDef panel(float w, float h) {
         return new Box(PANEL, EDGE, 1, 0, 0, 0, w, h, Point.TOP_LEFT, null);
+    }
+
+    /** Bound native app labels to their actual column; full text stays available on hover. */
+    public static WidgetDef fit(String value, String colour, float w) {
+        return new com.wf.wflib.ui.widget.Text(value, colour, false, "1", Float.toString(Math.max(1, w)));
+    }
+
+    public static WidgetDef wrap(String value, String colour, float w, int lines) {
+        return new com.wf.wflib.pda.client.theme.PdaControls.Paragraph(value, w, lines, "DETAILS", "", colour);
     }
 
     private static String title(PdaApp app) {
@@ -123,8 +133,6 @@ public final class PdaShell {
                     com.wf.wflib.pda.client.theme.PdaPopup.layer(),
                     ThemeMenu.panel(),
                     ThemeMenu.gear(),
-                    when("pda_theme.booting", new Button(item -> PdaThemeState.skipBoot(), "true", "0", "0", "0", "0", 0, 0, 0, 0,
-                            WIDTH, HEIGHT, Point.TOP_LEFT, null)),
                     new ThemeLayer(),
                     new Cursor())), 0);
         }
@@ -138,7 +146,7 @@ public final class PdaShell {
         float h = (float) Math.floor((APP_HEIGHT - margin * 2 - gap * 2) / 3);
         WidgetDef tile = new Button(item -> PdaClient.open((PdaApp) item), "true", PANEL, HOVER, PRESS, EDGE, 1, 0,
                 0, 0, w, h, Point.TOP_LEFT, new Sized(Float.toString(w), Float.toString(h), Point.TOP_LEFT, false, stack(
-                place(Float.toString(w / 2), Float.toString(h / 2 - 4), Point.TOP, text("{pda_app.title}", TEXT)),
+                place(Float.toString(w / 2), Float.toString(h / 2 - 4), Point.TOP, fit("{pda_app.title}", TEXT, w - 10)),
                 when("pda_app.badge > 0", place(Float.toString(w - 5), "5", Point.TOP_RIGHT,
                         text("{pda_app.badge}", ALERT))))));
         return at(Float.toString(margin), Float.toString(margin), grid("pda.apps", 4, gap, tile));

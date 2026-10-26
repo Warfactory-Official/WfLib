@@ -77,7 +77,7 @@ public final class ThemeMenu {
                 at(Float.toString(PANEL_X + PANEL_W - 104), Float.toString(PANEL_Y + 18),
                         button(item -> PdaThemeState.select(PdaThemes.step(PdaThemeState.theme().id(), -1)), 14, 12, text("<", ACC))),
                 at(Float.toString(PANEL_X + PANEL_W - 88), Float.toString(PANEL_Y + 18),
-                        button(item -> PdaThemeState.select(PdaThemes.step(PdaThemeState.theme().id(), 1)), 80, 12,
+                        button(item -> PdaThemeState.select(PdaThemes.step(PdaThemeState.theme().id(), 1)), 64, 12,
                                 text("{pda_theme.name}", ACC))),
                 at(Float.toString(PANEL_X + PANEL_W - 22), Float.toString(PANEL_Y + 18),
                         button(item -> PdaThemeState.select(PdaThemes.step(PdaThemeState.theme().id(), 1)), 14, 12, text(">", ACC))),
@@ -87,10 +87,9 @@ public final class ThemeMenu {
                 toggle(PANEL_Y + 18 + 4 * ROW, "  NOISE", "v_noise", WFClientConfig.PDA_NOISE),
                 toggle(PANEL_Y + 18 + 5 * ROW, "  VIGNETTE", "v_vignette", WFClientConfig.PDA_VIGNETTE),
                 toggle(PANEL_Y + 18 + 6 * ROW, "SOUNDS", "v_sounds", WFClientConfig.PDA_SOUNDS),
-                toggle(PANEL_Y + 18 + 7 * ROW, "BOOT ANIMATION", "v_boot", WFClientConfig.PDA_BOOT),
-                at(Float.toString(PANEL_X + 8), Float.toString(PANEL_Y + 18 + 8 * ROW + 4),
+                at(Float.toString(PANEL_X + 8), Float.toString(PANEL_Y + 18 + 7 * ROW + 4),
                         button(item -> PdaThemeState.reset(), 60, 12, text("RESET", T))),
-                at(Float.toString(PANEL_X + PANEL_W - 68), Float.toString(PANEL_Y + 18 + 8 * ROW + 4),
+                at(Float.toString(PANEL_X + PANEL_W - 68), Float.toString(PANEL_Y + 18 + 7 * ROW + 4),
                         button(close, 60, 12, text("CLOSE", T)))));
     }
 

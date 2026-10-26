@@ -193,20 +193,20 @@ public final class RadarApp implements PdaApp {
         float plotW = PdaShell.APP_WIDTH - plotX - 8;
         return stack(
                 at("8", "8", PdaShell.panel(listW, h)),
-                at("14", "13", text("{pda_radar.status}", "pda_radar.live ? " + PdaShell.ACCENT + " : "
-                        + PdaShell.ALERT)),
+                at("14", "13", PdaShell.fit("{pda_radar.status}", "pda_radar.live ? " + PdaShell.ACCENT + " : "
+                        + PdaShell.ALERT, listW - 12)),
                 at("14", "26", text("CONTACTS  {pda_radar.count}", PdaShell.DIM)),
                 at("12", "40", list("pda_radar.contacts", 20, 1, Float.toString(rowW), Float.toString(h - 36),
                         PdaShell.EDGE, row)),
                 at(Float.toString(plotX), "8", PdaShell.panel(plotW, h)),
-                at(Float.toString(plotX + 6), "13", text("NORTH UP  {pda_radar.range}m", PdaShell.DIM)),
+                at(Float.toString(plotX + 6), "13", PdaShell.fit("NORTH UP  {pda_radar.range}m", PdaShell.DIM, plotW - 60)),
                 at(Float.toString(plotX + plotW - 50), "10", zoom),
                 at(Float.toString(plotX), "26", new Scope(plotW, h - 62)),
                 at(Float.toString(plotX + 8), Float.toString(h - 30), when("pda_csel.present", stack(
-                        text("{pda_csel.iff|upper} {pda_csel.kind}  x{pda_csel.count}  [{pda_csel.bands}]",
-                                iffColor("pda_csel")),
-                        at("0", "12", text("RNG {pda_csel.range}m  BRG {pda_csel.bearing|03}  ALT {pda_csel.alt}  "
-                                + "{pda_csel.quality}", PdaShell.TEXT))),
+                        PdaShell.fit("{pda_csel.iff|upper} {pda_csel.kind}  x{pda_csel.count}  [{pda_csel.bands}]",
+                                iffColor("pda_csel"), plotW - 16),
+                        at("0", "12", PdaShell.fit("RNG {pda_csel.range}m  BRG {pda_csel.bearing|03}  ALT {pda_csel.alt}  "
+                                + "{pda_csel.quality}", PdaShell.TEXT, plotW - 16))),
                         text("SELECT A CONTACT", PdaShell.DIM))));
     }
 

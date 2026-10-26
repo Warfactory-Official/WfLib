@@ -97,16 +97,16 @@ public final class SatellitesApp implements PdaApp {
         Signals.items(APP, "rows", a -> ROWS, ROW);
         Signals.bool(APP, "uplink", a -> link != Uplink.Link.NONE);
         Signals.bool(APP, "imagery", a -> imagery);
-        Signals.text(APP, "mode", 12, a -> mode.name());
+        Signals.text(APP, "mode", PdaShell.TEXT_MAX, a -> mode.name());
         Signals.num(APP, "scale", a -> SCALES[scale]);
-        Signals.text(ROW, "callsign", 32, r -> r.sat().callsign());
-        Signals.text(ROW, "sub", 40, Row::sub);
+        Signals.text(ROW, "callsign", PdaShell.TEXT_MAX, r -> r.sat().callsign());
+        Signals.text(ROW, "sub", PdaShell.TEXT_MAX, Row::sub);
         Signals.bool(ROW, "contact", r -> r.sat().contact());
         Signals.bool(ROW, "selected", r -> r.sat().id() == selectedId);
-        Signals.text(SELECTED, "callsign", 32, r -> r.sat().callsign());
-        Signals.text(SELECTED, "payload", 24, Row::payload);
-        Signals.text(SELECTED, "info", 64, Row::info);
-        Signals.text(SELECTED, "pass", 64, Row::pass);
+        Signals.text(SELECTED, "callsign", PdaShell.TEXT_MAX, r -> r.sat().callsign());
+        Signals.text(SELECTED, "payload", PdaShell.TEXT_MAX, Row::payload);
+        Signals.text(SELECTED, "info", PdaShell.TEXT_MAX, Row::info);
+        Signals.text(SELECTED, "pass", PdaShell.TEXT_MAX, Row::pass);
         Signals.bool(SELECTED, "threat", r -> r.sat().threat() >= 0);
         log("SATELLITE CONSOLE. TYPE 'help'.", DIM);
         PdaApps.register(instance);
@@ -330,9 +330,9 @@ public final class SatellitesApp implements PdaApp {
         WidgetDef row = new Button(item -> selectedId = ((Row) item).sat().id(), "true",
                 "pda_sat.selected ? " + PdaShell.PRESS + " : 0", PdaShell.HOVER, PdaShell.PRESS, "0", 0, 0, 0, 0,
                 rowW, 22, Point.TOP_LEFT, new Sized(Float.toString(rowW), "22", Point.TOP_LEFT, false, stack(
-                at("4", "3", text("{pda_sat.callsign}", "pda_sat.contact ? " + PdaShell.ACCENT + " : "
-                        + PdaShell.TEXT)),
-                at("4", "12", text("{pda_sat.sub}", PdaShell.DIM)))));
+                at("4", "3", PdaShell.fit("{pda_sat.callsign}", "pda_sat.contact ? " + PdaShell.ACCENT + " : "
+                        + PdaShell.TEXT, rowW - 8)),
+                at("4", "12", PdaShell.fit("{pda_sat.sub}", PdaShell.DIM, rowW - 8)))));
         float viewX = listW + 16;
         float viewW = PdaShell.APP_WIDTH - viewX - 8;
         float innerW = viewW - 8;
@@ -348,23 +348,23 @@ public final class SatellitesApp implements PdaApp {
                         when("pda_sats.count == 0", at("13", "31", text("NO SATELLITES", PdaShell.DIM)))),
                 at(Float.toString(viewX), "8", PdaShell.panel(viewW, h)),
                 when("pda_satsel.present", stack(
-                        at(vx, "13", text("{pda_satsel.callsign}  {pda_satsel.payload}", PdaShell.TEXT)),
-                        at(vx, "25", text("{pda_satsel.info}", PdaShell.DIM)),
-                        at(vx, "36", text("{pda_satsel.pass}", "pda_satsel.threat ? " + PdaShell.ALERT + " : "
-                                + PdaShell.DIM)))),
-                tab("CONSOLE", "!pda_sats.imagery", () -> imagery = false, viewX + viewW - 58, 10),
+                        at(vx, "13", PdaShell.fit("{pda_satsel.callsign}  {pda_satsel.payload}", PdaShell.TEXT, innerW - 148)),
+                        at(vx, "25", PdaShell.fit("{pda_satsel.info}", PdaShell.DIM, innerW)),
+                        at(vx, "36", PdaShell.fit("{pda_satsel.pass}", "pda_satsel.threat ? " + PdaShell.ALERT + " : "
+                                + PdaShell.DIM, innerW)))),
+                tab("CONSOLE", "!pda_sats.imagery", () -> imagery = false, viewX + viewW - 78, 10),
                 tab("IMAGERY", "pda_sats.imagery", () -> imagery = true, viewX + viewW - 4, 10),
                 when("pda_sats.imagery",
                         stack(at(vx, Float.toString(bodyY), new Survey(innerW, bodyH - 4)),
-                                at(vx, Float.toString(bodyY + 2), text("{pda_sats.mode}  {pda_sats.scale} m/u",
-                                        PdaShell.TEXT)),
-                                small("SPOT", () -> requestSpot(new String[]{"spot"}), viewX + viewW - 46, bodyY + 2),
-                                small("-", () -> scale = Math.min(SCALES.length - 1, scale + 1), viewX + viewW - 32,
-                                        bodyY + 2),
-                                small("+", () -> scale = Math.max(0, scale - 1), viewX + viewW - 18, bodyY + 2),
-                                small("M", () -> mode = SurveyCache.Mode.values()[
-                                        (mode.ordinal() + 1) % SurveyCache.Mode.values().length],
-                                        viewX + viewW - 4, bodyY + 2)),
+                                at(vx, Float.toString(bodyY + 2), PdaShell.fit("{pda_sats.mode}  {pda_sats.scale} m/u",
+                                        PdaShell.TEXT, innerW - 110)),
+                                place(Float.toString(viewX + viewW - 4), Float.toString(bodyY + 2), Point.TOP_RIGHT,
+                                        com.wf.wflib.ui.Ui.row(3,
+                                                small("SPOT", () -> requestSpot(new String[]{"spot"})),
+                                                small("-", () -> scale = Math.min(SCALES.length - 1, scale + 1)),
+                                                small("+", () -> scale = Math.max(0, scale - 1)),
+                                                small("M", () -> mode = SurveyCache.Mode.values()[
+                                                        (mode.ordinal() + 1) % SurveyCache.Mode.values().length])))),
                         stack(at(vx, Float.toString(bodyY), new PdaLog(LOG, innerW, bodyH - 20)),
                                 at(vx, Float.toString(bodyY + bodyH - 16), new TextField(INPUT, "> ", innerW, 13,
                                         0xFF101210, 0xFF787F76, 0xFFA9D46C, TEXT, ACCENT)))));
@@ -376,9 +376,9 @@ public final class SatellitesApp implements PdaApp {
                 PdaShell.EDGE, 1, 0, 4, 1, 0, 0, Point.TOP_RIGHT, text(label, PdaShell.TEXT)));
     }
 
-    private static WidgetDef small(String label, Runnable action, float right, float y) {
-        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> action.run(), "true", PdaShell.PANEL, PdaShell.HOVER,
-                PdaShell.PRESS, PdaShell.EDGE, 1, 0, 3, 1, 0, 0, Point.TOP_RIGHT, text(label, PdaShell.TEXT)));
+    private static WidgetDef small(String label, Runnable action) {
+        return new Button(item -> action.run(), "true", PdaShell.PANEL, PdaShell.HOVER,
+                PdaShell.PRESS, PdaShell.EDGE, 1, 0, 3, 1, 0, 0, Point.CENTER, text(label, PdaShell.TEXT));
     }
 
     /** Survey tiles around the player, north up, {@link #SCALES} blocks per unit. */

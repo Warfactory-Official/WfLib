@@ -73,6 +73,8 @@ public final class WikiApp implements PdaApp {
     private static Article laidOut;
     private static float laidOutWidth;
     private static int laidOutFont;
+    private static int rowsFont = -1;
+    private static float rowsWidth = -1;
     private static ArticleLayout.Page page;
 
     private WikiApp() {
@@ -274,6 +276,9 @@ public final class WikiApp implements PdaApp {
             }
             boolean bar = content > lh;
             float rowW = bar ? inner - BAR - 1 : inner;
+            if (rowsFont != canvas.fontVersion() || rowsWidth != rowW) {
+                ROWS.clear(); rowsFont = canvas.fontVersion(); rowsWidth = rowW;
+            }
             for (int i = (int) (listScroll / stride); i < count; i++) {
                 float ry = ly + i * stride - listScroll;
                 if (ry >= ly + lh) {
@@ -290,6 +295,9 @@ public final class WikiApp implements PdaApp {
                 }
                 canvas.text(row.title, left + 24, ry + 3, ACCENT, false);
                 canvas.text(row.summary, left + 24, ry + 12, DIM, false);
+                if ((!row.title.equals(a.title()) || !row.summary.equals(a.summary())) && input != null
+                        && input.over(left + 24, ry, left + rowW, ry + ROW))
+                    com.wf.wflib.pda.client.theme.PdaPopup.show("ARTICLE", "", a.title() + "\n" + a.summary());
                 if (input != null) {
                     input.hit(left, ry, left + rowW, ry + ROW, RESULT, a);
                 }
@@ -328,7 +336,7 @@ public final class WikiApp implements PdaApp {
             bx += button(ev, bx, top, 16, "<", BACK_BUTTON, canBack) + 3;
             bx += button(ev, bx, top, 44, "INDEX", INDEX_BUTTON, true) + 6;
             canvas.pushClip(bx, top, left + inner, top + FIELD);
-            canvas.text(current.title(), bx, top + 3, ACCENT, false);
+            com.wf.wflib.pda.client.PdaText.line(ev, current.title(), bx, top + 3, left + inner - bx, ACCENT);
             canvas.popClip();
 
             float by = top + FIELD + 4;

@@ -86,7 +86,6 @@ public final class PdaRenderer {
     private static final Vector3f[] GRIPS = {new Vector3f(), new Vector3f()};
 
     private static ModelCache.Handle<GemRenderGltfModel> handle;
-    private static ModelCache.Handle<GemRenderGltfModel> gammaHandle;
     private static GemRenderGltfModel gripsOf;
     private static GemRenderItemRenderer itemRenderer;
     private static ResourceLocation surface;
@@ -108,10 +107,6 @@ public final class PdaRenderer {
 
     @Nullable
     static GemRenderGltfModel model() {
-        if (com.wf.wflib.pda.client.theme.PdaThemeState.gamma()) {
-            if (gammaHandle == null) gammaHandle = GemRenderModels.handle(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/pda/pda_gamma.glb"));
-            return gammaHandle.get();
-        }
         if (handle == null) {
             handle = GemRenderModels.handle(MODEL);
         }
