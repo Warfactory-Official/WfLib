@@ -54,7 +54,6 @@ public final class PdaControls {
             var buffer = new com.wf.gemrender.ui.TextBuffer(template.capacity());
             return new Widget() {
                 String full = ""; List<String> lines = List.of();
-                final Interactive tip = new Interactive() { };
                 public void measure(UiEval ev) {
                     template.write(ev, buffer); full = buffer.toString();
                     lines = wrap(ev.canvas, full, w, maxLines); width = w; height = lines.size() * ev.canvas.lineHeight();
@@ -62,8 +61,7 @@ public final class PdaControls {
                 public void draw(UiEval ev, float x, float y, float bw, float bh) {
                     for (int i = 0; i < lines.size(); i++) ev.canvas.text(lines.get(i), x, y + i * ev.canvas.lineHeight(), PdaThemeState.Token.TEXT.argb(), false);
                     if (ev.input != null) {
-                        ev.input.hit(x, y, x + width, y + height, tip, null);
-                        if (ev.input.hovered(tip, null)) PdaPopup.show(title, stamp, full);
+                        if (ev.input.over(x, y, x + width, y + height)) PdaPopup.show(title, stamp, full);
                     }
                 }
             };

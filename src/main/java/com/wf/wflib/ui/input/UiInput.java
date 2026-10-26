@@ -251,6 +251,19 @@ public final class UiInput {
         return this;
     }
 
+    /** Observe a local rectangle through the current transform/clip without taking clicks from its parent. */
+    public boolean over(float x0, float y0, float x1, float y1) {
+        int k = clipDepth * 4;
+        if (!(px >= clips[k] && px < clips[k + 2] && py >= clips[k + 1] && py < clips[k + 3])) return false;
+        int m = affineDepth * 6;
+        float a = affine[m], b = affine[m + 1], c = affine[m + 2], d = affine[m + 3];
+        float det = a * d - b * c;
+        if (det == 0) return false;
+        float dx = px - affine[m + 4], dy = py - affine[m + 5];
+        float x = (d * dx - c * dy) / det, y = (a * dy - b * dx) / det;
+        return x >= x0 && x < x1 && y >= y0 && y < y1;
+    }
+
     /**
      * Records {@code owner}'s box (local units) under the current transform and clip; callbacks receive
      * coordinates relative to its top-left in the same local units.

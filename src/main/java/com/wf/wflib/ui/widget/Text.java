@@ -88,8 +88,7 @@ public record Text(String text, String color, boolean shadow, String scale, Stri
                 Canvas canvas = ev.canvas;
                 if (PdaSkin.active() && !raw.contentEquals(buffer) && ev.input != null) {
                     // The label remains part of its parent button's hit rectangle.
-                    if (ev.input.pointerX() >= x && ev.input.pointerX() <= x + width
-                            && ev.input.pointerY() >= y && ev.input.pointerY() <= y + height)
+                    if (ev.input.over(x, y, x + width, y + height))
                         PdaPopup.show("DETAILS", "", raw.toString());
                 }
                 if (s == 1) {

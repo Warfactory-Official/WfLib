@@ -46,6 +46,25 @@ class UiInputTest {
     }
 
     @Test
+    void disclosureObservationRespectsClipAndTransformWithoutTakingParentClicks() {
+        UiInput input = new UiInput();
+        Probe parent = new Probe();
+        Runnable draw = () -> {
+            input.push().translate(100, 50).scale(2);
+            input.pushClip(0, 0, 10, 10);
+            assertTrue(input.over(0, 0, 10, 10));
+            assertFalse(input.over(0, 0, 6, 10));
+            input.hit(0, 0, 10, 10, parent, "parent");
+            input.pushClip(0, 0, 6, 10);
+            assertFalse(input.over(0, 0, 10, 10));
+            input.popClip(); input.popClip(); input.pop();
+        };
+        input.pointer(114, 58, 0); frame(input, draw);
+        input.pointer(114, 58, UiInput.PRIMARY); frame(input, draw);
+        assertEquals(List.of("press parent 7,4"), parent.log);
+    }
+
+    @Test
     void nestedTransformMapsToLocal() {
         UiInput input = new UiInput();
         Probe probe = new Probe();

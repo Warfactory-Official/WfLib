@@ -6,6 +6,10 @@ import java.util.List;
 /** Common translucent disclosure popup for WFLib and external PDA pages. Caller supplies measured, fitted lines. */
 public final class PdaPopup {
     public static final float HEADER = 14;
+    private static final boolean AUDIT = Boolean.getBoolean("wflib.pda.popupAudit");
+    private static java.util.Map<String, Object> lastDisclosure = java.util.Map.of();
+    public static java.util.Map<String, Object> disclosure() { return lastDisclosure; }
+    public static void clearDisclosure() { lastDisclosure = java.util.Map.of(); }
     private static String pendingTitle, pendingStamp, pendingBody;
     private PdaPopup() { }
     public static void show(String title, String stamp, String body) {
@@ -25,6 +29,8 @@ public final class PdaPopup {
                 float px = Math.clamp(com.wf.wflib.pda.client.PdaClient.cursorX() + 8, 4, 380 - width);
                 float py = Math.clamp(com.wf.wflib.pda.client.PdaClient.cursorY() + 12, 20, 236 - height);
                 PdaPopup.draw(c, px, py, width, height, title, stamp, lines);
+                if (AUDIT) lastDisclosure = java.util.Map.of("source", body, "lines", java.util.List.copyOf(lines),
+                        "x", px, "y", py, "width", width, "height", height);
             }
         };
     }
