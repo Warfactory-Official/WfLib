@@ -49,6 +49,8 @@ public final class PlayerArms {
     /** {@code player_arms.glb} shoulder / elbow section (MA {@code malib/arms.py} PROFILE) / vanilla 4 px. */
     private static final float UPPER_ACROSS = 0.12F / (4 / 16F), FOREARM_ACROSS = 0.105F / (4 / 16F);
     private static final String RING = ".ahf_ring", BENT = ".ahf_bent";
+    /** {@code player_arms.glb} forearm section, m (MA {@code malib/arms.py} PROFILE): elbow square, fist width x depth. */
+    private static final float ELBOW_WIDTH = 0.105F, FIST_WIDTH = 0.085F, FIST_DEPTH = 0.090F;
     /** Forearm twist segments: joints lower, twist1..{@code TWISTS - 1}, fist. */
     public static final int TWISTS = 6;
 
@@ -176,6 +178,14 @@ public final class PlayerArms {
         }
         palette(0, covered[0]);
         palette(1, covered[1]);
+        for (int side = 0; side < 2; side++) {
+            if (covered[side]) {
+                for (int k = 1; k < TWISTS; k++) {
+                    fitArmour(palette[twists[side][k - 1]], (float) k / TWISTS);
+                }
+                fitArmour(palette[joints[side][2]], 1);
+            }
+        }
         for (ItemStack worn : player.getArmorSlots()) {
             GemRenderGltfModel armour = ArmorPieceClient.model(worn);
             if (armour != null) {
@@ -203,6 +213,16 @@ public final class PlayerArms {
                 };
         DirectRenderer.submit(model, palette, null, base, light, OverlayTexture.NO_OVERLAY, argb, DirectPass.HAND,
                 VariantUv.NONE, Paint.NONE, 0, rest, slots);
+    }
+
+    /**
+     * Skin forearm joint at {@code t} (0 elbow, 1 fist end) widened to the even box armour arms are modelled on, as
+     * third person's arm fills it: the skin tapers to the fist, the armour is mapped at the elbow width
+     * ({@link #FOREARM_ACROSS}), so a bare tapered fist shows the inside of cuffs and their inner parts poke through.
+     */
+    static Matrix4f fitArmour(Matrix4f joint, float t) {
+        return joint.scale(ELBOW_WIDTH / (ELBOW_WIDTH + (FIST_WIDTH - ELBOW_WIDTH) * t), 1,
+                ELBOW_WIDTH / (ELBOW_WIDTH + (FIST_DEPTH - ELBOW_WIDTH) * t));
     }
 
     /** {@code armour}'s arm nodes on the posed bones; other nodes collapsed. */

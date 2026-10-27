@@ -52,6 +52,8 @@ public class WFLib {
         com.wf.wflib.nvg.NvgRegistry.register(modEventBus);
         com.wf.wflib.armor.ArmorMaterials.register(modEventBus);
         com.wf.wflib.backpack.Backpacks.register(modEventBus);
+        com.wf.wflib.skin.Skins.register(modEventBus);
+        com.wf.wflib.anomaly.Anomalies.register(modEventBus);
         com.wf.wflib.WFCreativeTabs.register(modEventBus);
         com.wf.wflib.menu.ModMenus.register(modEventBus);
         com.wf.wflib.client.particle.WFParticles.register(modEventBus);
@@ -75,6 +77,7 @@ public class WFLib {
                 e -> e.enqueueWork(WFLibContent::loadComplete));
         modEventBus.addListener(WFConfig::onLoad);
         modEventBus.addListener(com.wf.wflib.armor.ArmorConfig::onLoad);
+        modEventBus.addListener(com.wf.wflib.anomaly.AnomalyConfig::onLoad);
         modEventBus.addListener(WFClientConfig::onLoad);
         modContainer.registerConfig(
                 ModConfig.Type.COMMON, WFConfig.SPEC);
@@ -90,6 +93,10 @@ public class WFLib {
         modContainer.registerConfig(
                 ModConfig.Type.COMMON, com.wf.wflib.radiation.RadiationConfig.SPEC,
                 "wflib-radiation.toml");
+        // Server: per world and synced, so clients agree on whether anomalies pull and draw.
+        modContainer.registerConfig(
+                ModConfig.Type.SERVER, com.wf.wflib.anomaly.AnomalyConfig.SPEC,
+                "wflib-anomalies-server.toml");
         // Registers nothing at all unless Immersive Railroading is installed.
         com.wf.wflib.rail.RailFeatures.init(modContainer);
     }

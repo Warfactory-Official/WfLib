@@ -203,6 +203,40 @@ public class ModBlocks {
             ITEMS.register("grid_power_cell", () ->
                     new BlockItem(GRID_POWER_CELL.get(), new Item.Properties()));
 
+    /** STALKER's anomalies; inert and invisible unless {@code anomalies.enabled} (server config). Vortex: the first, hence the id. */
+    public static final DeferredHolder<Block, Block> GRAVITY_ANOMALY = anomaly("gravity_anomaly",
+            com.wf.wflib.anomaly.AnomalyType.VORTEX);
+    public static final DeferredHolder<Block, Block> WHIRLIGIG = anomaly("whirligig",
+            com.wf.wflib.anomaly.AnomalyType.WHIRLIGIG);
+    public static final DeferredHolder<Block, Block> SPRINGBOARD = anomaly("springboard",
+            com.wf.wflib.anomaly.AnomalyType.SPRINGBOARD);
+    public static final DeferredHolder<Block, Block> ELECTRO = anomaly("electro",
+            com.wf.wflib.anomaly.AnomalyType.ELECTRO);
+    public static final DeferredHolder<Block, Block> BURNER = anomaly("burner",
+            com.wf.wflib.anomaly.AnomalyType.BURNER);
+    public static final DeferredHolder<Block, Block> ACID = anomaly("acid",
+            com.wf.wflib.anomaly.AnomalyType.ACID);
+
+    public static final DeferredHolder<Item, Item> GRAVITY_ANOMALY_ITEM =
+            ITEMS.register("gravity_anomaly", () -> new BlockItem(GRAVITY_ANOMALY.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, Item> WHIRLIGIG_ITEM =
+            ITEMS.register("whirligig", () -> new BlockItem(WHIRLIGIG.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, Item> SPRINGBOARD_ITEM =
+            ITEMS.register("springboard", () -> new BlockItem(SPRINGBOARD.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, Item> ELECTRO_ITEM =
+            ITEMS.register("electro", () -> new BlockItem(ELECTRO.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, Item> BURNER_ITEM =
+            ITEMS.register("burner", () -> new BlockItem(BURNER.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, Item> ACID_ITEM =
+            ITEMS.register("acid", () -> new BlockItem(ACID.get(), new Item.Properties()));
+
+    private static DeferredHolder<Block, Block> anomaly(String id, com.wf.wflib.anomaly.AnomalyType type) {
+        return BLOCKS.register(id, () -> new com.wf.wflib.anomaly.AnomalyBlock(type,
+                BlockBehaviour.Properties.of().strength(-1.0f, 3600000.8f).noLootTable().noCollission()
+                        .noOcclusion().pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK)
+                        .isValidSpawn((state, level, pos, ent) -> false)));
+    }
+
     public static void register(IEventBus bus) {
         BLOCKS.register(bus);
         ITEMS.register(bus);

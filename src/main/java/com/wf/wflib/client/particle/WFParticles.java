@@ -63,6 +63,11 @@ public final class WFParticles {
             PARTICLE_TYPES.register("smoke_screen", () -> new SimpleParticleType(true) {
             });
 
+    /** Grit orbiting an anomaly; see {@link com.wf.wflib.anomaly.client.AnomalyDebrisParticle}. */
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> ANOMALY_DEBRIS =
+            PARTICLE_TYPES.register("anomaly_debris", () -> new SimpleParticleType(false) {
+            });
+
     private WFParticles() {
     }
 

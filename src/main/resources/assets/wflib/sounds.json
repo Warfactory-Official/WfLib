@@ -371,5 +371,149 @@
       "wflib:hazard/tech_boop"
     ],
     "subtitle": "subtitles.wflib.hazard.tech_boop"
+  },
+  "anomaly.gravi_idle01": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/gravi_idle01",
+        "stream": false,
+        "attenuation_distance": 20
+      }
+    ]
+  },
+  "anomaly.anomaly_mincer_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/anomaly_mincer_blowout",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "anomaly.anomaly_gravy_hit1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/anomaly_gravy_hit1",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.anomaly_body_tear_1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/anomaly_body_tear_1",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.gravi_idle00": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/gravi_idle00",
+        "stream": true,
+        "attenuation_distance": 20
+      }
+    ]
+  },
+  "anomaly.gravi_blowout6": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/gravi_blowout6",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "anomaly.gravi_rumble1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/gravi_rumble1",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.anomaly_gravy_blast1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/anomaly_gravy_blast1",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.electra_idle1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/electra_idle1",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.electra_blast1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/electra_blast1",
+        "stream": true,
+        "attenuation_distance": 40
+      }
+    ]
+  },
+  "anomaly.electra_hit": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/electra_hit",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.fire_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/fire_idle",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.zhar_blow": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/zhar_blow",
+        "stream": true,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.zhar": {
+    "sounds": [
+      {
+        "name": "wflib:xray/ambient/zhar",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.buzz_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/buzz_idle",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.buzz_hit": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/buzz_hit",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
   }
 }

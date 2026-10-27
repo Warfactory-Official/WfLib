@@ -1,5 +1,9 @@
 {
   "death.attack.wflib.gas": "%1$s was gassed",
+  "death.attack.wflib.electric": "%1$s was electrocuted",
+  "death.attack.wflib.fire": "%1$s burned to death",
+  "death.attack.wflib.acid": "%1$s was dissolved by acid",
+  "death.attack.wflib.gravity_anomaly": "%1$s was torn apart by a gravitational anomaly",
   "itemGroup.wflib": "WFLib",
   "block.wflib.missile_listener_debug": "Missile Listener (Debug)",
   "block.wflib.missile_dispenser": "Missile Dispenser (Debug)",
@@ -175,6 +179,12 @@
   "probe.wflib.mine.arc": "Watches",
   "probe.wflib.mine.arc.value": "%1$s°, facing %2$s",
   "block.wflib.mining_charge": "Mining Charge",
+  "block.wflib.gravity_anomaly": "Gravitational Anomaly (Vortex)",
+  "block.wflib.whirligig": "Gravitational Anomaly (Whirligig)",
+  "block.wflib.springboard": "Gravitational Anomaly (Springboard)",
+  "block.wflib.electro": "Electrical Anomaly (Electro)",
+  "block.wflib.burner": "Thermal Anomaly (Burner)",
+  "block.wflib.acid": "Chemical Anomaly (Acid)",
   "block.wflib.deep_mining_charge": "Deep Mining Charge",
   "item.wflib.detonator": "Detonator",
   "tag.wflib.defuser": "a defuser (shovel or shears)",
@@ -372,5 +382,9 @@
   "subtitles.wflib.hazard.vomit": "Vomiting",
   "subtitles.wflib.hazard.geiger": "Geiger counter clicks",
   "subtitles.wflib.hazard.tech_boop": "Geiger counter beeps",
-  "item.wflib.geiger_counter": "Geiger Counter"
+  "item.wflib.geiger_counter": "Geiger Counter",
+  "key.wflib.skin": "Equipment skin: choose (held item, or hovered in the inventory)",
+  "screen.wflib.skin": "Choose skin",
+  "tooltip.wflib.skin": "Skin: %s (%s/%s)",
+  "tooltip.wflib.skin.change": "%s skins - press %s to change"
 }

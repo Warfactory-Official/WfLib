@@ -37,6 +37,24 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> SMOKE_POP = register("countermeasure.smoke_pop");
     public static final DeferredHolder<SoundEvent, SoundEvent> FLARE_BURN = register("countermeasure.flare_burn");
 
+    /** STALKER's anomaly sounds, as their zone configs name them (tools/xray-assets.py; third-party, internal only). */
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GRAVI_IDLE01 = register("anomaly.gravi_idle01");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ANOMALY_MINCER_BLOWOUT = register("anomaly.anomaly_mincer_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ANOMALY_GRAVY_HIT1 = register("anomaly.anomaly_gravy_hit1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ANOMALY_BODY_TEAR_1 = register("anomaly.anomaly_body_tear_1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GRAVI_IDLE00 = register("anomaly.gravi_idle00");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GRAVI_BLOWOUT6 = register("anomaly.gravi_blowout6");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GRAVI_RUMBLE1 = register("anomaly.gravi_rumble1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ANOMALY_GRAVY_BLAST1 = register("anomaly.anomaly_gravy_blast1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ELECTRA_IDLE1 = register("anomaly.electra_idle1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ELECTRA_BLAST1 = register("anomaly.electra_blast1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ELECTRA_HIT = register("anomaly.electra_hit");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIRE_IDLE = register("anomaly.fire_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ZHAR_BLOW = register("anomaly.zhar_blow");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ZHAR = register("anomaly.zhar");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_BUZZ_IDLE = register("anomaly.buzz_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_BUZZ_HIT = register("anomaly.buzz_hit");
+
     private WFSounds() {
     }
 

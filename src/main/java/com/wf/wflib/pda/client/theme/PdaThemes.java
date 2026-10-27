@@ -28,7 +28,7 @@ public final class PdaThemes {
     public static List<PdaTheme> all() {
         List<PdaTheme> all = new ArrayList<>(THEMES.values());
         all.add(com.wf.wflib.pda.client.PdaTheme.custom());
-        return all;
+        return List.copyOf(all);
     }
 
     /** Next installed theme after {@code id}, wrapping; {@code step} -1 goes back. */

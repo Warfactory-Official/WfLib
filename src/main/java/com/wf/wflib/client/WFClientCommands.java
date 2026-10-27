@@ -33,6 +33,7 @@ public final class WFClientCommands {
         }));
         event.getDispatcher().register(OffscreenViewDebug.command());
         event.getDispatcher().register(com.wf.wflib.ui.UiDebug.command());
+        event.getDispatcher().register(com.wf.wflib.anomaly.client.AnomalyDebug.command());
         event.getDispatcher().register(Commands.literal("wfdebug").then(Commands.literal("rounds")
                 .executes(ctx -> rounds(ctx.getSource(), !RoundDebug.enabled()))
                 .then(Commands.literal("on").executes(ctx -> rounds(ctx.getSource(), true)))

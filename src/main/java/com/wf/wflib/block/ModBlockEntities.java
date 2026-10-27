@@ -23,6 +23,13 @@ public class ModBlockEntities {
                     MiningChargeBlockEntity::new,
                     ModBlocks.MINING_CHARGE.get(), ModBlocks.DEEP_MINING_CHARGE.get()).build(null));
 
+    /** Every anomaly block; the id is the first one's (saved worlds name it). */
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<com.wf.wflib.anomaly.AnomalyBlockEntity>> ANOMALY =
+            BLOCK_ENTITIES.register("gravity_anomaly", () -> BlockEntityType.Builder.of(
+                    com.wf.wflib.anomaly.AnomalyBlockEntity::new, ModBlocks.GRAVITY_ANOMALY.get(),
+                    ModBlocks.WHIRLIGIG.get(), ModBlocks.SPRINGBOARD.get(), ModBlocks.ELECTRO.get(),
+                    ModBlocks.BURNER.get(), ModBlocks.ACID.get()).build(null));
+
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<DronePadBlockEntity>> DRONE_PAD =
             BLOCK_ENTITIES.register("drone_pad", () -> BlockEntityType.Builder.of(
                     DronePadBlockEntity::new, ModBlocks.DRONE_PAD.get()).build(null));
