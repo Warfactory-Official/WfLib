@@ -170,12 +170,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
 
     /**
      * {@code zone_mine_steam}: a Burner that throws up scalding steam (thermal, max_start_power 0.5 for the average,
-     * no fire). steam_blowout runs 12 s, so it fades with the 7 s jet.
+     * no fire, so no light of its own). steam_blowout runs 12 s, so it fades with the 7 s jet.
      */
     public static final AnomalyType STEAM = new AnomalyType("Steam",
             new BlastTuning(3.0D, 2, 140, 5, 0.5D, 0.0D, true, 0),
             new AnomalyLook(Style.FIRE, 1.6F, 0.6D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xE6EEF5, 6.0F, 140, 0.0F, 1.0F, "zones/zone_steam_idle", "static/zharka_static_steam", 1.5F, 1.5F),
+                    0xE6EEF5, 0.0F, 0, 0.0F, 1.0F, "zones/zone_steam_idle", "static/zharka_static_steam", 1.5F, 1.5F),
             WFDamageTypes.FIRE,
             new AnomalySounds(
                     () -> WFSounds.ANOMALY_STEAM.get(),
@@ -383,12 +383,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     /**
      * {@code fireball_zone} (Comet, CTorridZone): a ball of fire on a loop ({@link Quirk#ORBIT}) that burns whatever
      * large and alive it touches, again and again while it stays (max_start_power 1, burn, setting it alight); lit
-     * all the time (idle_light 15 m).
+     * all the time (idle_light 15 m; here 6, as STALKER's tone mapping keeps its glow far softer than raw light).
      */
     public static final AnomalyType COMET = new AnomalyType("Comet",
             new BlastTuning(3.0D, 2, 20, 2, 1.0D, 0.0D, false, 5),
             new AnomalyLook(Style.FIRE, 1.5F, 0.0D, 0.008F, 0.6F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xFFB066, 15.0F, 40, 12.0F, 1.0F, "anomaly2/heat_02", "anomaly2/heat_03", 1.0F, 0.5F),
+                    0xFFB066, 8.0F, 40, 6.0F, 1.0F, "anomaly2/heat_02", "anomaly2/heat_03", 1.0F, 0.5F),
             WFDamageTypes.FIRE,
             new AnomalySounds(
                     () -> WFSounds.ANOMALY_FIREBALL_IDLE.get(),

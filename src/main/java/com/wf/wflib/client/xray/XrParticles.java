@@ -77,6 +77,8 @@ public final class XrParticles {
         /** Spread across (x, z) and up (y, and sprite size). */
         private final float scale;
         private final float height;
+        /** Additive sprites' strength: STALKER tone-maps its HDR, here they would add up to flat white. */
+        private float glow = 1.0F;
         private float age;
         private boolean stopped;
         private float carry;
@@ -94,6 +96,12 @@ public final class XrParticles {
 
         public void stop() {
             stopped = true;
+        }
+
+        /** Scale this group's additive sprites ({@link XrDefs.Blend#ADD}, {@code ALPHA_ADD}); blended ones keep theirs. */
+        public Playing glow(float glow) {
+            this.glow = glow;
+            return this;
         }
 
         public void moveTo(Vec3 origin) {
@@ -631,10 +639,11 @@ public final class XrParticles {
             u1 = u0 + def.frameU();
             v1 = v0 + def.frameV();
         }
-        float cr = clamp(p.r);
-        float cg = clamp(p.g);
-        float cb = clamp(p.b);
-        float ca = clamp(p.a);
+        float add = def.blend() == XrDefs.Blend.ADD ? playing.glow : 1.0F;
+        float cr = clamp(p.r) * add;
+        float cg = clamp(p.g) * add;
+        float cb = clamp(p.b) * add;
+        float ca = clamp(p.a) * (def.blend() == XrDefs.Blend.ALPHA_ADD ? playing.glow : 1.0F);
         // d (-vt-vr), a (vt-vr), b (vt+vr), c (-vt+vr): lt/rb as FillSprite assigns them.
         out.addVertex(matrix, px - vt[0] - vr[0], py - vt[1] - vr[1], pz - vt[2] - vr[2]).setUv(u0, v1)
                 .setColor(cr, cg, cb, ca);

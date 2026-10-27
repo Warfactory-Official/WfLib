@@ -108,7 +108,7 @@ public final class AnomalyClient {
                     // A burn holds its light (flickering); a blast's fades.
                     float k = 1.0F - (since + partialTick) / look.flashTicks();
                     float level = look.style() == AnomalyLook.Style.FIRE
-                            ? range2 * (0.35F + 0.05F * (float) Math.sin((since + partialTick) * 1.7F))
+                            ? range2 * (0.12F + 0.02F * (float) Math.sin((since + partialTick) * 1.7F))
                             : range2 * 0.08F * k * k;
                     sink.point(c.x, c.y + (be.type().quirk().moves() ? 0.0D : 2.0D), c.z, look.flashRange(),
                             look.flashRgb(), level, false);
@@ -161,6 +161,11 @@ public final class AnomalyClient {
         }
     }
 
+    /** Fire's additive sprites at full strength stack into a white glare at night: about half. */
+    private static float glow(AnomalyLook look) {
+        return look.style() == AnomalyLook.Style.FIRE ? 0.5F : 1.0F;
+    }
+
     /** Spread wide, one copy of the idle look thins out: three round the middle keep STALKER's density. */
     private static int copies(AnomalyLook look) {
         return look.particleScale() > 2.0F ? 3 : 1;
@@ -192,7 +197,7 @@ public final class AnomalyClient {
                     double a = Mth.TWO_PI * i / copies;
                     com.wf.wflib.client.xray.XrParticles.play(look.idleParticles(),
                             c.add(Math.cos(a) * ring, 0.0D, Math.sin(a) * ring), look.particleScale() / copies * 1.5F,
-                            look.particleHeight(), true).ifPresent(playing::add);
+                            look.particleHeight(), true).map(p -> p.glow(glow(look))).ifPresent(playing::add);
                 }
                 IDLE_FX.put(be, playing);
             } else if (!present) {
@@ -204,7 +209,7 @@ public final class AnomalyClient {
                 stopFx(BLOWOUT_FX, be);
                 com.wf.wflib.client.xray.XrParticles.play(look.blowoutParticles(), c, look.particleScale(),
                         look.particleHeight(), false)
-                        .ifPresent(p -> BLOWOUT_FX.put(be, p));
+                        .ifPresent(p -> BLOWOUT_FX.put(be, p.glow(glow(look))));
             } else if (be.phase() != Phase.BLOWOUT) {
                 stopFx(BLOWOUT_FX, be);
             }
@@ -422,9 +427,9 @@ public final class AnomalyClient {
         float t = be.age() + partial;
         float flicker = 0.85F + 0.1F * Mth.sin(t * 0.9F) + 0.05F * Mth.sin(t * 2.3F + 1.0F);
         float strike = be.phase() == Phase.BLOWOUT ? 1.3F : 1.0F;
-        billboard(out, matrix, c, up, left, 2.6F * strike, 1.0F, 0.5F, 0.15F, 0.55F * flicker);
-        billboard(out, matrix, c, up, left, 1.2F * strike, 1.0F, 0.8F, 0.45F, 0.8F * flicker);
-        billboard(out, matrix, c, up, left, 0.5F, 1.0F, 0.97F, 0.85F, 1.0F);
+        billboard(out, matrix, c, up, left, 2.2F * strike, 1.0F, 0.5F, 0.15F, 0.2F * flicker);
+        billboard(out, matrix, c, up, left, 1.0F * strike, 1.0F, 0.75F, 0.4F, 0.3F * flicker);
+        billboard(out, matrix, c, up, left, 0.4F, 1.0F, 0.95F, 0.8F, 0.55F);
     }
 
     private static void billboard(VertexConsumer out, org.joml.Matrix4f matrix, Vec3 c, org.joml.Vector3f up,
