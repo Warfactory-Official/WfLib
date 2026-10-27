@@ -83,3 +83,28 @@ Item `wflib:pda` (`pda/`, client `pda/client/`). Replaces `wflib:terminal`, `wfl
 - F1 (`wflib.wiki` key + `MixinKeyboardHandler.keyPress` HEAD: vanilla F1 hide-GUI is not a key mapping; also `ScreenEvent.KeyPressed.Pre` in containers): `WikiAccess` -> bound stack (hovered slot, else main hand, offhand, hotbar) -> held PDA, else carried PDA moved to hand => `PdaClient.raiseWhenHeld` -> Wiki app on article. No PDA => nothing.
 - Writing guide: `assets/wflib/wiki/guides/writing-articles.md`.
 - Gap: texture image embed, offhand / container F1 paths unverified in game.
+
+## 105. Music (`pda/music/`, client `pda/music/client/`)
+
+- Sources: SERVER `<world>/pda_music/**`, LOCAL `<gameDir>/pda_music/**`; `.ogg|.oga|.opus`, depth <= 4, no symlinks, <= 64 MiB, <= 512 server / 2000 local entries.
+- Playback client-local only: head-locked `MusicSound` (`wflib:pda_music`, source MASTER, `canStartSilent`), nothing broadcast. Stops when PDA leaves inventory / logout.
+- `OggAudio.probe` = gate for EVERY byte path (server scan, server serve, local scan, playback); nothing native sees unprobed bytes:
+  - single logical stream, per-page CRC, contiguous sequence, monotonic granule, BOS first / EOS last, no trailing data
+  - Vorbis: id/comment/setup headers, mono|stereo, 8-192 kHz; Opus: OpusHead family 0, mono|stereo
+  - corrupt/truncated/random => `IOException`; tags tolerant (partial kept)
+  - Vorbis additionally trial-decoded by STB before play (`PcmSource.Vorbis`)
+- Names: `OggAudio.validName` + `resolve().normalize().startsWith(root)` + `NOFOLLOW_LINKS`.
+- Server download: `MusicFetchPacket(transfer, name)` -> `MusicChunkPacket` x 60000 B, 4 chunks/tick/player, one transfer per player; `total == 0` = refused. Client holds the file in memory (2 server tracks cached), re-probes.
+- Metadata: Vorbis comment / OpusTags `TITLE ARTIST(ALBUMARTIST) ALBUM`; cover = `METADATA_BLOCK_PICTURE` (front cover preferred) or `COVERART`, PNG|JPEG magic, <= 8 MiB, <= 2048 px (STB), letterboxed square, texture `wflib:pda_music/cover`.
+- Opus = Concentus via `OggOpus` (shared with radio); Vorbis = LWJGL `STBVorbis` (`NativeBytes` refcount: source + readers).
+- Playlists + volume / shuffle / repeat: `config/wflib_pda_music.json`, entries `(src, file)`; missing files shown + skipped.
+- Seek: bar drag debounced 6 ticks then decoder restart. Position = samples read - 4 engine buffers (~0.3 s lead).
+- Gaps: mono|stereo only; no upload; no gapless; PDA grid 12 tiles (Music = 6th); server list refresh on tab / `R`.
+- Tests: `OggAudioTest` (fixtures `src/test/resources/pda_music`). Harness-verified: local + server tabs, Opus + Vorbis audio (wave backend: 330 / 440 Hz), cover, pause / resume / seek, playlist create + add + persist. Unverified: dedicated server serve (SP integrated only), shuffle ordering, JPEG cover.
+
+## 106. Theme (`client/PdaTheme`, `SettingsApp`, `music/BackgroundImage`)
+- Settings app: accent / text / panel hex (`#RGB` | `#RRGGBB`, live), panel opacity (0.05-1), background. `config/wflib_pda.json`, saved 0.7 s after last change.
+- `PdaShell.BACK|BAR_BACK|PANEL|HOVER|PRESS|EDGE|TEXT|DIM|ACCENT` = `pda.th_*` signals, not literals => every app themed. `PANEL` = opaque button fill; `panel()` = opacity-scaled fill. hover / press / edge / dim / back / bar = mixes of the three colours. `ALERT` fixed.
+- Canvas-drawn apps: `PdaTheme.accent()|text()|dim()`. Gap: `TextField` ints + already-logged terminal lines keep build-time colours.
+- Background: SERVER `<world>/pda_backgrounds/*.{png,jpg,jpeg}` (flat, <= 64, <= 4 MiB, <= 2048 px). `BackgroundImage.check` = signature + IHDR / SOF dims + IEND / EOI tail. Same fetch/chunk path as music (`MusicFetchPacket.background`, one transfer per (player, kind)); client re-decodes with STB, centre-crop to 384x240, box-shrink to <= 768 px. Saved name re-requested once per world join; missing => status text.
+- Tests: `BackgroundImageTest`. Harness-verified: list, fake.png rejected, PNG background, hex accent, opacity, persistence. Unverified: JPEG background, dedicated server.

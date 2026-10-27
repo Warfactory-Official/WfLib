@@ -6,6 +6,9 @@ import com.wf.wflib.aef.nuke.BombForkJoinPool;
 import com.wf.wflib.aef.nuke.ExplosionNukeGeneric;
 import com.wf.wflib.aef.nuke.ExplosionNukeRayParallelized;
 import com.wf.wflib.aef.nuke.NukeConfig;
+import com.wf.wflib.hazard.ContaminationUtil;
+import com.wf.wflib.radiation.Fallout;
+import com.wf.wflib.radiation.RadiationConfig;
 import com.wf.wflib.recon.event.SeismicEvents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -15,7 +18,7 @@ import org.slf4j.Logger;
 
 import java.util.concurrent.ForkJoinPool;
 
-// NTM-next: fallout rain, radiation sweep, detonation advancement not ported (no wflib radiation system).
+// NTM-next: fallout rain -> radiation.Fallout ground sources; detonation advancement not ported.
 public class EntityNukeExplosionMK5 extends EntityExplosionChunkLoading implements BombForkJoinPool.IJobCancellable {
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -61,6 +64,10 @@ public class EntityNukeExplosionMK5 extends EntityExplosionChunkLoading implemen
 
         ExplosionNukeGeneric.dealDamage(level(), getX(), getY(), getZ(), radius * 2.0D);
 
+        if (initialized && tickCount < 10 && strength >= 75) {
+            ContaminationUtil.radiate(level(), getX(), getY(), getZ(), radius * 2, 2_500_000F / (tickCount * 5 + 1));
+        }
+
         if (!initialized) {
             ServerLevel server = (ServerLevel) level();
             explosionStart = System.currentTimeMillis();
@@ -82,6 +89,8 @@ public class EntityNukeExplosionMK5 extends EntityExplosionChunkLoading implemen
             explosion.update(NukeConfig.mk5);
         } else {
             LOGGER.info("[NUKE] done: radius {}, {} ms", radius, System.currentTimeMillis() - explosionStart);
+            Fallout.deposit((ServerLevel) level(), getX(), getZ(), radius * Fallout.RANGE_PER_RADIUS,
+                    RadiationConfig.falloutRad);
             discard();
         }
     }

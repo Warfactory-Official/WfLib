@@ -180,6 +180,7 @@ public final class PdaClient {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         raiseO = raise;
+        PdaTheme.restore();
         if (player == null) {
             carried = false;
             held = false;

@@ -11,7 +11,9 @@ import com.wf.wflib.ui.Widget;
 import com.wf.wflib.ui.WidgetDef;
 import com.wf.wflib.ui.widget.Box;
 import com.wf.wflib.ui.widget.Button;
+import com.wf.wflib.ui.widget.Image;
 import com.wf.wflib.ui.widget.Point;
+import com.wf.wflib.ui.widget.ScrollBox;
 import com.wf.wflib.ui.widget.Sized;
 import net.minecraft.resources.ResourceLocation;
 
@@ -39,16 +41,16 @@ public final class PdaShell {
     public static final float APP_WIDTH = WIDTH;
     public static final float APP_HEIGHT = HEIGHT - BAR;
 
-    /** STALKER-panel palette, ARGB expressions; apps reuse it. */
-    public static final String BACK = "#ff3a3e3a";
-    public static final String BAR_BACK = "#ff2c2f2c";
-    public static final String PANEL = "#ff454a45";
-    public static final String HOVER = "#ff545b53";
-    public static final String PRESS = "#ff626b5f";
-    public static final String EDGE = "#ff787f76";
-    public static final String TEXT = "#ffd2d6cc";
-    public static final String DIM = "#ff8d9488";
-    public static final String ACCENT = "#ffa9d46c";
+    /** Themed palette ({@link PdaTheme}), ARGB expressions; apps reuse it. {@link #PANEL} = opaque button fill. */
+    public static final String BACK = "pda.th_back";
+    public static final String BAR_BACK = "pda.th_bar";
+    public static final String PANEL = "pda.th_button";
+    public static final String HOVER = "pda.th_hover";
+    public static final String PRESS = "pda.th_press";
+    public static final String EDGE = "pda.th_edge";
+    public static final String TEXT = "pda.th_text";
+    public static final String DIM = "pda.th_dim";
+    public static final String ACCENT = "pda.th_accent";
     public static final String ALERT = "#ffd0584a";
     static final int CLEAR = 0xFF3A3E3A;
     private static final int CURSOR = 0xFFA9D46C;
@@ -75,11 +77,12 @@ public final class PdaShell {
         Signals.items(PDA, "apps", s -> PdaApps.visible(), APP);
         Signals.text(APP, "title", 24, PdaShell::title);
         Signals.num(APP, "badge", PdaApp::badge);
+        PdaTheme.register();
     }
 
-    /** App panel: {@link #PANEL} fill, 1-unit {@link #EDGE} border. */
+    /** App panel: themed translucent fill, 1-unit {@link #EDGE} border. */
     public static WidgetDef panel(float w, float h) {
-        return new Box(PANEL, EDGE, 1, 0, 0, 0, w, h, Point.TOP_LEFT, null);
+        return new Box("pda.th_panel", EDGE, 1, 0, 0, 0, w, h, Point.TOP_LEFT, null);
     }
 
     private static String title(PdaApp app) {
@@ -96,6 +99,7 @@ public final class PdaShell {
             }
             layout = new UiLayout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda"), stack(
                     rect(WIDTH, HEIGHT, BACK),
+                    when("pda.has_bg", new Image(PdaBackground.TEXTURE, WIDTH, HEIGHT, 0, 0, 1, 1, "#ffffffff", "0")),
                     rect(WIDTH, BAR, BAR_BACK),
                     at("0", Float.toString(BAR - 1), rect(WIDTH, 1, EDGE)),
                     when("pda.home", at("8", "5", text("{pda.title}", TEXT)),
@@ -113,14 +117,17 @@ public final class PdaShell {
     private static WidgetDef home() {
         float gap = 8;
         float margin = 12;
-        float w = (float) Math.floor((WIDTH - margin * 2 - gap * 3) / 4);
+        float viewW = WIDTH - margin * 2;
+        float viewH = APP_HEIGHT - margin * 2;
+        float w = (float) Math.floor((viewW - 3 - gap * 3) / 4);
         float h = (float) Math.floor((APP_HEIGHT - margin * 2 - gap * 2) / 3);
         WidgetDef tile = new Button(item -> PdaClient.open((PdaApp) item), "true", PANEL, HOVER, PRESS, EDGE, 1, 0,
                 0, 0, w, h, Point.TOP_LEFT, new Sized(Float.toString(w), Float.toString(h), Point.TOP_LEFT, false, stack(
                 place(Float.toString(w / 2), Float.toString(h / 2 - 4), Point.TOP, text("{pda_app.title}", TEXT)),
                 when("pda_app.badge > 0", place(Float.toString(w - 5), "5", Point.TOP_RIGHT,
                         text("{pda_app.badge}", ALERT))))));
-        return at(Float.toString(margin), Float.toString(margin), grid("pda.apps", 4, gap, tile));
+        return at(Float.toString(margin), Float.toString(margin), new ScrollBox(Float.toString(viewW),
+                Float.toString(viewH), h + gap, EDGE, grid("pda.apps", 4, gap, tile)));
     }
 
     /** Open app's root, else the home grid; {@link #APP_WIDTH} x {@link #APP_HEIGHT}. */

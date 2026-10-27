@@ -10,6 +10,8 @@ public final class WFClientConfig {
     public static final ModConfigSpec SPEC;
 
     public static final ModConfigSpec.BooleanValue SHOW_MISSILE_TARGETS;
+    public static final ModConfigSpec.BooleanValue ARM_TEST_SKIN;
+    private static final String ARM_TEST_SKIN_PROPERTY = "wflib.armTestSkin";
 
     public static final ModConfigSpec.BooleanValue VOLUMETRIC_GAS;
     public static final ModConfigSpec.ConfigValue<String> VOLUMETRIC_GAS_QUALITY;
@@ -51,6 +53,12 @@ public final class WFClientConfig {
                         "whether that point is on ground or floating in the air. Reads the server-side target off the",
                         "integrated server, so it only works in singleplayer. Off by default.")
                 .define("showMissileTargets", false);
+        ARM_TEST_SKIN = b
+                .comment("Draw the first-person arms with a labelled test texture instead of your skin: each side",
+                        "of the arm its own colour, the elbow crease (IN) and elbow point (ELB) marked, and the",
+                        "fist split into palm, back, thumb, pinky and knuckles. For checking how arms and hands",
+                        "sit on a gun. Off by default.")
+                .define("armTestSkin", false);
         b.pop();
 
         b.comment("Gas and mist clouds.").push("gas");
@@ -145,6 +153,19 @@ public final class WFClientConfig {
         }
         try {
             return VOLUMETRIC_GAS.get();
+        } catch (IllegalStateException e) {
+            return false;
+        }
+    }
+
+    /** Same override + unbaked-SPEC fallback as {@link #volumetricGas()}. */
+    public static boolean armTestSkin() {
+        String override = System.getProperty(ARM_TEST_SKIN_PROPERTY);
+        if (override != null) {
+            return Boolean.parseBoolean(override);
+        }
+        try {
+            return ARM_TEST_SKIN.get();
         } catch (IllegalStateException e) {
             return false;
         }

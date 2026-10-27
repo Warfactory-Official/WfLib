@@ -1,4 +1,12 @@
 {
+  "pda_music": {
+    "sounds": [
+      {
+        "name": "wflib:radio/carrier",
+        "stream": true
+      }
+    ]
+  },
   "radio": {
     "sounds": [
       {
@@ -301,5 +309,71 @@
       "wflib:grenade/tinnitus"
     ],
     "subtitle": "subtitles.wflib.grenade.tinnitus"
+  },
+  "hazard.cough": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/cough1",
+      "wflib:hazard/cough2",
+      "wflib:hazard/cough3",
+      "wflib:hazard/cough4"
+    ],
+    "subtitle": "subtitles.wflib.hazard.cough"
+  },
+  "hazard.vomit": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/vomit"
+    ],
+    "subtitle": "subtitles.wflib.hazard.vomit"
+  },
+  "hazard.geiger1": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/geiger1"
+    ],
+    "subtitle": "subtitles.wflib.hazard.geiger"
+  },
+  "hazard.geiger2": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/geiger2"
+    ],
+    "subtitle": "subtitles.wflib.hazard.geiger"
+  },
+  "hazard.geiger3": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/geiger3"
+    ],
+    "subtitle": "subtitles.wflib.hazard.geiger"
+  },
+  "hazard.geiger4": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/geiger4"
+    ],
+    "subtitle": "subtitles.wflib.hazard.geiger"
+  },
+  "hazard.geiger5": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/geiger5"
+    ],
+    "subtitle": "subtitles.wflib.hazard.geiger"
+  },
+  "hazard.geiger6": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/geiger6"
+    ],
+    "subtitle": "subtitles.wflib.hazard.geiger"
+  },
+  "hazard.tech_boop": {
+    "category": "player",
+    "sounds": [
+      "wflib:hazard/tech_boop"
+    ],
+    "subtitle": "subtitles.wflib.hazard.tech_boop"
   }
 }

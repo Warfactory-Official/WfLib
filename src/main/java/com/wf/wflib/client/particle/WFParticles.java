@@ -53,6 +53,11 @@ public final class WFParticles {
             PARTICLE_TYPES.register("smoke_plume", () -> new SimpleParticleType(false) {
             });
 
+    /** Radiation fog bank; {@code RadFogParticle}. */
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> RAD_FOG =
+            PARTICLE_TYPES.register("rad_fog", () -> new SimpleParticleType(true) {
+            });
+
     /** Smoke-grenade screen: white, slow. */
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> SMOKE_SCREEN =
             PARTICLE_TYPES.register("smoke_screen", () -> new SimpleParticleType(true) {

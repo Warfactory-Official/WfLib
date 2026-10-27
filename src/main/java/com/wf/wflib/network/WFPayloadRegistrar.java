@@ -31,6 +31,9 @@ public final class WFPayloadRegistrar {
         r.playToClient(MissileFlightAudioPacket.TYPE, MissileFlightAudioPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleMissileAudio(pkt)));
 
+        r.playToClient(com.wf.wflib.hazard.HazardSyncPacket.TYPE, com.wf.wflib.hazard.HazardSyncPacket.STREAM_CODEC,
+                (pkt, ctx) -> ctx.enqueueWork(() -> com.wf.wflib.hazard.client.HazardClient.handleSync(pkt)));
+
         r.playToClient(SimGlyphidSyncPacket.TYPE, SimGlyphidSyncPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleSimGlyphids(pkt)));
         r.playToClient(SimGhostSyncPacket.TYPE, SimGhostSyncPacket.STREAM_CODEC,
@@ -107,6 +110,19 @@ public final class WFPayloadRegistrar {
         r.playToClient(com.wf.wflib.pda.terminal.TerminalReplyPacket.TYPE,
                 com.wf.wflib.pda.terminal.TerminalReplyPacket.STREAM_CODEC, (pkt, ctx) -> ctx.enqueueWork(
                         () -> com.wf.wflib.pda.client.TerminalApp.accept(pkt.lines())));
+        r.playToServer(com.wf.wflib.pda.music.MusicListRequestPacket.TYPE,
+                com.wf.wflib.pda.music.MusicListRequestPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
+        r.playToServer(com.wf.wflib.pda.music.MusicFetchPacket.TYPE,
+                com.wf.wflib.pda.music.MusicFetchPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
+        r.playToClient(com.wf.wflib.pda.music.MusicListPacket.TYPE,
+                com.wf.wflib.pda.music.MusicListPacket.STREAM_CODEC, (pkt, ctx) -> ctx.enqueueWork(
+                        () -> com.wf.wflib.pda.music.client.MusicApp.accept(pkt)));
+        r.playToClient(com.wf.wflib.pda.music.BackgroundListPacket.TYPE,
+                com.wf.wflib.pda.music.BackgroundListPacket.STREAM_CODEC, (pkt, ctx) -> ctx.enqueueWork(
+                        () -> com.wf.wflib.pda.client.PdaTheme.accept(pkt)));
+        r.playToClient(com.wf.wflib.pda.music.MusicChunkPacket.TYPE,
+                com.wf.wflib.pda.music.MusicChunkPacket.STREAM_CODEC, (pkt, ctx) -> ctx.enqueueWork(
+                        () -> com.wf.wflib.pda.music.client.MusicApp.accept(pkt)));
         r.playToClient(com.wf.wflib.pda.alerts.PdaAlertPacket.TYPE,
                 com.wf.wflib.pda.alerts.PdaAlertPacket.STREAM_CODEC, (pkt, ctx) -> ctx.enqueueWork(
                         () -> com.wf.wflib.pda.client.PdaAlerts.post(pkt.message(), pkt.tier())));

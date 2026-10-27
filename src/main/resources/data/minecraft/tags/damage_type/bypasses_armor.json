@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
-    "wflib:gas"
+    "wflib:gas",
+    "wflib:radiation",
+    "wflib:digamma",
+    "wflib:asbestos",
+    "wflib:blacklung"
   ]
 }

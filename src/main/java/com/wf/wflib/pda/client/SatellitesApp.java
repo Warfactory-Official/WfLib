@@ -56,9 +56,6 @@ public final class SatellitesApp implements PdaApp {
     private static final int LOG_LINES = 100;
     private static final int TICKS_PER_SECOND = 20;
     private static final float[] SCALES = {2, 4, 8, 16};
-    private static final int ACCENT = 0xFFA9D46C;
-    private static final int TEXT = 0xFFD2D6CC;
-    private static final int DIM = 0xFF8D9488;
     private static final int ALERT = 0xFFD0584A;
 
     private static final SatellitesApp instance = new SatellitesApp();
@@ -108,7 +105,7 @@ public final class SatellitesApp implements PdaApp {
         Signals.text(SELECTED, "info", 64, Row::info);
         Signals.text(SELECTED, "pass", 64, Row::pass);
         Signals.bool(SELECTED, "threat", r -> r.sat().threat() >= 0);
-        log("SATELLITE CONSOLE. TYPE 'help'.", DIM);
+        log("SATELLITE CONSOLE. TYPE 'help'.", PdaTheme.dim());
         PdaApps.register(instance);
     }
 
@@ -150,7 +147,7 @@ public final class SatellitesApp implements PdaApp {
 
     private static void reply(long satId, String callsign, String line) {
         LOGGED.put(satId, line);
-        log(callsign + ": " + line, line.startsWith("err") ? ALERT : ACCENT);
+        log(callsign + ": " + line, line.startsWith("err") ? ALERT : PdaTheme.accent());
     }
 
     private static Row current() {
@@ -195,18 +192,18 @@ public final class SatellitesApp implements PdaApp {
 
     /** Console line: local words, else {@code [callsign|#n|n] verb args} to the bus. */
     private static void submit(String line) {
-        log("> " + line, TEXT);
+        log("> " + line, PdaTheme.text());
         String[] words = line.split("\\s+");
         switch (words[0].toLowerCase(Locale.ROOT)) {
             case "help" -> help(words.length > 1 ? byName(words[1]) : current());
             case "clear" -> LOG.clear();
             case "sats" -> {
                 if (ROWS.isEmpty()) {
-                    log(link == Uplink.Link.NONE ? "no uplink" : "no satellites on this network", DIM);
+                    log(link == Uplink.Link.NONE ? "no uplink" : "no satellites on this network", PdaTheme.dim());
                 }
                 for (int i = 0; i < ROWS.size(); i++) {
                     Row row = ROWS.get(i);
-                    log("#" + (i + 1) + " " + row.sat().callsign() + "  " + row.sub(), TEXT);
+                    log("#" + (i + 1) + " " + row.sat().callsign() + "  " + row.sub(), PdaTheme.text());
                 }
             }
             case "spot" -> requestSpot(words);
@@ -216,7 +213,7 @@ public final class SatellitesApp implements PdaApp {
                     log("err: no such satellite", ALERT);
                 } else {
                     selectedId = row.sat().id();
-                    log("selected " + row.sat().callsign(), DIM);
+                    log("selected " + row.sat().callsign(), PdaTheme.dim());
                 }
             }
             default -> command(words);
@@ -286,13 +283,13 @@ public final class SatellitesApp implements PdaApp {
     }
 
     private static void help(Row row) {
-        log("local: help [sat], sats, select <sat|#n>, spot [x z], clear", DIM);
-        log("bus: [sat|#n] <verb> <args>  (selected sat if omitted)", DIM);
+        log("local: help [sat], sats, select <sat|#n>, spot [x z], clear", PdaTheme.dim());
+        log("bus: [sat|#n] <verb> <args>  (selected sat if omitted)", PdaTheme.dim());
         if (row == null) {
             return;
         }
         for (SatStatusPacket.Verb v : row.sat().verbs()) {
-            log((v.pure() ? "  ? " : "  ! ") + v.name() + " /" + v.arity() + "  " + v.describe(), DIM);
+            log((v.pure() ? "  ? " : "  ! ") + v.name() + " /" + v.arity() + "  " + v.describe(), PdaTheme.dim());
         }
     }
 
@@ -367,7 +364,7 @@ public final class SatellitesApp implements PdaApp {
                                         viewX + viewW - 4, bodyY + 2)),
                         stack(at(vx, Float.toString(bodyY), new PdaLog(LOG, innerW, bodyH - 20)),
                                 at(vx, Float.toString(bodyY + bodyH - 16), new TextField(INPUT, "> ", innerW, 13,
-                                        0xFF101210, 0xFF787F76, 0xFFA9D46C, TEXT, ACCENT)))));
+                                        0xFF101210, 0xFF787F76, 0xFFA9D46C, PdaTheme.text(), PdaTheme.accent())))));
     }
 
     private static WidgetDef tab(String label, String active, Runnable action, float right, float y) {
@@ -434,7 +431,7 @@ public final class SatellitesApp implements PdaApp {
                     float sx = (float) -Math.sin(a);
                     float sy = (float) Math.cos(a);
                     canvas.triangle(cx + sx * 5, cy + sy * 5, cx - sy * 3 - sx * 3, cy + sx * 3 - sy * 3,
-                            cx + sy * 3 - sx * 3, cy - sx * 3 - sy * 3, ACCENT);
+                            cx + sy * 3 - sx * 3, cy - sx * 3 - sy * 3, PdaTheme.accent());
                 }
             };
         }

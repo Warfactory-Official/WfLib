@@ -79,6 +79,9 @@ public final class ModItems {
     public static final DeferredHolder<Item, Item> PDA =
             ITEMS.register("pda", () -> new com.wf.wflib.pda.PdaItem(new Item.Properties().stacksTo(1)));
 
+    public static final DeferredHolder<Item, Item> GEIGER_COUNTER = ITEMS.register("geiger_counter",
+            () -> new com.wf.wflib.hazard.GeigerCounterItem(new Item.Properties().stacksTo(1)));
+
     private ModItems() {
     }
 

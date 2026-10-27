@@ -27,7 +27,7 @@ public final class WFLights {
      * {@code d^2+1} floor, else it saturates to peak (up to ~250) => flat white, not {@link #FIRE_RANGE} fire's
      * trap (lifted off the floor instead). Softness {@code sqrt(peak / this)} keeps range-distance irradiance
      * near its unsoftened value ({@code soft^2 << range^2}). */
-    static final float MUZZLE_NEAR_CAP = 6;
+    static final float MUZZLE_NEAR_CAP = 3;
     /** Fire: range = this + footprint radius; flicker depth. Source {@link #LIFT} over the flame tops: 1 block off
      * the floor => E ~ I/2 there, floor saturates white. */
     static final float FIRE_RANGE = 10, FIRE_INTENSITY = 13, PHOSPHORUS_INTENSITY = 30, FLICKER = 0.2F, LIFT = 0.5F;

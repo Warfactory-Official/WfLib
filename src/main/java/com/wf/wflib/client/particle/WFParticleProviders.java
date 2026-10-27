@@ -22,6 +22,7 @@ public final class WFParticleProviders {
         event.registerSpriteSet(WFParticles.MIST.get(), MistParticle.Provider::new);
         event.registerSpriteSet(WFParticles.SMOKE_PLUME.get(), SmokePlumeParticle.Provider::new);
         event.registerSpriteSet(WFParticles.SMOKE_SCREEN.get(), SmokePlumeParticle.Screen::new);
+        event.registerSpriteSet(WFParticles.RAD_FOG.get(), RadFogParticle.Provider::new);
         // block_debris: registerSpecial, not registerSpriteSet; geometry comes from the block's own baked model.
         event.registerSpecial(WFParticles.BLOCK_DEBRIS.get(), new BlockDebrisParticle.Provider());
     }

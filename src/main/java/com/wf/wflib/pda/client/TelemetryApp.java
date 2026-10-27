@@ -48,9 +48,6 @@ public final class TelemetryApp implements PdaApp {
     /** = server ring. */
     private static final int KEPT = 256;
     private static final int REFRESH_TICKS = 20;
-    private static final int ACCENT = 0xFFA9D46C;
-    private static final int TEXT = 0xFFD2D6CC;
-    private static final int DIM = 0xFF8D9488;
     private static final int ALERT = 0xFFD0584A;
 
     private static final TelemetryApp instance = new TelemetryApp();
@@ -175,7 +172,7 @@ public final class TelemetryApp implements PdaApp {
             }
         }
         if (LINES.isEmpty()) {
-            LINES.add(new PdaLog.Line(all ? "NO DATALINK TRAFFIC" : "NO EVENTS", DIM));
+            LINES.add(new PdaLog.Line(all ? "NO DATALINK TRAFFIC" : "NO EVENTS", PdaTheme.dim()));
         }
     }
 
@@ -209,9 +206,9 @@ public final class TelemetryApp implements PdaApp {
     private static int colour(WFEventType type) {
         return switch (type) {
             case DESTROYED, INTERCEPTED, FUEL_OUT, POWER_LOW, POWER_OUT -> ALERT;
-            case SPAWN, IMPACTED, DETONATED, MISSION_COMPLETE, LANDED -> ACCENT;
-            case ASCEND, CRUISE, ATTACK -> TEXT;
-            default -> DIM;
+            case SPAWN, IMPACTED, DETONATED, MISSION_COMPLETE, LANDED -> PdaTheme.accent();
+            case ASCEND, CRUISE, ATTACK -> PdaTheme.text();
+            default -> PdaTheme.dim();
         };
     }
 

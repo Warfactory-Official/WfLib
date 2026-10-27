@@ -1,5 +1,6 @@
 package com.wf.wflib.client.view;
 
+import com.wf.wflib.anim.ArmLimits;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -31,10 +32,10 @@ public final class ArmViewPose {
      * rad: elbow range about the arm line from {@code pole}, toward the body / away from it. TACZ forearms run down the
      * bore => hand axis puts the right elbow across the chest (p90 ~70 deg inward of straight down at {@link #SHOULDER}).
      */
-    public static final float ELBOW_IN = (float) Math.toRadians(60), ELBOW_OUT = (float) Math.toRadians(150);
+    public static final float ELBOW_IN = ArmLimits.DEFAULT.elbowIn(), ELBOW_OUT = ArmLimits.DEFAULT.elbowOut();
     /** rad: either side of the out-of-range midpoint where the elbow keeps its bound (no flapping across it). */
     static final float ELBOW_HOLD = (float) Math.toRadians(45);
-    private static final float FAR = (ELBOW_OUT + 2 * (float) Math.PI - ELBOW_IN) / 2;
+
     private static final Vector3fc ARM_AXIS = new Vector3f(0, 1, 0);
     private static final Quaternionfc REST = new Quaternionf().rotationZ((float) Math.PI);
 
@@ -60,10 +61,22 @@ public final class ArmViewPose {
     public static final class Bend {
         private final Vector3f dir = new Vector3f();
         private boolean set;
+        private ArmLimits limits = ArmLimits.DEFAULT;
 
         public void reset() {
             set = false;
         }
+
+        /** Elbow range of this arm from the next solve; null => {@link ArmLimits#DEFAULT}. */
+        public void limits(@Nullable ArmLimits l) {
+            limits = l == null ? ArmLimits.DEFAULT : l;
+        }
+    }
+
+    /** rad between {@code hand} +Y and the forearm ({@code lower} +Y); 0 without {@code hand}. */
+    public static float swing(@Nullable Quaternionfc hand, Matrix4f lower) {
+        if (hand == null) return 0;
+        return hand.transform(T.set(ARM_AXIS)).angle(lower.getColumn(1, FOREARM).normalize());
     }
 
     /** {@link #SHOULDER} of one side. */
@@ -136,10 +149,13 @@ public final class ArmViewPose {
         }
         // outside the range => nearer bound, held side within ELBOW_HOLD of the far point; elbow goes round through
         // the range, never across the body. Held side alone => parks on a bound the guess has left (hk416 inspect)
-        if (to < -ELBOW_IN || to > ELBOW_OUT) {
-            float past = (to < -ELBOW_IN ? to + 2 * (float) Math.PI : to) - FAR;
-            to = Math.abs(past) < ELBOW_HOLD ? (Math.abs(from + ELBOW_IN) < Math.abs(from - ELBOW_OUT) ? -ELBOW_IN
-                    : ELBOW_OUT) : past > 0 ? -ELBOW_IN : ELBOW_OUT;
+        ArmLimits limits = state == null ? ArmLimits.DEFAULT : state.limits;
+        float in = limits.elbowIn(), out = limits.elbowOut();
+        if (to < -in || to > out) {
+            float far = (out + 2 * (float) Math.PI - in) / 2;
+            float past = (to < -in ? to + 2 * (float) Math.PI : to) - far;
+            to = Math.abs(past) < ELBOW_HOLD ? (Math.abs(from + in) < Math.abs(from - out) ? -in : out)
+                    : past > 0 ? -in : out;
         }
         float turn = (to - from) * rate;
         if (held) turn = Math.clamp(turn, -BEND_SPEED * dt, BEND_SPEED * dt);

@@ -180,6 +180,7 @@ public class WFLibClient {
             com.wf.wflib.client.recon.ReconMapLayer.register();
             com.wf.wflib.client.cam.CameraOsd.register();
             com.wf.wflib.tv.client.TvHud.register();
+            com.wf.wflib.hazard.client.GeigerHud.register();
             com.wf.wflib.pda.client.PdaApps.registerBuiltins();
             com.wf.wflib.client.rail.AlignmentMapLayer.register();
             com.wf.wflib.client.map.WFMaps.addTool(new com.wf.wflib.client.rail.RailMapEditor());

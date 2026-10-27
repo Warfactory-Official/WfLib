@@ -214,4 +214,26 @@ class ArmViewPoseTest {
         assertTrue(worst < 0.4F * total, "per-frame step " + worst + " of " + total);
         assertEquals(0, elbow.distance(free), 1e-3F, "settled");
     }
+
+    /** Hand rolled round the forearm axis 1 deg per frame: twist follows it one for one (unclamped, wrapped). */
+    @Test
+    void forearmTwistFollowsTheHandRoll() {
+        Vector3f fist = new Vector3f(0.12F, -0.15F, -0.35F);
+        Vector3f shoulder = ArmViewPose.shoulder(false, new Vector3f());
+        Vector3f pole = new Vector3f(ArmViewPose.RIGHT_POLE);
+        ArmViewPose.Bend bend = new ArmViewPose.Bend();
+        float prev = Float.NaN;
+        for (int i = 0; i <= 720; i++) {
+            Vector3f line = new Vector3f(fist).sub(shoulder).normalize();
+            Quaternionf hand = new Quaternionf().rotationTo(new Vector3f(0, 1, 0), line)
+                    .rotateY(i * (float) Math.PI / 180);
+            float twist = ArmViewPose.solve(fist, hand, ArmViewPose.shoulder(false, new Vector3f()), pole, LENGTHS, 0,
+                    bend, 1 / 60F, new Matrix4f(), new Matrix4f(), new Vector3f());
+            if (!Float.isNaN(prev)) {
+                assertEquals(Math.PI / 180, Math.IEEEremainder(twist - prev, 2 * Math.PI), 1e-3,
+                        "step " + Math.toDegrees(twist - prev) + " at " + i);
+            }
+            prev = twist;
+        }
+    }
 }

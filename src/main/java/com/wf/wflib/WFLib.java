@@ -58,6 +58,8 @@ public class WFLib {
         com.wf.wflib.fluid.WFFluids.register(modEventBus);
         com.wf.wflib.WFSounds.register(modEventBus);
         com.wf.wflib.fire.WFFire.register(modEventBus);
+        com.wf.wflib.hazard.HazardContent.register(modEventBus);
+        com.wf.wflib.radiation.RadiationEvents.register(modEventBus);
         com.wf.wflib.door.ModDoors.register(modEventBus);
         // A plain list add, on both sides, for the same reason the doors' is.
         com.wf.wflib.mine.MineProbeActions.register();
@@ -85,6 +87,9 @@ public class WFLib {
         modContainer.registerConfig(
                 ModConfig.Type.COMMON, com.wf.wflib.armor.ArmorConfig.SPEC,
                 "wflib-armor.toml");
+        modContainer.registerConfig(
+                ModConfig.Type.COMMON, com.wf.wflib.radiation.RadiationConfig.SPEC,
+                "wflib-radiation.toml");
         // Registers nothing at all unless Immersive Railroading is installed.
         com.wf.wflib.rail.RailFeatures.init(modContainer);
     }
@@ -104,6 +109,7 @@ public class WFLib {
            MistEffects.bootstrap();
            com.wf.wflib.armor.ArmorExposure.bootstrap();
            com.wf.wflib.armor.ArmorPresets.bootstrap();
+           com.wf.wflib.hazard.HazardSystem.registerContent();
            DroneTracker.bootstrap();
            com.wf.wflib.pda.drone.PdaDrones.register();
            com.wf.wflib.sim.SimKinds.register(com.wf.wflib.sim.SimMissileManager.KIND);
