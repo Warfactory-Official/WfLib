@@ -83,6 +83,8 @@ public final class AnomalyClient {
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/anomaly/white.png");
     private static final ResourceLocation RING =
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/anomaly/ring.png");
+    private static final ResourceLocation GLOW =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/anomaly/glow.png");
 
     /** Blowout sound still playing, faded out if the blowout fizzles (or, if it {@code endsWithBlowout}, ends). */
     private static final Map<AnomalyBlockEntity, AnomalyBlowoutSound> BUILDUP = new WeakHashMap<>();
@@ -108,7 +110,8 @@ public final class AnomalyClient {
                     float level = look.style() == AnomalyLook.Style.FIRE
                             ? range2 * (0.35F + 0.05F * (float) Math.sin((since + partialTick) * 1.7F))
                             : range2 * 0.08F * k * k;
-                    sink.point(c.x, c.y + 2.0D, c.z, look.flashRange(), look.flashRgb(), level, false);
+                    sink.point(c.x, c.y + (be.type().quirk().moves() ? 0.0D : 2.0D), c.z, look.flashRange(),
+                            look.flashRgb(), level, false);
                 } else if (look.idleLight() > 0.0F && be.phase() != Phase.BLOWOUT) {
                     float flicker = look.style() == AnomalyLook.Style.ELECTRIC
                             ? 0.6F + 0.4F * (float) Math.abs(Math.sin((be.age() + partialTick) * 2.3F)) : 1.0F;
@@ -117,9 +120,10 @@ public final class AnomalyClient {
                     double ring = ring(be, copies);
                     float level = look.idleLight() * look.idleLight() * 0.15F / copies * flicker
                             * be.presence(partialTick);
+                    double lift = be.type().quirk().moves() ? 0.0D : 2.5D;
                     for (int i = 0; i < copies; i++) {
                         double a = Mth.TWO_PI * i / copies;
-                        sink.point(c.x + Math.cos(a) * ring, c.y + 2.5D, c.z + Math.sin(a) * ring,
+                        sink.point(c.x + Math.cos(a) * ring, c.y + lift, c.z + Math.sin(a) * ring,
                                 look.idleLight(), look.flashRgb(), level, false);
                     }
                 }
@@ -166,8 +170,18 @@ public final class AnomalyClient {
         return copies > 1 ? be.behaviour().radius() * 0.35D : 0.0D;
     }
 
+    /**
+     * Where an anomaly's STALKER particle groups are played from: its centre, but for the Comet the ground under its
+     * fireball, as STALKER's path point is (heat_02/03 build the fire 2 m above their origin).
+     */
+    private static Vec3 emitter(AnomalyBlockEntity be, Vec3 c) {
+        return be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.ORBIT
+                ? c.subtract(0.0D, 2.0D * be.type().look().particleHeight(), 0.0D) : c;
+    }
+
     /** STALKER's particles: the idle group looped while present, the blowout group from the explosion to its end. */
-    private static void particles(AnomalyBlockEntity be, Vec3 c, AnomalyLook look) {
+    private static void particles(AnomalyBlockEntity be, Vec3 at, AnomalyLook look) {
+        Vec3 c = emitter(be, at);
         if (look.idleParticles() != null) {
             boolean present = be.presence(0.0F) > 0.0F;
             if (present && !IDLE_FX.containsKey(be)) {
@@ -183,13 +197,6 @@ public final class AnomalyClient {
                 IDLE_FX.put(be, playing);
             } else if (!present) {
                 stopIdleFx(be);
-            }
-        }
-        if (be.type().quirk().moves()) {
-            IDLE_FX.getOrDefault(be, List.of()).forEach(p -> p.moveTo(c));
-            com.wf.wflib.client.xray.XrParticles.Playing blowout = BLOWOUT_FX.get(be);
-            if (blowout != null) {
-                blowout.moveTo(c);
             }
         }
         if (look.blowoutParticles() != null) {
@@ -316,19 +323,41 @@ public final class AnomalyClient {
         }
     }
 
-    /** Burnt Fuzz hair ({@code fuzz}) or Rebounder discs, for every anomaly in draw distance. */
-    private static void shapes(RenderLevelStageEvent event, boolean fuzz) {
+    /** Burnt Fuzz hair and wandering anomalies' particles ({@code solid}), or Rebounder discs and glows. */
+    private static void shapes(RenderLevelStageEvent event, boolean solid) {
+        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        if (solid) {
+            // Before the particles draw: a wandering anomaly's emitters follow it each frame, trailing their fire.
+            for (AnomalyBlockEntity be : LIVE) {
+                if (be.type().quirk().moves() && !be.isRemoved()) {
+                    Vec3 c = emitter(be, be.center(partial));
+                    IDLE_FX.getOrDefault(be, List.of()).forEach(p -> p.trailTo(c));
+                    com.wf.wflib.client.xray.XrParticles.Playing blowout = BLOWOUT_FX.get(be);
+                    if (blowout != null) {
+                        blowout.trailTo(c);
+                    }
+                }
+            }
+        }
+        shapes(event, solid, partial, solid ? net.minecraft.client.renderer.RenderType.entityCutoutNoCull(WHITE)
+                : com.wf.wflib.client.render.WFRenderTypes.xray(RING, com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD));
+        if (!solid) {
+            shapes(event, false, partial, com.wf.wflib.client.render.WFRenderTypes.xray(GLOW,
+                    com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD));
+        }
+    }
+
+    private static void shapes(RenderLevelStageEvent event, boolean fuzz, float partial,
+                               net.minecraft.client.renderer.RenderType type) {
+        boolean glow = type == com.wf.wflib.client.render.WFRenderTypes.xray(GLOW,
+                com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD);
         Minecraft mc = Minecraft.getInstance();
         Vec3 cam = event.getCamera().getPosition();
-        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
         com.mojang.blaze3d.vertex.PoseStack pose = event.getPoseStack();
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);
         org.joml.Matrix4f matrix = pose.last().pose();
         net.minecraft.client.renderer.MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-        net.minecraft.client.renderer.RenderType type = fuzz
-                ? net.minecraft.client.renderer.RenderType.entityCutoutNoCull(WHITE)
-                : com.wf.wflib.client.render.WFRenderTypes.xray(RING, com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD);
         boolean any = false;
         for (AnomalyBlockEntity be : LIVE) {
             if (be.isRemoved() || be.getLevel() != mc.level || be.center().distanceTo(cam) > DRAW_DISTANCE) {
@@ -339,6 +368,11 @@ public final class AnomalyClient {
                 if (strands != null) {
                     int light = net.minecraft.client.renderer.LevelRenderer.getLightColor(mc.level, be.getBlockPos());
                     strands.emit(buffers.getBuffer(type), matrix, cam, partial, light);
+                    any = true;
+                }
+            } else if (glow) {
+                if (be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.ORBIT) {
+                    glow(buffers.getBuffer(type), matrix, event.getCamera(), be, partial);
                     any = true;
                 }
             } else if (be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.REBOUNDS
@@ -374,6 +408,40 @@ public final class AnomalyClient {
             ring(out, matrix, c, ux * size, size, uz * size, 1.0F, 0.0F, a);
             ring(out, matrix, c, -ux * size, size, -uz * size, 0.0F, 0.0F, a);
         }
+    }
+
+    /**
+     * The Comet's glow (STALKER's HDR bloom round its fireball): a wide warm halo and a white-hot core, flickering,
+     * brighter as it strikes.
+     */
+    private static void glow(VertexConsumer out, org.joml.Matrix4f matrix, net.minecraft.client.Camera camera,
+                             AnomalyBlockEntity be, float partial) {
+        Vec3 c = be.center(partial);
+        org.joml.Vector3f up = camera.getUpVector();
+        org.joml.Vector3f left = camera.getLeftVector();
+        float t = be.age() + partial;
+        float flicker = 0.85F + 0.1F * Mth.sin(t * 0.9F) + 0.05F * Mth.sin(t * 2.3F + 1.0F);
+        float strike = be.phase() == Phase.BLOWOUT ? 1.3F : 1.0F;
+        billboard(out, matrix, c, up, left, 2.6F * strike, 1.0F, 0.5F, 0.15F, 0.55F * flicker);
+        billboard(out, matrix, c, up, left, 1.2F * strike, 1.0F, 0.8F, 0.45F, 0.8F * flicker);
+        billboard(out, matrix, c, up, left, 0.5F, 1.0F, 0.97F, 0.85F, 1.0F);
+    }
+
+    private static void billboard(VertexConsumer out, org.joml.Matrix4f matrix, Vec3 c, org.joml.Vector3f up,
+                                  org.joml.Vector3f left, float size, float r, float g, float b, float a) {
+        float ux = up.x() * size;
+        float uy = up.y() * size;
+        float uz = up.z() * size;
+        float lx = left.x() * size;
+        float ly = left.y() * size;
+        float lz = left.z() * size;
+        float x = (float) c.x;
+        float y = (float) c.y;
+        float z = (float) c.z;
+        out.addVertex(matrix, x + lx - ux, y + ly - uy, z + lz - uz).setUv(0.0F, 1.0F).setColor(r, g, b, a);
+        out.addVertex(matrix, x - lx - ux, y - ly - uy, z - lz - uz).setUv(1.0F, 1.0F).setColor(r, g, b, a);
+        out.addVertex(matrix, x - lx + ux, y - ly + uy, z - lz + uz).setUv(1.0F, 0.0F).setColor(r, g, b, a);
+        out.addVertex(matrix, x + lx + ux, y + ly + uy, z + lz + uz).setUv(0.0F, 0.0F).setColor(r, g, b, a);
     }
 
     private static void ring(VertexConsumer out, org.joml.Matrix4f matrix, Vec3 c, float dx, float dy, float dz,

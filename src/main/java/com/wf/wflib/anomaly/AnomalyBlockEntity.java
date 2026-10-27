@@ -65,6 +65,11 @@ public class AnomalyBlockEntity extends BlockEntity {
     /** A {@link Quirk#moves wandering} anomaly's loop: made by the server once, saved, sent to clients. */
     @org.jetbrains.annotations.Nullable
     private AnomalyPath path;
+    /**
+     * Client: game time as this anomaly walks its path, a tick per tick, eased toward the server's (whose time
+     * packets nudge the client clock a tick or so, which would make it skip); -1 until the first tick.
+     */
+    private double clock = -1.0D;
 
     public AnomalyBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ANOMALY.get(), pos, state);
@@ -125,7 +130,11 @@ public class AnomalyBlockEntity extends BlockEntity {
 
     public Vec3 center(float partial) {
         Vec3 base = Vec3.atBottomCenterOf(worldPosition);
-        return path == null || level == null ? base : base.add(path.at(level.getGameTime() + partial));
+        if (path == null || level == null) {
+            return base;
+        }
+        double t = level.isClientSide && clock >= 0.0D ? clock : level.getGameTime();
+        return base.add(path.at(t + partial));
     }
 
     /**
@@ -404,6 +413,8 @@ public class AnomalyBlockEntity extends BlockEntity {
             return;
         }
         be.step();
+        long now = level.getGameTime();
+        be.clock = be.clock < 0.0D || Math.abs(now - be.clock) > 20.0D ? now : be.clock + 1.0D + 0.05D * (now - be.clock - 1.0D);
         com.wf.wflib.anomaly.client.AnomalyClient.tick(be);
     }
 

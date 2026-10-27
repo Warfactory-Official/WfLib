@@ -388,7 +388,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType COMET = new AnomalyType("Comet",
             new BlastTuning(3.0D, 2, 20, 2, 1.0D, 0.0D, false, 5),
             new AnomalyLook(Style.FIRE, 1.5F, 0.0D, 0.008F, 0.6F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xFFEEC4, 15.0F, 40, 8.0F, 1.0F, "anomaly2/heat_02", "anomaly2/heat_03", 1.0F, 0.5F),
+                    0xFFB066, 15.0F, 40, 12.0F, 1.0F, "anomaly2/heat_02", "anomaly2/heat_03", 1.0F, 0.5F),
             WFDamageTypes.FIRE,
             new AnomalySounds(
                     () -> WFSounds.ANOMALY_FIREBALL_IDLE.get(),

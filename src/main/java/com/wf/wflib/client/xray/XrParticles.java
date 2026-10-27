@@ -100,6 +100,26 @@ public final class XrParticles {
             this.origin = origin;
         }
 
+        /**
+         * Move the emitter, leaving what it has already let go where it is (X-Ray emits into world space): a moving
+         * source trails its particles. Call it every frame for a smooth path.
+         */
+        public void trailTo(Vec3 origin) {
+            float dx = (float) (origin.x - this.origin.x) / scale;
+            float dy = (float) (origin.y - this.origin.y) / height;
+            float dz = (float) (origin.z - this.origin.z) / scale;
+            this.origin = origin;
+            for (List<Running> runs : List.of(effects, children)) {
+                for (Running run : runs) {
+                    for (int i = 0; i < run.count; i++) {
+                        run.particles[i].x -= dx;
+                        run.particles[i].y -= dy;
+                        run.particles[i].z -= dz;
+                    }
+                }
+            }
+        }
+
         public boolean finished() {
             return stopped && spent();
         }
