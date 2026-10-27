@@ -1,6 +1,8 @@
 package com.wf.wflib.anomaly;
 
+import com.wf.wflib.anomaly.AnomalyType.Quirk;
 import com.wf.wflib.block.ModBlockEntities;
+import com.wf.wflib.hazard.ContaminationUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ItemParticleOption;
@@ -13,6 +15,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -53,10 +57,32 @@ public class AnomalyBlockEntity extends BlockEntity {
     private java.util.Set<Integer> inside = java.util.Set.of();
     /** Entity ids hit this blowout; each side keeps its own. */
     private final java.util.Set<Integer> hit = new java.util.HashSet<>();
+    /** Server, a CHairsZone: where each body inside was last tick, for its speed. */
+    private java.util.Map<Integer, Vec3> seen = java.util.Map.of();
+    /** Server: Rebounders loaded now, for {@link #shielding}. */
+    private static final java.util.Set<AnomalyBlockEntity> SHIELDS =
+            java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    /**
+     * A {@link Quirk#moves wandering} anomaly's path, from its position so both sides agree: reach on each axis,
+     * degrees per tick, start angle ({@code zone_mine_ghost}: 0.5-3 m, 1-3 and 1-4 degrees per 22 ms, 0-180).
+     */
+    private final double pathX, pathZ, rateX, rateZ, phase0;
 
     public AnomalyBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ANOMALY.get(), pos, state);
         type = ((AnomalyBlock) state.getBlock()).type();
+        RandomSource path = RandomSource.create(pos.asLong());
+        boolean comet = type.quirk() == Quirk.ORBIT;
+        double near = comet ? 5.0D : 0.5D;
+        double spread = comet ? 4.0D : 2.5D;
+        pathX = (near + spread * path.nextDouble()) * (path.nextBoolean() ? 1 : -1);
+        pathZ = (near + spread * path.nextDouble()) * (path.nextBoolean() ? 1 : -1);
+        int stepX = 1 + path.nextInt(3);
+        int stepZ = stepX == 1 ? 2 + path.nextInt(2) : stepX == 2 ? 1 + 2 * path.nextInt(2) : 2 + 2 * path.nextInt(2);
+        double perTick = (comet ? 0.35D : 1.0D) * 50.0D / 22.0D;
+        rateX = stepX * perTick;
+        rateZ = stepZ * perTick;
+        phase0 = 45.0D * path.nextInt(5);
     }
 
     public AnomalyType type() {
@@ -79,9 +105,34 @@ public class AnomalyBlockEntity extends BlockEntity {
         return age;
     }
 
-    /** Ground centre: where the pull aims ({@code CMincer::ThrowInCenter}). */
+    /** Ground centre: where the pull aims ({@code CMincer::ThrowInCenter}); a wandering one's, where it is now. */
     public Vec3 center() {
-        return Vec3.atBottomCenterOf(worldPosition);
+        return center(0.0F);
+    }
+
+    public Vec3 center(float partial) {
+        Vec3 base = Vec3.atBottomCenterOf(worldPosition);
+        if (!type.quirk().moves() || level == null) {
+            return base;
+        }
+        double t = level.getGameTime() + partial;
+        return base.add(Math.sin(Math.toRadians(phase0 + rateX * t)) * pathX,
+                type.quirk() == Quirk.ORBIT ? 1.0D : 0.0D, Math.sin(Math.toRadians(rateZ * t)) * pathZ);
+    }
+
+    /**
+     * How far {@code e} is, as this anomaly measures: from the centre; a {@code CHairsZone}'s sideways only, and only
+     * for what is below it, down to {@link BlastTuning#HAIRS_DROP} ({@code Affect}: {@code P.y = object y}).
+     */
+    public double reach(Entity e, Vec3 c) {
+        AABB box = e.getBoundingBox();
+        if (behaviour() instanceof BlastTuning blast && blast.hairs()) {
+            if (box.minY > c.y + 1.0D || box.maxY < c.y - BlastTuning.HAIRS_DROP) {
+                return Double.MAX_VALUE;
+            }
+            return Math.hypot(box.getCenter().x - c.x, box.getCenter().z - c.z);
+        }
+        return box.getCenter().distanceTo(c);
     }
 
     /** This tick is the explosion. */
@@ -142,6 +193,9 @@ public class AnomalyBlockEntity extends BlockEntity {
             return;
         }
         be.step();
+        if (be.type.quirk() == Quirk.REBOUNDS) {
+            SHIELDS.add(be);
+        }
         if (be.phase == Phase.SPENT) {
             return;
         }
@@ -149,24 +203,38 @@ public class AnomalyBlockEntity extends BlockEntity {
         Vec3 c = be.center();
         boolean occupied = false;
         boolean tripped = false;
+        boolean hairs = behaviour instanceof BlastTuning blast && blast.hairs();
         java.util.Set<Integer> now = new java.util.HashSet<>();
-        for (Entity e : level.getEntities((Entity) null, new AABB(c, c).inflate(behaviour.radius()),
-                AnomalyBlockEntity::affected)) {
-            double dist = e.getBoundingBox().getCenter().distanceTo(c);
+        java.util.Map<Integer, Vec3> seen = hairs ? new java.util.HashMap<>() : java.util.Map.of();
+        AABB around = new AABB(c, c).inflate(behaviour.radius());
+        for (Entity e : level.getEntities((Entity) null, hairs ? around.expandTowards(0.0D, -BlastTuning.HAIRS_DROP,
+                0.0D) : around, AnomalyBlockEntity::affected)) {
+            double dist = be.reach(e, c);
             if (dist > behaviour.radius()) {
                 continue;
             }
             now.add(e.getId());
             boolean alive = e instanceof LivingEntity;
-            if (alive && !be.inside.contains(e.getId())) {
+            if (alive && !be.inside.contains(e.getId()) && be.type.sounds().entrance() != null) {
                 level.playSound(null, e.getX(), e.getY(), e.getZ(), be.type.sounds().entrance().get(),
                         SoundSource.HOSTILE, 1.0F, 1.0F);
             }
             boolean big = alive && !MincerTuning.small(e.getBbWidth(), e.getBbHeight());
             occupied |= big;
+            // A CHairsZone only wakes for something moving fast enough (CHairsZone::CheckForAwaking).
+            boolean moving = true;
+            if (hairs) {
+                Vec3 last = be.seen.get(e.getId());
+                seen.put(e.getId(), e.position());
+                moving = last != null && Math.hypot(e.getX() - last.x, e.getZ() - last.z)
+                        > ((BlastTuning) behaviour).minSpeed();
+            }
             // Only the living set it off (items, bolts, arrows don't); while one stays inside it fires again as soon
             // as it has recharged (CCustomZone::AccumulateState).
-            tripped |= alive && (big || behaviour.smallTrips()) && behaviour.trips(dist);
+            tripped |= alive && (big || behaviour.smallTrips()) && behaviour.trips(dist) && moving;
+            if (alive && level instanceof ServerLevel server) {
+                be.dwell(server, (LivingEntity) e, dist);
+            }
             boolean struck = true;
             if (be.striking()) {
                 struck = be.claim(e);
@@ -175,12 +243,15 @@ public class AnomalyBlockEntity extends BlockEntity {
                     be.hit(server, living, c, behaviour.hit(dist, living instanceof Player));
                 }
             }
-            if (struck && !(e instanceof Player)) {
+            // Fields move nothing (but the no-gravity one): no motion to sync.
+            boolean moves = !(behaviour instanceof FieldTuning) || be.type.quirk() == Quirk.WEIGHTLESS;
+            if (struck && moves && !(e instanceof Player)) {
                 be.affect(e);
                 e.hurtMarked = true;
             }
         }
         be.inside = now;
+        be.seen = seen;
         if (be.phase == Phase.IDLE && tripped) {
             level.blockEvent(pos, state.getBlock(), EVENT_BLOWOUT, 0);
         } else if (be.phase == Phase.BLOWOUT && !be.exploding() && behaviour.fizzles()) {
@@ -189,6 +260,54 @@ public class AnomalyBlockEntity extends BlockEntity {
                 level.blockEvent(pos, state.getBlock(), EVENT_FIZZLE, 0);
             }
         }
+    }
+
+    /**
+     * Each tick a living thing is inside: a field's hurt (every {@link FieldTuning#PULSE_TICKS}) or dose, Green
+     * Dragon's drag, Liquid Gold's drain.
+     */
+    private void dwell(ServerLevel level, LivingEntity living, double dist) {
+        if (behaviour() instanceof FieldTuning field) {
+            if (field.radiation()) {
+                ContaminationUtil.contaminate(living, ContaminationUtil.HazardType.RADIATION,
+                        ContaminationUtil.ContaminationType.CREATIVE, field.dose(dist));
+            } else if ((age + living.getId()) % FieldTuning.PULSE_TICKS == 0 && field.perSecond() > 0.0D) {
+                living.hurt(source(level), field.hit(dist, living instanceof Player));
+            }
+        }
+        double near = 1.0D - (dist / behaviour().radius()) * (dist / behaviour().radius());
+        switch (type.quirk()) {
+            case SLOWS -> {
+                if (age % 10 == 0) {
+                    living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 2, true, false, true));
+                }
+            }
+            // About a food point every 4 s in the middle (DAO: stamina -0.002 a frame, thirst).
+            case DRAINS -> {
+                if (living instanceof Player player) {
+                    player.causeFoodExhaustion((float) (0.05D * near));
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    private DamageSource source(ServerLevel level) {
+        return new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                .getHolderOrThrow(type.damage()), center());
+    }
+
+    /** The Rebounder {@code victim} is inside, if any (server). */
+    @org.jetbrains.annotations.Nullable
+    public static AnomalyBlockEntity shielding(LivingEntity victim) {
+        for (AnomalyBlockEntity be : SHIELDS) {
+            if (!be.isRemoved() && be.level == victim.level()
+                    && be.reach(victim, be.center()) <= be.behaviour().radius()) {
+                return be;
+            }
+        }
+        return null;
     }
 
     /** While {@link #striking}: true (and remembered) the first time this blowout. */
@@ -201,13 +320,18 @@ public class AnomalyBlockEntity extends BlockEntity {
      * it alight; a mincer kill tears the body apart ({@code body_tear}): gore everywhere, no slow death pose.
      */
     private void hit(ServerLevel level, LivingEntity living, Vec3 c, float hit) {
+        if (type.quirk() == Quirk.TIME_SLIP) {
+            timeSlip(level, living);
+            return;
+        }
         if (hit <= 0.0F) {
             return;
         }
-        living.hurt(new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
-                .getHolderOrThrow(type.damage()), c), hit);
-        level.playSound(null, living.getX(), living.getY(), living.getZ(), type.sounds().hit().get(),
-                SoundSource.HOSTILE, 1.0F, 1.0F);
+        living.hurt(source(level), hit);
+        if (type.sounds().hit() != null) {
+            level.playSound(null, living.getX(), living.getY(), living.getZ(), type.sounds().hit().get(),
+                    SoundSource.HOSTILE, 1.0F, 1.0F);
+        }
         if (behaviour() instanceof BlastTuning blast && blast.igniteSeconds() > 0) {
             living.igniteForSeconds(blast.igniteSeconds());
         }
@@ -227,6 +351,33 @@ public class AnomalyBlockEntity extends BlockEntity {
             // Nothing left to fall over: finish the death next tick (XP still drops).
             living.deathTime = 19;
             living.setInvisible(true);
+        }
+    }
+
+    /**
+     * Flash ({@code anomalies_hit_functions.zone_mine_flash}): a player loses 3-8 hours, coming to hungry (a food
+     * point an hour), a few % of health down and dazed; alone on the server, the clock moves on too. A creature is
+     * simply gone ({@code safe_release_manager.release}).
+     */
+    private void timeSlip(ServerLevel level, LivingEntity living) {
+        if (type.sounds().hit() != null) {
+            level.playSound(null, living.getX(), living.getY(), living.getZ(), type.sounds().hit().get(),
+                    SoundSource.HOSTILE, 1.0F, 1.0F);
+        }
+        Vec3 at = living.getBoundingBox().getCenter();
+        level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        if (!(living instanceof Player player)) {
+            living.discard();
+            return;
+        }
+        RandomSource random = level.random;
+        int minutes = (3 + random.nextInt(6)) * 60 + 1 + random.nextInt(59);
+        player.causeFoodExhaustion(4.0F * minutes / 60.0F);
+        player.hurt(source(level), player.getMaxHealth() * (0.01F + 0.03F * random.nextFloat()));
+        player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 120, 0));
+        if (level.getServer().getPlayerCount() == 1) {
+            ServerLevel overworld = level.getServer().overworld();
+            overworld.setDayTime(overworld.getDayTime() + minutes * 1000L / 60L);
         }
     }
 
@@ -252,11 +403,22 @@ public class AnomalyBlockEntity extends BlockEntity {
         if (phase == Phase.SPENT) {
             return;
         }
+        if (behaviour() instanceof FieldTuning) {
+            if (type.quirk() == Quirk.WEIGHTLESS) {
+                // Gravity undone, drifting slowed; a nudge off the ground so the living lift away.
+                Vec3 v = e.getDeltaMovement();
+                e.setDeltaMovement(v.x, v.y * 0.98D + e.getGravity() + (e.onGround() ? 0.08D : 0.0D), v.z);
+                e.resetFallDistance();
+            }
+            return;
+        }
         if (behaviour() instanceof BlastTuning blast) {
-            if (striking()) {
-                Vec3 thrown = blast.throwAt(e.getBoundingBox().getCenter().distanceTo(center()), e.getRandom());
+            if (type.quirk() == Quirk.REBOUNDS && e instanceof Projectile) {
+                glance(e);
+            } else if (striking()) {
+                Vec3 thrown = blast.throwAt(reach(e, center()), e.getRandom());
                 if (!thrown.equals(Vec3.ZERO)) {
-                    e.setDeltaMovement(thrown);
+                    e.setDeltaMovement(type.quirk() == Quirk.REBOUNDS ? outward(e).scale(thrown.length()) : thrown);
                 }
             }
             return;
@@ -305,9 +467,35 @@ public class AnomalyBlockEntity extends BlockEntity {
         }
     }
 
+    /** Rebounder: a projectile heading in is turned back off the disc, at half speed. */
+    private void glance(Entity e) {
+        Vec3 n = e.position().subtract(center());
+        if (n.lengthSqr() < 1.0E-6D) {
+            return;
+        }
+        n = n.normalize();
+        Vec3 v = e.getDeltaMovement();
+        double in = v.dot(n);
+        if (in < 0.0D) {
+            e.setDeltaMovement(v.subtract(n.scale(2.0D * in)).scale(0.5D));
+        }
+    }
+
+    /** Away from the centre, half as much up again: the Rebounder's bat. */
+    private Vec3 outward(Entity e) {
+        Vec3 d = e.position().subtract(center());
+        Vec3 flat = new Vec3(d.x, 0.0D, d.z);
+        if (flat.lengthSqr() < 1.0E-6D) {
+            double a = e.getRandom().nextDouble() * Mth.TWO_PI;
+            flat = new Vec3(Math.cos(a), 0.0D, Math.sin(a));
+        }
+        return flat.normalize().add(0.0D, 0.5D, 0.0D).normalize();
+    }
+
     @Override
     public void setRemoved() {
         super.setRemoved();
+        SHIELDS.remove(this);
         if (level != null && level.isClientSide) {
             com.wf.wflib.anomaly.client.AnomalyClient.forget(this);
         }

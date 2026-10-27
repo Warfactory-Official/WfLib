@@ -1,5 +1,6 @@
 package com.wf.wflib.block;
 
+import com.wf.wflib.anomaly.AnomalyType;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.demolition.MiningChargeBlock;
 import net.minecraft.world.item.BlockItem;
@@ -204,37 +205,41 @@ public class ModBlocks {
                     new BlockItem(GRID_POWER_CELL.get(), new Item.Properties()));
 
     /** STALKER's anomalies; inert and invisible unless {@code anomalies.enabled} (server config). Vortex: the first, hence the id. */
-    public static final DeferredHolder<Block, Block> GRAVITY_ANOMALY = anomaly("gravity_anomaly",
-            com.wf.wflib.anomaly.AnomalyType.VORTEX);
-    public static final DeferredHolder<Block, Block> WHIRLIGIG = anomaly("whirligig",
-            com.wf.wflib.anomaly.AnomalyType.WHIRLIGIG);
-    public static final DeferredHolder<Block, Block> SPRINGBOARD = anomaly("springboard",
-            com.wf.wflib.anomaly.AnomalyType.SPRINGBOARD);
-    public static final DeferredHolder<Block, Block> ELECTRO = anomaly("electro",
-            com.wf.wflib.anomaly.AnomalyType.ELECTRO);
-    public static final DeferredHolder<Block, Block> BURNER = anomaly("burner",
-            com.wf.wflib.anomaly.AnomalyType.BURNER);
-    public static final DeferredHolder<Block, Block> ACID = anomaly("acid",
-            com.wf.wflib.anomaly.AnomalyType.ACID);
+    public static final java.util.List<DeferredHolder<Block, Block>> ANOMALIES = new java.util.ArrayList<>();
+    /** Their items, in creative-tab order. */
+    public static final java.util.List<DeferredHolder<Item, Item>> ANOMALY_ITEMS = new java.util.ArrayList<>();
+    public static final DeferredHolder<Block, Block> GRAVITY_ANOMALY = anomaly("gravity_anomaly", AnomalyType.VORTEX);
+    public static final DeferredHolder<Block, Block> WHIRLIGIG = anomaly("whirligig", AnomalyType.WHIRLIGIG);
+    public static final DeferredHolder<Block, Block> SPRINGBOARD = anomaly("springboard", AnomalyType.SPRINGBOARD);
+    public static final DeferredHolder<Block, Block> ELECTRO = anomaly("electro", AnomalyType.ELECTRO);
+    public static final DeferredHolder<Block, Block> BURNER = anomaly("burner", AnomalyType.BURNER);
+    public static final DeferredHolder<Block, Block> ACID = anomaly("acid", AnomalyType.ACID);
+    public static final DeferredHolder<Block, Block> STEAM = anomaly("steam", AnomalyType.STEAM);
+    public static final DeferredHolder<Block, Block> FLASH = anomaly("flash", AnomalyType.FLASH);
+    public static final DeferredHolder<Block, Block> GHOST = anomaly("ghost", AnomalyType.GHOST);
+    public static final DeferredHolder<Block, Block> NET = anomaly("net", AnomalyType.NET);
+    public static final DeferredHolder<Block, Block> BALL_LIGHTNING = anomaly("ball_lightning", AnomalyType.BALL_LIGHTNING);
+    public static final DeferredHolder<Block, Block> LIQUID_GOLD = anomaly("liquid_gold", AnomalyType.LIQUID_GOLD);
+    public static final DeferredHolder<Block, Block> GREEN_DRAGON = anomaly("green_dragon", AnomalyType.GREEN_DRAGON);
+    public static final DeferredHolder<Block, Block> REBOUNDER = anomaly("rebounder", AnomalyType.REBOUNDER);
+    public static final DeferredHolder<Block, Block> MEPHISTOPHELES = anomaly("mephistopheles", AnomalyType.MEPHISTOPHELES);
+    public static final DeferredHolder<Block, Block> BURNT_FUZZ = anomaly("burnt_fuzz", AnomalyType.BURNT_FUZZ);
+    public static final DeferredHolder<Block, Block> GRABBER = anomaly("grabber", AnomalyType.GRABBER);
+    public static final DeferredHolder<Block, Block> COMET = anomaly("comet", AnomalyType.COMET);
+    public static final DeferredHolder<Block, Block> RADIATION_FIELD = anomaly("radiation_field", AnomalyType.RADIATION_FIELD);
+    public static final DeferredHolder<Block, Block> THERMAL_FIELD = anomaly("thermal_field", AnomalyType.THERMAL_FIELD);
+    public static final DeferredHolder<Block, Block> ACID_FIELD = anomaly("acid_field", AnomalyType.ACID_FIELD);
+    public static final DeferredHolder<Block, Block> NO_GRAVITY = anomaly("no_gravity", AnomalyType.NO_GRAVITY);
 
-    public static final DeferredHolder<Item, Item> GRAVITY_ANOMALY_ITEM =
-            ITEMS.register("gravity_anomaly", () -> new BlockItem(GRAVITY_ANOMALY.get(), new Item.Properties()));
-    public static final DeferredHolder<Item, Item> WHIRLIGIG_ITEM =
-            ITEMS.register("whirligig", () -> new BlockItem(WHIRLIGIG.get(), new Item.Properties()));
-    public static final DeferredHolder<Item, Item> SPRINGBOARD_ITEM =
-            ITEMS.register("springboard", () -> new BlockItem(SPRINGBOARD.get(), new Item.Properties()));
-    public static final DeferredHolder<Item, Item> ELECTRO_ITEM =
-            ITEMS.register("electro", () -> new BlockItem(ELECTRO.get(), new Item.Properties()));
-    public static final DeferredHolder<Item, Item> BURNER_ITEM =
-            ITEMS.register("burner", () -> new BlockItem(BURNER.get(), new Item.Properties()));
-    public static final DeferredHolder<Item, Item> ACID_ITEM =
-            ITEMS.register("acid", () -> new BlockItem(ACID.get(), new Item.Properties()));
-
-    private static DeferredHolder<Block, Block> anomaly(String id, com.wf.wflib.anomaly.AnomalyType type) {
-        return BLOCKS.register(id, () -> new com.wf.wflib.anomaly.AnomalyBlock(type,
+    /** An anomaly block and its item, both added to {@link #ANOMALIES} / {@link #ANOMALY_ITEMS}. */
+    private static DeferredHolder<Block, Block> anomaly(String id, AnomalyType type) {
+        DeferredHolder<Block, Block> block = BLOCKS.register(id, () -> new com.wf.wflib.anomaly.AnomalyBlock(type,
                 BlockBehaviour.Properties.of().strength(-1.0f, 3600000.8f).noLootTable().noCollission()
                         .noOcclusion().pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK)
                         .isValidSpawn((state, level, pos, ent) -> false)));
+        ANOMALIES.add(block);
+        ANOMALY_ITEMS.add(ITEMS.register(id, () -> new BlockItem(block.get(), new Item.Properties())));
+        return block;
     }
 
     public static void register(IEventBus bus) {

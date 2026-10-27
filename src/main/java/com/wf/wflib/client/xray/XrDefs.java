@@ -278,7 +278,8 @@ public final class XrDefs {
             String shader = sprite.getOrDefault("shader", "").toLowerCase(Locale.ROOT);
             Blend blend = shader.endsWith("\\add") ? Blend.ADD : shader.endsWith("blend") ? Blend.BLEND
                     : Blend.ALPHA_ADD;
-            String tex = sprite.get("texture");
+            // "sprite, distortion map": the sprite only.
+            String tex = sprite.get("texture") == null ? null : sprite.get("texture").split(",")[0].trim();
             ResourceLocation texture = tex == null || tex.isEmpty() ? null : ResourceLocation.fromNamespaceAndPath(
                     "wflib", "textures/xray/" + tex.replace('\\', '/').toLowerCase(Locale.ROOT) + ".png");
             float[] texSize = frame.containsKey("tex_size") ? split2(frame.get("tex_size")) : new float[]{1, 1};

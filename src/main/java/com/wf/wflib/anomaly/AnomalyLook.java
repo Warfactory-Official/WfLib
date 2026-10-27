@@ -41,6 +41,8 @@ public record AnomalyLook(Style style, float lensRadius, double lensHeight, floa
         /** Heat haze; a standing column of flame and smoke. */
         FIRE,
         /** Green bubbles; a hissing green splash. */
-        ACID
+        ACID,
+        /** Rust-brown strands hanging from the block (Burnt Fuzz, Grabber), down to {@code BlastTuning#HAIRS_DROP}. */
+        FUZZ
     }
 }

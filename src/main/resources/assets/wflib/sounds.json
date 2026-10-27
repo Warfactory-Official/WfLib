@@ -515,5 +515,248 @@
         "attenuation_distance": 24
       }
     ]
+  },
+  "anomaly.steam": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/steam",
+        "stream": true,
+        "attenuation_distance": 20
+      }
+    ]
+  },
+  "anomaly.steam_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/steam_blowout",
+        "stream": true,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.flash_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/flash/flash_idle",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.flash_shield": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/flash/flash_shield",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.ghost_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/ghost/ghost_idle",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.ghost_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/ghost/ghost_blowout",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.net_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/net/net_idle",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.net_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/net/net_blowout",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.net_shield": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/net/net_shield",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.point_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/point/point_idle",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.point_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/point/point_blowout",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.gold_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/gold/gold_idle",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.gold_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/gold/gold_blowout",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.green_dragon_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/green_dragon/green_dragon_idle",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.green_dragon_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/green_dragon/green_dragon_blowout",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.sphere_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/sphere/sphere_idle",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.sphere_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/sphere/sphere_blowout",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.mefistotel_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/mefistotel/mefistotel_idle",
+        "stream": true,
+        "attenuation_distance": 20
+      }
+    ]
+  },
+  "anomaly.mefistotel_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/mefistotel/mefistotel_blowout",
+        "stream": false,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.mefistotel_shield": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/mefistotel/mefistotel_shield",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.bfuzz_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/bfuzz_blowout",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.bfuzz_hit": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/bfuzz_hit",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.fireball_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/fireball_idle",
+        "stream": true,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.fireball_blow": {
+    "sounds": [
+      {
+        "name": "wflib:xray/anomaly/fireball_blow",
+        "stream": true,
+        "attenuation_distance": 32
+      }
+    ]
+  },
+  "anomaly.fire2": {
+    "sounds": [
+      {
+        "name": "wflib:xray/ambient/fire2",
+        "stream": true,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.rnd_fly1": {
+    "sounds": [
+      {
+        "name": "wflib:xray/ambient/rnd_outdoor/rnd_fly1",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.rnd_fly2": {
+    "sounds": [
+      {
+        "name": "wflib:xray/ambient/rnd_outdoor/rnd_fly2",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
   }
 }

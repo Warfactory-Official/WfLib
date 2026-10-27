@@ -4,6 +4,7 @@ import com.wf.wflib.WFLib;
 import com.wf.wflib.block.entity.*;
 import com.wf.wflib.demolition.MiningChargeBlockEntity;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -26,9 +27,8 @@ public class ModBlockEntities {
     /** Every anomaly block; the id is the first one's (saved worlds name it). */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<com.wf.wflib.anomaly.AnomalyBlockEntity>> ANOMALY =
             BLOCK_ENTITIES.register("gravity_anomaly", () -> BlockEntityType.Builder.of(
-                    com.wf.wflib.anomaly.AnomalyBlockEntity::new, ModBlocks.GRAVITY_ANOMALY.get(),
-                    ModBlocks.WHIRLIGIG.get(), ModBlocks.SPRINGBOARD.get(), ModBlocks.ELECTRO.get(),
-                    ModBlocks.BURNER.get(), ModBlocks.ACID.get()).build(null));
+                    com.wf.wflib.anomaly.AnomalyBlockEntity::new,
+                    ModBlocks.ANOMALIES.stream().map(DeferredHolder::get).toArray(Block[]::new)).build(null));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<DronePadBlockEntity>> DRONE_PAD =
             BLOCK_ENTITIES.register("drone_pad", () -> BlockEntityType.Builder.of(

@@ -14,6 +14,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -30,6 +31,24 @@ public final class Anomalies {
         modBus.addListener(Anomalies::onPayloads);
         NeoForge.EVENT_BUS.addListener(Anomalies::onCommands);
         NeoForge.EVENT_BUS.addListener(Anomalies::onDrops);
+        NeoForge.EVENT_BUS.addListener(Anomalies::onIncomingDamage);
+    }
+
+    /** Rebounder ({@code zone_mine_sphere}): a round or arrow at someone inside one keeps 0-50% of its damage. */
+    private static void onIncomingDamage(LivingIncomingDamageEvent e) {
+        net.minecraft.world.damagesource.DamageSource source = e.getSource();
+        if (!AnomalyConfig.enabled || !(source instanceof com.wf.wflib.round.RoundDamageSource
+                || source.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE))) {
+            return;
+        }
+        AnomalyBlockEntity shield = AnomalyBlockEntity.shielding(e.getEntity());
+        if (shield != null) {
+            e.setAmount(e.getAmount() * e.getEntity().getRandom().nextFloat() * 0.5F);
+            if (shield.type().sounds().hit() != null) {
+                e.getEntity().level().playSound(null, e.getEntity().blockPosition(),
+                        shield.type().sounds().hit().get(), net.minecraft.sounds.SoundSource.HOSTILE, 0.9F, 1.0F);
+            }
+        }
     }
 
     /** What is left of a torn body flies every which way, as the body itself would have. */

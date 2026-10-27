@@ -31,6 +31,10 @@ final class AnomalyBlowoutSound extends AbstractTickableSoundInstance {
 
     @Override
     public void tick() {
+        Vec3 c = be.center();
+        x = c.x;
+        y = c.y + 1.0D;
+        z = c.z;
         if (be.isRemoved() || !AnomalyConfig.enabled) {
             stop();
         } else if (fading && (volume -= VOLUME / FADE_TICKS) <= 0.0F) {

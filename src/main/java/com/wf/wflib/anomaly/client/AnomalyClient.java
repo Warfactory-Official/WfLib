@@ -89,7 +89,7 @@ public final class AnomalyClient {
             }
             for (AnomalyBlockEntity be : LIVE) {
                 AnomalyLook look = be.type().look();
-                Vec3 c = be.center();
+                Vec3 c = be.center(partialTick);
                 int since = be.sinceExplosion();
                 // Irradiance ~ intensity / (d^2 + 1): intensities on WFLights' scale (a flash range^2 / 2).
                 float range2 = look.flashRange() * look.flashRange();
@@ -175,6 +175,13 @@ public final class AnomalyClient {
                 stopIdleFx(be);
             }
         }
+        if (be.type().quirk().moves()) {
+            IDLE_FX.getOrDefault(be, List.of()).forEach(p -> p.moveTo(c));
+            com.wf.wflib.client.xray.XrParticles.Playing blowout = BLOWOUT_FX.get(be);
+            if (blowout != null) {
+                blowout.moveTo(c);
+            }
+        }
         if (look.blowoutParticles() != null) {
             if (be.exploding()) {
                 stopFx(BLOWOUT_FX, be);
@@ -211,7 +218,7 @@ public final class AnomalyClient {
         AnomalyBehaviour behaviour = be.behaviour();
         AnomalyLook look = be.type().look();
         RandomSource random = level.random;
-        double playerDist = player.getBoundingBox().getCenter().distanceTo(c);
+        double playerDist = be.reach(player, c);
         if (AnomalyBlockEntity.affected(player) && playerDist <= behaviour.radius()
                 && (!be.striking() || be.claim(player))) {
             be.affect(player);
@@ -235,12 +242,14 @@ public final class AnomalyClient {
             quiet(be);
         }
         AnomalyIdleSound idle = IDLE_SOUND.get(be);
-        if (be.presence(0.0F) > 0.0F && (idle == null || !mc.getSoundManager().isActive(idle))) {
+        if (be.type().sounds().idle() != null && be.presence(0.0F) > 0.0F
+                && (idle == null || !mc.getSoundManager().isActive(idle))) {
             AnomalyIdleSound loop = new AnomalyIdleSound(be);
             mc.getSoundManager().play(loop);
             IDLE_SOUND.put(be, loop);
         }
-        if (blowout && be.ticks() == Math.max(1, be.type().sounds().blowoutTick())) {
+        if (blowout && be.ticks() == Math.max(1, be.type().sounds().blowoutTick())
+                && be.type().sounds().blowout() != null) {
             quiet(be);
             AnomalyBlowoutSound sound = new AnomalyBlowoutSound(be, random);
             mc.getSoundManager().play(sound);
@@ -267,7 +276,7 @@ public final class AnomalyClient {
         Vec3 camera = event.getCamera().getPosition();
         float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
         for (AnomalyBlockEntity be : LIVE) {
-            Vec3 c = be.center();
+            Vec3 c = be.center(partial);
             Stamp stamp = stamp(be);
             String skip = be.isRemoved() ? "removed" : be.getLevel() != Minecraft.getInstance().level
                     ? "other level" : c.distanceTo(camera) > DRAW_DISTANCE ? "far"

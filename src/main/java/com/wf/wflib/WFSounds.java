@@ -54,6 +54,33 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ZHAR = register("anomaly.zhar");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_BUZZ_IDLE = register("anomaly.buzz_idle");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_BUZZ_HIT = register("anomaly.buzz_hit");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_STEAM = register("anomaly.steam");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_STEAM_BLOWOUT = register("anomaly.steam_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FLASH_IDLE = register("anomaly.flash_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FLASH_SHIELD = register("anomaly.flash_shield");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GHOST_IDLE = register("anomaly.ghost_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GHOST_BLOWOUT = register("anomaly.ghost_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_NET_IDLE = register("anomaly.net_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_NET_BLOWOUT = register("anomaly.net_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_NET_SHIELD = register("anomaly.net_shield");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_POINT_IDLE = register("anomaly.point_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_POINT_BLOWOUT = register("anomaly.point_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GOLD_IDLE = register("anomaly.gold_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GOLD_BLOWOUT = register("anomaly.gold_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GREEN_DRAGON_IDLE = register("anomaly.green_dragon_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GREEN_DRAGON_BLOWOUT = register("anomaly.green_dragon_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_SPHERE_IDLE = register("anomaly.sphere_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_SPHERE_BLOWOUT = register("anomaly.sphere_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_MEFISTOTEL_IDLE = register("anomaly.mefistotel_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_MEFISTOTEL_BLOWOUT = register("anomaly.mefistotel_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_MEFISTOTEL_SHIELD = register("anomaly.mefistotel_shield");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_BFUZZ_BLOWOUT = register("anomaly.bfuzz_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_BFUZZ_HIT = register("anomaly.bfuzz_hit");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIREBALL_IDLE = register("anomaly.fireball_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIREBALL_BLOW = register("anomaly.fireball_blow");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIRE2 = register("anomaly.fire2");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RND_FLY1 = register("anomaly.rnd_fly1");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RND_FLY2 = register("anomaly.rnd_fly2");
 
     private WFSounds() {
     }

@@ -19,10 +19,23 @@ import net.minecraft.world.phys.Vec3;
  * @param launch        throw at the centre, blocks/tick (hit_impulse_scale, tuned by feel); a third of it at the rim
  * @param smallTrips    !ignore_small: small living things set it off too (items never do, unlike STALKER's bolt)
  * @param igniteSeconds sets what it hits on fire this long (a Burner)
+ * @param minSpeed      above 0: a {@code CHairsZone} (Burnt Fuzz): hangs from above, reaching straight down, and only
+ *                      something moving faster than this (blocks/tick, min_speed_to_react) sets it off
  */
 public record BlastTuning(double radius, int explosionTick, int blowoutTicks, int cooldownTicks, double maxPower,
-                          double launch, boolean smallTrips, int igniteSeconds)
+                          double launch, boolean smallTrips, int igniteSeconds, double minSpeed)
         implements AnomalyBehaviour {
+    /** A {@code CHairsZone} reaches this far down from its block. */
+    public static final double HAIRS_DROP = 3.0D;
+
+    public BlastTuning(double radius, int explosionTick, int blowoutTicks, int cooldownTicks, double maxPower,
+                       double launch, boolean smallTrips, int igniteSeconds) {
+        this(radius, explosionTick, blowoutTicks, cooldownTicks, maxPower, launch, smallTrips, igniteSeconds, 0.0D);
+    }
+
+    public boolean hairs() {
+        return minSpeed > 0.0D;
+    }
 
     /** {@code CCustomZone::RelativePower}, attenuation 1: {@code 1 - (d / R)^2}, 0 outside. */
     public double relativePower(double dist) {

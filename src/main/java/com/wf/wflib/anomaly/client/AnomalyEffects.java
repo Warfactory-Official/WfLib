@@ -21,6 +21,7 @@ import org.joml.Vector3f;
  */
 final class AnomalyEffects {
     private static final DustParticleOptions ACID_DUST = new DustParticleOptions(new Vector3f(0.45F, 0.95F, 0.3F), 1.2F);
+    private static final DustParticleOptions FUZZ_DUST = new DustParticleOptions(new Vector3f(0.6F, 0.4F, 0.22F), 0.8F);
     private static final BlockParticleOption ACID_SPLASH =
             new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SLIME_BLOCK.defaultBlockState());
 
@@ -55,7 +56,22 @@ final class AnomalyEffects {
                     level.addParticle(ACID_DUST, c.x + Math.cos(a) * r, c.y + 0.1D, c.z + Math.sin(a) * r,
                             0.0D, 0.02D, 0.0D);
                 }
+                case FUZZ -> strand(level, c, random, be.behaviour().radius() * 0.7D);
             }
+        }
+    }
+
+    /** One hanging strand: a short line of dust from the block down, swaying a little. */
+    private static void strand(Level level, Vec3 c, RandomSource random, double radius) {
+        double a = random.nextDouble() * Mth.TWO_PI;
+        double r = Math.sqrt(random.nextDouble()) * radius;
+        double x = c.x + Math.cos(a) * r;
+        double z = c.z + Math.sin(a) * r;
+        double length = 0.8D + random.nextDouble() * (com.wf.wflib.anomaly.BlastTuning.HAIRS_DROP - 1.0D);
+        for (double d = 0.0D; d < length; d += 0.15D) {
+            double sway = 0.06D * d * d;
+            level.addParticle(FUZZ_DUST, x + random.nextGaussian() * sway, c.y + 0.95D - d,
+                    z + random.nextGaussian() * sway, 0.0D, 0.0D, 0.0D);
         }
     }
 

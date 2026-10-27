@@ -22,12 +22,7 @@ public final class WFCreativeTabs {
                     .icon(() -> new ItemStack(ModBlocks.MISSILE_DISPENSER_ITEM.get()))
                     .displayItems((params, output) -> {
                         if (com.wf.wflib.anomaly.AnomalyConfig.enabled) {
-                            output.accept(ModBlocks.GRAVITY_ANOMALY_ITEM.get());
-                            output.accept(ModBlocks.WHIRLIGIG_ITEM.get());
-                            output.accept(ModBlocks.SPRINGBOARD_ITEM.get());
-                            output.accept(ModBlocks.ELECTRO_ITEM.get());
-                            output.accept(ModBlocks.BURNER_ITEM.get());
-                            output.accept(ModBlocks.ACID_ITEM.get());
+                            ModBlocks.ANOMALY_ITEMS.forEach(item -> output.accept(item.get()));
                         }
                         output.accept(ModBlocks.MISSILE_DISPENSER_ITEM.get());
                         output.accept(ModBlocks.MISSILE_LISTENER_DEBUG_ITEM.get());

@@ -64,7 +64,7 @@ public final class HazardContent {
     public static final DeferredHolder<SoundEvent, SoundEvent>[] GEIGER = new DeferredHolder[6];
     public static final DeferredHolder<SoundEvent, SoundEvent> TECH_BOOP = sound("hazard.tech_boop");
 
-    public static final ResourceKey<DamageType> DAMAGE_RADIATION = damage("radiation");
+    public static final ResourceKey<DamageType> DAMAGE_RADIATION = com.wf.wflib.damage.WFDamageTypes.RADIATION;
     public static final ResourceKey<DamageType> DAMAGE_DIGAMMA = damage("digamma");
     public static final ResourceKey<DamageType> DAMAGE_ASBESTOS = damage("asbestos");
     public static final ResourceKey<DamageType> DAMAGE_BLACKLUNG = damage("blacklung");

@@ -29,6 +29,11 @@ final class AnomalyIdleSound extends AbstractTickableSoundInstance {
             stop();
             return;
         }
+        // A wandering anomaly's sound goes with it.
+        Vec3 c = be.center();
+        x = c.x;
+        y = c.y + 1.0D;
+        z = c.z;
         volume = Math.max(0.01F, be.presence(0.0F));
     }
 

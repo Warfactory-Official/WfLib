@@ -17,6 +17,8 @@ public final class WFDamageTypes {
     public static final ResourceKey<DamageType> ACID = key("acid");
     /** War gases. Bypasses armour and, by tag, the invulnerability window (see {@link WFDamage}). */
     public static final ResourceKey<DamageType> GAS = key("gas");
+    /** Radiation sickness (hazard system); a radiation field doses rads instead. */
+    public static final ResourceKey<DamageType> RADIATION = key("radiation");
     /** A gravitational anomaly's blowout (STALKER's {@code strike}). */
     public static final ResourceKey<DamageType> GRAVITY_ANOMALY = key("gravity_anomaly");
 
