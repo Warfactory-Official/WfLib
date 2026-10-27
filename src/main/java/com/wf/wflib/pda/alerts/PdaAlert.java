@@ -28,7 +28,7 @@ import java.util.Set;
 
 /**
  * PDA notifications, server end: {@link #send} for any system; recon alerts (track turned ALARM / WEAPONS_RELEASE) of
- * the carrier's own net within {@link #RECON_RANGE}, while uplinked. Client: toast + buzz.
+ * the carrier's own net within {@link #RECON_RANGE}, while uplinked. Client: silent toast + history.
  */
 @EventBusSubscriber(modid = WFLib.MODID)
 public final class PdaAlert {
