@@ -33,10 +33,23 @@ public final class WFRenderTypes extends RenderType {
 
     private static final java.util.Map<java.util.List<Object>, RenderType> XRAY = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /** Main target, drawn from AFTER_PARTICLES: under Fabulous that stage runs with the particles target bound. */
+    private static final OutputStateShard XRAY_MAIN = new OutputStateShard("wf_xray_main", () -> {
+        if (net.minecraft.client.Minecraft.useShaderTransparency()) {
+            net.minecraft.client.Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
+        }
+    }, () -> {
+        if (net.minecraft.client.Minecraft.useShaderTransparency()) {
+            net.minecraft.client.Minecraft.getInstance().levelRenderer.getParticlesTarget().bindWrite(false);
+        }
+    });
+
+
     /**
      * X-Ray particle sprites ({@link com.wf.wflib.client.xray.XrParticles}): textured quads tinted by vertex colour,
      * unlit, no depth write, both faces, in the particles target. ADD = ONE, ONE; ALPHA_ADD = SRC_ALPHA, ONE;
-     * BLEND = over.
+     * BLEND = over. Additive ones draw into the main target: Fabulous composites the particles target by alpha,
+     * which turns their black into opaque squares (and drops alpha-0 pixels, so zeroing alpha hides them instead).
      */
     public static RenderType xray(net.minecraft.resources.ResourceLocation texture,
                                   com.wf.wflib.client.xray.XrDefs.Blend blend) {
@@ -53,7 +66,7 @@ public final class WFRenderTypes extends RenderType {
                         })
                         .setCullState(NO_CULL)
                         .setWriteMaskState(COLOR_WRITE)
-                        .setOutputState(PARTICLES_TARGET)
+                        .setOutputState(blend == com.wf.wflib.client.xray.XrDefs.Blend.BLEND ? PARTICLES_TARGET : XRAY_MAIN)
                         .createCompositeState(false)));
     }
 
