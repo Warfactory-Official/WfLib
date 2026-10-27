@@ -21,6 +21,8 @@ public final class ArmViewPose {
     public static final Vector3fc SHOULDER = new Vector3f(0.18F, -0.20F, 0.13F);
     /** Fraction of full reach the solver bends to; past it the shoulder slides toward the wrist (arm keeps length). */
     public static final float MAX_REACH = 0.995F;
+    /** Reach for an arm held out straight: ~1.4 degrees at the elbow (MAX_REACH leaves ~11), still a defined hinge. */
+    public static final float LOCKED = 0.9999F;
     /** Natural elbow direction, view space: seeds the elbow and leads it where the hand axis is inconclusive. */
     public static final Vector3fc RIGHT_POLE = new Vector3f(0.6F, -1, 0.2F);
     public static final Vector3fc LEFT_POLE = new Vector3f(-0.6F, -1, 0.2F);
@@ -84,6 +86,18 @@ public final class ArmViewPose {
         return out.set(SHOULDER).mul(left ? -1 : 1, 1, 1);
     }
 
+    /**
+     * Hand frame from what the hand should do: +Y along {@code along} (forearm -> fist), +X toward {@code palm} (made
+     * square to it): the right fist's palm ({@code player_arms.glb}: right +X palm, -X back, -Z thumb, +Z pinky; left
+     * mirrored, palm -X, so pass the negated palm for it).
+     */
+    public static Quaternionf handFrame(Vector3fc along, Vector3fc palm, Quaternionf out) {
+        Vector3f y = new Vector3f(along).normalize();
+        Vector3f x = new Vector3f(palm).fma(-palm.dot(y), y).normalize();
+        Vector3f z = new Vector3f(x).cross(y);
+        return out.setFromNormalized(new org.joml.Matrix3f(x, y, z));
+    }
+
     /** Hand frame without authored orientation: arm +Y from the shoulder toward the wrist, minimal swing from rest. */
     public static Quaternionf towardWrist(Vector3fc wrist, Vector3fc shoulder, Quaternionf out) {
         DIR.set(wrist).sub(shoulder);
@@ -117,12 +131,22 @@ public final class ArmViewPose {
     public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
                       PlayerArms.Lengths lengths, float minReach, @Nullable Bend state, float dt, Matrix4f upper,
                       Matrix4f lower, Vector3f elbow) {
+        return solve(wrist, hand, shoulder, pole, lengths, minReach, MAX_REACH, state, dt, upper, lower, elbow);
+    }
+
+    /**
+     * {@code maxReach}: share of full length the arm may straighten to ({@link #MAX_REACH} by default); an arm held
+     * out locked (an artefact on the palm) passes {@link #LOCKED}, its elbow then left by the pole alone.
+     */
+    public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
+                      PlayerArms.Lengths lengths, float minReach, float maxReach, @Nullable Bend state, float dt,
+                      Matrix4f upper, Matrix4f lower, Vector3f elbow) {
         float l1 = lengths.upper(), l2 = lengths.forearm();
         DIR.set(wrist).sub(shoulder);
         float d = DIR.length();
         if (d < 1e-6F) DIR.set(0, 0, -1); else DIR.div(d);
         float reach = Math.clamp(d, Math.max(Math.abs(l1 - l2) + 1e-4F, (l1 + l2) * minReach),
-                (l1 + l2) * MAX_REACH);
+                (l1 + l2) * maxReach);
         if (reach != d) shoulder.set(wrist).fma(-reach, DIR);
         float along = (l1 * l1 - l2 * l2 + reach * reach) / (2 * reach);
         float bend = (float) Math.sqrt(Math.max(l1 * l1 - along * along, 0));

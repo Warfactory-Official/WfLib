@@ -51,28 +51,8 @@ public final class ArtifactRenderer {
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/artifact/battery_lightning.png");
     private static final ResourceLocation BODY =
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/artifact/battery_body.png");
-    /** View space: the right arm's line from the shoulder, held out straight ahead, a touch up. */
-    private static final Vector3f REACH = new Vector3f(0.0F, 0.06F, -1.0F).normalize();
-    /**
-     * Share of full reach: past {@link ArmViewPose#MAX_REACH} the solver keeps the arm straight and slides the
-     * shoulder instead (at 0.97 the elbow still bent ~28 degrees).
-     */
-    private static final float STRAIGHT = 1.0F;
-    /** Palm centre back from the fist end, m. */
-    private static final float PALM_BACK = 0.06F;
     /** The idle left hand, out of view below. */
     private static final Vector3f OFF_HAND = new Vector3f(-0.30F, -0.85F, -0.05F);
-    /** Rad about the forearm: palm up. */
-    private static final float PALM_UP = (float) Math.toRadians(Float.parseFloat(
-            System.getProperty("wflib.artifact.palmRoll", "-90")));
-    /**
-     * Artefact centre over the palm, m: clear of a sleeved hand (about 0.06 to its top), half the artefact (0.056)
-     * and its bob, with a hand's breadth of air.
-     */
-    private static final float FLOAT = 0.16F;
-    private static final float BOB = 0.012F;
-    /** First-person size over the model's metres. */
-    private static final float VIEW_SCALE = 0.4F;
     /** Inventory: longest side of the model, m. */
     private static final float BODY_SIZE = 0.3F;
 
@@ -109,11 +89,35 @@ public final class ArtifactRenderer {
     private static final Matrix4f UPPER = new Matrix4f();
     private static final Matrix4f LOWER = new Matrix4f();
     private static final Vector3f WRIST = new Vector3f();
-    private static final Vector3f HAND = new Vector3f();
-    private static final Vector3f PALM = new Vector3f();
+    private static final HeldArtifactPose POSE_NOW = new HeldArtifactPose();
+    /** Lift and put-away, s: vanilla swaps items in 3 ticks each way, too quick to see a hand do anything. */
+    private static final float LIFT_SECONDS = 0.55F;
+    private static final float PUT_AWAY_SECONDS = 0.35F;
+    /**
+     * The artefact in hand and how far up it is (0..1) as of the last frame drawn; when it began to come up or go
+     * away (ns); 0 = not leaving. The next item is held back while it goes.
+     */
+    @Nullable
+    private static ArtifactItem shown;
+    private static float shownLift;
+    private static long liftStart;
+    private static long leaveStart;
+    private static long lastDrawn;
+
+    /** Test: draw the artefact in hand at exactly this lift (0..1) whatever the clock; negative = live. */
+    private static float forcedLift = -1.0F;
+
+    /** How far up the artefact in hand was last drawn, 0..1 (the hold bench checks it). */
+    public static float lift() {
+        return shownLift;
+    }
+
+    /** Hold bench: pose stills at chosen lifts, independent of frame rate; negative to go live again. */
+    public static void forceLift(float lift) {
+        forcedLift = lift;
+    }
     private static final Vector3f SHOULDER = new Vector3f();
     private static final Vector3f ELBOW = new Vector3f();
-    private static final Quaternionf PALM_UP_FRAME = new Quaternionf();
 
     private ArtifactRenderer() {
     }
@@ -142,9 +146,9 @@ public final class ArtifactRenderer {
                             case GROUND -> pose.mulPose(Axis.YP.rotation(t * 0.8F));
                             case THIRD_PERSON_RIGHT_HAND, THIRD_PERSON_LEFT_HAND -> {
                                 // Floating over the hand, as held in first person.
-                                pose.translate(0.0F, 0.22F + BOB * Mth.sin(t * 2.1F), 0.0F);
+                                pose.translate(0.0F, 0.22F + HeldArtifactPose.BOB * Mth.sin(t * 2.1F), 0.0F);
                                 pose.mulPose(Axis.YP.rotation(t * 0.8F));
-                                pose.scale(VIEW_SCALE, VIEW_SCALE, VIEW_SCALE);
+                                pose.scale(HeldArtifactPose.SCALE, HeldArtifactPose.SCALE, HeldArtifactPose.SCALE);
                             }
                             default -> {
                             }
@@ -187,47 +191,78 @@ public final class ArtifactRenderer {
     static void onRenderHand(RenderHandEvent event) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        ArtifactItem item = player == null ? null : held(player);
-        if (item == null) {
+        if (player == null || event.getHand() != InteractionHand.MAIN_HAND) {
             return;
         }
+        long now = System.nanoTime();
+        ArtifactItem selected = player.getMainHandItem().getItem() instanceof ArtifactItem a ? a : null;
+        if (now - lastDrawn > 1_000_000_000L) {
+            // Not drawn for a second (third person, hidden hand): whatever is in hand comes up again. Not shorter: a
+            // slow frame must not restart a lift.
+            shown = null;
+            shownLift = 0.0F;
+            leaveStart = 0L;
+        }
+        float lift;
+        if (selected != null) {
+            if (shown != selected || leaveStart != 0L) {
+                // Coming up, from wherever it was (a put-away turned back picks up there).
+                liftStart = now - (long) (shownLift * LIFT_SECONDS * 1.0E9F);
+                leaveStart = 0L;
+                shown = selected;
+            }
+            lift = Math.min((now - liftStart) / 1.0E9F / LIFT_SECONDS, 1.0F);
+        } else if (shown != null) {
+            // Switched away: lower it first, holding the next item back meanwhile.
+            if (leaveStart == 0L) {
+                leaveStart = now - (long) ((1.0F - shownLift) * PUT_AWAY_SECONDS * 1.0E9F);
+            }
+            lift = 1.0F - (now - leaveStart) / 1.0E9F / PUT_AWAY_SECONDS;
+            if (lift <= 0.0F) {
+                shown = null;
+                leaveStart = 0L;
+                return;
+            }
+        } else {
+            return;
+        }
+        if (forcedLift >= 0.0F && selected != null) {
+            lift = forcedLift;
+        }
+        ArtifactItem item = shown;
         event.setCanceled(true);
-        if (event.getHand() != InteractionHand.MAIN_HAND || mc.getCameraEntity() != player) {
+        lastDrawn = now;
+        shownLift = lift;
+        if (mc.getCameraEntity() != player) {
             return;
         }
         PlayerArms arms = PlayerArms.get();
-        GemRenderGltfModel model = model(item.artifact());
+        if (arms == null) {
+            return;
+        }
         float t = clock();
+        HeldArtifactPose pose = POSE_NOW.pose(lift, t, arms.lengths);
         VIEW.set(event.getPoseStack().last().pose());
         int light = event.getPackedLight();
-        // The fist at arm's length along REACH, so the arm is straight whatever its lengths.
-        ArmViewPose.shoulder(false, SHOULDER);
-        float reach = arms == null ? 0.6F : arms.lengths.upper() + arms.lengths.forearm();
-        HAND.set(REACH).mul(reach * STRAIGHT).add(SHOULDER);
-        PALM.set(REACH).mul(-PALM_BACK).add(HAND);
+        GemRenderGltfModel model = model(item.artifact());
         if (model != null) {
-            POSE.set(VIEW).translate(PALM).translate(0.0F, FLOAT + BOB * Mth.sin(t * 2.1F), 0.0F)
-                    .rotateY(t * 0.8F).rotateX(0.25F * Mth.sin(t * 0.6F)).scale(VIEW_SCALE);
+            POSE.set(VIEW).translate(pose.artifact).rotateY(t * 0.8F).rotateX(0.25F * Mth.sin(t * 0.6F))
+                    .scale(HeldArtifactPose.SCALE);
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
                     DirectPass.HAND, VariantUv.NONE, BODY_ONLY);
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, arcTint(t),
                     DirectPass.HAND, arcs(t), ARCS_ONLY);
         }
-        if (arms == null) {
-            return;
-        }
         for (int side = 0; side < 2; side++) {
-            WRIST.set(side == 0 ? HAND : OFF_HAND);
+            Quaternionf hand = side == 0 ? pose.hand : null;
+            WRIST.set(side == 0 ? pose.fist : OFF_HAND);
             ArmViewPose.shoulder(side == 1, SHOULDER);
-            Quaternionf hand = null;
-            if (side == 0) {
-                // Forearm toward the fist, then rolled about it so the palm faces up under the artefact.
-                hand = ArmViewPose.towardWrist(WRIST, SHOULDER, PALM_UP_FRAME).rotateY(PALM_UP);
-            }
-            float twist = ArmViewPose.solve(WRIST, hand, SHOULDER,
-                    side == 0 ? ArmViewPose.RIGHT_POLE : ArmViewPose.LEFT_POLE, arms.lengths, UPPER, LOWER, ELBOW);
+            float twist = side == 0
+                    ? ArmViewPose.solve(WRIST, hand, SHOULDER, ArmViewPose.RIGHT_POLE, arms.lengths, 0,
+                            ArmViewPose.LOCKED, null, 0, UPPER, LOWER, ELBOW)
+                    : ArmViewPose.solve(WRIST, null, SHOULDER, ArmViewPose.LEFT_POLE, arms.lengths, UPPER, LOWER, ELBOW);
             arms.pose(side, UPPER, LOWER, twist, ArmViewPose.swing(hand, LOWER),
-                    com.wf.wflib.anim.ArmLimits.DEFAULT.twist());
+                    side == 0 ? HeldArtifactPose.TWIST_LIMIT : com.wf.wflib.anim.ArmLimits.DEFAULT.twist());
         }
         arms.submit(VIEW, light, 0xFFFFFFFF, player);
     }

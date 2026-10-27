@@ -387,6 +387,11 @@ public final class AnomalyDebug {
      */
     private static boolean hold() {
         Minecraft mc = Minecraft.getInstance();
+        // The bench world keeps the player's health between runs (and creative never heals): start whole.
+        if (mc.player.isDeadOrDying()) {
+            mc.player.respawn();
+        }
+        mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
         mc.player.connection.sendCommand("item replace entity @s weapon.mainhand with wflib:battery");
         holding = 0;
         return true;
@@ -400,34 +405,74 @@ public final class AnomalyDebug {
             return;
         }
         holding++;
-        if (holding == 40) {
-            shot("artifact-first-person");
-        } else if (holding == 42 || holding == 44) {
-            shot("artifact-first-person-" + holding);
-        } else if (holding == 45) {
-            mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
-        } else if (holding == 70) {
-            shot("artifact-inventory");
-            mc.setScreen(null);
-            mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
-        } else if (holding == 100) {
-            shot("artifact-third-person");
-            mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
-            // Worn: one in an artifact slot, then 4 shock in survival should land as 4 x (1 - 0.1212).
-            mc.player.connection.sendCommand("gamemode survival");
-            mc.player.connection.sendCommand("curios replace artifact 0 @s with wflib:battery");
-            mc.player.connection.sendCommand("effect clear @s");
-        } else if (holding == 110) {
-            healthBefore = mc.player.getHealth();
-            mc.player.connection.sendCommand("damage @s 4 wflib:electric");
-        } else if (holding == 120) {
-            float lost = healthBefore - mc.player.getHealth();
-            mc.player.connection.sendCommand("gamemode creative");
-            holding = -1;
-            boolean pass = Math.abs(lost - 4.0F * (1.0F - 0.1212F)) < 0.05F;
-            finish(List.of((pass ? "[PASS]" : "[FAIL]") + " artifact hold: 3 shots; worn Battery, 4 shock took "
-                    + String.format(Locale.ROOT, "%.2f", lost)), status());
+        // The bench window renders a few frames a second (parked out of sight), so motion is checked as stills at
+        // forced lifts, and the switch itself by where the lift ends up, not by filmstrip.
+        if (holding >= 50 && holding < 100 && (holding - 50) % 10 == 0) {
+            float lift = (holding - 50) / 40.0F;
+            com.wf.wflib.artifact.client.ArtifactRenderer.forceLift(lift);
+        } else if (holding >= 50 && holding < 100 && (holding - 50) % 10 == 8) {
+            shot(String.format(Locale.ROOT, "artifact-lift-%.2f", (holding - 58) / 40.0F));
         }
+        switch (holding) {
+            case 40 -> shot("artifact-first-person");
+            case 42, 44 -> shot("artifact-first-person-" + holding);
+            case 100 -> {
+                com.wf.wflib.artifact.client.ArtifactRenderer.forceLift(-1.0F);
+                select(mc, 1);
+            }
+            case 140 -> {
+                switchChecks.add(com.wf.wflib.artifact.client.ArtifactRenderer.lift() == 0.0F
+                        || !(mc.player.getMainHandItem().getItem() instanceof com.wf.wflib.artifact.ArtifactItem)
+                        && com.wf.wflib.artifact.client.ArtifactRenderer.lift() <= 0.05F);
+                select(mc, 0);
+            }
+            case 180 -> switchChecks.add(com.wf.wflib.artifact.client.ArtifactRenderer.lift() >= 0.999F);
+            case 185 -> mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
+            case 205 -> {
+                shot("artifact-inventory");
+                mc.setScreen(null);
+                mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+            }
+            case 235 -> {
+                shot("artifact-third-person");
+                mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+                // Worn: one in an artifact slot, then 4 shock in survival should land as 4 x (1 - 0.1212).
+                mc.player.connection.sendCommand("gamemode survival");
+                mc.player.connection.sendCommand("gamerule naturalRegeneration false");
+                mc.player.connection.sendCommand("curios replace artifact 0 @s with wflib:battery");
+                mc.player.connection.sendCommand("effect clear @s");
+            }
+            case 240 -> mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
+            case 260 -> {
+                healthBefore = mc.player.getHealth();
+                mc.player.connection.sendCommand("damage @s 4 wflib:electric");
+            }
+            case 300 -> {
+                float lost = healthBefore - mc.player.getHealth();
+                mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
+                mc.player.connection.sendCommand("gamemode creative");
+                mc.player.connection.sendCommand("gamerule naturalRegeneration true");
+                holding = -1;
+                boolean worn = Math.abs(lost - 4.0F * (1.0F - 0.1212F)) < 0.05F;
+                boolean away = switchChecks.size() == 2 && switchChecks.get(0);
+                boolean back = switchChecks.size() == 2 && switchChecks.get(1);
+                switchChecks.clear();
+                finish(List.of(((worn && away && back) ? "[PASS]" : "[FAIL]") + " artifact hold",
+                        "  " + (away ? "ok  " : "FAIL") + " switched away, it was put away (lift 0)",
+                        "  " + (back ? "ok  " : "FAIL") + " switched back, it came up (lift 1)",
+                        "  " + (worn ? "ok  " : "FAIL") + " worn, 4 shock took "
+                                + String.format(Locale.ROOT, "%.2f", lost) + " (3.52)"), status());
+            }
+            default -> {
+            }
+        }
+    }
+
+    private static final List<Boolean> switchChecks = new ArrayList<>();
+
+    private static void select(Minecraft mc, int slot) {
+        mc.player.getInventory().selected = slot;
+        mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket(slot));
     }
 
     @Nullable
