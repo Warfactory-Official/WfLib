@@ -26,6 +26,11 @@ public class ArtifactItem extends Item {
         line(lines, "shock", artifact.shock());
         line(lines, "burn", artifact.burn());
         line(lines, "strike", artifact.strike());
+        if (artifact.healthRestore() > 0.0F) {
+            lines.add(Component.translatable("item.wflib.artifact.health",
+                            String.format(java.util.Locale.ROOT, "%.1f", artifact.healthPerSecond(20.0F) * 60.0F))
+                    .withStyle(ChatFormatting.GREEN));
+        }
         lines.add(Component.translatable("item.wflib.artifact.worn").withStyle(ChatFormatting.DARK_GRAY));
     }
 

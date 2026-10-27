@@ -47,10 +47,6 @@ import java.util.Map;
  */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ArtifactRenderer {
-    private static final ResourceLocation LIGHTNING =
-            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/artifact/battery_lightning.png");
-    private static final ResourceLocation BODY =
-            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/artifact/battery_body.png");
     /** The idle left hand, out of view below. */
     private static final Vector3f OFF_HAND = new Vector3f(-0.30F, -0.85F, -0.05F);
     /** Inventory: longest side of the model, m. */
@@ -58,31 +54,41 @@ public final class ArtifactRenderer {
 
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
     private static final Map<Artifact, GemRenderItemRenderer> ITEM_RENDERERS = new HashMap<>();
-    /** Inventory, ground, others' hands: body and arcs as they are. */
-    private static final TextureSlots SLOTS = new TextureSlots() {
-        @Override
-        public ResourceLocation texture(String slot) {
-            return "lightning".equals(slot) ? LIGHTNING : BODY;
-        }
+    private static final String GLOW = "glow";
 
-        @Override
-        public boolean emissive(String slot) {
-            return "lightning".equals(slot);
-        }
-    };
-    /** First person, drawn apart so the arcs can move: the body alone, then the arcs alone. */
-    private static final TextureSlots BODY_ONLY = slot -> "lightning".equals(slot) ? null : BODY;
-    private static final TextureSlots ARCS_ONLY = new TextureSlots() {
-        @Override
-        public ResourceLocation texture(String slot) {
-            return "lightning".equals(slot) ? LIGHTNING : null;
-        }
+    /** Inventory, ground, others' hands: body and glow as they are. */
+    private static TextureSlots slots(Artifact artifact) {
+        return new TextureSlots() {
+            @Override
+            public ResourceLocation texture(String slot) {
+                return GLOW.equals(slot) ? artifact.glow() : artifact.body();
+            }
 
-        @Override
-        public boolean emissive(String slot) {
-            return true;
-        }
-    };
+            @Override
+            public boolean emissive(String slot) {
+                return GLOW.equals(slot);
+            }
+        };
+    }
+
+    /** First person, drawn apart so the glow can move: the body alone, then the glow alone. */
+    private static TextureSlots bodyOnly(Artifact artifact) {
+        return slot -> GLOW.equals(slot) ? null : artifact.body();
+    }
+
+    private static TextureSlots glowOnly(Artifact artifact) {
+        return new TextureSlots() {
+            @Override
+            public ResourceLocation texture(String slot) {
+                return GLOW.equals(slot) ? artifact.glow() : null;
+            }
+
+            @Override
+            public boolean emissive(String slot) {
+                return true;
+            }
+        };
+    }
 
     private static final Matrix4f VIEW = new Matrix4f();
     private static final Matrix4f POSE = new Matrix4f();
@@ -157,7 +163,7 @@ public final class ArtifactRenderer {
 
                     @Override
                     public TextureSlots slots(ItemStack stack, ItemDisplayContext context) {
-                        return SLOTS;
+                        return ArtifactRenderer.slots(artifact);
                     }
                 }));
     }
@@ -171,9 +177,11 @@ public final class ArtifactRenderer {
         return new VariantUv(writhe, -t * 1.3F % 1.0F);
     }
 
-    /** Arcs surge and dip: a slow swell under a fast crackle, never out. */
-    private static int arcTint(float t) {
-        float k = 0.7F + 0.15F * Mth.sin(t * 3.1F) + 0.15F * Mth.sin(t * 17.3F + 1.3F * Mth.sin(t * 5.0F));
+    /** Arcs surge and dip, a slow swell under a fast crackle; any other glow only breathes. Never out. */
+    private static int glowTint(float t, Artifact artifact) {
+        float k = artifact.arcs()
+                ? 0.7F + 0.15F * Mth.sin(t * 3.1F) + 0.15F * Mth.sin(t * 17.3F + 1.3F * Mth.sin(t * 5.0F))
+                : 0.8F + 0.2F * Mth.sin(t * 1.4F);
         int c = Mth.clamp((int) (k * 255.0F), 0, 255);
         return 0xFF000000 | c << 16 | c << 8 | c;
     }
@@ -248,10 +256,11 @@ public final class ArtifactRenderer {
         if (model != null) {
             POSE.set(VIEW).translate(pose.artifact).rotateY(t * 0.8F).rotateX(0.25F * Mth.sin(t * 0.6F))
                     .scale(HeldArtifactPose.SCALE);
+            Artifact artifact = item.artifact();
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
-                    DirectPass.HAND, VariantUv.NONE, BODY_ONLY);
-            DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, arcTint(t),
-                    DirectPass.HAND, arcs(t), ARCS_ONLY);
+                    DirectPass.HAND, VariantUv.NONE, bodyOnly(artifact));
+            DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, glowTint(t, artifact),
+                    DirectPass.HAND, artifact.arcs() ? arcs(t) : VariantUv.NONE, glowOnly(artifact));
         }
         for (int side = 0; side < 2; side++) {
             Quaternionf hand = side == 0 ? pose.hand : null;

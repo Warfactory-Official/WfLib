@@ -83,6 +83,9 @@ public final class ModItems {
     public static final DeferredHolder<Item, Item> BATTERY = ITEMS.register("battery",
             () -> new com.wf.wflib.artifact.ArtifactItem(com.wf.wflib.artifact.Artifact.BATTERY,
                     new Item.Properties().stacksTo(1)));
+    public static final DeferredHolder<Item, Item> SOUL = ITEMS.register("soul",
+            () -> new com.wf.wflib.artifact.ArtifactItem(com.wf.wflib.artifact.Artifact.SOUL,
+                    new Item.Properties().stacksTo(1)));
 
     public static final DeferredHolder<Item, Item> GEIGER_COUNTER = ITEMS.register("geiger_counter",
             () -> new com.wf.wflib.hazard.GeigerCounterItem(new Item.Properties().stacksTo(1)));

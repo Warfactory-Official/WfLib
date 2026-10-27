@@ -41,6 +41,7 @@ public final class WFCreativeTabs {
                         output.accept(ModItems.CAMERA_LINKER.get());
                         output.accept(ModItems.PDA.get());
                         output.accept(ModItems.BATTERY.get());
+                        output.accept(ModItems.SOUL.get());
                         output.accept(ModItems.GEIGER_COUNTER.get());
                         output.accept(ModItems.DECOY_LAUNCHER.get());
                         output.accept(ModItems.PORTABLE_JAMMER.get());

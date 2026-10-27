@@ -392,12 +392,14 @@ public final class AnomalyDebug {
             mc.player.respawn();
         }
         mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
-        mc.player.connection.sendCommand("item replace entity @s weapon.mainhand with wflib:battery");
+        mc.player.connection.sendCommand("item replace entity @s weapon.mainhand with " + HOLD_ITEM);
         holding = 0;
         return true;
     }
 
     private static int holding = -1;
+    /** {@code -Dwflib.anomalyTest.item}: the artefact the hold test uses. */
+    private static final String HOLD_ITEM = System.getProperty("wflib.anomalyTest.item", "wflib:battery");
     private static float healthBefore;
 
     private static void holdTick(Minecraft mc) {
@@ -436,32 +438,43 @@ public final class AnomalyDebug {
             case 235 -> {
                 shot("artifact-third-person");
                 mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
-                // Worn: one in an artifact slot, then 4 shock in survival should land as 4 x (1 - 0.1212).
+                // Worn: one in an artifact slot, in survival with no natural regeneration.
                 mc.player.connection.sendCommand("gamemode survival");
                 mc.player.connection.sendCommand("gamerule naturalRegeneration false");
-                mc.player.connection.sendCommand("curios replace artifact 0 @s with wflib:battery");
+                mc.player.connection.sendCommand("curios replace artifact 0 @s with " + HOLD_ITEM);
                 mc.player.connection.sendCommand("effect clear @s");
             }
             case 240 -> mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
             case 260 -> {
                 healthBefore = mc.player.getHealth();
-                mc.player.connection.sendCommand("damage @s 4 wflib:electric");
+                // Shock: 4 should land as 4 x (1 - shock). Healing: knocked down 6 first, then measured.
+                mc.player.connection.sendCommand(wornArtifact().shock() != 0.0F ? "damage @s 4 wflib:electric"
+                        : "damage @s 6 minecraft:generic");
             }
-            case 300 -> {
+            case 270 -> healthHealing = mc.player.getHealth();
+            case 370 -> {
+                com.wf.wflib.artifact.Artifact a = wornArtifact();
                 float lost = healthBefore - mc.player.getHealth();
+                float healed = mc.player.getHealth() - healthHealing;
                 mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
                 mc.player.connection.sendCommand("gamemode creative");
                 mc.player.connection.sendCommand("gamerule naturalRegeneration true");
                 holding = -1;
-                boolean worn = Math.abs(lost - 4.0F * (1.0F - 0.1212F)) < 0.05F;
+                // Shock: as above. Healing: 5 s at its rate (ticks counted server side, so a tick either way).
+                float expectHeal = a.healthPerSecond(mc.player.getMaxHealth()) * 5.0F;
+                boolean worn = a.shock() != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.shock())) < 0.05F
+                        : Math.abs(healed - expectHeal) <= a.healthPerSecond(mc.player.getMaxHealth()) + 0.01F;
                 boolean away = switchChecks.size() == 2 && switchChecks.get(0);
                 boolean back = switchChecks.size() == 2 && switchChecks.get(1);
                 switchChecks.clear();
                 finish(List.of(((worn && away && back) ? "[PASS]" : "[FAIL]") + " artifact hold",
                         "  " + (away ? "ok  " : "FAIL") + " switched away, it was put away (lift 0)",
                         "  " + (back ? "ok  " : "FAIL") + " switched back, it came up (lift 1)",
-                        "  " + (worn ? "ok  " : "FAIL") + " worn, 4 shock took "
-                                + String.format(Locale.ROOT, "%.2f", lost) + " (3.52)"), status());
+                        "  " + (worn ? "ok  " : "FAIL") + (a.shock() != 0.0F
+                                ? " worn, 4 shock took " + String.format(Locale.ROOT, "%.2f (%.2f)", lost,
+                                4.0F * (1.0F - a.shock()))
+                                : " worn, 5 s healed " + String.format(Locale.ROOT, "%.3f (%.3f)", healed,
+                                expectHeal))), status());
             }
             default -> {
             }
@@ -469,6 +482,13 @@ public final class AnomalyDebug {
     }
 
     private static final List<Boolean> switchChecks = new ArrayList<>();
+    private static float healthHealing;
+
+    private static com.wf.wflib.artifact.Artifact wornArtifact() {
+        net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
+                net.minecraft.resources.ResourceLocation.parse(HOLD_ITEM));
+        return ((com.wf.wflib.artifact.ArtifactItem) item).artifact();
+    }
 
     private static void select(Minecraft mc, int slot) {
         mc.player.getInventory().selected = slot;

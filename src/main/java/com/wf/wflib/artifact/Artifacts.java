@@ -14,7 +14,8 @@ import java.util.List;
 
 /**
  * Artefacts at work: each worn in a Curios {@code artifact} slot scales the hits of its kinds by
- * {@code 1 - immunity} (GAMMA stacks them the same way, one after another). Without Curios nothing is worn.
+ * {@code 1 - immunity} (GAMMA stacks them the same way, one after another) and gives health back over time. Without
+ * Curios nothing is worn.
  */
 public final class Artifacts {
     private Artifacts() {
@@ -22,6 +23,24 @@ public final class Artifacts {
 
     public static void register() {
         NeoForge.EVENT_BUS.addListener(Artifacts::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(Artifacts::onPlayerTick);
+    }
+
+    /** Once a second: worn artefacts' health back ({@code health_restore_speed}). */
+    private static void onPlayerTick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
+        Player player = e.getEntity();
+        if (player.level().isClientSide || player.tickCount % 20 != 0 || player.isDeadOrDying()) {
+            return;
+        }
+        float heal = 0.0F;
+        for (ItemStack stack : worn(player)) {
+            if (stack.getItem() instanceof ArtifactItem item) {
+                heal += item.artifact().healthPerSecond(player.getMaxHealth());
+            }
+        }
+        if (heal > 0.0F) {
+            player.heal(heal);
+        }
     }
 
     private static void onIncomingDamage(LivingIncomingDamageEvent e) {
