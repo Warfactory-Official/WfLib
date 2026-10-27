@@ -208,6 +208,7 @@ public final class AnomalyDebug {
             trigger.tick(mc);
         }
         lookTick(mc);
+        holdTick(mc);
         if (measureSay > 0 && --measureSay == 0) {
             float m = Lenses.getInstance().measured();
             say(m < 0.0F ? "measure: no lens pass ran (nothing submitted, or the pass is off)"
@@ -251,6 +252,7 @@ public final class AnomalyDebug {
                 case "trigger" -> trigger(false);
                 case "bolt" -> trigger(true);
                 case "look" -> look();
+                case "hold" -> hold();
                 default -> false;
             };
             if (!started) {
@@ -377,6 +379,53 @@ public final class AnomalyDebug {
         looking = new int[]{0, 3, late, 0};
         lookName = name;
         return true;
+    }
+
+    /**
+     * {@code hold}: a Battery in the main hand, then screenshots ({@code artifact-battery-<view>.png}): first person,
+     * the inventory and third person from the front.
+     */
+    private static boolean hold() {
+        Minecraft mc = Minecraft.getInstance();
+        mc.player.connection.sendCommand("item replace entity @s weapon.mainhand with wflib:battery");
+        holding = 0;
+        return true;
+    }
+
+    private static int holding = -1;
+    private static float healthBefore;
+
+    private static void holdTick(Minecraft mc) {
+        if (holding < 0) {
+            return;
+        }
+        holding++;
+        if (holding == 40) {
+            shot("artifact-first-person");
+        } else if (holding == 45) {
+            mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
+        } else if (holding == 70) {
+            shot("artifact-inventory");
+            mc.setScreen(null);
+            mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+        } else if (holding == 100) {
+            shot("artifact-third-person");
+            mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+            // Worn: one in an artifact slot, then 4 shock in survival should land as 4 x (1 - 0.1212).
+            mc.player.connection.sendCommand("gamemode survival");
+            mc.player.connection.sendCommand("curios replace artifact 0 @s with wflib:battery");
+            mc.player.connection.sendCommand("effect clear @s");
+        } else if (holding == 110) {
+            healthBefore = mc.player.getHealth();
+            mc.player.connection.sendCommand("damage @s 4 wflib:electric");
+        } else if (holding == 120) {
+            float lost = healthBefore - mc.player.getHealth();
+            mc.player.connection.sendCommand("gamemode creative");
+            holding = -1;
+            boolean pass = Math.abs(lost - 4.0F * (1.0F - 0.1212F)) < 0.05F;
+            finish(List.of((pass ? "[PASS]" : "[FAIL]") + " artifact hold: 3 shots; worn Battery, 4 shock took "
+                    + String.format(Locale.ROOT, "%.2f", lost)), status());
+        }
     }
 
     @Nullable

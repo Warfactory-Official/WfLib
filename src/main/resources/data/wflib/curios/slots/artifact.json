@@ -1,0 +1,6 @@
+{
+  "size": 5,
+  "icon": "wflib:slot/artifact",
+  "order": 90,
+  "add_cosmetic": false
+}

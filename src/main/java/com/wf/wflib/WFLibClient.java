@@ -168,6 +168,7 @@ public class WFLibClient {
             com.wf.gemrender.medium.CameraMedium.getInstance().hideWhen(FeedPass::seesThroughSmoke);
             com.wf.wflib.client.fx.WFLights.register();
             com.wf.wflib.anomaly.client.AnomalyClient.register();
+            com.wf.wflib.artifact.client.ArtifactRenderer.register();
             com.wf.wflib.round.client.RoundLights.register();
             com.wf.wflib.barrel.client.BarrelGlow.register();
             com.wf.wflib.nvg.client.NvgIllumination.register();
@@ -296,6 +297,8 @@ public class WFLibClient {
                 case com.wf.wflib.kinetic.KineticShellItem ignored -> renderer(com.wf.wflib.client.render.MissileItemRenderer::instance);
                 case com.wf.wflib.nvg.NvgItem ignored -> com.wf.wflib.nvg.client.NvgItemClient.INSTANCE;
                 case com.wf.wflib.pda.PdaItem ignored -> renderer(com.wf.wflib.pda.client.PdaRenderer::itemRenderer);
+                case com.wf.wflib.artifact.ArtifactItem artifact ->
+                        renderer(() -> com.wf.wflib.artifact.client.ArtifactRenderer.itemRenderer(artifact));
                 default -> null;
             };
             if (extensions != null) {
