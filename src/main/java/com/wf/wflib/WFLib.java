@@ -53,6 +53,9 @@ public class WFLib {
         com.wf.wflib.armor.ArmorMaterials.register(modEventBus);
         com.wf.wflib.backpack.Backpacks.register(modEventBus);
         com.wf.wflib.carry.Carry.register(modEventBus);
+        if (net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
+            com.wf.wflib.compat.wfweight.ItemWeights.register();
+        }
         com.wf.wflib.skin.Skins.register(modEventBus);
         com.wf.wflib.anomaly.Anomalies.register(modEventBus);
         com.wf.wflib.WFCreativeTabs.register(modEventBus);

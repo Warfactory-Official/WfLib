@@ -50,6 +50,7 @@ public final class MinePreset {
     private final Vec3 blastDirection;
     private final boolean blastAlongFacing;
     private final float blastHalfAngle;
+    private final double massKg;
 
     private MinePreset(Builder b) {
         this.id = b.id;
@@ -83,6 +84,7 @@ public final class MinePreset {
         this.blastDirection = b.blastDirection;
         this.blastAlongFacing = b.blastAlongFacing;
         this.blastHalfAngle = b.blastHalfAngle;
+        this.massKg = b.massKg;
     }
 
     public static Builder builder(ResourceLocation id, ResourceLocation modelId, ResourceLocation warheadId) {
@@ -158,6 +160,11 @@ public final class MinePreset {
 
     public float defuseFailChance() {
         return defuseFailChance;
+    }
+
+    /** Carried mass, kg; 0 = unset. */
+    public double massKg() {
+        return massKg;
     }
 
     public boolean floats() {
@@ -295,6 +302,7 @@ public final class MinePreset {
         private Vec3 blastDirection = null;
         private boolean blastAlongFacing = false;
         private float blastHalfAngle = MineEntity.DEFAULT_BLAST_HALF_ANGLE;
+        private double massKg;
 
         private Builder(ResourceLocation id, ResourceLocation modelId, ResourceLocation warheadId) {
             this.id = id;
@@ -454,6 +462,11 @@ public final class MinePreset {
         /** @see MineEntity.Builder#blastHalfAngle */
         public Builder blastHalfAngle(float degrees) {
             this.blastHalfAngle = degrees;
+            return this;
+        }
+
+        public Builder mass(double kg) {
+            this.massKg = kg;
             return this;
         }
 

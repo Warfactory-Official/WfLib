@@ -110,6 +110,7 @@ public final class MinePresetRegistry {
                 .armDelay(40)
                 .defusable(DefuseMethod.HAND)
                 .defuseTicks(40)
+                .mass(0.4)
                 .build());
 
         register(MinePreset.builder(rl("bounding"), MineModels.rl("bounding"), MineWarheads.FRAG)
@@ -123,6 +124,7 @@ public final class MinePresetRegistry {
                 .defusable(DefuseMethod.TOOL, MineTags.DEFUSER)
                 .defuseTicks(80)
                 .defuseFailChance(0.15f)
+                .mass(3.5)
                 .build());
 
         register(MinePreset.builder(rl("claymore"), MineModels.rl("claymore"), MineWarheads.DIRECTIONAL)
@@ -136,6 +138,7 @@ public final class MinePresetRegistry {
                 .armDelay(40)
                 .defusable(DefuseMethod.HAND)
                 .defuseTicks(60)
+                .mass(1.6)
                 .build());
 
         register(MinePreset.builder(rl("heat"), MineModels.rl("heat"), MineWarheads.HEAT)
@@ -147,6 +150,7 @@ public final class MinePresetRegistry {
                 .defusable(DefuseMethod.TOOL, MineTags.DEFUSER)
                 .defuseTicks(100)
                 .defuseFailChance(0.1f)
+                .mass(10.2)
                 .build());
 
         register(MinePreset.builder(rl("naval"), MineModels.rl("naval"), MineWarheads.NAVAL)
@@ -160,6 +164,7 @@ public final class MinePresetRegistry {
                 .defusable(DefuseMethod.TOOL, MineTags.DEFUSER)
                 .defuseTicks(120)
                 .defuseFailChance(0.25f)
+                .mass(300)
                 .build());
 
         sownMines();
@@ -176,6 +181,7 @@ public final class MinePresetRegistry {
                 .armDelay(80)
                 .selfDestructs(10 * MINUTES)
                 .undefusable()
+                .mass(0.08)
                 .build());
 
         register(MinePreset.builder(rl("scatter_at"), MineModels.rl("scatter_at"), MineWarheads.HEAT)
@@ -187,6 +193,7 @@ public final class MinePresetRegistry {
                 .armDelay(100)
                 .selfDestructs(20 * MINUTES)
                 .undefusable()
+                .mass(1.6)
                 .build());
 
         dispensers();
@@ -205,6 +212,7 @@ public final class MinePresetRegistry {
                 .armDelay(60)
                 .defusable(DefuseMethod.HAND)
                 .defuseTicks(60)
+                .mass(35)
                 .build());
 
         register(MinePreset.builder(rl("dispenser_at"), MineModels.rl("dispenser_at"),
@@ -218,6 +226,7 @@ public final class MinePresetRegistry {
                 .armDelay(60)
                 .defusable(DefuseMethod.HAND)
                 .defuseTicks(60)
+                .mass(60)
                 .build());
     }
 }

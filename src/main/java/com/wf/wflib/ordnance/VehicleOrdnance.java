@@ -58,6 +58,7 @@ public final class VehicleOrdnance {
     public static KineticPreset bomb(ResourceLocation id, double mass, double cdA, float blast, float burrow) {
         return KineticPreset.builder(id, MissileModels.rl("micro"), warhead(ThreatKind.HE, blast))
                 .item("bomb_" + id.getPath())
+                .mass(mass)
                 .threat(ThreatKind.HE)
                 .blast(blast, true)
                 .speed(0.0)
@@ -135,6 +136,7 @@ public final class VehicleOrdnance {
                 .fuel(MissileEntity.FuelType.SOLID, burnTicks)
                 .drag(k, glides)
                 .gLimit(maxG * G, Math.max(0.05, refSpeed))
+                .mass(mass)
                 .impactDamage(damage)
                 .threat(threat, calibre, 0)
                 .blast(blast, true)

@@ -34,6 +34,7 @@ public final class MissilePreset {
     private final double turnRate;       // <= 0 = model-size default
     private final double approachJoinCap; // directional-strike join ceiling (blocks)
     private final float health;
+    private final double massKg;
     private final int fragmentCount;
     private final int impactPreloadRadius;
     private final float explosionOffset;
@@ -94,6 +95,7 @@ public final class MissilePreset {
         this.turnRate = b.turnRate;
         this.approachJoinCap = b.approachJoinCap;
         this.health = b.health;
+        this.massKg = b.massKg;
         this.fragmentCount = b.fragmentCount;
         this.impactPreloadRadius = b.impactPreloadRadius;
         this.explosionOffset = b.explosionOffset;
@@ -195,6 +197,11 @@ public final class MissilePreset {
 
     public float health() {
         return health;
+    }
+
+    /** Carried mass, kg; 0 = unset. */
+    public double massKg() {
+        return massKg;
     }
 
     public int fragmentCount() {
@@ -444,6 +451,7 @@ public final class MissilePreset {
         private double turnRate = 0.0;
         private double approachJoinCap = MissileEntity.DEFAULT_APPROACH_JOIN_CAP;
         private float health = MissileEntity.DEFAULT_HEALTH;
+        private double massKg;
         private int fragmentCount = MissileEntity.DEFAULT_FRAGMENT_COUNT;
         private int impactPreloadRadius = MissileEntity.DEFAULT_IMPACT_PRELOAD_RADIUS;
         private float explosionOffset = 0.0f;
@@ -546,6 +554,11 @@ public final class MissilePreset {
 
         public Builder health(float health) {
             this.health = health;
+            return this;
+        }
+
+        public Builder mass(double kg) {
+            this.massKg = kg;
             return this;
         }
 
