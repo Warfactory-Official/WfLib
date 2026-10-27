@@ -9,8 +9,10 @@ import com.wf.wflib.anomaly.AnomalyBlockEntity.Phase;
 import com.wf.wflib.anomaly.AnomalyBehaviour;
 import com.wf.wflib.anomaly.AnomalyLook;
 import com.wf.wflib.anomaly.MincerTuning;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
@@ -75,6 +77,13 @@ public final class AnomalyClient {
 
     private static final Map<AnomalyBlockEntity, AnomalyIdleSound> IDLE_SOUND = new WeakHashMap<>();
 
+    /** Burnt Fuzz / Grabber hair, per anomaly. */
+    private static final Map<AnomalyBlockEntity, FuzzStrands> STRANDS = new WeakHashMap<>();
+    private static final ResourceLocation WHITE =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/anomaly/white.png");
+    private static final ResourceLocation RING =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/anomaly/ring.png");
+
     /** Blowout sound still playing, faded out if the blowout fizzles (or, if it {@code endsWithBlowout}, ends). */
     private static final Map<AnomalyBlockEntity, AnomalyBlowoutSound> BUILDUP = new WeakHashMap<>();
 
@@ -130,6 +139,7 @@ public final class AnomalyClient {
         }
         stopIdleFx(be);
         stopFx(BLOWOUT_FX, be);
+        STRANDS.remove(be);
     }
 
     private static void stopIdleFx(AnomalyBlockEntity be) {
@@ -221,6 +231,10 @@ public final class AnomalyClient {
         double playerDist = be.reach(player, c);
         if (AnomalyBlockEntity.affected(player) && playerDist <= behaviour.radius()
                 && (!be.striking() || be.claim(player))) {
+            if (be.striking() && be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.TIME_SLIP
+                    && be.behaviour().trips(playerDist)) {
+                TimeSlipOverlay.start();
+            }
             be.affect(player);
             if (be.phase() == Phase.BLOWOUT && !be.exploding() && behaviour instanceof MincerTuning mincer
                     && mincer.caught(playerDist, true)) {
@@ -232,6 +246,9 @@ public final class AnomalyClient {
             }
         }
         particles(be, c, look);
+        if (look.style() == AnomalyLook.Style.FUZZ) {
+            STRANDS.computeIfAbsent(be, FuzzStrands::new).tick(be, level);
+        }
         boolean blowout = be.phase() == Phase.BLOWOUT;
         if (blowout) {
             AnomalyEffects.blowout(level, be, c, random);
@@ -263,9 +280,16 @@ public final class AnomalyClient {
         }
     }
 
-    /** Before {@link Lenses#draw} (AFTER_LEVEL). */
+    /** Before {@link Lenses#draw} (AFTER_LEVEL); fuzz after the entities, Rebounder discs with the particles. */
     @SubscribeEvent
     public static void onRenderStage(RenderLevelStageEvent event) {
+        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES
+                || event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+            if (AnomalyConfig.enabled) {
+                shapes(event, event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES);
+            }
+            return;
+        }
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER) {
             return;
         }
@@ -290,6 +314,72 @@ public final class AnomalyClient {
                 stamp.lensed = System.nanoTime();
             }
         }
+    }
+
+    /** Burnt Fuzz hair ({@code fuzz}) or Rebounder discs, for every anomaly in draw distance. */
+    private static void shapes(RenderLevelStageEvent event, boolean fuzz) {
+        Minecraft mc = Minecraft.getInstance();
+        Vec3 cam = event.getCamera().getPosition();
+        float partial = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        com.mojang.blaze3d.vertex.PoseStack pose = event.getPoseStack();
+        pose.pushPose();
+        pose.translate(-cam.x, -cam.y, -cam.z);
+        org.joml.Matrix4f matrix = pose.last().pose();
+        net.minecraft.client.renderer.MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        net.minecraft.client.renderer.RenderType type = fuzz
+                ? net.minecraft.client.renderer.RenderType.entityCutoutNoCull(WHITE)
+                : com.wf.wflib.client.render.WFRenderTypes.xray(RING, com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD);
+        boolean any = false;
+        for (AnomalyBlockEntity be : LIVE) {
+            if (be.isRemoved() || be.getLevel() != mc.level || be.center().distanceTo(cam) > DRAW_DISTANCE) {
+                continue;
+            }
+            if (fuzz) {
+                FuzzStrands strands = STRANDS.get(be);
+                if (strands != null) {
+                    int light = net.minecraft.client.renderer.LevelRenderer.getLightColor(mc.level, be.getBlockPos());
+                    strands.emit(buffers.getBuffer(type), matrix, cam, partial, light);
+                    any = true;
+                }
+            } else if (be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.REBOUNDS
+                    && be.presence(partial) > 0.0F) {
+                disc(buffers.getBuffer(type), matrix, be, partial);
+                any = true;
+            }
+        }
+        if (any) {
+            buffers.endBatch(type);
+        }
+        pose.popPose();
+    }
+
+    /**
+     * The Rebounder's disc of force waves, upright and turned its own way: rings swelling out from its middle and
+     * fading, flaring through a blowout.
+     */
+    private static void disc(VertexConsumer out, org.joml.Matrix4f matrix, AnomalyBlockEntity be, float partial) {
+        Vec3 c = be.center(partial).add(0.0D, be.type().look().lensHeight(), 0.0D);
+        double yaw = RandomSource.create(be.getBlockPos().asLong()).nextDouble() * Math.PI;
+        float ux = (float) Math.cos(yaw);
+        float uz = (float) Math.sin(yaw);
+        float big = be.type().look().lensRadius();
+        float t = (be.age() + partial) / 30.0F;
+        float flare = be.phase() == Phase.BLOWOUT ? 3.0F : 1.0F;
+        for (int k = 0; k < 4; k++) {
+            float ph = (t + k * 0.25F) % 1.0F;
+            float size = big * (0.15F + 0.85F * ph);
+            float a = Math.min(1.0F, 0.22F * flare * Mth.sin((float) Math.PI * ph) * be.presence(partial));
+            ring(out, matrix, c, -ux * size, -size, -uz * size, 0.0F, 1.0F, a);
+            ring(out, matrix, c, ux * size, -size, uz * size, 1.0F, 1.0F, a);
+            ring(out, matrix, c, ux * size, size, uz * size, 1.0F, 0.0F, a);
+            ring(out, matrix, c, -ux * size, size, -uz * size, 0.0F, 0.0F, a);
+        }
+    }
+
+    private static void ring(VertexConsumer out, org.joml.Matrix4f matrix, Vec3 c, float dx, float dy, float dz,
+                             float u, float v, float alpha) {
+        out.addVertex(matrix, (float) c.x + dx, (float) c.y + dy, (float) c.z + dz).setUv(u, v)
+                .setColor(0.85F, 0.95F, 1.0F, alpha);
     }
 
     private static void lens(AnomalyBlockEntity be, Vec3 c, float partial) {

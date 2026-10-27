@@ -62,27 +62,40 @@ public class AnomalyBlockEntity extends BlockEntity {
     /** Server: Rebounders loaded now, for {@link #shielding}. */
     private static final java.util.Set<AnomalyBlockEntity> SHIELDS =
             java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
-    /**
-     * A {@link Quirk#moves wandering} anomaly's path, from its position so both sides agree: reach on each axis,
-     * degrees per tick, start angle ({@code zone_mine_ghost}: 0.5-3 m, 1-3 and 1-4 degrees per 22 ms, 0-180).
-     */
-    private final double pathX, pathZ, rateX, rateZ, phase0;
+    /** A {@link Quirk#moves wandering} anomaly's loop: made by the server once, saved, sent to clients. */
+    @org.jetbrains.annotations.Nullable
+    private AnomalyPath path;
 
     public AnomalyBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ANOMALY.get(), pos, state);
         type = ((AnomalyBlock) state.getBlock()).type();
-        RandomSource path = RandomSource.create(pos.asLong());
-        boolean comet = type.quirk() == Quirk.ORBIT;
-        double near = comet ? 5.0D : 0.5D;
-        double spread = comet ? 4.0D : 2.5D;
-        pathX = (near + spread * path.nextDouble()) * (path.nextBoolean() ? 1 : -1);
-        pathZ = (near + spread * path.nextDouble()) * (path.nextBoolean() ? 1 : -1);
-        int stepX = 1 + path.nextInt(3);
-        int stepZ = stepX == 1 ? 2 + path.nextInt(2) : stepX == 2 ? 1 + 2 * path.nextInt(2) : 2 + 2 * path.nextInt(2);
-        double perTick = (comet ? 0.35D : 1.0D) * 50.0D / 22.0D;
-        rateX = stepX * perTick;
-        rateZ = stepZ * perTick;
-        phase0 = 45.0D * path.nextInt(5);
+    }
+
+    @Override
+    protected void saveAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        if (path != null) {
+            path.save(tag);
+        }
+    }
+
+    @Override
+    protected void loadAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        path = AnomalyPath.load(tag);
+    }
+
+    @Override
+    public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+        saveAdditional(tag, registries);
+        return tag;
+    }
+
+    @Override
+    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener>
+            getUpdatePacket() {
+        return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
     }
 
     public AnomalyType type() {
@@ -112,12 +125,7 @@ public class AnomalyBlockEntity extends BlockEntity {
 
     public Vec3 center(float partial) {
         Vec3 base = Vec3.atBottomCenterOf(worldPosition);
-        if (!type.quirk().moves() || level == null) {
-            return base;
-        }
-        double t = level.getGameTime() + partial;
-        return base.add(Math.sin(Math.toRadians(phase0 + rateX * t)) * pathX,
-                type.quirk() == Quirk.ORBIT ? 1.0D : 0.0D, Math.sin(Math.toRadians(rateZ * t)) * pathZ);
+        return path == null || level == null ? base : base.add(path.at(level.getGameTime() + partial));
     }
 
     /**
@@ -195,6 +203,14 @@ public class AnomalyBlockEntity extends BlockEntity {
         be.step();
         if (be.type.quirk() == Quirk.REBOUNDS) {
             SHIELDS.add(be);
+            if (level instanceof ServerLevel server) {
+                be.rebound(server, be.center());
+            }
+        }
+        if (be.type.quirk().moves() && be.path == null) {
+            be.path = be.type.quirk() == Quirk.ORBIT ? AnomalyPath.comet(level, pos) : AnomalyPath.ghost(level, pos);
+            be.setChanged();
+            level.sendBlockUpdated(pos, state, state, net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
         }
         if (be.phase == Phase.SPENT) {
             return;
@@ -375,6 +391,8 @@ public class AnomalyBlockEntity extends BlockEntity {
         player.causeFoodExhaustion(4.0F * minutes / 60.0F);
         player.hurt(source(level), player.getMaxHealth() * (0.01F + 0.03F * random.nextFloat()));
         player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 120, 0));
+        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("anomaly.wflib.time_slip",
+                minutes / 60, minutes % 60), true);
         if (level.getServer().getPlayerCount() == 1) {
             ServerLevel overworld = level.getServer().overworld();
             overworld.setDayTime(overworld.getDayTime() + minutes * 1000L / 60L);
@@ -465,6 +483,52 @@ public class AnomalyBlockEntity extends BlockEntity {
             e.setDeltaMovement(e.getDeltaMovement().scale(0.85D).add(target.subtract(at).scale(0.03D))
                     .add(0.0D, e.getGravity(), 0.0D));
         }
+    }
+
+    /** Farthest a round travels in a tick, blocks: rounds this far out may reach a Rebounder this tick. */
+    private static final double ROUND_REACH = 80.0D;
+
+    /**
+     * Rebounder: a round whose next step would enter it is stopped where it meets it and turned back off it at half
+     * speed (rounds step after block entities, so this is before it moves). Rounds fired from inside go out freely.
+     */
+    private void rebound(ServerLevel level, Vec3 c) {
+        double r = behaviour().radius();
+        for (long key : com.wf.wflib.round.Rounds.within(level, new AABB(c, c).inflate(r + ROUND_REACH))) {
+            Vec3 p = com.wf.wflib.round.Rounds.position(level, key);
+            Vec3 v = com.wf.wflib.round.Rounds.velocity(level, key);
+            Vec3 at = p == null || v == null ? null : entry(p, v, c, r);
+            if (at == null || level.clip(new net.minecraft.world.level.ClipContext(p, at,
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE,
+                    net.minecraft.world.phys.shapes.CollisionContext.empty())).getType()
+                    != net.minecraft.world.phys.HitResult.Type.MISS) {
+                continue;
+            }
+            Vec3 n = at.subtract(c).normalize();
+            com.wf.wflib.round.Rounds.deflect(level, key, at, v.subtract(n.scale(2.0D * v.dot(n))).scale(0.5D));
+            if (type.sounds().hit() != null) {
+                level.playSound(null, at.x, at.y, at.z, type.sounds().hit().get(), SoundSource.HOSTILE, 0.8F,
+                        0.9F + 0.2F * level.random.nextFloat());
+            }
+        }
+    }
+
+    /** Where {@code p + t v} (t in 0..1), from outside, first meets the sphere {@code c, r}; null if it doesn't. */
+    @org.jetbrains.annotations.Nullable
+    static Vec3 entry(Vec3 p, Vec3 v, Vec3 c, double r) {
+        Vec3 d = p.subtract(c);
+        double a = v.lengthSqr();
+        double b = d.dot(v);
+        double k = d.lengthSqr() - r * r;
+        if (k <= 0.0D || a < 1.0E-9D || b >= 0.0D) {
+            return null;
+        }
+        double disc = b * b - a * k;
+        if (disc < 0.0D) {
+            return null;
+        }
+        double t = (-b - Math.sqrt(disc)) / a;
+        return t <= 1.0D ? p.add(v.scale(t)) : null;
     }
 
     /** Rebounder: a projectile heading in is turned back off the disc, at half speed. */

@@ -201,6 +201,7 @@
   "block.wflib.thermal_field": "Thermal Field",
   "block.wflib.acid_field": "Acid Field",
   "block.wflib.no_gravity": "Gravitational Anomaly (No-Gravity)",
+  "anomaly.wflib.time_slip": "Hours have passed: %s h %s min gone",
   "block.wflib.deep_mining_charge": "Deep Mining Charge",
   "item.wflib.detonator": "Detonator",
   "tag.wflib.defuser": "a defuser (shovel or shears)",

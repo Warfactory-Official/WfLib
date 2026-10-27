@@ -279,6 +279,26 @@ public final class Rounds implements SimKind<RoundBatch> {
         return true;
     }
 
+    /**
+     * Put a round in flight at {@code at}, moving at {@code velocity} (a Rebounder turning it): its client copy is
+     * resynced, as after a ricochet. @return false if it had already ended
+     */
+    public static boolean deflect(ServerLevel level, long key, Vec3 at, Vec3 velocity) {
+        RoundBatch b = batch(level);
+        int i = b.indexOf(key);
+        if (i < 0) {
+            return false;
+        }
+        b.x[i] = at.x;
+        b.y[i] = at.y;
+        b.z[i] = at.z;
+        b.vx[i] = velocity.x;
+        b.vy[i] = velocity.y;
+        b.vz[i] = velocity.z;
+        RoundNetwork.sync(level, b, i);
+        return true;
+    }
+
     @Override
     public ResourceLocation id() {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "round");

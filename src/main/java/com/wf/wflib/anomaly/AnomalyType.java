@@ -28,15 +28,18 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
          * had passed, a few % of health, the clock too when alone on the server); a creature vanishes.
          */
         TIME_SLIP,
-        /** Ghost ({@code anomalies_spawn_functions.zone_mine_ghost}): wanders a Lissajous path round its block. */
+        /** Ghost ({@code anomalies_spawn_functions.zone_mine_ghost}): a Lissajous over the ground round its block. */
         WANDER,
-        /** Comet ({@code CTorridZone}): the same, wider and slower, at chest height (STALKER's levels draw its path). */
+        /** Comet ({@code CTorridZone}): a loop it finds through the terrain round its block, at chest height. */
         ORBIT,
         /** Green Dragon: the living inside are slowed to about half ({@code zone_mine_green_dragon}, speed 0.5). */
         SLOWS,
         /** Liquid Gold: players inside tire and hunger, more toward the middle (stamina, thirst). */
         DRAINS,
-        /** Rebounder: rounds and arrows lose half or more of their damage on anyone inside; arrows glance off. */
+        /**
+         * Rebounder: rounds and arrows heading in glance off its sphere at half speed; any that still hit someone
+         * inside (fired from in there, say) lose half or more of their damage.
+         */
         REBOUNDS,
         /** No gravity inside ({@code CNoGravityZone}): the living, loose objects and projectiles float. */
         WEIGHTLESS;
@@ -302,12 +305,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     /**
      * {@code zone_mine_sphere} (Rebounder): a disc of force waves (a CMincer pushing out: throw_in_impulse negative)
      * that bats away whatever alive steps in (max_start_power 0.65, strike, a hard throw outward, at once: 70 ms),
-     * ready again in 0.4 s; rounds and arrows at anyone inside it lose half or more ({@link Quirk#REBOUNDS}). Its
-     * look is all heat-haze in STALKER: here a lens.
+     * ready again in 0.4 s; rounds and arrows coming at it glance off, and any that hit someone inside lose half or
+     * more ({@link Quirk#REBOUNDS}). Its look is all heat-haze in STALKER: here a lens and an upright disc of rings.
      */
     public static final AnomalyType REBOUNDER = new AnomalyType("Rebounder",
             new BlastTuning(6.0D, 2, 2, 8, 0.65D, 1.6D, true, 0),
-            new AnomalyLook(Style.GRAVITY, 2.5F, 1.2D, 0.02F, 0.4F, 0.03F, 2.0F, 0.0F, 0, 0.0D, 0.0D,
+            new AnomalyLook(Style.GRAVITY, 2.5F, 2.5D, 0.02F, 0.4F, 0.03F, 2.0F, 0.0F, 0, 0.0D, 0.0D,
                     0xDCFFCB, 0.0F, 0, 0.0F, 1.0F, null, "eugenium_anomalies/anomaly_sphere/sphere_blast", 1.5F,
                     1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
@@ -341,14 +344,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     () -> WFSounds.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
 
     /**
-     * {@code zone_burning_fuzz} (Burnt Fuzz, GAMMA balance; STALKER's strands are a level mesh, drawn here as dust):
+     * {@code zone_burning_fuzz} (Burnt Fuzz, GAMMA balance; STALKER's strands are a level mesh, here simulated rope):
      * hangs from a ceiling and lashes whatever alive runs
      * under it (min_speed_to_react 6: a sprint; walking past is safe), for a second (max_start_power 0.3, chemical),
      * then rests 5 s.
      */
     public static final AnomalyType BURNT_FUZZ = new AnomalyType("Burnt Fuzz",
             new BlastTuning(2.0D, 1, 20, 100, 0.3D, 0.0D, true, 0, 0.25D),
-            new AnomalyLook(Style.FUZZ, 1.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.6F, 0, 0.0D, 0.0D,
+            new AnomalyLook(Style.FUZZ, 1.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.1F, 0, 0.0D, 0.0D,
                     0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, "anomaly2/electra_entrance_small", 1.0F, 1.0F),
             WFDamageTypes.ACID,
             new AnomalySounds(
@@ -366,7 +369,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
      */
     public static final AnomalyType GRABBER = new AnomalyType("Grabber",
             new BlastTuning(3.75D, 2, 140, 5, 1.5D, 0.5D, true, 0, 0.05D),
-            new AnomalyLook(Style.FUZZ, 1.5F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.9F, 0, 0.0D, 0.0D,
+            new AnomalyLook(Style.FUZZ, 1.5F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.15F, 0, 0.0D, 0.0D,
                     0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, "anomaly2/pux_blast", 1.5F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(
