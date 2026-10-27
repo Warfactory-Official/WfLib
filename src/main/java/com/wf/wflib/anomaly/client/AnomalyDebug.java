@@ -402,6 +402,8 @@ public final class AnomalyDebug {
         holding++;
         if (holding == 40) {
             shot("artifact-first-person");
+        } else if (holding == 42 || holding == 44) {
+            shot("artifact-first-person-" + holding);
         } else if (holding == 45) {
             mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
         } else if (holding == 70) {

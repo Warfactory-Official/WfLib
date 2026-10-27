@@ -49,10 +49,15 @@ import java.util.Map;
 public final class ArtifactRenderer {
     private static final ResourceLocation LIGHTNING =
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/artifact/battery_lightning.png");
-    /** View space: the right arm's line from the shoulder, held out straight, a little in and up. */
-    private static final Vector3f REACH = new Vector3f(-0.12F, 0.1F, -1.0F).normalize();
-    /** Share of full reach: straight but not locked (the solver slides the shoulder past ~1). */
-    private static final float STRAIGHT = 0.97F;
+    private static final ResourceLocation BODY =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/artifact/battery_body.png");
+    /** View space: the right arm's line from the shoulder, held out straight ahead, a touch up. */
+    private static final Vector3f REACH = new Vector3f(0.0F, 0.06F, -1.0F).normalize();
+    /**
+     * Share of full reach: past {@link ArmViewPose#MAX_REACH} the solver keeps the arm straight and slides the
+     * shoulder instead (at 0.97 the elbow still bent ~28 degrees).
+     */
+    private static final float STRAIGHT = 1.0F;
     /** Palm centre back from the fist end, m. */
     private static final float PALM_BACK = 0.06F;
     /** The idle left hand, out of view below. */
@@ -73,11 +78,24 @@ public final class ArtifactRenderer {
 
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
     private static final Map<Artifact, GemRenderItemRenderer> ITEM_RENDERERS = new HashMap<>();
+    /** Inventory, ground, others' hands: body and arcs as they are. */
     private static final TextureSlots SLOTS = new TextureSlots() {
         @Override
         public ResourceLocation texture(String slot) {
-            // Steady: STALKER's arcs are a still texture (its idle animation moves nothing either).
-            return LIGHTNING;
+            return "lightning".equals(slot) ? LIGHTNING : BODY;
+        }
+
+        @Override
+        public boolean emissive(String slot) {
+            return "lightning".equals(slot);
+        }
+    };
+    /** First person, drawn apart so the arcs can move: the body alone, then the arcs alone. */
+    private static final TextureSlots BODY_ONLY = slot -> "lightning".equals(slot) ? null : BODY;
+    private static final TextureSlots ARCS_ONLY = new TextureSlots() {
+        @Override
+        public ResourceLocation texture(String slot) {
+            return "lightning".equals(slot) ? LIGHTNING : null;
         }
 
         @Override
@@ -140,6 +158,22 @@ public final class ArtifactRenderer {
                 }));
     }
 
+    /**
+     * The arcs alive and always there: crawling along their shells (the texture slides up) and writhing sideways a
+     * little (two fast, unrelated sways; far enough to look like a new arc, never off it: the strip is mostly empty).
+     */
+    private static VariantUv arcs(float t) {
+        float writhe = 0.035F * Mth.sin(t * 23.0F) + 0.025F * Mth.sin(t * 37.0F + 2.0F);
+        return new VariantUv(writhe, -t * 1.3F % 1.0F);
+    }
+
+    /** Arcs surge and dip: a slow swell under a fast crackle, never out. */
+    private static int arcTint(float t) {
+        float k = 0.7F + 0.15F * Mth.sin(t * 3.1F) + 0.15F * Mth.sin(t * 17.3F + 1.3F * Mth.sin(t * 5.0F));
+        int c = Mth.clamp((int) (k * 255.0F), 0, 255);
+        return 0xFF000000 | c << 16 | c << 8 | c;
+    }
+
     private static float clock() {
         return (System.nanoTime() % 3_600_000_000_000L) / 1.0E9F;
     }
@@ -175,7 +209,9 @@ public final class ArtifactRenderer {
             POSE.set(VIEW).translate(PALM).translate(0.0F, FLOAT + BOB * Mth.sin(t * 2.1F), 0.0F)
                     .rotateY(t * 0.8F).rotateX(0.25F * Mth.sin(t * 0.6F)).scale(VIEW_SCALE);
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
-                    DirectPass.HAND, VariantUv.NONE, SLOTS);
+                    DirectPass.HAND, VariantUv.NONE, BODY_ONLY);
+            DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, arcTint(t),
+                    DirectPass.HAND, arcs(t), ARCS_ONLY);
         }
         if (arms == null) {
             return;
