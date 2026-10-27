@@ -270,7 +270,6 @@
   "wflib.pda.contact.vehicle": "vehicle",
   "wflib.pda.contact.player": "infantry",
   "wflib.pda.contact.structure": "structure",
-  "subtitles.wflib.pda.buzz": "PDA buzzes",
   "wflib.pda.marker.name": "Marker name",
   "item.wflib.missile_gmlrs": "GMLRS Rocket (Unitary)",
   "item.wflib.missile_gmlrs_aw": "GMLRS Rocket (Alternative Warhead)",

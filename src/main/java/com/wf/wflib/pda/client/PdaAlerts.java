@@ -25,7 +25,7 @@ import static com.wf.wflib.ui.Ui.place;
 
 /**
  * PDA notifications, client end: any system {@link #post}s (server: {@code PdaAlertPacket}); while a PDA is carried =>
- * HUD toast + vibration buzz + Alerts app history. Without a PDA nothing is shown.
+ * Silent HUD toast + Alerts app history. Without a PDA nothing is shown.
  */
 public final class PdaAlerts {
     private static final ResourceLocation LAYOUT = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_toasts");
@@ -71,7 +71,6 @@ public final class PdaAlerts {
             ENTRIES.removeLast();
         }
         unread = Math.min(unread + 1, HISTORY);
-        com.wf.wflib.pda.client.theme.PdaSounds.request(com.wf.wflib.pda.client.theme.PdaSounds.Event.ALERT);
     }
 
     /** HH:MM, day starting 06:00. */

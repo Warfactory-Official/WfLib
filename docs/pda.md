@@ -100,7 +100,7 @@ format](https://docs.illusivesoulworks.com/curios/slots/datapack-example).
 
 ## 102. Alerts (`pda/alerts/PdaAlert`, client `PdaAlerts`)
 
-- Carried PDA only: HUD toast top-left (3 newest, 5 s; top-right = minimaps) + `wflib:pda.buzz` (`tools/audio/pda_buzz_synth.py`) + history.
+- Carried PDA only: HUD toast top-left (3 newest, 5 s; top-right = minimaps) (silent) + history.
 - Server: `PdaAlert.send(player, text, tier)`; recon alerts (track -> ALARM / WEAPONS_RELEASE) of own net within 4096 while uplinked, forwarded once per published picture; first sight of a net skipped (stale).
 - Client posts: sat overhead / hunter inbound (status transitions), TV link lost. CombinedAssault: UAV low fuel / charge (< 15 %, re-arm > 25 %), fire request received.
 
@@ -137,3 +137,5 @@ private static final TextBox COUNT = TextBox.integer(5, 1, 1000).onSubmit(s -> b
 - `TextLine` + `TextField` remain for command lines (history, Enter clears: Terminal, Wiki search).
 - Demo: `PdaFieldsDemo` (count 1..100, price 2 decimals, name), registered only with `-Dwflib.pda.fieldsDemo=true`; test: `Pluginless/tools/pda/run.py --apps wflib:fields_demo` with a script that clicks a field and types (`pointer` / `click` / `text` / `key`).
 - Gap: IME composition, Ctrl+Z, double-click word select unimplemented; paste only through `KeyboardHandler.getClipboard` (system clipboard); scroll of a very long box checked by reading, not screenshot.
+
+PDA UI audio consists only of bundled `wflib:pda.click` (hit) and `wflib:pda.hover` (beep). Tab/page changes use click. Raising/lowering and alerts are silent. The Sounds setting gates both UI sounds.

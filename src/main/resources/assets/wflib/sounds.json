@@ -242,12 +242,6 @@
     ],
     "subtitle": "subtitles.wflib.countermeasure.flare_burn"
   },
-  "pda.buzz": {
-    "sounds": [
-      "wflib:pda/buzz"
-    ],
-    "subtitle": "subtitles.wflib.pda.buzz"
-  },
   "grenade.bounce": {
     "sounds": [
       "wflib:grenade/bounce_01",

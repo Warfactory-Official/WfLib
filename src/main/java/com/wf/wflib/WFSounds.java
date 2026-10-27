@@ -15,7 +15,6 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> NUCLEAR_EXPLOSION = register("weapon.nuclear_explosion");
     public static final DeferredHolder<SoundEvent, SoundEvent> PDA_CLICK = register("pda.click");
     public static final DeferredHolder<SoundEvent, SoundEvent> PDA_HOVER = register("pda.hover");
-    public static final DeferredHolder<SoundEvent, SoundEvent> PDA_BUZZ = register("pda.buzz");
     public static final DeferredHolder<SoundEvent, SoundEvent> FIRE_DISINTEGRATION = register("weapon.fire.disintegration");
     public static final DeferredHolder<SoundEvent, SoundEvent> EXPLOSION_SMALL_NEAR = register("weapon.explosion_small_near");
     public static final DeferredHolder<SoundEvent, SoundEvent> EXPLOSION_SMALL_FAR = register("weapon.explosion_small_far");
