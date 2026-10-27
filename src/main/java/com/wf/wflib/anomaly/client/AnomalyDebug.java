@@ -416,7 +416,17 @@ public final class AnomalyDebug {
             shot(String.format(Locale.ROOT, "artifact-lift-%.2f", (holding - 58) / 40.0F));
         }
         switch (holding) {
-            case 40 -> shot("artifact-first-person");
+            case 40 -> {
+                shot("artifact-first-person");
+                // The light must be at the artefact: ahead along the view, about half a block from the eyes.
+                net.minecraft.world.phys.Vec3 eye = mc.gameRenderer.getMainCamera().getPosition();
+                org.joml.Vector3f l = com.wf.wflib.artifact.client.ArtifactRenderer.LAST_LIGHT;
+                net.minecraft.world.phys.Vec3 to = new net.minecraft.world.phys.Vec3(l.x, l.y, l.z).subtract(eye);
+                double ahead = to.normalize().dot(mc.player.getLookAngle());
+                lightOk = ahead > 0.7D && to.length() > 0.3D && to.length() < 0.8D;
+                LOGGER.info("[anomaly-test] hold: light {} from the eye, {} ahead",
+                        String.format(Locale.ROOT, "%.2f", to.length()), String.format(Locale.ROOT, "%.2f", ahead));
+            }
             case 42, 44 -> shot("artifact-first-person-" + holding);
             case 100 -> {
                 com.wf.wflib.artifact.client.ArtifactRenderer.forceLift(-1.0F);
@@ -481,8 +491,10 @@ public final class AnomalyDebug {
                         : Math.abs(healed - expectHeal) <= a.healthPerSecond(mc.player.getMaxHealth()) + 0.01F;
                 boolean away = switchChecks.size() == 2 && switchChecks.get(0);
                 boolean back = switchChecks.size() == 2 && switchChecks.get(1);
+                boolean lit = lightOk;
                 switchChecks.clear();
-                finish(List.of(((worn && away && back) ? "[PASS]" : "[FAIL]") + " artifact hold",
+                finish(List.of(((worn && away && back && lit) ? "[PASS]" : "[FAIL]") + " artifact hold",
+                        "  " + (lit ? "ok  " : "FAIL") + " its light is at it, ahead of the eyes",
                         "  " + (away ? "ok  " : "FAIL") + " switched away, it was put away (lift 0)",
                         "  " + (back ? "ok  " : "FAIL") + " switched back, it came up (lift 1)",
                         "  " + (worn ? "ok  " : "FAIL") + (a.shock() != 0.0F
@@ -498,6 +510,7 @@ public final class AnomalyDebug {
 
     private static final List<Boolean> switchChecks = new ArrayList<>();
     private static float healthHealing;
+    private static boolean lightOk;
 
     private static com.wf.wflib.artifact.Artifact wornArtifact() {
         net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(

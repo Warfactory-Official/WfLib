@@ -340,26 +340,51 @@ public final class ArtifactRenderer {
         arms.submit(VIEW, light, 0xFFFFFFFF, player);
     }
 
-    /** Client setup: a held artefact's faint glow. */
+    /** Client setup: a held artefact's faint glow, lit where it floats. */
     public static void register() {
         Lights.register((sink, partialTick) -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.level == null || mc.player == null) {
                 return;
             }
-            Vec3 eye = mc.player.getEyePosition(partialTick);
+            net.minecraft.client.Camera camera = mc.gameRenderer.getMainCamera();
+            Vec3 eye = camera.getPosition();
             for (Player player : mc.level.players()) {
                 ArtifactItem item = held(player);
                 if (item == null || player.getEyePosition(partialTick).distanceToSqr(eye) > 64.0D * 64.0D) {
                     continue;
                 }
-                // About where it floats: in front of the chest, a little right.
-                Vec3 look = player.getViewVector(partialTick);
-                Vec3 at = player.getEyePosition(partialTick).add(look.scale(0.5D)).add(0.0D, -0.25D, 0.0D);
+                Vector3f at = new Vector3f();
+                float strength;
+                if (player == mc.player && mc.options.getCameraType().isFirstPerson() && shown != null) {
+                    // Ours, in first person: the pose just drawn, view space -> world through the camera.
+                    camera.rotation().transform(at.set(POSE_NOW.artifact));
+                    at.add((float) eye.x, (float) eye.y, (float) eye.z);
+                    strength = shownLift;
+                } else {
+                    // Anyone else (or us seen from outside): the held pose, from their eyes and view.
+                    LIGHT_POSE.pose(1.0F, 0.0F, LIGHT_LENGTHS);
+                    new Quaternionf().rotationYXZ((float) Math.PI - player.getViewYRot(partialTick) * Mth.DEG_TO_RAD,
+                            -player.getViewXRot(partialTick) * Mth.DEG_TO_RAD, 0.0F).transform(at.set(LIGHT_POSE.artifact));
+                    Vec3 from = player.getEyePosition(partialTick);
+                    at.add((float) from.x, (float) from.y, (float) from.z);
+                    strength = 1.0F;
+                }
+                if (player == mc.player) {
+                    LAST_LIGHT.set(at);
+                }
                 Artifact a = item.artifact();
-                sink.point(at.x, at.y, at.z, a.lightRange(), a.lightRgb(), a.lightRange() * a.lightRange() * 0.5F,
-                        false);
+                if (strength > 0.0F) {
+                    sink.point(at.x, at.y, at.z, a.lightRange(), a.lightRgb(),
+                            a.lightRange() * a.lightRange() * 0.5F * strength, false);
+                }
             }
         });
     }
+
+    private static final HeldArtifactPose LIGHT_POSE = new HeldArtifactPose();
+    /** Where our held artefact's light last was, world (the hold bench checks it). */
+    public static final Vector3f LAST_LIGHT = new Vector3f();
+    /** Arm lengths for others' lights (player_arms.glb, as the pose tests use). */
+    private static final PlayerArms.Lengths LIGHT_LENGTHS = new PlayerArms.Lengths(0.26F, 0.33F);
 }
