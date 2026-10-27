@@ -52,6 +52,7 @@ public class WFLib {
         com.wf.wflib.nvg.NvgRegistry.register(modEventBus);
         com.wf.wflib.armor.ArmorMaterials.register(modEventBus);
         com.wf.wflib.backpack.Backpacks.register(modEventBus);
+        com.wf.wflib.carry.Carry.register(modEventBus);
         com.wf.wflib.skin.Skins.register(modEventBus);
         com.wf.wflib.anomaly.Anomalies.register(modEventBus);
         com.wf.wflib.WFCreativeTabs.register(modEventBus);

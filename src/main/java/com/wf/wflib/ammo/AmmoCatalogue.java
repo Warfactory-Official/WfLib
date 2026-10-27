@@ -306,6 +306,10 @@ public final class AmmoCatalogue {
         Cal n127 = cal("127mm_naval", "5-inch/54 naval", CalibreKind.TANK, 127f, 835f, 150f, 128f, 160f, 1500f,
                 660f, br, 47000f, 0.105f);
         add(n127.variant("he", "Mk 64 HE-PD", 31750, 600, 0f).drag(0.005f).explosive(STANDARD, 5f).tip(TIP_YELLOW));
+        // M795 on the M777: separate-loading, charge bags not modelled (no case).
+        Cal h155 = cal("155mm", "155mm howitzer", CalibreKind.TANK, 155f, 1f, 155f, 155f, 155f, 900f, 620f,
+                CaseMaterial.NONE, 46700f, 0.1f);
+        add(h155.variant("he", "M795 HE", 46700, 400, 0f).drag(0.005f).explosive(STANDARD, 8f).tip(TIP_YELLOW));
         Cal n406 = cal("406mm_naval", "16-inch/50 naval", CalibreKind.TANK, 406f, 1f, 406f, 406f, 406f, 1850f, 1850f,
                 CaseMaterial.NONE, 862000f, 0.0102f);
         add(n406.variant("he", "Mk 13 HC", 862000, 800, 0f).drag(0.002f).explosive(STANDARD, 12f)

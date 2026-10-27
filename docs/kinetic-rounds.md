@@ -356,7 +356,7 @@ Calibre + variant registry; startup only (code, mod construction), no datapack.
   14.5x114 metric ids, e.g. `.50 BMG` = `12.7x99`): `ball` (default) + `tracer` / `ap` / `subsonic` where fielded;
   `12ga` buck (9 pellets) / slug; `40x46`, `40x53` he; `vog25`, `30x29` (VOG-17M) he; `76mm_discharger` frag (vehicle discharger, gravity 28);
   `20x102` he/ap/tracer, `23x115`, `23x152b`, `25x137`, `27x145b`, `30x165`, `30x150b`, `30x173` he/ap; `105mm`,
-  `120mm`, `125mm` apfsds/heat/he; `88x571r` he/ap; `60mm`, `81mm` he, `127mm_naval` he, `406mm_naval` he/ap (kind `tank`, linear drag only:
+  `120mm`, `125mm` apfsds/heat/he; `88x571r` he/ap; `60mm`, `81mm` he, `127mm_naval` he, `155mm` he (M795, no case), `406mm_naval` he/ap (kind `tank`, linear drag only:
   CombinedAssault solver exact); `rpg7` heat (PG-7V) / heat_large (PG-7VL) / tandem (PG-7VR, `TANDEM_HEAT`) / frag (OG-7V) / thermobaric (TBG-7V; models `tools/rpg_rockets.py`, also the item), `73mm_spg9` heat/frag (`RocketEntity`).
 - Tank `damagePerKJ`: apfsds 0.3, heat 0.06, he 0.03 (CombinedAssault hull balance: 125 APFSDS ~2100). Flight = MineAssault converter calibre table
   (`modular-archive-gltf/convert_mineassault.py`; its `wflib_ammo.py` mirrors this file, `tools/test_wflib_ammo.py`
