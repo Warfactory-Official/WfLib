@@ -40,12 +40,14 @@ public final class PdaApps {
         CamerasApp.register();
         DronesApp.register();
         RadioApp.register();
+        com.wf.wflib.pda.music.client.MusicApp.register();
         RadarApp.register();
         SatellitesApp.register();
         AlertsApp.register();
         TerminalApp.register();
         PdaFieldsDemo.register();
         com.wf.wflib.wiki.client.WikiApp.register();
+        SettingsApp.register();
         PdaAlerts.register();
     }
 

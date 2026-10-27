@@ -12,6 +12,7 @@ import com.wf.gemrender.asset.GemRenderModels;
 import com.wf.gemrender.asset.ModelCache;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.armor.client.ArmorPieceClient;
+import com.wf.wflib.config.WFClientConfig;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.PlayerSkin;
@@ -39,6 +40,9 @@ import java.util.WeakHashMap;
  */
 public final class PlayerArms {
     public static final ResourceLocation MODEL = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/arms/player_arms.glb");
+    /** {@link WFClientConfig#armTestSkin}: wide skin layout, faces labelled (MineAssault {@code malib/arms.py test_skin}). */
+    private static final ResourceLocation TEST_SKIN = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
+            "textures/entity/arm_test_skin.png");
     private static final String[] SIDES = {"right", "left"};
     /** Vanilla arm, part px / 16: elbow = AHF {@code player_wide.glb} elbow pivot; fist end = MA reach. */
     private static final float ELBOW = 4 / 16F, FIST = 10 / 16F;
@@ -111,15 +115,16 @@ public final class PlayerArms {
 
     /**
      * Hinge joint globals of {@code side}, view space ({@link ArmViewPose#solve}); {@code twist} rad, through the
-     * side's {@link ForearmTwist} (wall clock).
+     * side's {@link ForearmTwist} (wall clock) with {@code swing} rad ({@link ArmViewPose#swing}), corkscrew {@code limit}
+     * rad ({@link com.wf.wflib.anim.ArmLimits#twist}).
      */
-    public void pose(int side, Matrix4fc upper, Matrix4fc lower, float twist) {
+    public void pose(int side, Matrix4fc upper, Matrix4fc lower, float twist, float swing, float limit) {
         this.upper[side].set(upper);
         this.lower[side].set(lower);
         long now = System.nanoTime();
         float dt = posedAt[side] == 0 ? 0 : Math.min((now - posedAt[side]) * 1e-9F, 0.1F);
         posedAt[side] = now;
-        twistState[side].update(twist, dt);
+        twistState[side].update(twist, swing, limit, dt);
         roll[side] = twistState[side].roll();
         base[side] = twistState[side].base();
     }
@@ -184,10 +189,11 @@ public final class PlayerArms {
             }
         }
         PlayerSkin skin = player.getSkin();
-        ResourceLocation texture = skin.texture();
-        boolean slim = skin.model() == PlayerSkin.Model.SLIM;
-        boolean rightSleeve = !covered[0] && player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE);
-        boolean leftSleeve = !covered[1] && player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE);
+        boolean test = WFClientConfig.armTestSkin();
+        ResourceLocation texture = test ? TEST_SKIN : skin.texture();
+        boolean slim = !test && skin.model() == PlayerSkin.Model.SLIM;
+        boolean rightSleeve = !test && !covered[0] && player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE);
+        boolean leftSleeve = !test && !covered[1] && player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE);
         TextureSlots slots = slot -> slot.endsWith("_slim") != slim ? null
                 : switch (slim ? slot.substring(0, slot.length() - "_slim".length()) : slot) {
                     case "player_arm" -> texture;

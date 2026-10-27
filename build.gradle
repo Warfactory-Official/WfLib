@@ -455,6 +455,8 @@ neoForge.ideSyncTask generateModMetadata
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // Radiation sweep vector kernels; runtime module load in radiation.VectorApi.
+    options.compilerArgs += ['--add-modules', 'jdk.incubator.vector']
 }
 
 configurations.all {

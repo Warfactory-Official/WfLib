@@ -24,9 +24,6 @@ import static com.wf.wflib.ui.Ui.stack;
 public final class TerminalApp implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "terminal");
     private static final int LOG_LINES = 200;
-    private static final int ACCENT = 0xFFA9D46C;
-    private static final int TEXT = 0xFFD2D6CC;
-    private static final int DIM = 0xFF8D9488;
     private static final int ALERT = 0xFFD0584A;
 
     private static final TerminalApp instance = new TerminalApp();
@@ -37,13 +34,13 @@ public final class TerminalApp implements PdaApp {
     }
 
     static void register() {
-        log("PDA TERMINAL. TYPE 'help'.", DIM);
+        log("PDA TERMINAL. TYPE 'help'.", PdaTheme.dim());
         PdaApps.register(instance);
     }
 
     public static void accept(List<String> lines) {
         for (String line : lines) {
-            log(line, line.startsWith("err") ? ALERT : ACCENT);
+            log(line, line.startsWith("err") ? ALERT : PdaTheme.accent());
         }
     }
 
@@ -52,13 +49,13 @@ public final class TerminalApp implements PdaApp {
             MatrixRain.stop();
             return;
         }
-        log("> " + line, TEXT);
+        log("> " + line, PdaTheme.text());
         switch (line.trim().toLowerCase(Locale.ROOT)) {
             case "clear" -> LOG.clear();
             case "cmatrix" -> MatrixRain.start();
             case "fastfetch" -> {
-                log("reading this machine...", DIM);
-                Fastfetch.run(lines -> lines.forEach(l -> log(l, TEXT)));
+                log("reading this machine...", PdaTheme.dim());
+                Fastfetch.run(lines -> lines.forEach(l -> log(l, PdaTheme.text())));
             }
             default -> PacketDistributor.sendToServer(new TerminalCommandPacket(line));
         }
@@ -100,6 +97,6 @@ public final class TerminalApp implements PdaApp {
                 at("12", "12", new PdaLog(LOG, w - 8, h - 26)),
                 at("12", "12", new MatrixRain(w - 8, h - 26)),
                 at("12", Float.toString(h - 10), new TextField(INPUT, "> ", w - 8, 13, 0xFF101210, 0xFF787F76,
-                        ACCENT, TEXT, ACCENT)));
+                        PdaTheme.accent(), PdaTheme.text(), PdaTheme.accent())));
     }
 }

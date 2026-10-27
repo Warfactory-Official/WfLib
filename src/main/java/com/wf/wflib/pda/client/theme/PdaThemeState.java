@@ -36,7 +36,8 @@ public final class PdaThemeState {
             String override = System.getProperty(THEME_PROPERTY);
             s.theme = PdaThemes.get(override != null ? override : read(WFClientConfig.PDA_THEME, "classic"));
         }
-        return s.theme;
+        // CUSTOM is rebuilt on every colour edit: always the latest one.
+        return com.wf.wflib.pda.client.PdaTheme.CUSTOM_ID.equals(s.theme.id()) ? PdaThemes.get(s.theme.id()) : s.theme;
     }
 
     private static <T> T read(ModConfigSpec.ConfigValue<T> value, T fallback) {

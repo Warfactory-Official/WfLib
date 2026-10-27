@@ -52,6 +52,7 @@ public final class MagazineItems {
 
     public static final DeferredHolder<Item, MagazineItem> CAN_7_62X51 = magazine("ammo_can_7_62x51", "7.62x51", 200);
     public static final DeferredHolder<Item, MagazineItem> CAN_12_7X99 = magazine("ammo_can_12_7x99", "12.7x99", 100);
+    public static final DeferredHolder<Item, MagazineItem> CAN_12_7X108 = magazine("ammo_can_12_7x108", "12.7x108", 100);
     public static final DeferredHolder<Item, MagazineItem> CAN_40X53 = magazine("ammo_can_40x53", "40x53", 48);
     /** Phalanx Block 1B / M61 linkless drum. */
     public static final DeferredHolder<Item, MagazineItem> DRUM_20X102 = magazine("drum_20x102", "20x102", 1550);

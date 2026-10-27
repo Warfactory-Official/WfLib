@@ -5,6 +5,9 @@ import com.wf.wflib.aef.standard.BlockAllocatorStandard;
 import com.wf.wflib.aef.standard.BlockMutatorFire;
 import com.wf.wflib.aef.standard.BlockProcessorStandard;
 import com.wf.wflib.entity.EntityNukeTorex;
+import com.wf.wflib.radiation.RadiationSystemNT;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -47,9 +50,18 @@ public final class MiniNuke {
         }
 
         level.addFreshEntity(new EntityNukeTorex(level, center.add(0.0, 1.5, 0.0), p.blastRadius));
+
+        float radMod = p.radiationLevel / 3F;
+        for (int i = -2; i <= 2; i++) {
+            for (int j = -2; j <= 2; j++) {
+                if (Math.abs(i) + Math.abs(j) >= 4) continue;
+                BlockPos pos = BlockPos.containing(center.x + i * 16, center.y, center.z + j * 16);
+                RadiationSystemNT.incrementRad((ServerLevel) level, pos, 50D / (Math.abs(i) + Math.abs(j) + 1) * radMod);
+            }
+        }
     }
 
-    // Ported from HBM: radiation + shrapnel dropped; resolution lowered (synchronous pass).
+    // Ported from HBM: shrapnel dropped; resolution lowered (synchronous pass).
 
     public static MukeParams tots() {
         MukeParams p = new MukeParams();
@@ -63,6 +75,7 @@ public final class MiniNuke {
         MukeParams p = new MukeParams();
         p.blastRadius = 15F;
         p.killRadius = 45F;
+        p.radiationLevel = 2F;
         return p;
     }
 
@@ -71,6 +84,7 @@ public final class MiniNuke {
         MukeParams p = new MukeParams();
         p.blastRadius = 20F;
         p.killRadius = 55F;
+        p.radiationLevel = 3F;
         return p;
     }
 
@@ -78,6 +92,7 @@ public final class MiniNuke {
         MukeParams p = new MukeParams();
         p.safe = true;
         p.killRadius = 45F;
+        p.radiationLevel = 2F;
         return p;
     }
 
@@ -102,5 +117,6 @@ public final class MiniNuke {
         public boolean fire = true;
         /** Block-allocator ray resolution; higher = smoother sphere, heavier synchronous pass. */
         public int resolution = 32;
+        public float radiationLevel = 1F;
     }
 }

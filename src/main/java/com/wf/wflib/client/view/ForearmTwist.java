@@ -1,52 +1,52 @@
 package com.wf.wflib.client.view;
 
 /**
- * One arm's hand roll split into fist roll + arm turn. Arm boxes = square section => hand roll counts mod a quarter
- * turn (TACZ / MW hand frames: roll arbitrary in 90 deg steps). {@link #roll}: continuous quarter-turn equivalent of the
- * hand roll; fist drawn at it exactly. {@link #base}: whole-arm turn (upper + forearm rigid, shoulder off screen), a
- * multiple of 90 deg at rest; forearm corkscrew = roll - base. Base follows the roll at {@link #RELAX} when the hand
- * is still past {@link #REST} or anywhere past 90 deg. Relaxing the fist instead FORBIDDEN: still gun, fist spins 90
- * deg (TACZ glock_17 reload / inspect hold the hand at +110..+120 deg).
+ * One arm's hand roll about the forearm ({@link ArmViewPose#solve} twist) split into forearm corkscrew + whole-arm
+ * roll. {@link #roll}: hand roll unwrapped across frames; fist drawn at it (fist relax FORBIDDEN: still gun,
+ * spinning fist). Corkscrew = {@code roll - winding} clamped to the twist limit; only the excess rolls the whole arm
+ * (upper + forearm rigid). Winding = whole turns, unwound at {@link #UNWIND} once the roll is {@link #WIND_HOLD} off it.
+ * Roll follows the twist by swing confidence: full to {@link #SWING_SURE}, none from {@link #SWING_LOST} (hand +Y near
+ * -forearm => twist undefined; Strela / Sten / RPG-7 clips stepped 36-120 deg per frame at swing 100-172 => wound full
+ * spins).
+ * Quarter-turn equivalence (arm turned in 90 deg steps) FORBIDDEN: skin faces differ, every pistol inspect turned the
+ * whole arm 8 times (720 deg).
  */
 public final class ForearmTwist {
-    static final float QUARTER = (float) (Math.PI / 2);
-    /** rad/s: a quarter turn in 0.3 s. */
-    static final float RELAX = QUARTER / 0.3F;
-    /** rad/s of hand roll below which the hand counts as still. */
-    static final float STILL = 1F;
-    /** Still corkscrew kept up to this: ADS moves the TACZ hip -> ADS left twist -133 -> -145 deg (-43 -> -55 mod 90). */
-    static final float REST = (float) Math.toRadians(60);
-    /** Base rate gain per quarter turn of corkscrew past {@link #QUARTER}. */
-    static final float WOUND_GAIN = 4;
+    static final float TURN = (float) (2 * Math.PI);
+    /** rad: roll off the winding before it moves a whole turn (no flapping at a half turn). */
+    static final float WIND_HOLD = (float) Math.toRadians(210);
+    /** rad/s: a whole turn in 0.6 s. */
+    static final float UNWIND = TURN / 0.6F;
+    static final float SWING_SURE = (float) Math.toRadians(90), SWING_LOST = (float) Math.toRadians(150);
 
     private float roll;
+    private float winding;
+    private float target;
     private float base;
     private boolean started;
-    /** Latched until the base reaches its quarter turn. */
-    private boolean turning;
 
     public void reset() {
-        started = turning = false;
-        roll = base = 0;
+        started = false;
+        roll = winding = target = base = 0;
     }
 
-    /** {@code twist} rad (any quarter-turn equivalent), {@code dt} s since the last update. */
-    public void update(float twist, float dt) {
+    /**
+     * {@code twist} rad (any whole-turn equivalent), {@code swing} rad ({@link ArmViewPose#swing}), {@code limit} rad
+     * corkscrew either way, {@code dt} s since the last update.
+     */
+    public void update(float twist, float swing, float limit, float dt) {
         if (!started) {
             started = true;
-            roll = (float) Math.IEEEremainder(twist, QUARTER);
-            base = 0;
-            return;
+            roll = (float) Math.IEEEremainder(twist, TURN);
+        } else {
+            float sure = Math.clamp((SWING_LOST - swing) / (SWING_LOST - SWING_SURE), 0, 1);
+            roll += sure * sure * (3 - 2 * sure) * (float) Math.IEEEremainder(twist - roll, TURN);
         }
-        float next = roll + (float) Math.IEEEremainder(twist - roll, QUARTER);
-        boolean still = Math.abs(next - roll) < STILL * dt;
-        roll = next;
-        float corkscrew = Math.abs(roll - base);
-        turning |= still && corkscrew > REST || corkscrew > QUARTER;
-        float target = turning ? Math.round(roll / QUARTER) * QUARTER : Math.round(base / QUARTER) * QUARTER;
-        float step = RELAX * dt * (1 + WOUND_GAIN * Math.max(0, corkscrew - QUARTER) / QUARTER);
-        base += Math.max(-step, Math.min(step, target - base));
-        turning &= base != target;
+        if (Math.abs(roll - target) > WIND_HOLD) target = Math.round(roll / TURN) * TURN;
+        float step = UNWIND * dt;
+        winding += Math.clamp(target - winding, -step, step);
+        float off = roll - winding;
+        base = winding + off - Math.clamp(off, -limit, limit);
     }
 
     /** Fist roll, rad. */
@@ -54,7 +54,7 @@ public final class ForearmTwist {
         return roll;
     }
 
-    /** Whole-arm turn, rad. */
+    /** Whole-arm roll, rad. */
     public float base() {
         return base;
     }

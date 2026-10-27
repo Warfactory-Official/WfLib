@@ -24,7 +24,7 @@ public enum ProtectionType {
     THERMAL(WearPath.BOTH),
     /** Gas, corrosives. Near-binary: a seal holds or it does not. */
     CHEMICAL(WearPath.EXPOSURE),
-    /** Shielding mass; unauthored until NTM radiation lands in the pack. */
+    /** Shielding mass; DR = dose pass-through for {@code hazard.HazardProtection#radiationMod}. */
     RADIATION(WearPath.EXPOSURE);
 
     public static final ProtectionType[] VALUES = values();
