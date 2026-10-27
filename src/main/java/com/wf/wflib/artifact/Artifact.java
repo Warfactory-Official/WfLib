@@ -13,6 +13,8 @@ import net.minecraft.resources.ResourceLocation;
  * @param body          the body slot's texture
  * @param glow          the glow slot's texture
  * @param arcs          the glow is electric arcs: they crawl along their shells and writhe; else it only swells
+ * @param core          above 0: the glow is a sprite this wide (m) at the centre, turned to the viewer and spinning,
+ *                      not the model's glow meshes (flat crossed planes read as a disc, or a star edge-on)
  * @param shock         shock_immunity: electricity (anomalies, shock weapons)
  * @param burn          burn_immunity: fire
  * @param strike        strike_immunity: blunt blows (melee, gravitational anomalies)
@@ -22,7 +24,7 @@ import net.minecraft.resources.ResourceLocation;
  * @param lightRange    trail_light_range, blocks
  */
 public record Artifact(String id, ResourceLocation model, ResourceLocation body, ResourceLocation glow, boolean arcs,
-                       float shock, float burn, float strike, float healthRestore, int lightRgb, float lightRange) {
+                       float core, float shock, float burn, float strike, float healthRestore, int lightRgb, float lightRange) {
     /** GAMMA's alife time_factor: game seconds per real second, which its restore speeds are per. */
     public static final float TIME_FACTOR = 6.0F;
 
@@ -42,7 +44,7 @@ public record Artifact(String id, ResourceLocation model, ResourceLocation body,
      * radiation none; a pale blue glow (0.6/0.7/0.9, 2 m).
      */
     public static final Artifact BATTERY = new Artifact("battery", wflib("models/artifact/battery.glb"),
-            wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/battery_lightning.png"), true,
+            wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/battery_lightning.png"), true, 0.0F,
             0.1212F, -0.095F, -0.27F, 0.0F, 0x99B3E6, 2.0F);
 
     /**
@@ -52,6 +54,6 @@ public record Artifact(String id, ResourceLocation model, ResourceLocation body,
      * glow (0.5/0.7/0.2, 2 m).
      */
     public static final Artifact SOUL = new Artifact("soul", wflib("models/artifact/soul.glb"),
-            wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/soul_glow.png"), false,
+            wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/soul_glow.png"), false, 0.30F,
             0.0F, 0.0F, 0.0F, 0.0003F, 0x80B333, 2.0F);
 }

@@ -53,7 +53,11 @@ public final class ArtifactRenderer {
     private static final float BODY_SIZE = 0.3F;
 
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
-    private static final Map<Artifact, GemRenderItemRenderer> ITEM_RENDERERS = new HashMap<>();
+    private static final Map<Artifact, net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer> ITEM_RENDERERS =
+            new HashMap<>();
+    /** One quad (XY, facing +Z), glow slot: an artefact's core sprite. */
+    private static final ResourceLocation CORE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
+            "models/artifact/core.glb");
     private static final String GLOW = "glow";
 
     /** Inventory, ground, others' hands: body and glow as they are. */
@@ -92,6 +96,7 @@ public final class ArtifactRenderer {
 
     private static final Matrix4f VIEW = new Matrix4f();
     private static final Matrix4f POSE = new Matrix4f();
+    private static final Matrix4f CORE_POSE = new Matrix4f();
     private static final Matrix4f UPPER = new Matrix4f();
     private static final Matrix4f LOWER = new Matrix4f();
     private static final Vector3f WRIST = new Vector3f();
@@ -133,9 +138,9 @@ public final class ArtifactRenderer {
         return MODELS.computeIfAbsent(artifact.model(), GemRenderModels::handle).get();
     }
 
-    public static GemRenderItemRenderer itemRenderer(ArtifactItem item) {
-        return ITEM_RENDERERS.computeIfAbsent(item.artifact(), artifact -> new GemRenderItemRenderer(
-                new ItemAppearance() {
+    public static net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer itemRenderer(ArtifactItem item) {
+        return ITEM_RENDERERS.computeIfAbsent(item.artifact(), artifact -> new CoreItemRenderer(artifact,
+                new GemRenderItemRenderer(new ItemAppearance() {
                     @Override
                     public GemRenderGltfModel model(ItemStack stack, ItemDisplayContext context) {
                         return ArtifactRenderer.model(artifact);
@@ -143,29 +148,79 @@ public final class ArtifactRenderer {
 
                     @Override
                     public void transform(ItemStack stack, ItemDisplayContext context, PoseStack pose) {
-                        float t = clock();
-                        switch (context) {
-                            case GUI, FIXED -> {
-                                pose.scale(0.9F / BODY_SIZE, 0.9F / BODY_SIZE, 0.9F / BODY_SIZE);
-                                pose.mulPose(Axis.XP.rotationDegrees(15));
-                            }
-                            case GROUND -> pose.mulPose(Axis.YP.rotation(t * 0.8F));
-                            case THIRD_PERSON_RIGHT_HAND, THIRD_PERSON_LEFT_HAND -> {
-                                // Floating over the hand, as held in first person.
-                                pose.translate(0.0F, 0.22F + HeldArtifactPose.BOB * Mth.sin(t * 2.1F), 0.0F);
-                                pose.mulPose(Axis.YP.rotation(t * 0.8F));
-                                pose.scale(HeldArtifactPose.SCALE, HeldArtifactPose.SCALE, HeldArtifactPose.SCALE);
-                            }
-                            default -> {
-                            }
-                        }
+                        ArtifactRenderer.transform(context, pose);
                     }
 
                     @Override
                     public TextureSlots slots(ItemStack stack, ItemDisplayContext context) {
                         return ArtifactRenderer.slots(artifact);
                     }
-                }));
+                })));
+    }
+
+    /** The item display transform, as the item renderer applies it, for the core sprite to follow. */
+    private static void transform(ItemDisplayContext context, PoseStack pose) {
+        float t = clock();
+        switch (context) {
+            case GUI, FIXED -> {
+                pose.scale(0.9F / BODY_SIZE, 0.9F / BODY_SIZE, 0.9F / BODY_SIZE);
+                pose.mulPose(Axis.XP.rotationDegrees(15));
+            }
+            case GROUND -> pose.mulPose(Axis.YP.rotation(t * 0.8F));
+            case THIRD_PERSON_RIGHT_HAND, THIRD_PERSON_LEFT_HAND -> {
+                pose.translate(0.0F, 0.22F + HeldArtifactPose.BOB * Mth.sin(t * 2.1F), 0.0F);
+                pose.mulPose(Axis.YP.rotation(t * 0.8F));
+                pose.scale(HeldArtifactPose.SCALE, HeldArtifactPose.SCALE, HeldArtifactPose.SCALE);
+            }
+            default -> {
+            }
+        }
+    }
+
+    /**
+     * The GemRender item renderer, plus the core sprite where an artefact has one: at the model's centre, turned to
+     * whoever looks (the camera in the level, the screen in the inventory), spinning in its plane.
+     */
+    private static final class CoreItemRenderer extends net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer {
+        private final Artifact artifact;
+        private final GemRenderItemRenderer body;
+        private final Matrix4f core = new Matrix4f();
+
+        CoreItemRenderer(Artifact artifact, GemRenderItemRenderer body) {
+            super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
+            this.artifact = artifact;
+            this.body = body;
+        }
+
+        @Override
+        public void renderByItem(ItemStack stack, ItemDisplayContext context, PoseStack pose,
+                                 net.minecraft.client.renderer.MultiBufferSource buffers, int light, int overlay) {
+            body.renderByItem(stack, context, pose, buffers, light, overlay);
+            GemRenderGltfModel quad = artifact.core() > 0.0F ? coreModel() : null;
+            if (quad == null) {
+                return;
+            }
+            pose.pushPose();
+            pose.translate(0.5F, 0.5F, 0.5F);
+            transform(context, pose);
+            Matrix4f m = pose.last().pose();
+            float size = m.getColumn(0, new Vector3f()).length() * artifact.core();
+            core.translation(m.getTranslation(new Vector3f()));
+            if (context != ItemDisplayContext.GUI) {
+                core.rotate(Minecraft.getInstance().gameRenderer.getMainCamera().rotation());
+            }
+            float t = clock();
+            core.rotateZ(t * 0.5F).scale(size);
+            DirectRenderer.submit(quad, null, 0, core, light, overlay, glowTint(t, artifact),
+                    context == ItemDisplayContext.GUI ? DirectPass.GUI : DirectPass.LEVEL, VariantUv.NONE,
+                    glowOnly(artifact));
+            pose.popPose();
+        }
+    }
+
+    @Nullable
+    private static GemRenderGltfModel coreModel() {
+        return MODELS.computeIfAbsent(CORE, GemRenderModels::handle).get();
     }
 
     /**
@@ -259,8 +314,17 @@ public final class ArtifactRenderer {
             Artifact artifact = item.artifact();
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
                     DirectPass.HAND, VariantUv.NONE, bodyOnly(artifact));
-            DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, glowTint(t, artifact),
-                    DirectPass.HAND, artifact.arcs() ? arcs(t) : VariantUv.NONE, glowOnly(artifact));
+            GemRenderGltfModel quad = artifact.core() > 0.0F ? coreModel() : null;
+            if (quad != null) {
+                // View space: unrotated, the quad already faces the eye; it spins in its plane.
+                CORE_POSE.set(VIEW).translate(pose.artifact).rotateZ(t * 0.5F)
+                        .scale(HeldArtifactPose.SCALE * artifact.core());
+                DirectRenderer.submit(quad, null, 0, CORE_POSE, light, OverlayTexture.NO_OVERLAY, glowTint(t, artifact),
+                        DirectPass.HAND, VariantUv.NONE, glowOnly(artifact));
+            } else {
+                DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, glowTint(t, artifact),
+                        DirectPass.HAND, artifact.arcs() ? arcs(t) : VariantUv.NONE, glowOnly(artifact));
+            }
         }
         for (int side = 0; side < 2; side++) {
             Quaternionf hand = side == 0 ? pose.hand : null;

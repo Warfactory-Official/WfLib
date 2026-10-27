@@ -5,7 +5,8 @@ STALKER Anomaly's artefact meshes (GSC Game World / Anomaly), converted by tools
 
 - `battery.glb`: `af_dummy_battery.ogf`; `sopli2.png` (artifact_sopli2), `battery_lightning.png`
   (artifact_anim_lightning).
-- `soul.glb`: `af_soul.ogf` as GAMMA ships it ("Fixed Artifact for Anomaly" by Strogglet15); `sopli2.png`,
-  `soul_glow.png` (pfx_anomaly_4). Its outer artifact_hell1 shell is a distortion (xdistortcolor), not drawn.
+- `soul.glb`: `af_soul.ogf` as GAMMA ships it ("Fixed Artifact for Anomaly" by Strogglet15), its shell only;
+  `sopli2.png`. Its glowing planes (pfx_anomaly_4, `soul_glow.png`) are drawn as a sprite turned to the viewer
+  (`core.glb`, one quad, ours); its outer artifact_hell1 shell is a distortion (xdistortcolor), not drawn.
 
 Licence unrecorded: for this internal build only; clear or replace before anything ships.

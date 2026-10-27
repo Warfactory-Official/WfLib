@@ -433,6 +433,21 @@ public final class AnomalyDebug {
             case 205 -> {
                 shot("artifact-inventory");
                 mc.setScreen(null);
+            }
+            case 215 -> {
+                // Dropped, close: 1.2 blocks ahead, looked down at (where a flat glow would show its edges).
+                mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+                net.minecraft.world.phys.Vec3 at = mc.player.position().add(
+                        mc.player.getLookAngle().multiply(1, 0, 1).normalize().scale(1.2D));
+                mc.player.connection.sendCommand(String.format(Locale.ROOT,
+                        "summon item %.2f %.2f %.2f {Item:{id:\"%s\",count:1},PickupDelay:32767,NoGravity:0b}",
+                        at.x, at.y + 0.2D, at.z, HOLD_ITEM));
+                mc.player.setXRot(55.0F);
+            }
+            case 225 -> shot("artifact-ground");
+            case 228 -> {
+                mc.player.connection.sendCommand("kill @e[type=item,distance=..4]");
+                mc.player.setXRot(10.0F);
                 mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
             }
             case 235 -> {
