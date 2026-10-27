@@ -20,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * @param flashRange      blowout_light range, blocks
  * @param flashTicks      light_time
  * @param idleLight       idle_light range, blocks; 0 = dark when idle
- * @param spentPresence   how much of the idle look stays after firing (0: gone, as the mincers are)
+ * @param spentPresence   how much of the idle look stays after firing (0: gone, as the mincers and Electro are)
  * @param idleParticles   STALKER particle group looped while present (idle_particles), or null
  * @param blowoutParticles STALKER particle group played at the explosion (blowout_particles), or null
  * @param particleScale   those groups' spread across: this anomaly's radius over its STALKER zone's

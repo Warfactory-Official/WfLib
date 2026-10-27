@@ -40,7 +40,8 @@ import java.util.Locale;
  * thing on joining a world
  * (anomalies on, creative, an anomaly placed beside the player); {@code -Dwflib.anomalyTest.quit=true} then closes
  * the game. {@code -Dwflib.anomalyTest=trigger} instead sets a pig down on it: it must fire and hurt or throw the
- * pig; {@code bolt} drops a stick on it: it must fire; {@code look} screenshots it idle and blowing out. {@code -Dwflib.anomalyTest.block} picks the anomaly.
+ * pig; {@code bolt} drops a stick on it: it must not fire (only the living set anomalies off); {@code look}
+ * screenshots it idle and blowing out. {@code -Dwflib.anomalyTest.block} picks the anomaly.
  */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class AnomalyDebug {
@@ -261,7 +262,7 @@ public final class AnomalyDebug {
 
     /**
      * {@code trigger}: a pig set down on the nearest anomaly; it must fire, then hurt or throw the pig. {@code bolt}:
-     * a stick dropped on it instead (STALKER's thrown bolt); it must fire, for anomalies that small things trip.
+     * a stick dropped on it instead (STALKER's thrown bolt); it must not fire: items never set anomalies off.
      */
     private static boolean trigger(boolean bolt) {
         Minecraft mc = Minecraft.getInstance();
@@ -337,8 +338,7 @@ public final class AnomalyDebug {
             trigger = null;
             List<String> checks = new ArrayList<>();
             if (bolt) {
-                boolean pass = Walk.check(checks, blowout, "a dropped bolt set it off");
-                pass &= Walk.check(checks, spent, "and it spent itself");
+                boolean pass = Walk.check(checks, !blowout && !spent, "a dropped bolt did not set it off");
                 List<String> verdict = new ArrayList<>();
                 verdict.add("[" + (pass ? "PASS" : "FAIL") + "] anomaly bolt: " + name);
                 verdict.addAll(checks);

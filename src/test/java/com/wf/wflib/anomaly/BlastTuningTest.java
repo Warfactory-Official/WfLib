@@ -36,13 +36,13 @@ class BlastTuningTest {
     }
 
     @Test
-    void electroBurnerAndAcidHurtWithoutThrowingAndAnyThingTripsThem() {
+    void electroBurnerAndAcidHurtWithoutThrowingAndSmallLivingThingsTripThem() {
         RandomSource random = RandomSource.create(3L);
         for (AnomalyType type : new AnomalyType[]{AnomalyType.ELECTRO, AnomalyType.BURNER, AnomalyType.ACID}) {
             BlastTuning blast = (BlastTuning) type.behaviour();
             assertEquals(Vec3.ZERO, blast.throwAt(0.0D, random), type.name());
             assertTrue(blast.hit(0.0D, true) > 0.0F, type.name());
-            assertTrue(blast.smallTrips(), type.name() + ": a thrown bolt sets it off");
+            assertTrue(blast.smallTrips(), type.name() + ": a chicken sets it off");
         }
         assertTrue(!SPRINGBOARD.smallTrips());
     }
@@ -53,7 +53,16 @@ class BlastTuningTest {
         assertTrue(burner.explosionTick() <= 2);
         assertEquals(140, burner.blowoutTicks());
         assertTrue(burner.igniteSeconds() > 0);
-        assertTrue(burner.immuneTicks() >= 200, "disable_time 10 s: not hit again at once");
+        assertTrue(AnomalyType.BURNER.sounds().endsWithBlowout(), "zhar_blow (12 s) stops with the 7 s flame");
+    }
+
+    @Test
+    void acidSplashesAgainSoonAndElectroIsGoneAWhile() {
+        BlastTuning acid = (BlastTuning) AnomalyType.ACID.behaviour();
+        assertTrue(acid.blowoutTicks() + acid.cooldownTicks() <= 40, "re-splashes about every 1.7 s");
+        BlastTuning electro = (BlastTuning) AnomalyType.ELECTRO.behaviour();
+        assertTrue(electro.cooldownTicks() >= 60, "accamulate_time 3 s");
+        assertEquals(0.0F, AnomalyType.ELECTRO.look().spentPresence(), "gone while recharging");
     }
 
     @Test

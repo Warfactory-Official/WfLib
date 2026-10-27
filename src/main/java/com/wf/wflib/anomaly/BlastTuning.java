@@ -4,25 +4,24 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * A blast on contact (X-Ray {@code CMosquitoBald}: Springboard, Electro, Burner, acid): something steps within
+ * A blast on contact (X-Ray {@code CMosquitoBald}: Springboard, Electro, Burner, acid): something alive steps within
  * {@code radius}, it wakes (awaking_time) and from {@code explosionTick} to the end of its blowout ({@code
- * blowoutTicks}: a Burner's flame stands 7 s) hits whatever is inside, harder toward the middle, throwing it
- * ({@code launch}) in a random, mostly upward direction ({@code Affect}: x, z in -0.5..0.5, y in 0..1); whatever it
- * hit is left alone for {@code immuneTicks} (disable_time), so once each. Then it recharges for
- * {@code cooldownTicks} (accamulate_time).
+ * blowoutTicks}: a Burner's flame stands 7 s) hits whatever is inside once, harder toward the middle, throwing it
+ * ({@code launch}) in a random, mostly upward direction ({@code Affect}: x, z in -0.5..0.5, y in 0..1). Then it
+ * recharges for {@code cooldownTicks} (accamulate_time) and, if anything alive is still inside, goes again.
+ * (disable_time is not a per-target immunity: X-Ray only stops non-living things counting after it.)
  *
  * @param radius        blocks ($def_sphere)
  * @param explosionTick awaking_time + blowout_explosion_time
  * @param blowoutTicks  awaking_time + blowout_time
  * @param cooldownTicks accamulate_time
- * @param immuneTicks   disable_time
  * @param maxPower      max_start_power: the hit at the centre, in X-Ray hits ({@link MincerTuning#FULL_HIT} each)
  * @param launch        throw at the centre, blocks/tick (hit_impulse_scale, tuned by feel); a third of it at the rim
- * @param smallTrips    !ignore_small: items and other small things set it off too (STALKER's thrown bolt)
+ * @param smallTrips    !ignore_small: small living things set it off too (items never do, unlike STALKER's bolt)
  * @param igniteSeconds sets what it hits on fire this long (a Burner)
  */
-public record BlastTuning(double radius, int explosionTick, int blowoutTicks, int cooldownTicks, int immuneTicks,
-                          double maxPower, double launch, boolean smallTrips, int igniteSeconds)
+public record BlastTuning(double radius, int explosionTick, int blowoutTicks, int cooldownTicks, double maxPower,
+                          double launch, boolean smallTrips, int igniteSeconds)
         implements AnomalyBehaviour {
 
     /** {@code CCustomZone::RelativePower}, attenuation 1: {@code 1 - (d / R)^2}, 0 outside. */

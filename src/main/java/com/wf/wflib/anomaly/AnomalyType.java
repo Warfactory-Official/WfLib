@@ -55,10 +55,10 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     /**
      * {@code zone_mine_gravitational_weak}: small ($def_sphere 3), slams whatever steps in 5 ticks later (awaking 50
      * + explosion 200 ms) up and away (max_start_power 0.4, strike), a brown flash (0.5/0.4/0.3, 30 m, 0.9 s);
-     * ready again in 1 s (accamulate_time), but leaves what it hit alone 5 s (disable_time).
+     * ready again in 1 s (accamulate_time).
      */
     public static final AnomalyType SPRINGBOARD = new AnomalyType("Springboard",
-            new BlastTuning(3.0D, 5, 10, 20, 100, 0.4D, 1.3D, false, 0),
+            new BlastTuning(3.0D, 5, 10, 20, 0.4D, 1.3D, false, 0),
             new AnomalyLook(Style.GRAVITY, 2.2F, 0.6D, 0.012F, 0.2F, 0.0F, 0.0F, 0.6F, 0, 0.08D, 0.0D,
                     0xFFCC99, 30.0F, 18, 0.0F, 0.4F, null, null, 1.0F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
@@ -71,16 +71,16 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     null));
 
     /**
-     * {@code zone_mine_electric}: discharges into whatever touches it, a thrown bolt included (ignore_small false),
-     * 100 ms after (max_start_power 0.66 for the average, shock, no throw); a blue-white flash (0.8/0.9/1, 30 m, 1 s)
-     * and a faint glow while idle (idle_light_range 4); ready again in 1.5 s, and hits the same thing again on the
-     * next discharge (disable_time 50 ms; 5 ticks here, so one discharge is one hit). Three times its zone
-     * ($def_sphere 2) across, its STALKER particles spread to match (as high and as big as STALKER's), its glow too.
+     * {@code zone_mine_electric}: discharges into whatever living thing touches it, chickens included (ignore_small
+     * false), 100 ms after (max_start_power 0.66 for the average, shock, no throw); a blue-white flash (0.8/0.9/1,
+     * 30 m, 1 s) and a faint glow while idle (idle_light_range 4); then gone for 3 s (accamulate_time 3000, Dynamic
+     * Anomalies Overhaul), fading back in. Three times its zone ($def_sphere 2) across, its STALKER particles spread
+     * to match (as high and as big as STALKER's), its glow too.
      */
     public static final AnomalyType ELECTRO = new AnomalyType("Electro",
-            new BlastTuning(6.0D, 2, 4, 30, 5, 0.66D, 0.0D, true, 0),
+            new BlastTuning(6.0D, 2, 4, 60, 0.66D, 0.0D, true, 0),
             new AnomalyLook(Style.ELECTRIC, 2.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xCCE6FF, 30.0F, 20, 9.0F, 0.6F, "zones_mine/zone_electric_mine_idle", "anomaly2/electra2_blast",
+                    0xCCE6FF, 30.0F, 20, 9.0F, 0.0F, "zones_mine/zone_electric_mine_idle", "anomaly2/electra2_blast",
                     3.0F, 1.0F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
@@ -94,11 +94,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     /**
      * {@code zone_mine_thermal}: a heat shimmer that throws up a 7 s column of flame (blowout_time 7000) at whatever
      * touches it (max_start_power 0.5 for the average, light_burn, no throw), setting it alight; an orange glow
-     * (1.9/1.6/1.3, 9 m) through the burn; leaves what it hit alone 10 s (disable_time). 1.5 times its zone, its
-     * STALKER particles scaled to match (their heat-distortion sprites left out).
+     * (1.9/1.6/1.3, 9 m) through the burn; flares again 0.25 s after (accamulate_time) while anything stays in it.
+     * zhar_blow runs 12 s, so it fades out with the flame. 1.5 times its zone, its STALKER particles scaled to match
+     * (their heat-distortion sprites left out).
      */
     public static final AnomalyType BURNER = new AnomalyType("Burner",
-            new BlastTuning(3.0D, 2, 140, 5, 200, 0.5D, 0.0D, true, 4),
+            new BlastTuning(3.0D, 2, 140, 5, 0.5D, 0.0D, true, 4),
             new AnomalyLook(Style.FIRE, 1.6F, 0.6D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
                     0xFFD6AD, 9.0F, 140, 3.0F, 1.0F, "static/buble_distort", "static/zharka_static", 1.5F, 1.5F),
             WFDamageTypes.FIRE,
@@ -108,16 +109,18 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     1,
                     () -> WFSounds.ANOMALY_ZHAR.get(),
                     () -> WFSounds.ANOMALY_ZHAR.get(),
-                    null));
+                    null,
+                    true));
 
     /**
      * {@code zone_mine_acidic}: a bubbling green patch that splashes whatever touches it for 1.4 s
      * (max_start_power 0.3 for the average, chemical_burn, no throw); a green flash (1.1/1.7/1.4, 7 m, 0.35 s);
-     * leaves what it hit alone 10 s (disable_time). Three times its zone across, its STALKER particles spread to
-     * match (as high and as big as STALKER's), its glow and flash too.
+     * splashes again 0.3 s later (accamulate_time) for as long as anything stays in it, so about every 1.7 s.
+     * Three times its zone across, its STALKER particles spread to match (as high and as big as STALKER's), its
+     * glow and flash too.
      */
     public static final AnomalyType ACID = new AnomalyType("Acid",
-            new BlastTuning(6.0D, 2, 28, 6, 200, 0.3D, 0.0D, true, 0),
+            new BlastTuning(6.0D, 2, 28, 6, 0.3D, 0.0D, true, 0),
             new AnomalyLook(Style.ACID, 1.6F, 0.4D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
                     0xA6FFD1, 14.0F, 7, 8.0F, 1.0F, "zones_mine/zone_acidic_mine_idle",
                     "zones_mine/zone_acidic_mine_hit", 3.0F, 1.0F),

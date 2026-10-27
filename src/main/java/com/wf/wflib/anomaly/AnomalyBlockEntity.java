@@ -51,8 +51,8 @@ public class AnomalyBlockEntity extends BlockEntity {
     private int empty;
     /** Server: who was inside last tick, for the entrance sound. */
     private java.util.Set<Integer> inside = java.util.Set.of();
-    /** Entity id -> game time it was last hit (disable_time); each side keeps its own. */
-    private final java.util.Map<Integer, Long> hitAt = new java.util.HashMap<>();
+    /** Entity ids hit this blowout; each side keeps its own. */
+    private final java.util.Set<Integer> hit = new java.util.HashSet<>();
 
     public AnomalyBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ANOMALY.get(), pos, state);
@@ -91,7 +91,7 @@ public class AnomalyBlockEntity extends BlockEntity {
 
     /**
      * This tick hits: a mincer's explosion only; a blast's from its explosion to the end of its blowout (a Burner's
-     * column burns whatever walks in, {@link #claim} keeps it to once per disable_time).
+     * column burns whatever walks in, {@link #claim} keeps it to once per blowout).
      */
     public boolean striking() {
         return behaviour() instanceof BlastTuning ? sinceExplosion() >= 0 && phase == Phase.BLOWOUT : exploding();
@@ -113,6 +113,7 @@ public class AnomalyBlockEntity extends BlockEntity {
             phase = Phase.BLOWOUT;
             ticks = 0;
             empty = 0;
+            hit.clear();
             return true;
         }
         if (id == EVENT_FIZZLE) {
@@ -156,13 +157,16 @@ public class AnomalyBlockEntity extends BlockEntity {
                 continue;
             }
             now.add(e.getId());
-            if (!be.inside.contains(e.getId())) {
+            boolean alive = e instanceof LivingEntity;
+            if (alive && !be.inside.contains(e.getId())) {
                 level.playSound(null, e.getX(), e.getY(), e.getZ(), be.type.sounds().entrance().get(),
                         SoundSource.HOSTILE, 1.0F, 1.0F);
             }
-            boolean big = e instanceof LivingEntity && !MincerTuning.small(e.getBbWidth(), e.getBbHeight());
+            boolean big = alive && !MincerTuning.small(e.getBbWidth(), e.getBbHeight());
             occupied |= big;
-            tripped |= (big || behaviour.smallTrips()) && behaviour.trips(dist) && !be.immune(e);
+            // Only the living set it off (items, bolts, arrows don't); while one stays inside it fires again as soon
+            // as it has recharged (CCustomZone::AccumulateState).
+            tripped |= alive && (big || behaviour.smallTrips()) && behaviour.trips(dist);
             boolean struck = true;
             if (be.striking()) {
                 struck = be.claim(e);
@@ -187,23 +191,9 @@ public class AnomalyBlockEntity extends BlockEntity {
         }
     }
 
-    /** Not hit again yet: within disable_time of the last hit. */
-    public boolean immune(Entity e) {
-        Long last = hitAt.get(e.getId());
-        return last != null && level != null && level.getGameTime() - last < behaviour().immuneTicks();
-    }
-
-    /** At the explosion: true (and remembered) unless {@code e} is still {@link #immune}. */
+    /** While {@link #striking}: true (and remembered) the first time this blowout. */
     public boolean claim(Entity e) {
-        if (behaviour().immuneTicks() <= 0 || level == null) {
-            return true;
-        }
-        if (immune(e)) {
-            return false;
-        }
-        hitAt.values().removeIf(t -> level.getGameTime() - t >= behaviour().immuneTicks());
-        hitAt.put(e.getId(), level.getGameTime());
-        return true;
+        return hit.add(e.getId());
     }
 
     /**

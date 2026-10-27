@@ -11,9 +11,6 @@ import com.wf.wflib.anomaly.AnomalyLook;
 import com.wf.wflib.anomaly.MincerTuning;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.client.resources.sounds.SoundInstance;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
@@ -78,8 +75,8 @@ public final class AnomalyClient {
 
     private static final Map<AnomalyBlockEntity, AnomalyIdleSound> IDLE_SOUND = new WeakHashMap<>();
 
-    /** Blowout sound still playing, cut short if the blowout fizzles. */
-    private static final Map<AnomalyBlockEntity, SoundInstance> BUILDUP = new WeakHashMap<>();
+    /** Blowout sound still playing, faded out if the blowout fizzles (or, if it {@code endsWithBlowout}, ends). */
+    private static final Map<AnomalyBlockEntity, AnomalyBlowoutSound> BUILDUP = new WeakHashMap<>();
 
     private AnomalyClient() {
     }
@@ -191,9 +188,9 @@ public final class AnomalyClient {
     }
 
     private static void quiet(AnomalyBlockEntity be) {
-        SoundInstance playing = BUILDUP.remove(be);
+        AnomalyBlowoutSound playing = BUILDUP.remove(be);
         if (playing != null) {
-            Minecraft.getInstance().getSoundManager().stop(playing);
+            playing.fadeOut();
         }
     }
 
@@ -245,13 +242,14 @@ public final class AnomalyClient {
         }
         if (blowout && be.ticks() == Math.max(1, be.type().sounds().blowoutTick())) {
             quiet(be);
-            SoundInstance sound = new SimpleSoundInstance(be.type().sounds().blowout().get(), SoundSource.BLOCKS,
-                    2.0F, 1.0F, random, c.x, c.y + 1.0D, c.z);
+            AnomalyBlowoutSound sound = new AnomalyBlowoutSound(be, random);
             mc.getSoundManager().play(sound);
             BUILDUP.put(be, sound);
         }
         if (be.exploding()) {
-            BUILDUP.remove(be);
+            if (!be.type().sounds().endsWithBlowout()) {
+                BUILDUP.remove(be);
+            }
             AnomalyEffects.explode(level, be, c, random);
         }
     }

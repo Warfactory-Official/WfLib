@@ -15,8 +15,14 @@ import java.util.function.Supplier;
  * @param hit         hit_sound: at whatever it hits
  * @param entrance    entrance_sound: at whatever comes within it
  * @param tear        body_tearing_sound: a body it tears apart; null if it does not
+ * @param endsWithBlowout blowout sound fades out when the blowout ends, rather than playing out (a clip that
+ *                    outlasts it: the Burner's)
  */
 public record AnomalySounds(Supplier<SoundEvent> idle, Supplier<SoundEvent> blowout, int blowoutTick,
                             Supplier<SoundEvent> hit, Supplier<SoundEvent> entrance,
-                            @Nullable Supplier<SoundEvent> tear) {
+                            @Nullable Supplier<SoundEvent> tear, boolean endsWithBlowout) {
+    public AnomalySounds(Supplier<SoundEvent> idle, Supplier<SoundEvent> blowout, int blowoutTick,
+                         Supplier<SoundEvent> hit, Supplier<SoundEvent> entrance, @Nullable Supplier<SoundEvent> tear) {
+        this(idle, blowout, blowoutTick, hit, entrance, tear, false);
+    }
 }

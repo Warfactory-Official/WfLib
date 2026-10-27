@@ -18,12 +18,7 @@ public sealed interface AnomalyBehaviour permits MincerTuning, BlastTuning {
         return explosionTick();
     }
 
-    /** Hit something, then leave it alone this long (disable_time). */
-    default int immuneTicks() {
-        return 0;
-    }
-
-    /** Small things (items, chickens, thrown bolts) set it off too. */
+    /** Small living things (chickens, cats) set it off too. Items never do. */
     default boolean smallTrips() {
         return false;
     }
