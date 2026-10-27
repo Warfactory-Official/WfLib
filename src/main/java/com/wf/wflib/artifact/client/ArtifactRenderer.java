@@ -49,15 +49,22 @@ import java.util.Map;
 public final class ArtifactRenderer {
     private static final ResourceLocation LIGHTNING =
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/artifact/battery_lightning.png");
-    /** View space, m: where the fist is held out (right of centre, low, at arm's length). */
-    private static final Vector3f HAND = new Vector3f(0.13F, -0.17F, -0.45F);
+    /** View space: the right arm's line from the shoulder, held out straight, a little in and up. */
+    private static final Vector3f REACH = new Vector3f(-0.12F, 0.1F, -1.0F).normalize();
+    /** Share of full reach: straight but not locked (the solver slides the shoulder past ~1). */
+    private static final float STRAIGHT = 0.97F;
+    /** Palm centre back from the fist end, m. */
+    private static final float PALM_BACK = 0.06F;
     /** The idle left hand, out of view below. */
     private static final Vector3f OFF_HAND = new Vector3f(-0.30F, -0.85F, -0.05F);
     /** Rad about the forearm: palm up. */
     private static final float PALM_UP = (float) Math.toRadians(Float.parseFloat(
             System.getProperty("wflib.artifact.palmRoll", "-90")));
-    /** Artefact centre over the fist, m, and its bob. */
-    private static final Vector3f FLOAT = new Vector3f(0.0F, 0.085F, -0.02F);
+    /**
+     * Artefact centre over the palm, m: clear of a sleeved hand (about 0.06 to its top), half the artefact (0.056)
+     * and its bob, with a hand's breadth of air.
+     */
+    private static final float FLOAT = 0.16F;
     private static final float BOB = 0.012F;
     /** First-person size over the model's metres. */
     private static final float VIEW_SCALE = 0.4F;
@@ -69,9 +76,8 @@ public final class ArtifactRenderer {
     private static final TextureSlots SLOTS = new TextureSlots() {
         @Override
         public ResourceLocation texture(String slot) {
-            // Arcs come and go: hidden about a third of the time, in 50 ms steps.
-            long step = System.nanoTime() / 50_000_000L;
-            return (step * 0x9E3779B97F4A7C15L >>> 61) < 5 ? LIGHTNING : null;
+            // Steady: STALKER's arcs are a still texture (its idle animation moves nothing either).
+            return LIGHTNING;
         }
 
         @Override
@@ -85,9 +91,11 @@ public final class ArtifactRenderer {
     private static final Matrix4f UPPER = new Matrix4f();
     private static final Matrix4f LOWER = new Matrix4f();
     private static final Vector3f WRIST = new Vector3f();
+    private static final Vector3f HAND = new Vector3f();
+    private static final Vector3f PALM = new Vector3f();
     private static final Vector3f SHOULDER = new Vector3f();
     private static final Vector3f ELBOW = new Vector3f();
-    private static final Quaternionf PALM = new Quaternionf();
+    private static final Quaternionf PALM_UP_FRAME = new Quaternionf();
 
     private ArtifactRenderer() {
     }
@@ -153,17 +161,22 @@ public final class ArtifactRenderer {
         if (event.getHand() != InteractionHand.MAIN_HAND || mc.getCameraEntity() != player) {
             return;
         }
+        PlayerArms arms = PlayerArms.get();
         GemRenderGltfModel model = model(item.artifact());
         float t = clock();
         VIEW.set(event.getPoseStack().last().pose());
         int light = event.getPackedLight();
+        // The fist at arm's length along REACH, so the arm is straight whatever its lengths.
+        ArmViewPose.shoulder(false, SHOULDER);
+        float reach = arms == null ? 0.6F : arms.lengths.upper() + arms.lengths.forearm();
+        HAND.set(REACH).mul(reach * STRAIGHT).add(SHOULDER);
+        PALM.set(REACH).mul(-PALM_BACK).add(HAND);
         if (model != null) {
-            POSE.set(VIEW).translate(HAND).translate(FLOAT.x, FLOAT.y + BOB * Mth.sin(t * 2.1F), FLOAT.z)
+            POSE.set(VIEW).translate(PALM).translate(0.0F, FLOAT + BOB * Mth.sin(t * 2.1F), 0.0F)
                     .rotateY(t * 0.8F).rotateX(0.25F * Mth.sin(t * 0.6F)).scale(VIEW_SCALE);
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
                     DirectPass.HAND, VariantUv.NONE, SLOTS);
         }
-        PlayerArms arms = PlayerArms.get();
         if (arms == null) {
             return;
         }
@@ -173,7 +186,7 @@ public final class ArtifactRenderer {
             Quaternionf hand = null;
             if (side == 0) {
                 // Forearm toward the fist, then rolled about it so the palm faces up under the artefact.
-                hand = ArmViewPose.towardWrist(WRIST, SHOULDER, PALM).rotateY(PALM_UP);
+                hand = ArmViewPose.towardWrist(WRIST, SHOULDER, PALM_UP_FRAME).rotateY(PALM_UP);
             }
             float twist = ArmViewPose.solve(WRIST, hand, SHOULDER,
                     side == 0 ? ArmViewPose.RIGHT_POLE : ArmViewPose.LEFT_POLE, arms.lengths, UPPER, LOWER, ELBOW);
