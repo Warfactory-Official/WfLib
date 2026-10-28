@@ -17,15 +17,29 @@ import java.util.function.BiConsumer;
 
 /**
  * Artefacts at work: each worn in a Curios {@code artifact} slot scales the hits of its kinds by
- * {@code 1 - immunity} (GAMMA stacks them the same way, one after another) and gives health and (with WFWeight)
- * stamina back over time. Without Curios nothing is worn.
+ * {@code 1 - immunity} (GAMMA stacks them the same way, one after another), gives health (or drains it), stamina (with
+ * WFWeight) and wound closing (with WFMedical) over time, and keeps psy off (WFMedical's stress). Without Curios
+ * nothing is worn.
  */
 public final class Artifacts {
     /**
-     * How worn artefacts give health back. A health mod that clamps vanilla healing (WFMedical) replaces it with its
-     * own, as it claims armour ({@code ArmorSystem.claimPlayerResolution}).
+     * How worn artefacts give health back (or, negative, drain it). A health mod that clamps vanilla healing
+     * (WFMedical) replaces it with its own, as it claims armour ({@code ArmorSystem.claimPlayerResolution}).
      */
-    public static BiConsumer<ServerPlayer, Float> healer = ServerPlayer::heal;
+    public static BiConsumer<ServerPlayer, Float> healer = (player, hp) -> {
+        if (hp > 0.0F) {
+            player.heal(hp);
+        } else if (hp < 0.0F) {
+            player.hurt(player.damageSources().starve(), -hp);
+        }
+    };
+
+    /**
+     * How worn artefacts close wounds: called once a second with their summed bleeding_restore per real second. A
+     * mod with wounds (WFMedical) claims it; without one there is nothing to close.
+     */
+    public static BiConsumer<ServerPlayer, Float> clotter = (player, rate) -> {
+    };
 
     private Artifacts() {
     }
@@ -39,21 +53,40 @@ public final class Artifacts {
         }
     }
 
-    /** Once a second: worn artefacts' health back ({@code health_restore_speed}). */
+    /** Once a second: worn artefacts' health back or drained ({@code health_restore_speed}), wounds closed. */
     private static void onPlayerTick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
         Player player = e.getEntity();
         if (!(e.getEntity() instanceof ServerPlayer server) || player.tickCount % 20 != 0 || player.isDeadOrDying()) {
             return;
         }
         float heal = 0.0F;
+        float clot = 0.0F;
         for (ItemStack stack : worn(player)) {
             if (stack.getItem() instanceof ArtifactItem item) {
                 heal += item.artifact().healthPerSecond(player.getMaxHealth());
+                clot += item.artifact().bleedingPerSecond();
             }
         }
-        if (heal > 0.0F) {
+        if (heal != 0.0F) {
             healer.accept(server, heal);
         }
+        if (clot > 0.0F) {
+            clotter.accept(server, clot);
+        }
+    }
+
+    /**
+     * The share of psy (here: stress) the worn artefacts keep off {@code player}, stacked as GAMMA stacks them;
+     * negative makes it worse. WFMedical scales stress gain by {@code 1 - psyProtection}.
+     */
+    public static float psyProtection(Player player) {
+        float pass = 1.0F;
+        for (ItemStack stack : worn(player)) {
+            if (stack.getItem() instanceof ArtifactItem item) {
+                pass *= 1.0F - item.artifact().immunity(Artifact.Hit.PSY);
+            }
+        }
+        return 1.0F - Math.max(0.0F, pass);
     }
 
     private static void onIncomingDamage(LivingIncomingDamageEvent e) {
@@ -73,17 +106,38 @@ public final class Artifacts {
 
     /** The share of {@code source} this artefact takes away (negative: adds). */
     static float immunity(Artifact artifact, DamageSource source) {
+        Artifact.Hit hit = hit(source);
+        return hit == null ? 0.0F : artifact.immunity(hit);
+    }
+
+    /** STALKER's hit kind for a damage: what an artefact's {@code *_immunity} answers to. */
+    @org.jetbrains.annotations.Nullable
+    static Artifact.Hit hit(DamageSource source) {
         if (source.is(WFDamageTypes.ELECTRIC) || source.is(DamageTypes.LIGHTNING_BOLT)) {
-            return artifact.shock();
+            return Artifact.Hit.SHOCK;
         }
-        if (source.is(DamageTypeTags.IS_FIRE)) {
-            return artifact.burn();
+        if (source.is(DamageTypeTags.IS_FIRE) || source.is(WFDamageTypes.FIRE)) {
+            return Artifact.Hit.BURN;
         }
-        if (source.is(WFDamageTypes.GRAVITY_ANOMALY) || source.is(DamageTypes.MOB_ATTACK)
-                || source.is(DamageTypes.MOB_ATTACK_NO_AGGRO) || source.is(DamageTypes.PLAYER_ATTACK)) {
-            return artifact.strike();
+        if (source.is(DamageTypeTags.IS_EXPLOSION) || source.is(WFDamageTypes.EXPLOSIVE)) {
+            return Artifact.Hit.EXPLOSION;
         }
-        return 0.0F;
+        if (source.is(WFDamageTypes.ACID) || source.is(WFDamageTypes.GAS)) {
+            return Artifact.Hit.CHEMICAL;
+        }
+        if (source instanceof com.wf.wflib.round.RoundDamageSource || source.is(DamageTypeTags.IS_PROJECTILE)) {
+            return Artifact.Hit.BULLET;
+        }
+        if (source.is(WFDamageTypes.GRAVITY_ANOMALY) || source.is(DamageTypeTags.IS_FALL)
+                || source.is(DamageTypes.FLY_INTO_WALL) || source.is(DamageTypes.FALLING_BLOCK)
+                || source.is(DamageTypes.FALLING_ANVIL)) {
+            return Artifact.Hit.STRIKE;
+        }
+        if (source.is(DamageTypes.MOB_ATTACK) || source.is(DamageTypes.MOB_ATTACK_NO_AGGRO)
+                || source.is(DamageTypes.PLAYER_ATTACK)) {
+            return Artifact.Hit.WOUND;
+        }
+        return null;
     }
 
     /** Artefacts in {@code player}'s Curios {@code artifact} slots; none without Curios. */

@@ -84,12 +84,17 @@ public final class ModItems {
             ITEMS.register("pda", () -> new com.wf.wflib.pda.PdaItem(new Item.Properties().stacksTo(1)));
 
     /** STALKER's artefacts: worn in Curios {@code artifact} slots. See {@link com.wf.wflib.artifact.Artifacts}. */
-    public static final DeferredHolder<Item, Item> BATTERY = ITEMS.register("battery",
-            () -> new com.wf.wflib.artifact.ArtifactItem(com.wf.wflib.artifact.Artifact.BATTERY,
-                    new Item.Properties().stacksTo(1)));
-    public static final DeferredHolder<Item, Item> SOUL = ITEMS.register("soul",
-            () -> new com.wf.wflib.artifact.ArtifactItem(com.wf.wflib.artifact.Artifact.SOUL,
-                    new Item.Properties().stacksTo(1)));
+    public static final Map<String, DeferredHolder<Item, Item>> ARTIFACTS = new LinkedHashMap<>();
+
+    static {
+        for (com.wf.wflib.artifact.Artifact a : com.wf.wflib.artifact.Artifact.ALL) {
+            ARTIFACTS.put(a.id(), ITEMS.register(a.id(), () -> new com.wf.wflib.artifact.ArtifactItem(a,
+                    new Item.Properties().stacksTo(1))));
+        }
+    }
+
+    public static final DeferredHolder<Item, Item> BATTERY = ARTIFACTS.get("battery");
+    public static final DeferredHolder<Item, Item> SOUL = ARTIFACTS.get("soul");
 
     public static final DeferredHolder<Item, Item> GEIGER_COUNTER = ITEMS.register("geiger_counter",
             () -> new com.wf.wflib.hazard.GeigerCounterItem(new Item.Properties().stacksTo(1)));

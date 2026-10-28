@@ -40,8 +40,7 @@ public final class WFCreativeTabs {
                         output.accept(ModBlocks.SECURITY_CAMERA_ITEM.get());
                         output.accept(ModItems.CAMERA_LINKER.get());
                         output.accept(ModItems.PDA.get());
-                        output.accept(ModItems.BATTERY.get());
-                        output.accept(ModItems.SOUL.get());
+                        ModItems.ARTIFACTS.values().forEach(a -> output.accept(a.get()));
                         output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.DETECTOR_ECHO.get());
                         output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.DETECTOR_BEAR.get());
                         output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.DETECTOR_VELES.get());

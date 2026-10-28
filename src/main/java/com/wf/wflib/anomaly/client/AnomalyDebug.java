@@ -483,7 +483,7 @@ public final class AnomalyDebug {
             case 260 -> {
                 healthBefore = mc.player.getHealth();
                 // Shock: 4 should land as 4 x (1 - shock). Healing: knocked down 6 first, then measured.
-                mc.player.connection.sendCommand(wornArtifact().shock() != 0.0F ? "damage @s 4 wflib:electric"
+                mc.player.connection.sendCommand(wornArtifact().immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK) != 0.0F ? "damage @s 4 wflib:electric"
                         : "damage @s 6 minecraft:generic");
             }
             case 270 -> healthHealing = mc.player.getHealth();
@@ -497,7 +497,7 @@ public final class AnomalyDebug {
                 holding = -1;
                 // Shock: as above. Healing: 5 s at its rate (ticks counted server side, so a tick either way).
                 float expectHeal = a.healthPerSecond(mc.player.getMaxHealth()) * 5.0F;
-                boolean worn = a.shock() != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.shock())) < 0.05F
+                boolean worn = a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK) != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK))) < 0.05F
                         : Math.abs(healed - expectHeal) <= a.healthPerSecond(mc.player.getMaxHealth()) + 0.01F;
                 boolean away = switchChecks.size() == 2 && switchChecks.get(0);
                 boolean back = switchChecks.size() == 2 && switchChecks.get(1);
@@ -507,9 +507,9 @@ public final class AnomalyDebug {
                         "  " + (lit ? "ok  " : "FAIL") + " its light is at it, ahead of the eyes",
                         "  " + (away ? "ok  " : "FAIL") + " switched away, it was put away (lift 0)",
                         "  " + (back ? "ok  " : "FAIL") + " switched back, it came up (lift 1)",
-                        "  " + (worn ? "ok  " : "FAIL") + (a.shock() != 0.0F
+                        "  " + (worn ? "ok  " : "FAIL") + (a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK) != 0.0F
                                 ? " worn, 4 shock took " + String.format(Locale.ROOT, "%.2f (%.2f)", lost,
-                                4.0F * (1.0F - a.shock()))
+                                4.0F * (1.0F - a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK)))
                                 : " worn, 5 s healed " + String.format(Locale.ROOT, "%.3f (%.3f)", healed,
                                 expectHeal))), status());
             }

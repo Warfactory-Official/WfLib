@@ -60,34 +60,34 @@ public final class ArtifactRenderer {
     /** One quad (XY, facing +Z), glow slot: an artefact's core sprite. */
     private static final ResourceLocation CORE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
             "models/artifact/core.glb");
-    private static final String GLOW = "glow";
 
-    /** Inventory, ground, others' hands: body and glow as they are. */
+    /** Inventory, ground, others' hands: every part as it is, the glowing ones unlit. */
     private static TextureSlots slots(Artifact artifact) {
         return new TextureSlots() {
             @Override
             public ResourceLocation texture(String slot) {
-                return GLOW.equals(slot) ? artifact.glow() : artifact.body();
+                return artifact.slots().get(slot);
             }
 
             @Override
             public boolean emissive(String slot) {
-                return GLOW.equals(slot);
+                return Artifact.glowSlot(slot);
             }
         };
     }
 
-    /** First person, drawn apart so the glow can move: the body alone, then the glow alone. */
+    /** First person, drawn apart so the glow can move: the lit parts alone, then the glowing ones alone. */
     private static TextureSlots bodyOnly(Artifact artifact) {
-        return slot -> GLOW.equals(slot) ? null : artifact.body();
+        return slot -> Artifact.glowSlot(slot) ? null : artifact.slots().get(slot);
     }
 
-    /** The glowing parts again, with the glow blurred: their bloom. */
+    /** The glowing parts again, each texture blurred: their bloom. */
     private static TextureSlots bloomOnly(Artifact artifact) {
         return new TextureSlots() {
             @Override
             public ResourceLocation texture(String slot) {
-                return GLOW.equals(slot) ? artifact.glowBloom() : null;
+                ResourceLocation t = Artifact.glowSlot(slot) ? artifact.slots().get(slot) : null;
+                return t == null ? null : Artifact.bloomOf(t);
             }
 
             @Override
@@ -101,7 +101,7 @@ public final class ArtifactRenderer {
         return new TextureSlots() {
             @Override
             public ResourceLocation texture(String slot) {
-                return GLOW.equals(slot) ? artifact.glow() : null;
+                return Artifact.glowSlot(slot) ? artifact.slots().get(slot) : null;
             }
 
             @Override

@@ -64,16 +64,31 @@ public final class AnomalyMix {
     }
 
     /** Artefacts by element (wflib item ids): what a cluster can grow. */
+    /** Artefacts a site can grow, each with its element and lowest tier ({@link com.wf.wflib.artifact.Artifact}). */
     public enum Loot {
-        BATTERY("battery", Element.ELECTRIC),
-        SOUL("soul", Element.CHEMICAL);
+        BATTERY(com.wf.wflib.artifact.Artifact.BATTERY),
+        SOUL(com.wf.wflib.artifact.Artifact.SOUL),
+        CRYSTAL(com.wf.wflib.artifact.Artifact.CRYSTAL),
+        ITCHER(com.wf.wflib.artifact.Artifact.ITCHER),
+        SPONGE(com.wf.wflib.artifact.Artifact.SPONGE),
+        FIREBALL(com.wf.wflib.artifact.Artifact.FIREBALL),
+        SPARKLER(com.wf.wflib.artifact.Artifact.SPARKLER),
+        GLASS_BEADS(com.wf.wflib.artifact.Artifact.GLASS_BEADS),
+        MOONLIGHT(com.wf.wflib.artifact.Artifact.MOONLIGHT),
+        FLASH(com.wf.wflib.artifact.Artifact.FLASH),
+        ICE(com.wf.wflib.artifact.Artifact.ICE),
+        RING(com.wf.wflib.artifact.Artifact.RING),
+        DUMMY(com.wf.wflib.artifact.Artifact.DUMMY),
+        STONE_FLOWER(com.wf.wflib.artifact.Artifact.STONE_FLOWER);
 
         public final String id;
         public final Element element;
+        public final int minTier;
 
-        Loot(String id, Element element) {
-            this.id = id;
-            this.element = element;
+        Loot(com.wf.wflib.artifact.Artifact artifact) {
+            this.id = artifact.id();
+            this.element = artifact.element();
+            this.minTier = artifact.minTier();
         }
     }
 
@@ -118,7 +133,7 @@ public final class AnomalyMix {
             if (r.nextFloat() >= chance) {
                 break;
             }
-            loot.add(pickLoot(r, kinds));
+            loot.add(pickLoot(r, tier, kinds));
         }
         return List.copyOf(loot);
     }
@@ -163,14 +178,17 @@ public final class AnomalyMix {
         return k.element == lean ? w * 6 : w;
     }
 
-    /** An artefact, likelier of the elements the site holds most of. */
-    static Loot pickLoot(RandomSource r, List<Kind> kinds) {
+    /** An artefact grown at this tier, likelier of the elements the site holds most of. */
+    static Loot pickLoot(RandomSource r, int tier, List<Kind> kinds) {
         int total = 0;
         int[] w = new int[Loot.values().length];
         for (Loot l : Loot.values()) {
-            int n = 1;
-            for (Kind k : kinds) {
-                n += k.element == l.element ? 3 : 0;
+            int n = 0;
+            if (l.minTier <= tier) {
+                n = 1;
+                for (Kind k : kinds) {
+                    n += k.element == l.element ? 3 : 0;
+                }
             }
             w[l.ordinal()] = n;
             total += n;

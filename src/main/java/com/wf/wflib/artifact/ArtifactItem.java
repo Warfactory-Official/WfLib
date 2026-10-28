@@ -21,28 +21,28 @@ public class ArtifactItem extends Item {
         return artifact;
     }
 
-    /**
-     * The lowest detector rank that finds it (1: the Echo). shortcut: every artefact so far is on GAMMA's Echo list;
-     * a field on {@link Artifact} once one isn't.
-     */
+    /** The lowest detector rank that finds it (1 Echo, 2 Bear, 3 Veles). */
     public int detectRank() {
-        return 1;
+        return artifact.detectRank();
     }
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
-        line(lines, "shock", artifact.shock());
-        line(lines, "burn", artifact.burn());
-        line(lines, "strike", artifact.strike());
-        if (artifact.healthRestore() > 0.0F) {
-            lines.add(Component.translatable("item.wflib.artifact.health",
-                            String.format(java.util.Locale.ROOT, "%.1f", artifact.healthPerSecond(20.0F) * 60.0F))
-                    .withStyle(ChatFormatting.GREEN));
+        for (Artifact.Hit hit : Artifact.Hit.values()) {
+            line(lines, hit.name().toLowerCase(java.util.Locale.ROOT), artifact.immunity(hit));
         }
-        if (artifact.powerRestore() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
+        if (artifact.health() != 0.0F) {
+            lines.add(Component.translatable("item.wflib.artifact.health",
+                            String.format(java.util.Locale.ROOT, "%+.1f", artifact.healthPerSecond(20.0F) * 60.0F))
+                    .withStyle(artifact.health() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+        if (artifact.power() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
             lines.add(Component.translatable("item.wflib.artifact.stamina",
                             String.format(java.util.Locale.ROOT, "%+.1f%%", artifact.staminaPerTick() * 2000.0D))
-                    .withStyle(artifact.powerRestore() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
+                    .withStyle(artifact.power() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+        if (artifact.bleeding() > 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfmedical")) {
+            lines.add(Component.translatable("item.wflib.artifact.bleeding").withStyle(ChatFormatting.GREEN));
         }
         lines.add(Component.translatable("item.wflib.artifact.worn").withStyle(ChatFormatting.DARK_GRAY));
     }
