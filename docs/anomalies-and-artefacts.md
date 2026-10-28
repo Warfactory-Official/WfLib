@@ -159,6 +159,100 @@ not in a fresh clone. Back them up before deleting that worktree.
 - MineAssault `ZoneHandsViewmodel`: detector in the left hand with its face drawn on the device (Bear LED ring,
   Veles blips), bolt in the right with a throw tied to the item cooldown; uses WFLib `PlayerArms`.
 
+### Setting up the rigged low-poly detectors (to do)
+
+The user supplied `~/Downloads/WFLib-detectors-lowpoly.zip`. **Use the repo copies, not the zip's GLBs**: the zip's
+are portable previews with the PNGs embedded; the runtime GLBs use resource-pack texture slots like every other
+WFLib model. What exists (made 2026-10-28 by another session, **untracked in git**: commit `art/detectors/` (the
+`.blend` is 8 MB; ask whether it belongs in git or LFS) and `models/detector/lowpoly/`):
+
+- `src/main/resources/assets/wflib/models/detector/lowpoly/{echo,bear,veles}.glb`: skinned, metres, centred bind pose,
+  same material slots as today (`body`, `aref` Echo-only MASK double-sided, `lights` BLEND), so
+  `DetectorClient.slots()` works unchanged. Echo 1,270 tris / 7 bones / 16 clips, Bear 1,506 / 9 / 18, Veles
+  1,239 / 14 / 16. Clips keep GAMMA's names (`barry_echo_*`, `barry_bear_*`, `barry_veles_*`), 30 Hz, OMF speed baked.
+- `art/detectors/`: `README.md` (bones per device, scope; read it), `detectors.blend` (editable), `build.py` /
+  `validate.py` (Blender, headless), `states.json` (GAMMA state -> [hand clip, device clip, optional speed]; HUD
+  offsets `hands_position`/`hands_orientation`/`aim_hud_offset_*`), `source-study.json` (source OGF/OMF paths),
+  `handoff/` (= the zip). Rebuild: `blender -b --factory-startup --python-exit-code 1 --python art/detectors/build.py`
+  then `validate.py`.
+- Bones that matter at runtime: Echo `lid` (hinged cover, `light_bone_3` rides it), `button`, `on_switch`; Bear
+  `cover` (wire cage), `tuner_bone`, `on_switch`, `screen_bone*`, `light_bone_1/2`; Veles `cover` ->
+  **`cover_power` is the display bone** (DAR's `detector_ui_bone`), `joint1`, `switch`, `light_bone_1..9`.
+
+Steps:
+
+1. **Swap the models.** Point `DetectorTier.model()` at `models/detector/lowpoly/<id>.glb` (or move the low-poly GLBs
+   over `models/detector/<id>.glb` once they are approved; keep the old ones in git history). Inventory, ground and
+   others' hands go through `DetectorClient`'s item renderer: play `barry_<id>_idle` there (or nothing: bind pose).
+2. **A state machine for the device clips**, client side, per detector in hand, driven from `states.json` (load it
+   as a resource, or port the table into `DetectorTier`): `anm_show` / `anm_show_fast` / `_quick` on switching to
+   it, `anm_hide*` on switching away (hold the next item back until it ends, as `ArtifactRenderer` does for
+   artefacts), `anm_idle`, `anm_idle_moving` (x1.15) when walking, `anm_idle_moving_crouch`, `anm_idle_sprint`
+   (x1.4), `anm_zoom_in` / `anm_idle_zoom` / `anm_zoom_out` when the player raises it to read it, and
+   `anm_throw_start` / `anm_throw` / `anm_throw_end` while the other hand throws a bolt. Bear's `anm_show_dead` draw = a
+   detector with no charge, if batteries ever exist. Cross-fade between clips with GemRender's blended pose
+   (`DirectRenderer` blend path) rather than snapping. Pass the clip (`model.animation(name)`) and its time to
+   `DirectRenderer.submit` in place of the `null` clip used today.
+3. **Faces on the moving parts.** `ZoneHandsViewmodel.drawDetector` places the LED ring / blips with fixed
+   model-space offsets (`FACE` table). With animation the parts move: take the posed bone from GemRender
+   (`PoseCache`'s `boneMatrix(String nodeName, Matrix4f)`, node slots, not skin slots) and draw the Veles screen on
+   `cover_power`, the Bear's LEDs from `screen_bone*` / `light_bone_*`, the Echo's LED on `light_bone_1/2/3`.
+   Light the `lights` slot per bone if the face should blink per LED (today the whole slot is lit or not).
+4. **Hands.** The GLBs are device rigs only; GAMMA animates the arms with separate hand clips
+   (`states.json` first entry, e.g. `barry_echo_idle_hands`) from DAR's
+   `meshes/anomaly_weapons/hud_hands_animation/barry_devices_hud_hands.omf` (mod `416- Devices of Anomaly Redone`).
+   Bake them exactly as the cigarette was (`docs/smoking.md`): MineAssault `tools/blender/stalker_hud_dump.py` with
+   the hands OGF + that OMF -> per-frame fist frames JSON -> WFLib `PlayerArms` solved to the fist tracks
+   (`ArmViewPose`), applying `hands_position` / `hands_orientation` from `states.json`. Until then keep today's
+   IK pose, with the device parented to the left fist.
+5. **HUD offset and aim.** `states.json` `hud` gives the device placement relative to the hands and the zoomed
+   ("aim") offset; replace `ZoneHandsViewmodel`'s hand-tuned `DETECTOR_UP` / `M` constants with these.
+6. **Check** with the MineAssault `hands` bench (`-Dwflib.anomalyTest=hands`, ws15): draw, idle, walk, sprint, zoom,
+   throw, holster for each tier; the face must stay on the device through every clip; screenshots by day and night.
+7. **The user's own Echo model** (still to come) must keep the same bone names and clip names, or `states.json` must
+   be regenerated for it.
+
+### Bolt rework (to do; the user's spec, 2026-10-28)
+
+Wanted: **a 2D item** (flat sprite, not the 3D `bolt.glb`), **full physics when thrown and on the ground**,
+**pickup-able**, **every GregTech bolt works as one**, plus **one WFLib bolt** for packs without GregTech.
+
+Today (`artifact/detect/BoltItem`, `BoltEntity`, `ArtifactEntities`): a `ThrowableItemProjectile` with a simple
+reflect-and-damp bounce, settles flat, despawns after 60 s, **cannot be picked up**, and **throwing never takes a
+bolt from the stack** (infinite bolts). Drawn with `bolt.glb` through `DetectorClient`.
+
+1. **2D item**: `wflib:bolt` gets a plain `item/generated` model with `layer0` = a bolt sprite
+   (`textures/item/bolt.png`; GAMMA's inventory icon lives in the `ui_icon_equipment` atlas, or draw one).
+   Drop `bolt.glb` from the item path; the thrown entity draws the **item sprite**, not the glb: render the stack
+   with `ItemRenderer` in `ItemDisplayContext.GROUND`/`FIXED`, oriented by the entity's own rotation (below), so a
+   GregTech bolt flies and lies as its own GregTech sprite. Same in first person (`ZoneHandsViewmodel` currently
+   draws `DetectorClient.boltModel()`): draw the held stack's sprite in the fist.
+2. **Physics**: a plain `Entity` (or keep the projectile base for the throw and owner) with its own state:
+   gravity, air drag, **spin** (angular velocity about a random axis on release, synced), **tumbling** in flight,
+   bounce off block faces with restitution and friction that turn linear speed into spin, **rolling and sliding**
+   to rest on slopes, rest detection when speed and spin are both small, then lie flat (yaw kept). Collide with
+   entities (glance off; no damage). Interact with water (sink slowly) and with anomalies exactly as now
+   (anomalies treat it as a body; keep `Anomalies` checks working: they look for `BoltEntity`). Sync position,
+   velocity and orientation with interpolation so clients see smooth tumbling. Impact sound per hit scaled by
+   speed (GAMMA's "Oleh's Bolt Impact Sounds" are already referenced in credits).
+3. **Throwing consumes one**: `stack.shrink(1)` unless creative; the entity carries the thrown stack (count 1).
+4. **Pick-up**: walking over it after a short delay (like arrows: `playerTouch` -> `inventory.add`, take animation,
+   `ItemPickupEvent`-style), plus interact to pick up; give back **the same stack** (a GregTech bolt comes back as
+   that GregTech bolt). No despawn while it lies in a loaded chunk? Ask the user; vanilla items despawn at 5 min.
+5. **GregTech compat**: any item in tag **`c:bolts`** throws as a bolt. GTCEu 1.21.1 (8.0.0, in the wf2 instance)
+   generates `gtceu:<material>_bolt` items tagged `c:bolts` and `c:bolts/<material>` (from `TagPrefix.bolt`;
+   `defaultTagPath("bolts/%s")`, `unformattedTagPath("bolts")`), at runtime. Use the tag, not a GTCEu dependency:
+   a `wflib:throwable_bolts` item tag containing `#c:bolts` and `wflib:bolt` (ship `wflib:bolt` in `c:bolts` too so
+   other mods see it). Throwing is not on GregTech's items, so hook it: `PlayerInteractEvent.RightClickItem` for any
+   stack in the tag (cancel and throw), with the cooldown per player, not per item. **Check first that GTCEu doesn't
+   give bolts a right-click use** (tool or placement); if it does, require sneaking or the detector in the other hand.
+   Optional per-material mass / bounciness from the material if GTCEu's API is present (soft dependency only).
+6. **The WFLib bolt**: keep `wflib:bolt` (stackable to 64, cheap recipe, e.g. iron nugget(s)), with the new sprite;
+   `ItemMasses` keeps its 0.05 kg.
+7. **Tests**: GameTest that a thrown bolt comes to rest on flat ground, on a slope, against a wall; that it sets off an
+   anomaly; that walking over it returns the same item (wflib and a stand-in tagged item); that throwing shrinks the
+   stack. Bench: screenshots of a bolt mid-air and lying, day and night.
+
 ## Screen and camera effects (planned: port all of GAMMA's)
 
 **The user wants every visual screen effect from Anomaly/GAMMA brought over**: dizziness, damage effects from
@@ -329,6 +423,8 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 
 1. **Push** (with the user's go): WFLib -> WFMedical; wfworldgen. Then the instance gets jars built from pushed code.
 2. **Prepared tests** for the gaps listed under Tests.
+1a. **Rigged low-poly detectors in game** (clips, faces on bones, then baked hands) and the **bolt rework**
+   (2D, physics, pick-up, GregTech `c:bolts`): see their sections under Detection.
 2a. **Port GAMMA's screen and camera effects** (see that section): the `.ppe` and `.anm` players first, then
    anomaly proximity effects, then damage, psy and healing in WFMedical.
 2b. **Anomaly-made smoke instead of campfires** at FISSURES vents (see Anomaly sites). Check with
