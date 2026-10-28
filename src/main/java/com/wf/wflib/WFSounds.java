@@ -39,7 +39,7 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> SMOKE_POP = register("countermeasure.smoke_pop");
     public static final DeferredHolder<SoundEvent, SoundEvent> FLARE_BURN = register("countermeasure.flare_burn");
 
-    /** STALKER's anomaly sounds, as their zone configs name them (tools/xray-assets.py; third-party, internal only). */
+    /** STALKER's anomaly sounds, as their zone configs name them (devtools/xray-assets.py; third-party, internal only). */
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GRAVI_IDLE01 = register("anomaly.gravi_idle01");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ANOMALY_MINCER_BLOWOUT = register("anomaly.anomaly_mincer_blowout");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_ANOMALY_GRAVY_HIT1 = register("anomaly.anomaly_gravy_hit1");

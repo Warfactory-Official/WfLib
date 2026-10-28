@@ -18,7 +18,7 @@ Counts above describe the GLBs. Blender may count extra degenerate triangles tha
 The existing WFLib GLBs contain only static meshes and material slots: no joints, skin weights or animations.
 They are centred bind-pose conversions of the first-person models from GAMMA's
 `416- Devices of Anomaly Redone - BarryBogs`, by BarryBogs and Diolator. WFLib's
-`tools/gamma/gamma_find.py` confirmed that mod supplies the winning OGF and OMF files for all three detectors
+`devtools/gamma/gamma_find.py` confirmed that mod supplies the winning OGF and OMF files for all three detectors
 in the installed MO2 profile. The original assets, not a video or guessed hinges, are the rig reference.
 
 - `source-study.json`: original geometry/material counts, bone parents, pivots/rest matrices, clip ranges,

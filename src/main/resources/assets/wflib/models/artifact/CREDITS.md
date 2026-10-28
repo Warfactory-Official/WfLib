@@ -1,6 +1,6 @@
 # Artifact models
 
-STALKER Anomaly's artefact meshes (GSC Game World / Anomaly), converted by tools/xray-ogf.py; textures in
+STALKER Anomaly's artefact meshes (GSC Game World / Anomaly), converted by devtools/xray-ogf.py; textures in
 `textures/artifact/`:
 
 - `battery.glb`: `af_dummy_battery.ogf`; `sopli2.png` (artifact_sopli2), `battery_lightning.png`
@@ -25,6 +25,6 @@ Licence unrecorded: for this internal build only; clear or replace before anythi
 
 `echo`, `bear`, `veles`: the Echo, Bear and Veles first-person detectors of GAMMA's "Devices of Anomaly Redone"
 (BarryBogs): `dev_diolator_detector_1/2/3_hud.ogf`, textures `item_diolator_detector_1/2/3` (brightened: STALKER lights
-them with specular) and `item_emissions` (`lights`). Third-party art, internal use; converted with tools/xray-ogf.py.
+them with specular) and `item_emissions` (`lights`). Third-party art, internal use; converted with devtools/xray-ogf.py.
 `bolt`: S.T.A.L.K.E.R. Anomaly's bolt, GAMMA "Oleh's Bolt Impact Sounds" `dev_bolt.ogf`, texture `wpn_bolt` (base
 textures_weapons.db0). Internal use.

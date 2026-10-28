@@ -12,7 +12,7 @@ import java.util.Map;
 
 /**
  * STALKER (X-Ray) particle definitions as their SDK text exports them: {@code .pe} effects and {@code .pg} groups
- * (copied by tools/xray-assets.py). An action's parameters are numbered per kind ({@code flt_0000}, {@code vec_0000},
+ * (copied by devtools/xray-assets.py). An action's parameters are numbered per kind ({@code flt_0000}, {@code vec_0000},
  * {@code domain_..._0000}, {@code bool_0000}, {@code int_0000}) in the alphabetical order of their names, as the
  * editor keeps them in sorted maps ({@code EParticleAction::Load2}); the orders below are those names sorted.
  */
