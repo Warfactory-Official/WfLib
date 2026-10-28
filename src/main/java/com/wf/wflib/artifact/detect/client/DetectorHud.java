@@ -20,7 +20,7 @@ final class DetectorHud implements LayeredDraw.Layer {
     public void render(GuiGraphics g, DeltaTracker delta) {
         DetectorTier tier = DetectorClient.held;
         Minecraft mc = Minecraft.getInstance();
-        if (tier == null || mc.player == null || mc.options.hideGui) {
+        if (tier == null || mc.player == null || mc.options.hideGui || DetectorClient.faceOnDevice()) {
             return;
         }
         // Right of the hotbar: clear of chat, the offhand slot and the hand.

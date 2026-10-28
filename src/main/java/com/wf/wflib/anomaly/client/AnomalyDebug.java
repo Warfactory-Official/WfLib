@@ -211,6 +211,7 @@ public final class AnomalyDebug {
         holdTick(mc);
         clusterTick(mc);
         detectTick(mc);
+        handsTick(mc);
         if (measureSay > 0 && --measureSay == 0) {
             float m = Lenses.getInstance().measured();
             say(m < 0.0F ? "measure: no lens pass ran (nothing submitted, or the pass is off)"
@@ -257,6 +258,10 @@ public final class AnomalyDebug {
                 case "hold" -> hold();
                 case "clusters" -> clusters();
                 case "detect" -> detect();
+                case "hands" -> {
+                    hands = 0;
+                    yield true;
+                }
                 default -> false;
             };
             if (!started) {
@@ -674,6 +679,56 @@ public final class AnomalyDebug {
         });
         finish(List.of((all ? "[PASS]" : "[FAIL]") + " anomaly sites: every motif placed anomalies"),
                 clusterLines);
+    }
+
+    /** The hands test: ticks into it. */
+    private static int hands = -1;
+
+    /**
+     * {@code hands}: the detector and bolts in first person (MineAssault's zone hands): each detector held up with
+     * artefacts about (its face live), then a bolt thrown. Screenshots {@code anomaly-hands-*.png}; judged by eye.
+     */
+    private static void handsTick(Minecraft mc) {
+        if (hands < 0 || mc.player == null) {
+            return;
+        }
+        int t = hands++;
+        var send = (java.util.function.Consumer<String>) mc.player.connection::sendCommand;
+        BlockPos at = mc.player.blockPosition();
+        switch (t) {
+            case 0 -> {
+                send.accept("gamemode survival");
+                send.accept("effect give @s minecraft:resistance 600 4 true");
+                send.accept("clear @s");
+                send.accept("kill @e[type=wflib:zone_artifact]");
+                send.accept("tp @s ~ ~ ~ 0 10");
+                send.accept(String.format(Locale.ROOT,
+                        "summon wflib:zone_artifact %d %d %d {item:{id:\"wflib:battery\",count:1}}", at.getX(),
+                        at.getY(), at.getZ() + 3));
+                send.accept(String.format(Locale.ROOT,
+                        "summon wflib:zone_artifact %d %d %d {item:{id:\"wflib:soul\",count:1}}", at.getX() + 8,
+                        at.getY(), at.getZ() + 14));
+                send.accept("item replace entity @s weapon.offhand with wflib:detector_veles");
+                send.accept("item replace entity @s weapon.mainhand with wflib:bolt");
+            }
+            case 60 -> shot("hands-veles");
+            case 62 -> send.accept("item replace entity @s weapon.offhand with wflib:detector_bear");
+            case 110 -> shot("hands-bear");
+            case 112 -> send.accept("item replace entity @s weapon.offhand with wflib:detector_echo");
+            case 160 -> shot("hands-echo");
+            case 170 -> mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            case 171 -> shot("hands-throw-1");
+            case 173 -> shot("hands-throw-2");
+            case 178 -> shot("hands-throw-3");
+            case 190 -> send.accept("item replace entity @s weapon.mainhand with air");
+            case 220 -> shot("hands-detector-only");
+            case 230 -> {
+                hands = -1;
+                finish(List.of("[DONE] hands: screenshots anomaly-hands-*.png"), List.of());
+            }
+            default -> {
+            }
+        }
     }
 
     /** The detect test: ticks into it, and what it found. */

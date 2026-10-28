@@ -59,6 +59,66 @@ public final class DetectorClient {
     /** Artefacts heard, nearest first, and their positions. */
     static final List<Vec3> heard = new ArrayList<>();
     private static double untilBeep;
+    /** When a viewmodel last drew the detector's face on the device itself (the HUD stand-in then hides). */
+    private static long deviceFaceNanos;
+
+    // --- for viewmodels (MineAssault draws the detector and bolts in hand) ------------------------------------------
+
+    /** The detector out, or null. */
+    public static DetectorTier held() {
+        return held;
+    }
+
+    /** 1 on a beep, fading over a few ticks. */
+    public static float flash() {
+        return flash;
+    }
+
+    /** Where the artefacts the detector hears are, nearest first. */
+    public static List<Vec3> heard() {
+        return heard;
+    }
+
+    /** A viewmodel drew the face on the device this frame: the HUD stand-in steps aside. */
+    public static void faceDrawnOnDevice() {
+        deviceFaceNanos = System.nanoTime();
+    }
+
+    static boolean faceOnDevice() {
+        return System.nanoTime() - deviceFaceNanos < 250_000_000L;
+    }
+
+    public static GemRenderGltfModel model(DetectorTier tier) {
+        return MODELS.computeIfAbsent(tier.model(), GemRenderModels::handle).get();
+    }
+
+    /** Body textured, its lights shown (emissive) when {@code lit}. */
+    public static TextureSlots slots(DetectorTier tier, boolean lit) {
+        return new TextureSlots() {
+            @Override
+            public ResourceLocation texture(String slot) {
+                return "lights".equals(slot) ? (lit ? LIGHTS : null) : tier.texture();
+            }
+
+            @Override
+            public boolean emissive(String slot) {
+                return "lights".equals(slot);
+            }
+        };
+    }
+
+    public static final ResourceLocation BOLT_MODEL = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
+            "models/detector/bolt.glb");
+    private static final ResourceLocation BOLT_TEXTURE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
+            "textures/detector/bolt.png");
+
+    public static GemRenderGltfModel boltModel() {
+        return MODELS.computeIfAbsent(BOLT_MODEL, GemRenderModels::handle).get();
+    }
+
+    public static TextureSlots boltSlots() {
+        return slot -> BOLT_TEXTURE;
+    }
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -94,6 +154,30 @@ public final class DetectorClient {
                 }
             }, holder.get());
         }
+        GemRenderItemRenderer bolt = new GemRenderItemRenderer(new ItemAppearance() {
+            @Override
+            public GemRenderGltfModel model(ItemStack stack, ItemDisplayContext context) {
+                return boltModel();
+            }
+
+            @Override
+            public void transform(ItemStack stack, ItemDisplayContext context, PoseStack pose) {
+                float s = context == ItemDisplayContext.GUI ? 9.0F : 5.0F;
+                pose.scale(s, s, s);
+                pose.mulPose(Axis.ZP.rotationDegrees(45.0F));
+            }
+
+            @Override
+            public TextureSlots slots(ItemStack stack, ItemDisplayContext context) {
+                return boltSlots();
+            }
+        });
+        event.registerItem(new IClientItemExtensions() {
+            @Override
+            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return bolt;
+            }
+        }, ArtifactEntities.BOLT_ITEM.get());
     }
 
     @SubscribeEvent
@@ -155,7 +239,7 @@ public final class DetectorClient {
         return new ItemAppearance() {
             @Override
             public GemRenderGltfModel model(ItemStack stack, ItemDisplayContext context) {
-                return MODELS.computeIfAbsent(tier.model(), GemRenderModels::handle).get();
+                return DetectorClient.model(tier);
             }
 
             @Override
@@ -179,18 +263,7 @@ public final class DetectorClient {
                         && (Minecraft.getInstance().player.getMainHandItem() == stack
                         || Minecraft.getInstance().player.getOffhandItem() == stack);
                 // Its lights lit with each beep, while it is the one out.
-                boolean lit = mine && flash > 0.3F;
-                return new TextureSlots() {
-                    @Override
-                    public ResourceLocation texture(String slot) {
-                        return "lights".equals(slot) ? (lit ? LIGHTS : null) : tier.texture();
-                    }
-
-                    @Override
-                    public boolean emissive(String slot) {
-                        return "lights".equals(slot);
-                    }
-                };
+                return DetectorClient.slots(tier, mine && flash > 0.3F);
             }
         };
     }
