@@ -55,6 +55,27 @@ public final class ArtifactRenderer {
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
     private static final Map<Artifact, net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer> ITEM_RENDERERS =
             new HashMap<>();
+    /** Bloom round an artefact, white (tinted its light colour), alpha falling off from the middle. */
+    private static final ResourceLocation HALO = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
+            "textures/artifact/halo.png");
+    private static final TextureSlots HALO_ONLY = new TextureSlots() {
+        @Override
+        public ResourceLocation texture(String slot) {
+            return HALO;
+        }
+
+        @Override
+        public boolean emissive(String slot) {
+            return true;
+        }
+    };
+    /** Bloom across, over the model's size (a 0.3 m artefact gets a ~0.75 m halo). */
+    private static final float HALO_SIZE = 0.75F;
+    /**
+     * Bloom set back from the centre, away from the eye, model metres (about the artefact's radius): behind it, so
+     * the body and its core stay in front and the glow spills round the outline.
+     */
+    private static final float HALO_BACK = 0.16F;
     /** One quad (XY, facing +Z), glow slot: an artefact's core sprite. */
     private static final ResourceLocation CORE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
             "models/artifact/core.glb");
@@ -196,7 +217,7 @@ public final class ArtifactRenderer {
         public void renderByItem(ItemStack stack, ItemDisplayContext context, PoseStack pose,
                                  net.minecraft.client.renderer.MultiBufferSource buffers, int light, int overlay) {
             body.renderByItem(stack, context, pose, buffers, light, overlay);
-            GemRenderGltfModel quad = artifact.core() > 0.0F ? coreModel() : null;
+            GemRenderGltfModel quad = coreModel();
             if (quad == null) {
                 return;
             }
@@ -204,18 +225,43 @@ public final class ArtifactRenderer {
             pose.translate(0.5F, 0.5F, 0.5F);
             transform(context, pose);
             Matrix4f m = pose.last().pose();
-            float size = m.getColumn(0, new Vector3f()).length() * artifact.core();
-            core.translation(m.getTranslation(new Vector3f()));
-            if (context != ItemDisplayContext.GUI) {
-                core.rotate(Minecraft.getInstance().gameRenderer.getMainCamera().rotation());
-            }
+            float unit = m.getColumn(0, new Vector3f()).length();
+            DirectPass pass = context == ItemDisplayContext.GUI ? DirectPass.GUI : DirectPass.LEVEL;
             float t = clock();
-            core.rotateZ(t * 0.5F).scale(size);
-            DirectRenderer.submit(quad, null, 0, core, light, overlay, glowTint(t, artifact),
-                    context == ItemDisplayContext.GUI ? DirectPass.GUI : DirectPass.LEVEL, VariantUv.NONE,
-                    glowOnly(artifact));
+            // Blended layers write no depth: back to front, the bloom (behind) before the core. The inventory icon
+            // stays crisp: no bloom in a 16 px cell.
+            if (context != ItemDisplayContext.GUI) {
+                face(m, context, core);
+                // Turned to the camera, the quad's +z points at it: back is -z.
+                core.translate(0.0F, 0.0F, -unit * HALO_BACK).scale(unit * HALO_SIZE);
+                DirectRenderer.submit(quad, null, 0, core, light, overlay, haloTint(t, artifact, 1.0F), pass,
+                        VariantUv.NONE, HALO_ONLY);
+            }
+            if (artifact.core() > 0.0F) {
+                face(m, context, core);
+                core.rotateZ(t * 0.5F).scale(unit * artifact.core());
+                DirectRenderer.submit(quad, null, 0, core, light, overlay, glowTint(t, artifact), pass,
+                        VariantUv.NONE, glowOnly(artifact));
+            }
             pose.popPose();
         }
+    }
+
+    /** {@code out}: at {@code m}'s origin, turned to whoever looks (the camera; the screen in the inventory). */
+    private static void face(Matrix4f m, ItemDisplayContext context, Matrix4f out) {
+        out.translation(m.getTranslation(new Vector3f()));
+        if (context != ItemDisplayContext.GUI) {
+            out.rotate(Minecraft.getInstance().gameRenderer.getMainCamera().rotation());
+        }
+    }
+
+    /**
+     * The bloom: its light colour at full brightness (blended, a dimmer colour would darken what is behind), its
+     * strength in the alpha (the shader multiplies it in): breathing with its glow, fading with the lift.
+     */
+    private static int haloTint(float t, Artifact artifact, float lift) {
+        float k = ((glowTint(t, artifact) & 0xFF) / 255.0F) * Mth.clamp(lift, 0.0F, 1.0F) * artifact.bloom();
+        return (int) (Mth.clamp(k, 0.0F, 1.0F) * 255.0F) << 24 | artifact.lightRgb() & 0xFFFFFF;
     }
 
     @Nullable
@@ -314,6 +360,15 @@ public final class ArtifactRenderer {
             Artifact artifact = item.artifact();
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
                     DirectPass.HAND, VariantUv.NONE, bodyOnly(artifact));
+            // Blended layers write no depth: drawn back to front, the bloom (behind) before the glow.
+            GemRenderGltfModel halo = coreModel();
+            if (halo != null) {
+                // View space: the eye looks down -z, so back is -z.
+                CORE_POSE.set(VIEW).translate(pose.artifact).translate(0.0F, 0.0F, -HeldArtifactPose.SCALE * HALO_BACK)
+                        .scale(HeldArtifactPose.SCALE * HALO_SIZE);
+                DirectRenderer.submit(halo, null, 0, CORE_POSE, light, OverlayTexture.NO_OVERLAY,
+                        haloTint(t, artifact, shownLift), DirectPass.HAND, VariantUv.NONE, HALO_ONLY);
+            }
             GemRenderGltfModel quad = artifact.core() > 0.0F ? coreModel() : null;
             if (quad != null) {
                 // View space: unrotated, the quad already faces the eye; it spins in its plane.
@@ -370,6 +425,13 @@ public final class ArtifactRenderer {
                     at.add((float) from.x, (float) from.y, (float) from.z);
                     strength = 1.0F;
                 }
+                // Just behind it from where we look: at its centre it floodlights its own body (a cage glows
+                // green from inside); a little past it, what we see of it is backlit and the light still spills
+                // round it on the ground and the hand.
+                Vector3f away = new Vector3f(at).sub((float) eye.x, (float) eye.y, (float) eye.z);
+                if (away.lengthSquared() > 1.0E-6F) {
+                    at.add(away.normalize().mul(LIGHT_BEHIND));
+                }
                 if (player == mc.player) {
                     LAST_LIGHT.set(at);
                 }
@@ -383,6 +445,8 @@ public final class ArtifactRenderer {
     }
 
     private static final HeldArtifactPose LIGHT_POSE = new HeldArtifactPose();
+    /** How far behind the artefact (from the camera) its light sits, blocks. */
+    private static final float LIGHT_BEHIND = 0.35F;
     /** Where our held artefact's light last was, world (the hold bench checks it). */
     public static final Vector3f LAST_LIGHT = new Vector3f();
     /** Arm lengths for others' lights (player_arms.glb, as the pose tests use). */

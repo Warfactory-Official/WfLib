@@ -423,7 +423,8 @@ public final class AnomalyDebug {
                 org.joml.Vector3f l = com.wf.wflib.artifact.client.ArtifactRenderer.LAST_LIGHT;
                 net.minecraft.world.phys.Vec3 to = new net.minecraft.world.phys.Vec3(l.x, l.y, l.z).subtract(eye);
                 double ahead = to.normalize().dot(mc.player.getLookAngle());
-                lightOk = ahead > 0.7D && to.length() > 0.3D && to.length() < 0.8D;
+                // At the artefact (~0.4 out) plus the set-back behind it (0.35).
+                lightOk = ahead > 0.7D && to.length() > 0.5D && to.length() < 1.1D;
                 LOGGER.info("[anomaly-test] hold: light {} from the eye, {} ahead",
                         String.format(Locale.ROOT, "%.2f", to.length()), String.format(Locale.ROOT, "%.2f", ahead));
             }

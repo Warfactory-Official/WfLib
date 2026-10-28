@@ -20,11 +20,13 @@ import net.minecraft.resources.ResourceLocation;
  * @param strike        strike_immunity: blunt blows (melee, gravitational anomalies)
  * @param healthRestore health_restore_speed: share of full health back per game second (X-Ray conditions run on
  *                      game time: {@link #TIME_FACTOR})
+ * @param bloom         strength of the glow round it, 0..1 (a see-through cage shows it through every gap: less)
  * @param lightRgb      trail_light_color, while held
  * @param lightRange    trail_light_range, blocks
  */
 public record Artifact(String id, ResourceLocation model, ResourceLocation body, ResourceLocation glow, boolean arcs,
-                       float core, float shock, float burn, float strike, float healthRestore, int lightRgb, float lightRange) {
+                       float core, float shock, float burn, float strike, float healthRestore, float bloom,
+                       int lightRgb, float lightRange) {
     /** GAMMA's alife time_factor: game seconds per real second, which its restore speeds are per. */
     public static final float TIME_FACTOR = 6.0F;
 
@@ -45,7 +47,7 @@ public record Artifact(String id, ResourceLocation model, ResourceLocation body,
      */
     public static final Artifact BATTERY = new Artifact("battery", wflib("models/artifact/battery.glb"),
             wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/battery_lightning.png"), true, 0.0F,
-            0.1212F, -0.095F, -0.27F, 0.0F, 0x99B3E6, 2.0F);
+            0.1212F, -0.095F, -0.27F, 0.0F, 1.0F, 0x99B3E6, 2.0F);
 
     /**
      * {@code af_soul} (Soul, chemical, tier 2): a green spiral glowing in a veined shell, from acid anomalies. GAMMA:
@@ -55,5 +57,5 @@ public record Artifact(String id, ResourceLocation model, ResourceLocation body,
      */
     public static final Artifact SOUL = new Artifact("soul", wflib("models/artifact/soul.glb"),
             wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/soul_glow.png"), false, 0.30F,
-            0.0F, 0.0F, 0.0F, 0.0003F, 0x80B333, 2.0F);
+            0.0F, 0.0F, 0.0F, 0.0003F, 0.35F, 0x80B333, 2.0F);
 }
