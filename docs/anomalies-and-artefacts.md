@@ -39,7 +39,7 @@ restores, calling WFMedical / WFWeight hooks when those mods are loaded.
 ### Push state (nothing below is pushed; the user confirms pushes)
 
 - WFLib `main`, 5 commits ahead of origin: `fe57d6d` 12 artefacts, `df2d339` Ring + hold bench, `d124a74` gallery
-  bench, `07356ba` glow/depth fixes, `f0bf92c` third-person size. Plus uncommitted: this doc, `tools/gamma/`,
+  bench, `07356ba` glow/depth fixes, `f0bf92c` third-person size. Plus uncommitted: this doc, `devtools/gamma/`,
   `models/artifact/CREDITS.md`.
 - WFMedical `7c83840` (needs the WFLib API above: `Artifacts.clotter`, `Artifacts.psyProtection`).
 - wfworldgen `ef84222`, `42ba399`.
@@ -65,9 +65,9 @@ restores, calling WFMedical / WFWeight hooks when those mods are loaded.
   WFLib-only swap once crashed MineAssault with NoSuchMethodError. Check `pgrep -a java | grep wf2-internal` first:
   the user may be playing.
 
-**`tools/` is gitignored upstream** ("tied to this dev setup"): `anomaly-bench.sh`, `park-window.py`,
-`xray-ogf.py`, `xray-db.py`, `xray-assets.py` and `tools/gamma/*` exist only in the `~/Codebases/WFLib-main` worktree,
-not in a fresh clone. Back them up before deleting that worktree.
+**Our scripts live in `devtools/` (tracked)**: `anomaly-bench.sh`, `park-window.py`, `xray-ogf.py`, `xray-db.py`,
+`xray-assets.py`, `gamma/*`. Upstream ignores any `tools/` folder (other people's local generators referenced in
+older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
 
 ## WFLib code map
 
@@ -78,7 +78,7 @@ not in a fresh clone. Back them up before deleting that worktree.
   RADIATION_FIELD, THERMAL_FIELD, ACID_FIELD, NO_GRAVITY. Each = behaviour (`MincerTuning` | `BlastTuning` |
   `FieldTuning`) + `AnomalyLook` + damage type. One block per type (`ModBlocks`), one shared block entity.
 - Ported from GAMMA zone sections + xray-monolith code. Look: GemRender lens refraction (`Lenses.submit`) for
-  gravitational ones, X-Ray particles (`client/xray`, `tools/xray-assets.py`) for the rest.
+  gravitational ones, X-Ray particles (`client/xray`, `devtools/xray-assets.py`) for the rest.
 - Client: effects only where the chunk section is compiled and in render distance; idle loops start within 24
   blocks, stop past 32; no anomaly sound may be `"stream": true` (only 8 streaming channels exist).
 - Commands: `/wflib anomalies [on|off]`, `/wflib anomalies site <tier> [motif|any [ruin|any|none]]` (builds a site
@@ -108,7 +108,7 @@ not in a fresh clone. Back them up before deleting that worktree.
   - put a Steam anomaly (`AnomalyType.STEAM`, X-Ray `zones/zone_steam_idle` particles) or a Burner/Thermal Field at
     each vent spot, ringed with basalt as now;
   - or a dedicated low-harm "vent" anomaly type (a `Quirk` or its own `AnomalyLook`) with a soft X-Ray smoke idle
-    group (GAMMA ships smoke `.pe`/`.pg` groups: import with `tools/xray-assets.py`).
+    group (GAMMA ships smoke `.pe`/`.pg` groups: import with `devtools/xray-assets.py`).
   Anomaly effects follow the client rules (only in compiled sections, in render distance) and the master switch, so
   with `anomalies.enabled=false` the vents make no smoke. Decide with the user whether that is right or whether vents
   need a decorative emitter that runs regardless. The camp ruin's campfire (`SiteRuins.java:189`) is unlit on
@@ -269,9 +269,9 @@ anomalies, healing and drug effects, and anything else misc. Nothing below is po
   `time_release` fade out), plus camera-shake keys.
 - **Camera effectors (`.anm`, `anims/camera_effects/`)**: object motion (position and rotation envelopes) applied to
   the camera: hit kicks, earthquakes, drunk sway, fatigue, item use, waking up.
-- Base files: `anomaly/db/meshes/anims.db0` -> `tools/xray-db.py <out> 'anims/*' ~/Games/GAMMA/anomaly/db/meshes/anims.db0`
+- Base files: `anomaly/db/meshes/anims.db0` -> `devtools/xray-db.py <out> 'anims/*' ~/Games/GAMMA/anomaly/db/meshes/anims.db0`
   (128 `.ppe`, ~50 non-weapon camera `.anm`). Mod overrides: `gamma/mods/*/gamedata/anims/`. Triggers: base scripts
-  (`tools/xray-db.py <out> 'scripts/*' .../configs/scripts.db0`), mod scripts, and configs (`misc/postprocess.ltx`,
+  (`devtools/xray-db.py <out> 'scripts/*' .../configs/scripts.db0`), mod scripts, and configs (`misc/postprocess.ltx`,
   zone and creature LTX). Formats: xray-monolith `src/xrEngine` (`PostProcessAnimator.cpp`, `Envelope.cpp`, object
   motion for `.anm`); `.anm` also imports in Blender's `io_scene_xray` (MineAssault's smoking bake already uses that).
 - Third-party data like the rest: internal only, credit sources.
@@ -376,7 +376,7 @@ Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_f
 - Unit (`src/test/.../anomaly`): AnomalyPathTest, AnomalyTypesTest, BlastTuningTest, MincerTuningTest, SitePlanTest;
   `artifact/client/HeldArtifactPoseTest`. GameTests: `anomaly/gametest/RebounderGameTest`, `SiteLayoutGameTest`
   (layouts need Blocks, which plain unit tests can't load), plus `ItemMassGameTest`.
-- `tools/anomaly-bench.sh`: dev client into `run/saves/anomaly-bench`, window parked on Hyprland **workspace 15**
+- `devtools/anomaly-bench.sh`: dev client into `run/saves/anomaly-bench`, window parked on Hyprland **workspace 15**
   (never on the user's visible workspaces), writes `run/wflib-anomaly-test.txt`, screenshots in `run/screenshots`.
   Env: `BENCH_TEST`, `BENCH_BLOCK=wflib:<anomaly>`, `BENCH_ITEM=wflib:<artefact>`, `BENCH_TIME=day|night`,
   `BENCH_ARGS` (Gradle), `BENCH_JVM`, `GEMRENDER_JAR`.
@@ -400,17 +400,17 @@ GAMMA is installed at `~/Games/GAMMA` (`gamma/mods/*` in MO2 order from `gamma/p
 base archives in `anomaly/db/`). All converted art is third-party: **internal only**, provenance in the
 `CREDITS.md` beside the models; clear or replace before anything ships.
 
-1. Extract base files the mods don't ship loose: `tools/xray-db.py <out> '<glob>' <archive>...`
+1. Extract base files the mods don't ship loose: `devtools/xray-db.py <out> '<glob>' <archive>...`
    (e.g. `'meshes/dynamics/artefacts/*'` from `anomaly/db/meshes/*.db*`, `'textures/artifact/*'`,
    `'configs/*'` from `anomaly/db/configs.db0`).
-2. `tools/gamma/gamma_find.py <gamma> <base> <rel>`: the file that wins in GAMMA (mods top-first, then base).
-3. `tools/gamma/gamma_artefacts.py <base>/configs <gamma> [out.json]`: every artefact section resolved (base LTX +
+2. `devtools/gamma/gamma_find.py <gamma> <base> <rel>`: the file that wins in GAMMA (mods top-first, then base).
+3. `devtools/gamma/gamma_artefacts.py <base>/configs <gamma> [out.json]`: every artefact section resolved (base LTX +
    mods + DLTX `mod_system_*` patches) with fx, light, weight, tier.
-4. `tools/xray-ogf.py <ogf>` lists children with texture and **shader**; the shader decides the slot kind:
+4. `devtools/xray-ogf.py <ogf>` lists children with texture and **shader**; the shader decides the slot kind:
    `models\artefact`, `artefact2`, `xanomaly` -> `body` (texture alpha is gloss: forced opaque); `selflightl` ->
    `glowsolid` (opaque, self-lit); `lightplanes` -> `glow` (additive light cards; drawn alpha-blended);
    `xdistortcolor(l)` -> blended veil; `xdistort` -> refraction only, not drawn.
-5. `tools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib`: converts the 2026-10-28 batch (edit
+5. `devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib`: converts the 2026-10-28 batch (edit
    `BATCH` for new ones): textures (max 512 px, `_bloom.png` blurred copies for blended glows), glbs (`--centre`).
    Afterwards by hand: Ring scaled x4 and stood upright; Sparkler/Dummy shells MASK 0.3, Fireball shell OPAQUE.
    Delete `_bloom.png` files no blended glow uses.
