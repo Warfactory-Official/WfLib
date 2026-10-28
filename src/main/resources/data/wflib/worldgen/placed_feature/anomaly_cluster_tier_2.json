@@ -1,0 +1,16 @@
+{
+  "feature": "wflib:anomaly_cluster_tier_2",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 128
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "WORLD_SURFACE_WG"
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

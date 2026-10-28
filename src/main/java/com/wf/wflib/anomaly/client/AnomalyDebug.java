@@ -209,6 +209,7 @@ public final class AnomalyDebug {
         }
         lookTick(mc);
         holdTick(mc);
+        clusterTick(mc);
         if (measureSay > 0 && --measureSay == 0) {
             float m = Lenses.getInstance().measured();
             say(m < 0.0F ? "measure: no lens pass ran (nothing submitted, or the pass is off)"
@@ -253,6 +254,7 @@ public final class AnomalyDebug {
                 case "bolt" -> trigger(true);
                 case "look" -> look();
                 case "hold" -> hold();
+                case "clusters" -> clusters();
                 default -> false;
             };
             if (!started) {
@@ -546,6 +548,124 @@ public final class AnomalyDebug {
             looking = null;
             finish(verdict, status());
         }
+    }
+
+    /** {@code -Dwflib.anomalyTest.tier}: the cluster test's tier (each design at least its own). */
+    private static final int CLUSTER_TIER = Integer.getInteger("wflib.anomalyTest.tier", 3);
+    /** {@code -Dwflib.anomalyTest.designs=arch,pit}: only these (default all). */
+    private static final com.wf.wflib.anomaly.cluster.ClusterPlan.Design[] CLUSTER_DESIGNS =
+            java.util.Arrays.stream(com.wf.wflib.anomaly.cluster.ClusterPlan.Design.values())
+                    .filter(d -> System.getProperty("wflib.anomalyTest.designs", "").isEmpty()
+                            || List.of(System.getProperty("wflib.anomalyTest.designs").split(","))
+                            .contains(d.name().toLowerCase(Locale.ROOT)))
+                    .toArray(com.wf.wflib.anomaly.cluster.ClusterPlan.Design[]::new);
+    private static int[] clustering;
+    private static final List<String> clusterLines = new ArrayList<>();
+
+    /**
+     * {@code clusters}: one cluster of each design on untouched ground (160 blocks apart, well off the bench), each
+     * photographed from a corner and from overhead ({@code anomaly-cluster-<design>-<view>.png}); the result lists
+     * the anomalies and artefacts found round each.
+     */
+    private static boolean clusters() {
+        BlockPos p = Minecraft.getInstance().player.blockPosition();
+        // design, ticks into it, first site x z, this site's middle x z, retry offset, tries
+        clustering = new int[]{0, 0, p.getX() + 400, p.getZ(), 0, 0, 0, 0};
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+                (net.neoforged.neoforge.client.event.ClientChatReceivedEvent.System e) -> {
+                    String line = e.getMessage().getString();
+                    if (line.startsWith("Tier ") || line.startsWith("No ground")) {
+                        clusterReply = line;
+                    }
+                });
+        Minecraft.getInstance().player.connection.sendCommand("gamemode spectator");
+        Minecraft.getInstance().player.connection.sendCommand("weather clear 1000000");
+        return true;
+    }
+
+    /** The server's answer to the last cluster command ("Tier 3 crater at x z, ..." or "No ground ..."). */
+    @Nullable
+    private static volatile String clusterReply;
+    private static final java.util.regex.Pattern CLUSTER_AT =
+            java.util.regex.Pattern.compile(" at (-?\\d+) (-?\\d+), radius \\d+: (\\d+) anomalies");
+
+    private static void clusterTick(Minecraft mc) {
+        if (clustering == null) {
+            return;
+        }
+        var designs = CLUSTER_DESIGNS;
+        var design = designs[clustering[0]];
+        String name = design.name().toLowerCase(Locale.ROOT);
+        int x = clustering[2] + clustering[0] * 160 + clustering[6];
+        int z = clustering[3];
+        int t = clustering[1]++;
+        if (t == 0) {
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %d 200 %d", x, z));
+        } else if (t == 140) {
+            clusterReply = null;
+            int tier = Math.max(CLUSTER_TIER, design.minTier);
+            mc.player.connection.sendCommand(String.format(Locale.ROOT,
+                    "execute positioned %d 100 %d run wflib anomalies cluster %d %s", x, z, tier, name));
+        } else if (t > 140 && t < 240) {
+            String reply = clusterReply;
+            if (reply == null) {
+                return;
+            }
+            clusterReply = null;
+            if (reply.startsWith("No ground") && ++clustering[7] < 3) {
+                // Water or hills all round: try a stretch further on.
+                clustering[6] += 300;
+                clustering[1] = 0;
+                return;
+            }
+            clusterLines.add(name + ": " + reply);
+            say(name + ": " + reply);
+            java.util.regex.Matcher m = CLUSTER_AT.matcher(reply);
+            if (!m.find()) {
+                nextCluster();
+                return;
+            }
+            clustering[4] = Integer.parseInt(m.group(1));
+            clustering[5] = Integer.parseInt(m.group(2));
+            // Let the new blocks reach the client, then the camera.
+            clustering[1] = 200;
+        } else if (t == 240) {
+            x = clustering[4];
+            z = clustering[5];
+            // Above whichever is higher, the middle or where the camera stands (a pit's middle is its floor).
+            var surface = net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE;
+            int y = Math.max(mc.level.getHeight(surface, x, z), mc.level.getHeight(surface, x - 20, z - 20));
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %d %.1f -45 32", x - 19.5D, y + 16,
+                    z - 19.5D));
+        } else if (t == 300) {
+            x = clustering[4];
+            z = clustering[5];
+            shot("cluster-" + name + "-corner");
+            var surface = net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE;
+            int y = Math.max(mc.level.getHeight(surface, x, z), mc.level.getHeight(surface, x + 12, z + 12));
+            mc.player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 90", x + 0.5D, y + 30,
+                    z + 0.5D));
+        } else if (t == 350) {
+            shot("cluster-" + name + "-top");
+            nextCluster();
+        }
+    }
+
+    private static void nextCluster() {
+        clustering[0]++;
+        clustering[1] = 0;
+        clustering[6] = 0;
+        clustering[7] = 0;
+        if (clustering[0] < CLUSTER_DESIGNS.length) {
+            return;
+        }
+        clustering = null;
+        boolean all = clusterLines.size() == CLUSTER_DESIGNS.length && clusterLines.stream().allMatch(l -> {
+            java.util.regex.Matcher m = CLUSTER_AT.matcher(l);
+            return m.find() && Integer.parseInt(m.group(3)) > 0;
+        });
+        finish(List.of((all ? "[PASS]" : "[FAIL]") + " anomaly clusters: every design placed anomalies"),
+                clusterLines);
     }
 
     private static void shot(String name) {
