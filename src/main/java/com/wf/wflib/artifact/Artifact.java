@@ -63,8 +63,17 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
         return immunity.getOrDefault(hit, 0.0F);
     }
 
+    /** Unlit: {@code glow*} slots, the blended ones ({@code glow}, {@code glow2}) and solid ones ({@code glowsolid*}). */
     public static boolean glowSlot(String slot) {
         return slot.startsWith("glow");
+    }
+
+    /**
+     * Blooms: blended glows only. A solid glow ({@code glowsolid*}: STALKER's opaque self-lit parts) would have its
+     * blurred copy drawn opaque over it, at the same depth.
+     */
+    public static boolean bloomSlot(String slot) {
+        return glowSlot(slot) && !slot.startsWith("glowsolid");
     }
 
     /** A glow slot's texture blurred: what its bloom draws ({@code <texture>_bloom.png}). */
@@ -188,7 +197,7 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .bloom(0.9F).health(0.0003F).power(-0.00035F).light(0x80B333, 2.0F).found(1, Element.GRAVITY, 1).build();
 
     /** {@code af_cristall} (Crystal): burning orange crystal from thermal anomalies. */
-    public static final Artifact CRYSTAL = artifact("crystal").slot("glow", "artifact_lavahell1")
+    public static final Artifact CRYSTAL = artifact("crystal").slot("glowsolid", "artifact_lavahell1")
             .resists(Hit.BURN, 0.24375F).resists(Hit.SHOCK, 0.1818F).resists(Hit.CHEMICAL, -0.27F)
             .light(0xE66633, 2.0F).found(2, Element.FIRE, 2).build();
     /** {@code af_itcher} (Itcher). */
@@ -201,7 +210,7 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .light(0x666600, 2.0F).found(1, Element.CHEMICAL, 2).build();
     /** {@code af_fireball} (Fireball): a molten ball in a heat haze. */
     public static final Artifact FIREBALL = artifact("fireball").slot("body", "artifact_lavahell1")
-            .slot("glow", "artifact_loner_lava").slot("glow2", "artifact_loner_lavahell")
+            .slot("glowsolid", "artifact_loner_lava").slot("glowsolid2", "artifact_loner_lavahell")
             .resists(Hit.BURN, 0.41F).resists(Hit.SHOCK, -0.22725F).resists(Hit.STRIKE, -0.74F)
             .resists(Hit.WOUND, 0.285F).resists(Hit.BULLET, 0.19486F)
             .light(0xE66633, 2.0F).found(3, Element.FIRE, 3).build();
@@ -210,7 +219,7 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .resists(Hit.SHOCK, 0.0606F).resists(Hit.WOUND, 0.1425F).resists(Hit.CHEMICAL, -0.27F)
             .light(0x99B3E6, 2.0F).found(1, Element.ELECTRIC, 1).build();
     /** {@code af_dummy_glassbeads} (Glass Beads). */
-    public static final Artifact GLASS_BEADS = artifact("glass_beads").slot("glow", "artifact_lava")
+    public static final Artifact GLASS_BEADS = artifact("glass_beads").slot("glowsolid", "artifact_lava")
             .resists(Hit.BURN, 0.08125F).resists(Hit.SHOCK, -0.135F).bleeding(0.00408F)
             .light(0xE66633, 2.0F).found(1, Element.FIRE, 1).build();
     /** {@code af_electra_moonlight} (Moonlight). */
@@ -223,7 +232,7 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .slot("glow2", "artifact_fire_light").resists(Hit.SHOCK, 0.303F).resists(Hit.PSY, 0.275F)
             .health(-0.0003F).power(-0.00137F).light(0x99B3E6, 2.0F).found(3, Element.ELECTRIC, 3).build();
     /** {@code af_ice} (Ice). */
-    public static final Artifact ICE = artifact("ice").slot("glow", "artifact_hell1").slot("glow2", "artifact_sopli2")
+    public static final Artifact ICE = artifact("ice").slot("glowsolid", "artifact_hell1").slot("glowsolid2", "artifact_sopli2")
             .resists(Hit.PSY, -0.13F).health(-0.0006F).power(0.0017F)
             .light(0x99B3E6, 2.0F).found(3, Element.GRAVITY, 3).build();
     /** {@code af_ring} (Ring). */
@@ -232,11 +241,11 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .light(0x666600, 2.0F).found(2, Element.ELECTRIC, 2).build();
     /** {@code af_dummy_dummy} (Dummy). */
     public static final Artifact DUMMY = artifact("dummy").slot("body", "artifact_sopli")
-            .slot("glow", "artifact_anim_lightning").slot("glow2", "artifact_sopli2").arcs()
+            .slot("glow", "artifact_anim_lightning").slot("glowsolid2", "artifact_sopli2").arcs()
             .resists(Hit.PSY, 0.165F).health(-0.0006F).light(0x99B3E6, 2.0F).found(2, Element.GRAVITY, 2).build();
     /** {@code af_cristall_flower} (Stone Flower). */
     public static final Artifact STONE_FLOWER = artifact("stone_flower").slot("body", "artifact_myasorubka2")
-            .slot("glow", "artifact_hell1").resists(Hit.BURN, -0.176F).resists(Hit.CHEMICAL, 0.24888F)
+            .slot("glowsolid", "artifact_hell1").resists(Hit.BURN, -0.176F).resists(Hit.CHEMICAL, 0.24888F)
             .resists(Hit.PSY, 0.11F).light(0x666600, 2.0F).found(1, Element.GRAVITY, 1).build();
 
     public static final List<Artifact> ALL = List.of(BATTERY, SOUL, CRYSTAL, ITCHER, SPONGE, FIREBALL, SPARKLER,

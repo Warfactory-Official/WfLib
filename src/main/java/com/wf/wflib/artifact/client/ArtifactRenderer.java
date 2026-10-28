@@ -86,7 +86,7 @@ public final class ArtifactRenderer {
         return new TextureSlots() {
             @Override
             public ResourceLocation texture(String slot) {
-                ResourceLocation t = Artifact.glowSlot(slot) ? artifact.slots().get(slot) : null;
+                ResourceLocation t = Artifact.bloomSlot(slot) ? artifact.slots().get(slot) : null;
                 return t == null ? null : Artifact.bloomOf(t);
             }
 
