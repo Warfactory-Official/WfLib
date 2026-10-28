@@ -36,18 +36,17 @@ per candidate chunk -> `SitePainter` builds terrain, ruins, anomalies and hidden
 them with a `DetectorItem`, probe with `BoltItem`, wear them in Curios -> `Artifacts` applies immunities and
 restores, calling WFMedical / WFWeight hooks when those mods are loaded.
 
-### Push state (nothing below is pushed; the user confirms pushes)
+### Push state (2026-10-28: everything pushed)
 
-- WFLib `main`, 5 commits ahead of origin: `fe57d6d` 12 artefacts, `df2d339` Ring + hold bench, `d124a74` gallery
-  bench, `07356ba` glow/depth fixes, `f0bf92c` third-person size. Plus uncommitted: this doc, `devtools/gamma/`,
-  `models/artifact/CREDITS.md`.
-- WFMedical `7c83840` (needs the WFLib API above: `Artifacts.clotter`, `Artifacts.psyProtection`).
-- wfworldgen `ef84222`, `42ba399`.
-- **Push order: WFWeight -> WFLib -> WFMedical.** Remote CI resolves the published snapshots; WFMedical's CI fails to
-  compile until WFLib's nightly with the new API is published.
-- MineAssault: the instance jar is built from the local worktree branch. MineAssault `master` cannot build (it
-  imports `com.wf.gemrender.gltf.GltfSkeleton`, which is on no pushed GemRender branch). **Cherry-pick
-  `ZoneHandsViewmodel` (c0385d2 on that branch) to master once GemRender's GltfSkeleton lands.**
+- WFLib `main`: the artefact batch, glow/layering fixes, gallery bench, rigged low-poly detectors (`d9689cb`),
+  `devtools/` (`ab8ae34`) and this doc. WFMedical `neoforge-1.21.1` `7c83840`; wfworldgen `master` `42ba399`; wfcore and
+  WFWeight had nothing new. Nightlies for WFLib and WFMedical passed.
+- **Push order for cross-repo API changes: WFWeight -> WFLib -> WFMedical.** Remote CI resolves the published
+  snapshots; WFMedical's CI fails to compile until WFLib's nightly with the new API is published.
+- MineAssault: the detector/bolt viewmodel is on branch **`instance/ma-0f896c4-wflib-main`** (pushed; `c0385d2`),
+  not `master`. `master` cannot build (it imports `com.wf.gemrender.gltf.GltfSkeleton`, on no pushed GemRender
+  branch). **Cherry-pick `ZoneHandsViewmodel` (c0385d2) to master once GemRender's GltfSkeleton lands.**
+- Not in git on purpose: `art/detectors/handoff/` (an 8 MB copy of the user's detector zip).
 
 ## Build, install, run
 
@@ -421,7 +420,7 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 
 ## Remaining work (rough priority)
 
-1. **Push** (with the user's go): WFLib -> WFMedical; wfworldgen. Then the instance gets jars built from pushed code.
+1. **Instance jars from pushed code**: rebuild the Prism instance's WFLib/WFMedical from `main` / `neoforge-1.21.1`.
 2. **Prepared tests** for the gaps listed under Tests.
 1a. **Rigged low-poly detectors in game** (clips, faces on bones, then baked hands) and the **bolt rework**
    (2D, physics, pick-up, GregTech `c:bolts`): see their sections under Detection.
