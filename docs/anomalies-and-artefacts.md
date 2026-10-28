@@ -219,7 +219,21 @@ Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_f
   `zzz_player_injuries` (head trauma: `concussion_bhs.ppe` -> `concussion_post_bhs.ppe` + `wake_up.anm`;
   `blur_bhs.ppe`; shaking aim when arms are hurt; limp); Radiation Effects Overhaul
   `grok_progressive_rad_damages` (`blur2.ppe` as radiation builds).
-- Death: `actor_death.ppe`, `death.ppe`.
+- Death (decoded with a `.ppe` dump; xray-monolith `ActorCondition.cpp` / `Actor.cpp`):
+  - Engine dying sequence (`CActorDeathEffector`): under 5% health it hides weapon and HUD, locks input, plays a
+    dying sound, runs `actor_death.ppe` once with `drunk.anm` swaying, holds health until the effect ends, then kills.
+    **Anomaly ships it switched off** (the section is `_actor_death_effector`, the engine looks for
+    `actor_death_effector`). `actor_death.ppe`, 3 s: faint red tint 0.5-1.5 s, film grain building (0.33 to 0.8,
+    coarser and faster), then darkening (-0.4).
+  - Plain death: a death sound, camera to first-eye then a free-look orbit round the body, then the game-over menu.
+    No post-process.
+  - `rcom_actor_death_quick.ppe`, 3 s (Seraphim's cheat-death, with `surge_02.anm`): the red tint, washing to cold
+    grey (0.75), double vision growing hard (duality to 0.66 / 0.88), fade to black.
+  - `death.ppe`, 6 s loop: desaturated green-grey, grey pulsing 0.5-0.85, heavy grain, slight blur; nothing in base
+    Anomaly or GAMMA's scripts plays it.
+  - `black_infinite.ppe`: solid black (psy death, blackout scenes).
+  - For us: the dying sequence fits WFMedical's downed state (it already has `UnconsciousOverlay` /
+    `GiveUpOverlay`); the plain-death orbit and menu are vanilla Minecraft's to replace or keep; the user decides.
 
 **Psy** (ours is WFMedical stress):
 - `arszi_psy.script` psy health: 0.9-1 `blur.ppe`; below that `blur.ppe` + `snd_shock.ppe` scaled by intensity; 0
@@ -329,11 +343,15 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
      (+-0.0005..0.0017), ignored until radiation is wired (item 4): adding them first drops a radiation side effect.
    - **Unique (GAMMA spawns them once)**: af_dummy_pellicle Pellicle, af_oasis_heart Heart of the Oasis. Candidates
      for rare tier-4 (PIT) finds; user's call.
-   - **Junk, out (53)**: the 32 of `items_artefacts_junk.ltx` (no effects: af_atom, af_ball, af_bat, af_black,
-     af_black_angel, af_cell, af_chelust, af_cocoon, af_dragon_eye, af_ear, af_elektron, af_fire_loop, af_fonar,
-     af_fountain, af_generator, af_grapes, af_kislushka, af_kogot, af_lighthouse, af_medallion, af_moh, af_peas,
-     af_repei, af_sandstone, af_serofim, af_signet, af_skull_miser, af_spaika, af_star_phantom, af_sun, af_tapeworm,
-     af_zhelch); 11 `af_ah_*` "Anomalous Sample" collector items (New Storylines; flat 4000, junk meshes, "lack of
+   - **Perk artefacts (25), not junk in GAMMA**: base Anomaly's `items_artefacts_junk.ltx` gives these no stats, but
+     GAMMA's Perk-Based Artefacts (`perk_based_artefacts.script`, "special perks and unique properties to junk
+     artefacts") gives each a scripted perk, e.g. af_serofim Seraphim cheats death once (collapse, revive). Each needs
+     its own new effect: af_ball, af_bat, af_black_angel, af_cell, af_chelust, af_cocoon, af_dragon_eye, af_elektron,
+     af_fonar, af_fountain, af_generator, af_kogot, af_lighthouse, af_medallion, af_moh, af_peas, af_repei,
+     af_sandstone, af_serofim, af_skull_miser, af_spaika, af_star_phantom, af_sun, af_tapeworm, af_zhelch. Read the
+     perk table in that script before choosing.
+   - **Junk, out (28)**: the 7 junk-file artefacts with no perk (af_atom, af_black, af_ear, af_fire_loop, af_grapes,
+     af_kislushka, af_signet); 11 `af_ah_*` "Anomalous Sample" collector items (New Storylines; flat 4000, junk meshes, "lack of
      useful properties"); af_geliy, af_gimlet, af_vaselisk (New Storylines quest objects, no effects); af_lucifer
      (scripted easter egg, 666); af_base, af_base_1 (abstract parent sections); Amebas x3 (no spawn group or
      detector); af_tlf_prometheus (quest reward).
