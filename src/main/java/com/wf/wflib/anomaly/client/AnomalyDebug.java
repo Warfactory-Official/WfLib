@@ -209,6 +209,7 @@ public final class AnomalyDebug {
         }
         lookTick(mc);
         holdTick(mc);
+        galleryTick(mc);
         clusterTick(mc);
         detectTick(mc);
         handsTick(mc);
@@ -256,6 +257,14 @@ public final class AnomalyDebug {
                 case "bolt" -> trigger(true);
                 case "look" -> look();
                 case "hold" -> hold();
+                case "gallery" -> {
+                    // The bench anomaly stands behind the display: its lens would refract the shots, its debris
+                    // speckle them.
+                    mc.player.connection.sendCommand(String.format(Locale.ROOT, "setblock %d %d %d air",
+                            placed.getX(), placed.getY(), placed.getZ()));
+                    gallery = 0;
+                    yield true;
+                }
                 case "clusters" -> clusters();
                 case "detect" -> detect();
                 case "hands" -> {
@@ -517,6 +526,47 @@ public final class AnomalyDebug {
             }
             default -> {
             }
+        }
+    }
+
+    private static int gallery = -1;
+    /** Gallery turns (item_display left_rotation): face on, a quarter turn, tipped 60 degrees toward the eye. */
+    private static final String[] GALLERY_TURNS = {"[0f,0f,0f,1f]", "[0f,0.7071f,0f,0.7071f]", "[0.5f,0f,0f,0.866f]"};
+    private static final int GALLERY_STEP = 40;
+
+    /**
+     * {@code gallery}: every artefact large and close on an item display at eye height, horizon behind it (sky over,
+     * grass under), from three sides; screenshots {@code gallery-<id>-<turn>-<time>} for checking glow, faces and
+     * layering by eye.
+     */
+    private static void galleryTick(Minecraft mc) {
+        if (gallery < 0) {
+            return;
+        }
+        int step = gallery / GALLERY_STEP;
+        int phase = gallery % GALLERY_STEP;
+        gallery++;
+        List<com.wf.wflib.artifact.Artifact> all = com.wf.wflib.artifact.Artifact.ALL;
+        if (step >= all.size() * GALLERY_TURNS.length) {
+            gallery = -1;
+            mc.options.hideGui = false;
+            finish(List.of("[PASS] artifact gallery: " + step + " shots"), status());
+            return;
+        }
+        com.wf.wflib.artifact.Artifact a = all.get(step / GALLERY_TURNS.length);
+        int turn = step % GALLERY_TURNS.length;
+        if (phase == 0) {
+            mc.options.hideGui = true;
+            mc.player.setYRot(-90.0F);
+            mc.player.setXRot(0.0F);
+            Vec3 eye = mc.player.getEyePosition();
+            mc.player.connection.sendCommand("kill @e[type=item_display]");
+            mc.player.connection.sendCommand(String.format(Locale.ROOT,
+                    "summon item_display %.2f %.2f %.2f {item:{id:\"wflib:%s\",count:1},item_display:\"fixed\","
+                            + "transformation:{left_rotation:%s,right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],"
+                            + "scale:[1f,1f,1f]}}", eye.x + 1.6D, eye.y, eye.z, a.id(), GALLERY_TURNS[turn]));
+        } else if (phase == GALLERY_STEP - 5) {
+            shot("gallery-" + a.id() + "-" + turn + "-" + AUTO_TIME);
         }
     }
 
