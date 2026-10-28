@@ -489,7 +489,8 @@ public final class AnomalyDebug {
             case 270 -> healthHealing = mc.player.getHealth();
             case 370 -> {
                 com.wf.wflib.artifact.Artifact a = wornArtifact();
-                float lost = healthBefore - mc.player.getHealth();
+                // Taken just after the hit: a draining artefact keeps taking health over the healing window.
+                float lost = healthBefore - healthHealing;
                 float healed = mc.player.getHealth() - healthHealing;
                 mc.player.connection.sendCommand("effect give @s minecraft:instant_health 1 10 true");
                 mc.player.connection.sendCommand("gamemode creative");
@@ -497,8 +498,9 @@ public final class AnomalyDebug {
                 holding = -1;
                 // Shock: as above. Healing: 5 s at its rate (ticks counted server side, so a tick either way).
                 float expectHeal = a.healthPerSecond(mc.player.getMaxHealth()) * 5.0F;
-                boolean worn = a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK) != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK))) < 0.05F
-                        : Math.abs(healed - expectHeal) <= a.healthPerSecond(mc.player.getMaxHealth()) + 0.01F;
+                float perSecond = Math.abs(a.healthPerSecond(mc.player.getMaxHealth()));
+                boolean worn = a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK) != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.immunity(com.wf.wflib.artifact.Artifact.Hit.SHOCK))) < 0.05F + perSecond
+                        : Math.abs(healed - expectHeal) <= perSecond + 0.01F;
                 boolean away = switchChecks.size() == 2 && switchChecks.get(0);
                 boolean back = switchChecks.size() == 2 && switchChecks.get(1);
                 boolean lit = lightOk;
