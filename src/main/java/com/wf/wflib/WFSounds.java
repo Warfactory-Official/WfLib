@@ -79,6 +79,11 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIREBALL_IDLE = register("anomaly.fireball_idle");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIREBALL_BLOW = register("anomaly.fireball_blow");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FIRE2 = register("anomaly.fire2");
+    /** STALKER's detectors: the Echo's beep, the Bear's and Veles' (STALKER's da-2), out and away. */
+    public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_ECHO_BEEP = register("detector.echo_beep");
+    public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_BEAR_BEEP = register("detector.bear_beep");
+    public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_DRAW = register("detector.draw");
+    public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_HOLSTER = register("detector.holster");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RND_FLY1 = register("anomaly.rnd_fly1");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RND_FLY2 = register("anomaly.rnd_fly2");
 

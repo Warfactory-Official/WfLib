@@ -351,7 +351,7 @@
   "item.wflib.ammo_can_7_62x51": "7.62mm Ammo Can",
   "item.wflib.spare_barrel": "Spare Barrel",
   "item.wflib.spare_barrel.typed": "Spare Barrel (%s)",
-  "tooltip.wflib.barrel.temp": "%s \u00b0C",
+  "tooltip.wflib.barrel.temp": "%s °C",
   "tooltip.wflib.barrel.wear": "Wear %s%%",
   "item.wflib.ammo_can_12_7x99": ".50 BMG Ammo Can",
   "item.wflib.ammo_can_12_7x108": "12.7x108mm Ammo Can",
@@ -415,5 +415,15 @@
   "key.wflib.skin": "Equipment skin: choose (held item, or hovered in the inventory)",
   "screen.wflib.skin": "Choose skin",
   "tooltip.wflib.skin": "Skin: %s (%s/%s)",
-  "tooltip.wflib.skin.change": "%s skins - press %s to change"
+  "tooltip.wflib.skin.change": "%s skins - press %s to change",
+  "item.wflib.detector_echo": "Echo Detector",
+  "item.wflib.detector_bear": "Bear Detector",
+  "item.wflib.detector_veles": "Veles Detector",
+  "item.wflib.bolt": "Bolts",
+  "item.wflib.detector.range": "Hears artefacts within %s m, shows them within %s m",
+  "item.wflib.detector.display.led": "Beeps faster as one nears",
+  "item.wflib.detector.display.direction": "Points to the nearest artefact",
+  "item.wflib.detector.display.screen": "Shows every artefact in range on its screen",
+  "entity.wflib.zone_artifact": "Artefact",
+  "entity.wflib.bolt": "Bolt"
 }

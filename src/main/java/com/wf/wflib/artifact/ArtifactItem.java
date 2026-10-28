@@ -21,6 +21,14 @@ public class ArtifactItem extends Item {
         return artifact;
     }
 
+    /**
+     * The lowest detector rank that finds it (1: the Echo). shortcut: every artefact so far is on GAMMA's Echo list;
+     * a field on {@link Artifact} once one isn't.
+     */
+    public int detectRank() {
+        return 1;
+    }
+
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
         line(lines, "shock", artifact.shock());

@@ -10,7 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.entity.item.ItemEntity;
+import com.wf.wflib.artifact.detect.ZoneArtifact;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
@@ -111,17 +111,12 @@ final class SitePainter {
         }
     }
 
-    /**
-     * An artefact where it lies. shortcut: a never-despawning item on the ground, visible to all; becomes the hidden,
-     * detector-found artefact when detection lands.
-     */
+    /** An artefact where it lies: hidden till a detector comes near ({@link ZoneArtifact}). */
     private static void spawnArtefact(WorldGenLevel level, LootSpot s) {
         ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
                 s.loot().id)));
-        ItemEntity item = new ItemEntity(level.getLevel(), s.pos().getX() + 0.5D, s.pos().getY() + 0.05D,
-                s.pos().getZ() + 0.5D, stack, 0.0D, 0.0D, 0.0D);
-        item.setUnlimitedLifetime();
-        level.addFreshEntity(item);
+        level.addFreshEntity(new ZoneArtifact(level.getLevel(), stack, s.pos().getX() + 0.5D, s.pos().getY() + 0.05D,
+                s.pos().getZ() + 0.5D));
     }
 
     static Block block(String id) {

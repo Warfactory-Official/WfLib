@@ -385,7 +385,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/anomaly_mincer_blowout",
-        "stream": true,
         "attenuation_distance": 40
       }
     ]
@@ -412,7 +411,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/gravi_idle00",
-        "stream": true,
         "attenuation_distance": 20
       }
     ]
@@ -421,7 +419,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/gravi_blowout6",
-        "stream": true,
         "attenuation_distance": 40
       }
     ]
@@ -430,7 +427,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/gravi_rumble1",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -448,7 +444,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/electra_idle1",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -457,7 +452,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/electra_blast1",
-        "stream": true,
         "attenuation_distance": 40
       }
     ]
@@ -475,7 +469,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/fire_idle",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -484,7 +477,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/zhar_blow",
-        "stream": true,
         "attenuation_distance": 32
       }
     ]
@@ -502,7 +494,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/buzz_idle",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -511,7 +502,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/buzz_hit",
-        "stream": true,
         "attenuation_distance": 24
       }
     ]
@@ -520,7 +510,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/steam",
-        "stream": true,
         "attenuation_distance": 20
       }
     ]
@@ -529,7 +518,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/steam_blowout",
-        "stream": true,
         "attenuation_distance": 32
       }
     ]
@@ -574,7 +562,6 @@
     "sounds": [
       {
         "name": "wflib:xray/eugenium_anomaly/net/net_idle",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -637,7 +624,6 @@
     "sounds": [
       {
         "name": "wflib:xray/eugenium_anomaly/green_dragon/green_dragon_idle",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -655,7 +641,6 @@
     "sounds": [
       {
         "name": "wflib:xray/eugenium_anomaly/sphere/sphere_idle",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -673,7 +658,6 @@
     "sounds": [
       {
         "name": "wflib:xray/eugenium_anomaly/mefistotel/mefistotel_idle",
-        "stream": true,
         "attenuation_distance": 20
       }
     ]
@@ -700,7 +684,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/bfuzz_blowout",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -709,7 +692,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/bfuzz_hit",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -718,7 +700,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/fireball_idle",
-        "stream": true,
         "attenuation_distance": 24
       }
     ]
@@ -727,7 +708,6 @@
     "sounds": [
       {
         "name": "wflib:xray/anomaly/fireball_blow",
-        "stream": true,
         "attenuation_distance": 32
       }
     ]
@@ -736,7 +716,6 @@
     "sounds": [
       {
         "name": "wflib:xray/ambient/fire2",
-        "stream": true,
         "attenuation_distance": 16
       }
     ]
@@ -758,5 +737,9 @@
         "attenuation_distance": 16
       }
     ]
-  }
+  },
+  "detector.echo_beep": {"sounds": [{"name": "wflib:xray/detector/art_beep1", "attenuation_distance": 8}]},
+  "detector.bear_beep": {"sounds": [{"name": "wflib:xray/detector/da2_beep1", "attenuation_distance": 8}]},
+  "detector.draw": {"sounds": [{"name": "wflib:xray/detector/detector_draw", "attenuation_distance": 8}]},
+  "detector.holster": {"sounds": [{"name": "wflib:xray/detector/detector_holster", "attenuation_distance": 8}]}
 }

@@ -254,9 +254,10 @@ public class AnomalyBlockEntity extends BlockEntity {
                 moving = last != null && Math.hypot(e.getX() - last.x, e.getZ() - last.z)
                         > ((BlastTuning) behaviour).minSpeed();
             }
-            // Only the living set it off (items, bolts, arrows don't); while one stays inside it fires again as soon
-            // as it has recharged (CCustomZone::AccumulateState).
-            tripped |= alive && (big || behaviour.smallTrips()) && behaviour.trips(dist) && moving;
+            // The living set it off, and thrown bolts (STALKER's way of finding them); not items or arrows. While one
+            // stays inside it fires again as soon as it has recharged (CCustomZone::AccumulateState).
+            boolean bolt = e instanceof com.wf.wflib.artifact.detect.BoltEntity;
+            tripped |= (alive && (big || behaviour.smallTrips()) || bolt) && behaviour.trips(dist) && moving;
             if (alive && level instanceof ServerLevel server) {
                 be.dwell(server, (LivingEntity) e, dist);
             }

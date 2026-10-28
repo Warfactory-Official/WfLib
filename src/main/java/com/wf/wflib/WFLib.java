@@ -59,6 +59,7 @@ public class WFLib {
         com.wf.wflib.skin.Skins.register(modEventBus);
         com.wf.wflib.anomaly.Anomalies.register(modEventBus);
         com.wf.wflib.artifact.Artifacts.register();
+        com.wf.wflib.artifact.detect.ArtifactEntities.register(modEventBus);
         com.wf.wflib.WFCreativeTabs.register(modEventBus);
         com.wf.wflib.menu.ModMenus.register(modEventBus);
         com.wf.wflib.client.particle.WFParticles.register(modEventBus);

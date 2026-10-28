@@ -42,6 +42,10 @@ public final class WFCreativeTabs {
                         output.accept(ModItems.PDA.get());
                         output.accept(ModItems.BATTERY.get());
                         output.accept(ModItems.SOUL.get());
+                        output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.DETECTOR_ECHO.get());
+                        output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.DETECTOR_BEAR.get());
+                        output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.DETECTOR_VELES.get());
+                        output.accept(com.wf.wflib.artifact.detect.ArtifactEntities.BOLT_ITEM.get());
                         output.accept(ModItems.GEIGER_COUNTER.get());
                         output.accept(ModItems.DECOY_LAUNCHER.get());
                         output.accept(ModItems.PORTABLE_JAMMER.get());

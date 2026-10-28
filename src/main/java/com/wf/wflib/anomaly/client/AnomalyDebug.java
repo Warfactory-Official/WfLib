@@ -210,6 +210,7 @@ public final class AnomalyDebug {
         lookTick(mc);
         holdTick(mc);
         clusterTick(mc);
+        detectTick(mc);
         if (measureSay > 0 && --measureSay == 0) {
             float m = Lenses.getInstance().measured();
             say(m < 0.0F ? "measure: no lens pass ran (nothing submitted, or the pass is off)"
@@ -255,6 +256,7 @@ public final class AnomalyDebug {
                 case "look" -> look();
                 case "hold" -> hold();
                 case "clusters" -> clusters();
+                case "detect" -> detect();
                 default -> false;
             };
             if (!started) {
@@ -672,6 +674,112 @@ public final class AnomalyDebug {
         });
         finish(List.of((all ? "[PASS]" : "[FAIL]") + " anomaly sites: every motif placed anomalies"),
                 clusterLines);
+    }
+
+    /** The detect test: ticks into it, and what it found. */
+    private static int detecting = -1;
+    private static final List<String> detectLines = new ArrayList<>();
+    private static boolean detectOk = true;
+
+    /**
+     * {@code detect}: the artefact loop end to end. A Battery set down 10 blocks ahead, hidden; with a Veles out the
+     * player hears it (beeps, a blip) but still can't see it; 2.5 blocks off it shows and is taken with a use. Then a
+     * bolt thrown onto a Springboard must set it off. Screenshots {@code anomaly-detect-*.png}.
+     */
+    private static boolean detect() {
+        detecting = 0;
+        return true;
+    }
+
+    private static void check(boolean ok, String what) {
+        detectOk &= ok;
+        detectLines.add((ok ? "ok   " : "FAIL ") + what);
+        say((ok ? "ok: " : "FAIL: ") + what);
+    }
+
+    private static void detectTick(Minecraft mc) {
+        if (detecting < 0 || mc.player == null) {
+            return;
+        }
+        int t = detecting++;
+        LocalPlayer p = mc.player;
+        BlockPos at = p.blockPosition();
+        var send = (java.util.function.Consumer<String>) p.connection::sendCommand;
+        switch (t) {
+            case 0 -> {
+                send.accept("gamemode survival");
+                send.accept("effect give @s minecraft:resistance 600 4 true");
+                send.accept("clear @s");
+                send.accept("kill @e[type=wflib:zone_artifact]");
+                send.accept(String.format(Locale.ROOT, "fill %d %d %d %d %d %d air", at.getX() - 3, at.getY(),
+                        at.getZ() - 3, at.getX() + 3, at.getY() + 4, at.getZ() + 16));
+                send.accept(String.format(Locale.ROOT,
+                        "summon wflib:zone_artifact %d %d %d {item:{id:\"wflib:battery\",count:1}}", at.getX(),
+                        at.getY(), at.getZ() + 10));
+                send.accept("tp @s ~ ~ ~ 0 20");
+            }
+            case 40 -> {
+                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.detect.ZoneArtifact.class,
+                        p.getBoundingBox().inflate(16));
+                check(arts.size() == 1, "an artefact lies 10 blocks off (" + arts.size() + " seen by the client)");
+                check(arts.stream().noneMatch(com.wf.wflib.artifact.detect.ZoneArtifact.shownHere),
+                        "without a detector it is hidden");
+                shot("detect-1-no-detector");
+                send.accept("item replace entity @s weapon.offhand with wflib:detector_veles");
+            }
+            case 80 -> {
+                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.detect.ZoneArtifact.class,
+                        p.getBoundingBox().inflate(16));
+                check(com.wf.wflib.artifact.detect.client.DetectorProbe.heard() == 1,
+                        "the Veles hears it at 10 blocks");
+                check(arts.stream().noneMatch(com.wf.wflib.artifact.detect.ZoneArtifact.shownHere),
+                        "but 10 blocks is past its 5 m reveal: still hidden");
+                shot("detect-2-veles-far");
+                send.accept(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 30", at.getX() + 0.5D, at.getY(),
+                        at.getZ() + 8.0D));
+            }
+            case 120 -> {
+                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.detect.ZoneArtifact.class,
+                        p.getBoundingBox().inflate(16));
+                check(arts.stream().anyMatch(com.wf.wflib.artifact.detect.ZoneArtifact.shownHere),
+                        "within reach it shows");
+                shot("detect-3-revealed");
+                arts.forEach(a -> mc.gameMode.interact(p, a, net.minecraft.world.InteractionHand.MAIN_HAND));
+            }
+            case 150 -> {
+                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.detect.ZoneArtifact.class,
+                        p.getBoundingBox().inflate(16));
+                boolean has = p.getInventory().items.stream().anyMatch(st -> st.is(
+                        net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
+                                net.minecraft.resources.ResourceLocation.parse("wflib:battery"))));
+                check(arts.isEmpty() && has, "a use takes it: the Battery is in the inventory");
+                send.accept(String.format(Locale.ROOT, "setblock %d %d %d wflib:springboard", at.getX(), at.getY(),
+                        at.getZ() + 6));
+                send.accept("item replace entity @s weapon.mainhand with wflib:bolt");
+                send.accept(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 35", at.getX() + 0.5D, at.getY(),
+                        at.getZ() + 0.5D));
+            }
+            case 190 -> mc.gameMode.useItem(p, net.minecraft.world.InteractionHand.MAIN_HAND);
+            case 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+                 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230 -> {
+                BlockPos sb = new BlockPos(at.getX(), at.getY(), at.getZ() + 6);
+                if (mc.level.getBlockEntity(sb) instanceof com.wf.wflib.anomaly.AnomalyBlockEntity be
+                        && be.phase() == com.wf.wflib.anomaly.AnomalyBlockEntity.Phase.BLOWOUT && !detectLines
+                        .stream().anyMatch(l -> l.contains("bolt"))) {
+                    check(true, "a thrown bolt sets the Springboard off");
+                    shot("detect-4-bolt");
+                }
+                if (t == 230 && detectLines.stream().noneMatch(l -> l.contains("bolt"))) {
+                    check(false, "a thrown bolt sets the Springboard off");
+                }
+            }
+            case 240 -> {
+                detecting = -1;
+                finish(List.of((detectOk ? "[PASS]" : "[FAIL]") + " artefact detection"), detectLines);
+            }
+            default -> {
+            }
+        }
     }
 
     private static void shot(String name) {
