@@ -1,0 +1,17 @@
+{
+  "echo": {
+    "animations": 16,
+    "poses_checked": 48,
+    "maximum_roundtrip_error_mm": 0.863253
+  },
+  "bear": {
+    "animations": 18,
+    "poses_checked": 54,
+    "maximum_roundtrip_error_mm": 0.520928
+  },
+  "veles": {
+    "animations": 16,
+    "poses_checked": 48,
+    "maximum_roundtrip_error_mm": 0.101525
+  }
+}

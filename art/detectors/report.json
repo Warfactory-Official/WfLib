@@ -1,0 +1,1010 @@
+{
+  "echo": {
+    "source_triangles": 11038,
+    "triangles": 1270,
+    "bones": [
+      {
+        "name": "wpn_body",
+        "parent": null,
+        "head_blender": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "name": "button",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.031056832522153854,
+          0.014981808140873909,
+          0.007285540923476219
+        ]
+      },
+      {
+        "name": "lid",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.0,
+          0.07052452117204666,
+          0.025889655575156212
+        ]
+      },
+      {
+        "name": "light_bone_3",
+        "parent": "lid",
+        "head_blender": [
+          -0.010482885874807835,
+          0.07052452117204666,
+          0.02588965743780136
+        ]
+      },
+      {
+        "name": "light_bone_1",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.014029703103005886,
+          -0.028880085796117783,
+          0.035213228315114975
+        ]
+      },
+      {
+        "name": "light_bone_2",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.0,
+          0.02912667579948902,
+          0.04431641846895218
+        ]
+      },
+      {
+        "name": "on_switch",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.001687812153249979,
+          -0.018739206716418266,
+          0.023162083700299263
+        ]
+      }
+    ],
+    "source_center_blender": [
+      -0.0006113126873970032,
+      0.0077791884541511536,
+      0.049328871071338654
+    ],
+    "parts": [
+      {
+        "object": "echo_body",
+        "bone": "wpn_body",
+        "slot": "body",
+        "source_triangles": 8750,
+        "triangles": 799,
+        "max_surface_error_mm": 2.243
+      },
+      {
+        "object": "echo_body",
+        "bone": "button",
+        "slot": "body",
+        "source_triangles": 194,
+        "triangles": 48,
+        "max_surface_error_mm": 0.83
+      },
+      {
+        "object": "echo_body",
+        "bone": "lid",
+        "slot": "body",
+        "source_triangles": 1704,
+        "triangles": 239,
+        "max_surface_error_mm": 0.869
+      },
+      {
+        "object": "echo_body",
+        "bone": "on_switch",
+        "slot": "body",
+        "source_triangles": 78,
+        "triangles": 24,
+        "max_surface_error_mm": 0.153
+      },
+      {
+        "object": "echo_aref",
+        "bone": "lid",
+        "slot": "aref",
+        "source_triangles": 8,
+        "triangles": 8,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "echo_lights",
+        "bone": "light_bone_3",
+        "slot": "lights",
+        "source_triangles": 144,
+        "triangles": 64,
+        "max_surface_error_mm": 0.008
+      },
+      {
+        "object": "echo_lights",
+        "bone": "light_bone_1",
+        "slot": "lights",
+        "source_triangles": 112,
+        "triangles": 64,
+        "max_surface_error_mm": 0.109
+      },
+      {
+        "object": "echo_lights",
+        "bone": "light_bone_2",
+        "slot": "lights",
+        "source_triangles": 48,
+        "triangles": 24,
+        "max_surface_error_mm": 0.098
+      }
+    ],
+    "animations": [
+      {
+        "name": "barry_echo_draw_2h_alt",
+        "source_frames": [
+          0.0,
+          65.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_draw_alt",
+        "source_frames": [
+          0.0,
+          60.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_draw_quick",
+        "source_frames": [
+          0.0,
+          36.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_draw_zoom",
+        "source_frames": [
+          0.0,
+          53.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_holster",
+        "source_frames": [
+          0.0,
+          62.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_holster_2h",
+        "source_frames": [
+          0.0,
+          51.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_holster_quick",
+        "source_frames": [
+          0.0,
+          7.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_holster_zoom",
+        "source_frames": [
+          0.0,
+          47.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_idle",
+        "source_frames": [
+          0.0,
+          390.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_idle_throw",
+        "source_frames": [
+          0.0,
+          390.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_sprint",
+        "source_frames": [
+          0.0,
+          32.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 0.6000000238418579
+      },
+      {
+        "name": "barry_echo_throw_end",
+        "source_frames": [
+          0.0,
+          40.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_throw_start",
+        "source_frames": [
+          0.0,
+          25.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_walk",
+        "source_frames": [
+          0.0,
+          102.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_zoom_in",
+        "source_frames": [
+          0.0,
+          30.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_echo_zoom_out",
+        "source_frames": [
+          0.0,
+          30.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      }
+    ],
+    "blender_triangles": 1270
+  },
+  "bear": {
+    "source_triangles": 14638,
+    "triangles": 1506,
+    "bones": [
+      {
+        "name": "wpn_body",
+        "parent": null,
+        "head_blender": [
+          0.0,
+          -0.0037066289223730564,
+          0.017355090007185936
+        ]
+      },
+      {
+        "name": "cover",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.0,
+          0.06873974204063416,
+          0.03732893615961075
+        ]
+      },
+      {
+        "name": "light_bone_1",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.025285329669713974,
+          -0.020814744755625725,
+          0.034042034298181534
+        ]
+      },
+      {
+        "name": "light_bone_2",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.021932797506451607,
+          -0.01382032223045826,
+          0.03185185045003891
+        ]
+      },
+      {
+        "name": "screen_bone",
+        "parent": "wpn_body",
+        "head_blender": [
+          3.930150853648229e-07,
+          0.032148148864507675,
+          0.026338817551732063
+        ]
+      },
+      {
+        "name": "toggle",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.03366612643003464,
+          0.017412668094038963,
+          0.015797102823853493
+        ]
+      },
+      {
+        "name": "tuner_bone",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.01628434658050537,
+          -0.04602641984820366,
+          0.028611188754439354
+        ]
+      },
+      {
+        "name": "on_switch",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.015590202063322067,
+          -0.021058112382888794,
+          0.028611188754439354
+        ]
+      },
+      {
+        "name": "screen_bone_1",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.013638466596603394,
+          -0.04093041643500328,
+          0.017325270920991898
+        ]
+      }
+    ],
+    "source_center_blender": [
+      0.0023818761110305786,
+      -0.00020821765065193176,
+      0.02090979740023613
+    ],
+    "parts": [
+      {
+        "object": "bear_body",
+        "bone": "wpn_body",
+        "slot": "body",
+        "source_triangles": 5153,
+        "triangles": 649,
+        "max_surface_error_mm": 1.17
+      },
+      {
+        "object": "bear_body",
+        "bone": "cover",
+        "slot": "body",
+        "source_triangles": 8432,
+        "triangles": 649,
+        "max_surface_error_mm": 2.497
+      },
+      {
+        "object": "bear_body",
+        "bone": "tuner_bone",
+        "slot": "body",
+        "source_triangles": 666,
+        "triangles": 80,
+        "max_surface_error_mm": 0.933
+      },
+      {
+        "object": "bear_body",
+        "bone": "on_switch",
+        "slot": "body",
+        "source_triangles": 82,
+        "triangles": 24,
+        "max_surface_error_mm": 0.176
+      },
+      {
+        "object": "bear_lights",
+        "bone": "light_bone_1",
+        "slot": "lights",
+        "source_triangles": 208,
+        "triangles": 64,
+        "max_surface_error_mm": 0.106
+      },
+      {
+        "object": "bear_lights",
+        "bone": "light_bone_2",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "bear_lights",
+        "bone": "screen_bone",
+        "slot": "lights",
+        "source_triangles": 69,
+        "triangles": 24,
+        "max_surface_error_mm": 0.027
+      },
+      {
+        "object": "bear_lights",
+        "bone": "screen_bone_1",
+        "slot": "lights",
+        "source_triangles": 18,
+        "triangles": 18,
+        "max_surface_error_mm": 0.0
+      }
+    ],
+    "animations": [
+      {
+        "name": "barry_bear_draw",
+        "source_frames": [
+          0.0,
+          62.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_draw_2h",
+        "source_frames": [
+          0.0,
+          76.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_draw_2h_dead",
+        "source_frames": [
+          0.0,
+          115.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_draw_quick",
+        "source_frames": [
+          0.0,
+          30.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_draw_zoom",
+        "source_frames": [
+          0.0,
+          58.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_holster",
+        "source_frames": [
+          0.0,
+          60.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_holster_2h",
+        "source_frames": [
+          0.0,
+          65.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_holster_quick",
+        "source_frames": [
+          0.0,
+          8.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_holster_zoom",
+        "source_frames": [
+          0.0,
+          60.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_idle",
+        "source_frames": [
+          0.0,
+          390.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_idle_zoom",
+        "source_frames": [
+          0.0,
+          390.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_sprint",
+        "source_frames": [
+          0.0,
+          32.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_throw_end",
+        "source_frames": [
+          0.0,
+          38.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_throw_idle",
+        "source_frames": [
+          0.0,
+          40.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_throw_start",
+        "source_frames": [
+          0.0,
+          24.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_walk",
+        "source_frames": [
+          0.0,
+          102.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_zoom_in",
+        "source_frames": [
+          0.0,
+          30.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_bear_zoom_out",
+        "source_frames": [
+          0.0,
+          30.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      }
+    ],
+    "blender_triangles": 1518
+  },
+  "veles": {
+    "source_triangles": 5205,
+    "triangles": 1239,
+    "bones": [
+      {
+        "name": "wpn_body",
+        "parent": null,
+        "head_blender": [
+          -3.5057892091572285e-06,
+          -0.04960869625210762,
+          0.01065734587609768
+        ]
+      },
+      {
+        "name": "cover",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.0,
+          0.008404459804296494,
+          0.013664564117789268
+        ]
+      },
+      {
+        "name": "cover_power",
+        "parent": "cover",
+        "head_blender": [
+          -0.0008678565500304103,
+          0.04590775445103645,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "joint1",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.0,
+          -0.0702965036034584,
+          0.003536095842719078
+        ]
+      },
+      {
+        "name": "light_bone_1",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.011911239475011826,
+          -0.002191215753555298,
+          0.022014649584889412
+        ]
+      },
+      {
+        "name": "light_bone_2",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.011427802965044975,
+          -0.04530598595738411,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "switch",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.03199873864650726,
+          0.0008252523839473724,
+          0.013664564117789268
+        ]
+      },
+      {
+        "name": "light_bone_4",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.022418929263949394,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "light_bone_5",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.006034389138221741,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "light_bone_6",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.0019511757418513298,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "light_bone_7",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.010246778838336468,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "light_bone_8",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.018464893102645874,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "light_bone_9",
+        "parent": "wpn_body",
+        "head_blender": [
+          0.02259979397058487,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      },
+      {
+        "name": "light_bone_3",
+        "parent": "wpn_body",
+        "head_blender": [
+          -0.030635802075266838,
+          0.013773199170827866,
+          0.021060340106487274
+        ]
+      }
+    ],
+    "source_center_blender": [
+      0.002116529271006584,
+      0.005226586014032364,
+      0.01535548735409975
+    ],
+    "parts": [
+      {
+        "object": "veles_body",
+        "bone": "wpn_body",
+        "slot": "body",
+        "source_triangles": 2800,
+        "triangles": 650,
+        "max_surface_error_mm": 0.601
+      },
+      {
+        "object": "veles_body",
+        "bone": "cover",
+        "slot": "body",
+        "source_triangles": 882,
+        "triangles": 280,
+        "max_surface_error_mm": 0.264
+      },
+      {
+        "object": "veles_body",
+        "bone": "joint1",
+        "slot": "body",
+        "source_triangles": 816,
+        "triangles": 118,
+        "max_surface_error_mm": 0.23
+      },
+      {
+        "object": "veles_body",
+        "bone": "switch",
+        "slot": "body",
+        "source_triangles": 114,
+        "triangles": 24,
+        "max_surface_error_mm": 0.431
+      },
+      {
+        "object": "veles_lights",
+        "bone": "cover_power",
+        "slot": "lights",
+        "source_triangles": 33,
+        "triangles": 24,
+        "max_surface_error_mm": 0.015
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_1",
+        "slot": "lights",
+        "source_triangles": 480,
+        "triangles": 63,
+        "max_surface_error_mm": 0.103
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_2",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_4",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_5",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_6",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_7",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_8",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_9",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      },
+      {
+        "object": "veles_lights",
+        "bone": "light_bone_3",
+        "slot": "lights",
+        "source_triangles": 10,
+        "triangles": 10,
+        "max_surface_error_mm": 0.0
+      }
+    ],
+    "animations": [
+      {
+        "name": "barry_veles_draw",
+        "source_frames": [
+          0.0,
+          80.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_draw_quick",
+        "source_frames": [
+          0.0,
+          26.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_draw_zoom",
+        "source_frames": [
+          0.0,
+          80.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_holster",
+        "source_frames": [
+          0.0,
+          51.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_holster_2h",
+        "source_frames": [
+          0.0,
+          48.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_holster_quick",
+        "source_frames": [
+          0.0,
+          8.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_holster_zoom",
+        "source_frames": [
+          0.0,
+          51.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_idle",
+        "source_frames": [
+          0.0,
+          390.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_idle_zoom",
+        "source_frames": [
+          0.0,
+          390.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_sprint",
+        "source_frames": [
+          0.0,
+          32.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_throw_end",
+        "source_frames": [
+          0.0,
+          59.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_throw_idle",
+        "source_frames": [
+          0.0,
+          40.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_throw_start",
+        "source_frames": [
+          0.0,
+          24.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_walk",
+        "source_frames": [
+          0.0,
+          102.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_zoom_in",
+        "source_frames": [
+          0.0,
+          30.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      },
+      {
+        "name": "barry_veles_zoom_out",
+        "source_frames": [
+          0.0,
+          35.0
+        ],
+        "source_fps": 30.0,
+        "source_speed": 1.0
+      }
+    ],
+    "blender_triangles": 1239
+  }
+}
