@@ -159,6 +159,110 @@ not in a fresh clone. Back them up before deleting that worktree.
 - MineAssault `ZoneHandsViewmodel`: detector in the left hand with its face drawn on the device (Bear LED ring,
   Veles blips), bolt in the right with a throw tied to the item cooldown; uses WFLib `PlayerArms`.
 
+## Screen and camera effects (planned: port all of GAMMA's)
+
+**The user wants every visual screen effect from Anomaly/GAMMA brought over**: dizziness, damage effects from
+anomalies, healing and drug effects, and anything else misc. Nothing below is ported yet, except what is listed under
+"Already in Warfactory". Inventory taken 2026-10-28 from Anomaly's base archives and GAMMA's mods.
+
+### What X-Ray has, and where the files are
+
+- **Post-process effectors (`.ppe`)**: keyframed envelopes for base colour, add colour, grey colour, grey amount,
+  blur, **duality** (double vision, horizontal/vertical), noise (intensity, grain, fps) and a colour-map texture.
+  Played once or looped, under an id, scaled at runtime by a factor (`level.add_pp_effector(file, id, loop)`,
+  `set_pp_effector_factor`). Monsters define the same channels **inline** in their `*_attack_effector` config
+  sections (`duality_h/v`, `blur`, `gray`, `noise_*`, `color_base/gray/add`, `time`, `time_attack` fade in,
+  `time_release` fade out), plus camera-shake keys.
+- **Camera effectors (`.anm`, `anims/camera_effects/`)**: object motion (position and rotation envelopes) applied to
+  the camera: hit kicks, earthquakes, drunk sway, fatigue, item use, waking up.
+- Base files: `anomaly/db/meshes/anims.db0` -> `tools/xray-db.py <out> 'anims/*' ~/Games/GAMMA/anomaly/db/meshes/anims.db0`
+  (128 `.ppe`, ~50 non-weapon camera `.anm`). Mod overrides: `gamma/mods/*/gamedata/anims/`. Triggers: base scripts
+  (`tools/xray-db.py <out> 'scripts/*' .../configs/scripts.db0`), mod scripts, and configs (`misc/postprocess.ltx`,
+  zone and creature LTX). Formats: xray-monolith `src/xrEngine` (`PostProcessAnimator.cpp`, `Envelope.cpp`, object
+  motion for `.anm`); `.anm` also imports in Blender's `io_scene_xray` (MineAssault's smoking bake already uses that).
+- Third-party data like the rest: internal only, credit sources.
+
+### Inventory by what triggers it
+
+**Anomalies.** A zone's `postprocess = postprocess_<x>` names a section in `misc/postprocess.ltx` (`pp_eff_name`,
+`radius_min` / `radius_max` as fractions of the zone radius): the effect ramps up as the player closes in and peaks
+inside. Our anomaly types per effect:
+
+| `.ppe` | GAMMA zones | WFLib `AnomalyType` |
+|---|---|---|
+| `gravi_mine` | mine_vortex, gravitational_weak/average/strong, springboard, blast, net, sphere | VORTEX, WHIRLIGIG, SPRINGBOARD, NET, REBOUNDER |
+| `electra_mine` | mine_electra/electric/static/point/flash/darkness, fireball_electric | ELECTRO, FLASH, BALL_LIGHTNING |
+| `thermal_mine` | mine_thermal, mine_zharka, mine_radar, fireball_zone | BURNER, COMET |
+| `steam_mine` | mine_steam, mine_vapour | STEAM |
+| `acidic_mine` | mine_acid/acidic, mine_ghost, mine_green_dragon, fireball_acidic | ACID, GHOST, GREEN_DRAGON |
+| `mine_orange` (Dynamic Anomalies Overhaul) | mine_gold, mine_mefistotel | LIQUID_GOLD, MEPHISTOPHELES |
+| `fuzz` | burning_fuzz, hvatalka, liana, student, unknown | BURNT_FUZZ, GRABBER |
+| `radiation` | field_radioactive, no_gravity | RADIATION_FIELD, NO_GRAVITY |
+| `thermal` / `acidic` | field_thermal / field_acidic | THERMAL_FIELD / ACID_FIELD |
+| `psi` | field_psychic | (psy field, not built) |
+| `flame`, `electra`, `gravi`, `mosquito_bald` | zharka_static/buzz and campfires; teleport, witches_galantine, emi; gravi_zone; mosquito_bald | (no counterpart yet) |
+
+Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_fade.ppe` (psy hit) and
+`electro_fade.ppe` (shock hit) scaled by the hit's power. Rule for the port: same ramp, client side, off when
+`anomalies.enabled=false`.
+
+**Damage and low health** (`actor_effects.script`, `plugins/actor_effects.ltx` `[settings_health]`):
+- Hit size tiers: over 17 `amk_shoot.ppe`; over 44 also a random camera kick (`shell_shock`, `hit_front/back/left/
+  right` and diagonals) and pain sound; over 68 `total_recall.ppe` plus `head_shot`/`fusker` and a chance to drop
+  the weapon.
+- Losing health: `bloody.ppe` plus blood splatter statics on the HUD.
+- Health under 0.21 or radiation over 0.3: `alcohol.ppe` (dizzy sway) looped; radiation over 0.45: `radiation.ppe`.
+- Bleeding over 0.5 with health under 0.2: `deimos1.ppe` pulses every 4-10 s; bleeding over 0.5 with stamina under
+  0.25: `pripyat_horror.anm` and `snd_shock.ppe` looped.
+- GAMMA mods: Wepl Hit Effects (`camera_effects/wepl/hit_effect/*.anm` per hit, plus `blur2.ppe`); Ballistics
+  Overhaul `grok_bo_eft_hit_effects` (`blur2.ppe` on bullet hits); Body Health System / Medications Balance
+  `zzz_player_injuries` (head trauma: `concussion_bhs.ppe` -> `concussion_post_bhs.ppe` + `wake_up.anm`;
+  `blur_bhs.ppe`; shaking aim when arms are hurt; limp); Radiation Effects Overhaul
+  `grok_progressive_rad_damages` (`blur2.ppe` as radiation builds).
+- Death: `actor_death.ppe`, `death.ppe`.
+
+**Psy** (ours is WFMedical stress):
+- `arszi_psy.script` psy health: 0.9-1 `blur.ppe`; below that `blur.ppe` + `snd_shock.ppe` scaled by intensity; 0
+  `black_infinite.ppe` (psy death) or zombification (`radiation.ppe` + `alcohol.ppe`).
+- Actor Damage Balancer / Psy Fields in the North: `adb_psy_feedback.ppe` on psy damage.
+- Places and events: `psy_antenna.ppe` / `psy_antenna_indoor.ppe` (Radar, Brain Scorcher), `yantar_underground_psi.ppe`,
+  `psychic.ppe` (blowout), `old_psi.ppe`.
+- Monsters: controller (`controller_hit.ppe`, `controller_control_effector`, `extra_controller`), burer
+  (`m_burer_scan_effector`, `poltergeist_scan.ppe`), psy dog (aura, phantom appear), bloodsucker (vampire effector),
+  and every monster's `*_attack_effector`.
+
+**Healing, drugs, needs, misc:**
+- Medkit (`medic_effects.script`): `item_use_fast.anm` + `surge_fade.ppe`, then `inv_medkit.ppe`. Antirad: `item_use.anm`
+  + `surge_fade.ppe`, then `blur.ppe`.
+- Alcohol `alcohol.ppe` / `drunk.anm`; sleep `sleep.anm`, `sleep_fade.ppe`; exhaustion and thirst
+  `yantar_underground_psi.ppe` (`actor_status_sleep/thirst`); `fatigue.anm`. (`eat_drug.ppe` exists but nothing in the
+  base game triggers it.)
+- Blowout (`surge_manager.script`): `earthquake_20/40/60/80.anm` building up, `surge_01/02.anm`, `surge_fade.ppe`,
+  `psychic.ppe`; `vibros_p.ppe`.
+- `teleport.ppe`, `blink.ppe`, `fade_*` transitions, `snd_shock.ppe` (stun).
+- Helmets and masks: the mask shader (`r2_mask_control`: crack distortion by helmet condition, vignette, reflection;
+  `[settings_helm_*]`), visor `helm_*.ppe` (RemadeAnimations), gas mask breathing and fog, gas mask wipe `.anm`.
+- NVG `nightvision*.ppe`, `bas_nightvision_*` (compare with WFLib's `nvg/`, see `nvg.md`).
+- Camera feel: weapon switch kicks (`switch/low|med|strong1-4.anm`), headlamp toggle, Camera Reanimation INERTIA
+  movement anims (`*_crp.anm`). Lowest priority.
+
+### Already in Warfactory (don't duplicate; decide per effect: replace, or layer on top)
+
+- WFMedical client: `PainVignetteOverlay`, `StressVignetteOverlay`, `DamageOutlineOverlay`, `UnconsciousOverlay`,
+  `GiveUpOverlay`; post shaders `opioid_haze`, `passout_blur`, `blood_desaturate`.
+- WFLib: `anomaly/client/TimeSlipOverlay` (the Flash's white-out and blackout), the anomaly lens (GemRender), NVG.
+
+### Suggested shape
+
+- WFLib client runtime, used by everyone: a `.ppe` player (parse the envelopes; play by id, once or looped, with a
+  factor; one post shader that does blur, duality, noise, grey and colour) and a camera effector player (parse `.anm`,
+  apply through `ViewportEvent.ComputeCameraAngles` plus a position offset). Ship the files converted or as-is under
+  `assets/wflib/`.
+- Anomalies (WFLib) drive the proximity ramp per type. Damage, psy, healing and drugs belong to WFMedical: it owns
+  health, bleeding, stress and drug items, and already has the overlays above. Radiation goes with WFLib's
+  `radiation/`.
+- Every effect gets a client toggle or strength setting.
+
 ## Tests and benches
 
 - Unit (`src/test/.../anomaly`): AnomalyPathTest, AnomalyTypesTest, BlastTuningTest, MincerTuningTest, SitePlanTest;
@@ -211,6 +315,8 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 
 1. **Push** (with the user's go): WFLib -> WFMedical; wfworldgen. Then the instance gets jars built from pushed code.
 2. **Prepared tests** for the gaps listed under Tests.
+2a. **Port GAMMA's screen and camera effects** (see that section): the `.ppe` and `.anm` players first, then
+   anomaly proximity effects, then damage, psy and healing in WFMedical.
 2b. **Anomaly-made smoke instead of campfires** at FISSURES vents (see Anomaly sites). Check with
    `/wflib anomalies site 1 fissures none` or `BENCH_TEST=clusters -Dwflib.anomalyTest.motifs=fissures`.
 3. **Remaining GAMMA artefacts.** 87 sections remain; 68 use only effects that exist, 19 need new ones (radiation
