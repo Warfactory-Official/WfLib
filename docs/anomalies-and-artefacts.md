@@ -100,6 +100,19 @@ not in a fresh clone. Back them up before deleting that worktree.
 - Ruins (`SitePlan.Overlay`, min tier): VILLAGE_RUIN, CAMP, WATCHTOWER (1); TRAIN_WRECK, RADIO_MAST (2); TEMPLE,
   BUNKER (3). Village ruins use vanilla village house templates with BlockRot/BlockAge processors.
 - `SiteStyle`: biome restyle (badlands terracotta strata, desert sand...) and motif lean per biome.
+- **Smoke must come from anomalies, not campfires (user, 2026-10-28: "more polished").** Today FISSURES sites call
+  `SiteMotifs.vent()` (`SiteMotifs.java:426`, from the FISSURES case around line 188, 3 to 5+tier vents per site),
+  which sets a lit **signal campfire over a hay bale** ringed with basalt. In game that reads as vanilla's chunky
+  campfire smoke columns all over the site. Wanted: no campfire or hay; each vent is an anomaly whose own effects
+  make the smoke. Options, cheapest first:
+  - put a Steam anomaly (`AnomalyType.STEAM`, X-Ray `zones/zone_steam_idle` particles) or a Burner/Thermal Field at
+    each vent spot, ringed with basalt as now;
+  - or a dedicated low-harm "vent" anomaly type (a `Quirk` or its own `AnomalyLook`) with a soft X-Ray smoke idle
+    group (GAMMA ships smoke `.pe`/`.pg` groups: import with `tools/xray-assets.py`).
+  Anomaly effects follow the client rules (only in compiled sections, in render distance) and the master switch, so
+  with `anomalies.enabled=false` the vents make no smoke. Decide with the user whether that is right or whether vents
+  need a decorative emitter that runs regardless. The camp ruin's campfire (`SiteRuins.java:189`) is unlit on
+  purpose (a cold fire, no smoke) and can stay.
 - `AnomalyMix`: which anomaly types per element/spot (FLOOR, CEILING, FIELD) and the loot table (`Loot`, built from
   `Artifact.ALL`; `pickLoot(r, tier, kinds)` filters by each artefact's `minTier` and element).
 
@@ -198,6 +211,8 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 
 1. **Push** (with the user's go): WFLib -> WFMedical; wfworldgen. Then the instance gets jars built from pushed code.
 2. **Prepared tests** for the gaps listed under Tests.
+2b. **Anomaly-made smoke instead of campfires** at FISSURES vents (see Anomaly sites). Check with
+   `/wflib anomalies site 1 fissures none` or `BENCH_TEST=clusters -Dwflib.anomalyTest.motifs=fissures`.
 3. **Remaining GAMMA artefacts.** 87 sections remain; 68 use only effects that exist, 19 need new ones (radiation
    restore x9, inventory weight x8, satiety x4). The user wants **no junk artefacts**. Junk screen of the 68
    (2026-10-28):
