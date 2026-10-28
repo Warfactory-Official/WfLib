@@ -99,6 +99,9 @@ public final class AnomalyClient {
                 return;
             }
             for (AnomalyBlockEntity be : LIVE) {
+                if (!seen(be)) {
+                    continue;
+                }
                 AnomalyLook look = be.type().look();
                 Vec3 c = be.center(partialTick);
                 int since = be.sinceExplosion();
@@ -130,6 +133,23 @@ public final class AnomalyClient {
             }
         });
     }
+
+    /**
+     * Drawn at all: its section is built and it is within the render distance. The client holds chunks past what it
+     * draws (and before it has built them), and an anomaly's particles, light and lens there float over nothing.
+     */
+    static boolean seen(AnomalyBlockEntity be) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || !mc.levelRenderer.isSectionCompiled(be.getBlockPos())) {
+            return false;
+        }
+        double reach = mc.options.getEffectiveRenderDistance() * 16.0D;
+        return be.getBlockPos().getCenter().distanceToSqr(mc.player.position()) < reach * reach;
+    }
+
+    /** Idle loops start within this (blocks) and stop past {@link #HEAR_STOP}: a looped sound holds a channel. */
+    private static final double HEAR_START = 24.0D;
+    private static final double HEAR_STOP = 32.0D;
 
     public static void forget(AnomalyBlockEntity be) {
         if (LIVE.remove(be) && trace) {
@@ -257,28 +277,39 @@ public final class AnomalyClient {
                         -90.0F, 90.0F));
             }
         }
-        particles(be, c, look);
-        if (look.style() == AnomalyLook.Style.FUZZ) {
+        boolean seen = seen(be);
+        if (seen) {
+            particles(be, c, look);
+        } else {
+            stopIdleFx(be);
+        }
+        if (seen && look.style() == AnomalyLook.Style.FUZZ) {
             STRANDS.computeIfAbsent(be, FuzzStrands::new).tick(be, level);
         }
         boolean blowout = be.phase() == Phase.BLOWOUT;
-        if (blowout) {
+        if (seen && blowout) {
             AnomalyEffects.blowout(level, be, c, random);
-        } else {
+        } else if (seen) {
             AnomalyEffects.idle(level, be, c, random);
         }
         if (!blowout && BUILDUP.containsKey(be)) {
             quiet(be);
         }
         AnomalyIdleSound idle = IDLE_SOUND.get(be);
-        if (be.type().sounds().idle() != null && be.presence(0.0F) > 0.0F
+        double heard = c.distanceTo(player.getEyePosition());
+        if (idle != null && heard > HEAR_STOP) {
+            mc.getSoundManager().stop(idle);
+            IDLE_SOUND.remove(be);
+            idle = null;
+        }
+        if (be.type().sounds().idle() != null && be.presence(0.0F) > 0.0F && heard < HEAR_START
                 && (idle == null || !mc.getSoundManager().isActive(idle))) {
             AnomalyIdleSound loop = new AnomalyIdleSound(be);
             mc.getSoundManager().play(loop);
             IDLE_SOUND.put(be, loop);
         }
         if (blowout && be.ticks() == Math.max(1, be.type().sounds().blowoutTick())
-                && be.type().sounds().blowout() != null) {
+                && be.type().sounds().blowout() != null && heard < HEAR_STOP * 2.0D) {
             quiet(be);
             AnomalyBlowoutSound sound = new AnomalyBlowoutSound(be, random);
             mc.getSoundManager().play(sound);
@@ -288,7 +319,9 @@ public final class AnomalyClient {
             if (!be.type().sounds().endsWithBlowout()) {
                 BUILDUP.remove(be);
             }
-            AnomalyEffects.explode(level, be, c, random);
+            if (seen) {
+                AnomalyEffects.explode(level, be, c, random);
+            }
         }
     }
 
@@ -365,7 +398,8 @@ public final class AnomalyClient {
         net.minecraft.client.renderer.MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         boolean any = false;
         for (AnomalyBlockEntity be : LIVE) {
-            if (be.isRemoved() || be.getLevel() != mc.level || be.center().distanceTo(cam) > DRAW_DISTANCE) {
+            if (be.isRemoved() || be.getLevel() != mc.level || be.center().distanceTo(cam) > DRAW_DISTANCE
+                    || !seen(be)) {
                 continue;
             }
             if (fuzz) {

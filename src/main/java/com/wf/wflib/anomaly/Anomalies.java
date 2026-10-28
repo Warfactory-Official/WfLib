@@ -21,8 +21,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Anomaly plumbing: op {@code /wflib anomalies [on|off]} (flips {@link AnomalyConfig#enabled}, saved to the world's
- * config, pushed to clients), {@code /wflib anomalies cluster <tier> [design]} (a cluster where you stand, for
- * trying designs), cluster worldgen, and the drops of torn bodies.
+ * config, pushed to clients), {@code /wflib anomalies site <tier> [motif [ruin]]} (a site near you, for trying them),
+ * site worldgen, and the drops of torn bodies.
  */
 public final class Anomalies {
     private Anomalies() {
@@ -30,7 +30,7 @@ public final class Anomalies {
 
     public static void register(IEventBus modBus) {
         modBus.addListener(Anomalies::onPayloads);
-        com.wf.wflib.anomaly.cluster.AnomalyClusterFeature.FEATURES.register(modBus);
+        com.wf.wflib.anomaly.site.AnomalySites.register(modBus);
         NeoForge.EVENT_BUS.addListener(Anomalies::onCommands);
         NeoForge.EVENT_BUS.addListener(Anomalies::onDrops);
         NeoForge.EVENT_BUS.addListener(Anomalies::onIncomingDamage);
@@ -77,39 +77,60 @@ public final class Anomalies {
                 })
                 .then(Commands.literal("on").executes(c -> set(c, true)))
                 .then(Commands.literal("off").executes(c -> set(c, false)))
-                .then(Commands.literal("cluster").then(Commands.argument("tier",
+                .then(Commands.literal("site").then(Commands.argument("tier",
                                 com.mojang.brigadier.arguments.IntegerArgumentType.integer(1,
-                                        com.wf.wflib.anomaly.cluster.ClusterPlan.TIERS))
-                        .executes(c -> cluster(c, null))
-                        .then(Commands.argument("design", com.mojang.brigadier.arguments.StringArgumentType.word())
-                                .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                        java.util.Arrays.stream(com.wf.wflib.anomaly.cluster.ClusterPlan.Design.values())
-                                                .map(d -> d.name().toLowerCase(java.util.Locale.ROOT)), b))
-                                .executes(c -> cluster(c, com.mojang.brigadier.arguments.StringArgumentType
-                                        .getString(c, "design"))))))));
+                                        com.wf.wflib.anomaly.site.AnomalyMix.TIERS))
+                        .executes(c -> site(c, null, null))
+                        .then(Commands.argument("motif", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                .suggests((c, b) -> suggest(b, com.wf.wflib.anomaly.site.SitePlan.Motif.values()))
+                                .executes(c -> site(c, word(c, "motif"), null))
+                                .then(Commands.argument("ruin", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                        .suggests((c, b) -> suggest(b, com.wf.wflib.anomaly.site.SitePlan.Overlay.values()))
+                                        .executes(c -> site(c, word(c, "motif"), word(c, "ruin")))))))));
     }
 
-    private static int cluster(CommandContext<CommandSourceStack> c, String design) {
-        var d = design == null ? null
-                : com.wf.wflib.anomaly.cluster.AnomalyClusterFeature.design(design).result().orElse(null);
-        if (design != null && d == null) {
-            c.getSource().sendFailure(Component.literal("No design " + design));
+    private static String word(CommandContext<CommandSourceStack> c, String name) {
+        return com.mojang.brigadier.arguments.StringArgumentType.getString(c, name);
+    }
+
+    private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggest(
+            com.mojang.brigadier.suggestion.SuggestionsBuilder b, Enum<?>[] values) {
+        return net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.Arrays.stream(values)
+                .map(e -> e.name().toLowerCase(java.util.Locale.ROOT)), b);
+    }
+
+    /** {@code any} matches nothing: picked as worldgen would. */
+    private static <E extends Enum<E>> E named(Class<E> type, String name) {
+        if (name == null || name.equals("any") || name.equals("none")) {
+            return null;
+        }
+        return Enum.valueOf(type, name.toUpperCase(java.util.Locale.ROOT));
+    }
+
+    private static int site(CommandContext<CommandSourceStack> c, String motif, String ruin) {
+        int tier = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "tier");
+        com.wf.wflib.anomaly.site.SitePlan.Motif m;
+        com.wf.wflib.anomaly.site.SitePlan.Overlay o;
+        try {
+            m = named(com.wf.wflib.anomaly.site.SitePlan.Motif.class, motif);
+            o = named(com.wf.wflib.anomaly.site.SitePlan.Overlay.class, ruin);
+        } catch (IllegalArgumentException e) {
+            c.getSource().sendFailure(Component.literal("No motif/ruin " + motif + " " + ruin));
             return 0;
         }
-        int tier = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "tier");
-        var result = com.wf.wflib.anomaly.cluster.AnomalyClusterFeature.generateNear(c.getSource().getLevel(),
-                net.minecraft.util.RandomSource.create(), net.minecraft.core.BlockPos.containing(
-                        c.getSource().getPosition()), tier, d, 96);
-        if (result == null) {
-            c.getSource().sendFailure(Component.literal("No ground within 96 blocks takes a cluster (water or too steep)"));
+        var made = com.wf.wflib.anomaly.site.AnomalySites.place(c.getSource().getLevel(),
+                net.minecraft.core.BlockPos.containing(c.getSource().getPosition()), tier, m, o, 128);
+        if (made == null) {
+            c.getSource().sendFailure(Component.literal("No ground within 128 blocks takes a site (water or too steep)"));
             return 0;
         }
         c.getSource().sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
-                "Tier %d %s at %d %d, radius %d: %d anomalies, %d artefacts%s", tier,
-                result.plan().design().name().toLowerCase(java.util.Locale.ROOT), result.centre().getX(),
-                result.centre().getZ(), result.plan().radius(), result.anomalies(), result.artefacts(),
+                "Tier %d %s%s at %d %d, radius %d: %d anomalies, %d artefacts%s", tier,
+                made.plan().motif().name().toLowerCase(java.util.Locale.ROOT),
+                made.plan().overlay() == null ? "" : " + " + made.plan().overlay().name().toLowerCase(java.util.Locale.ROOT),
+                made.centre().getX(), made.centre().getZ(), made.plan().radius(), made.anomalies(), made.artefacts(),
                 AnomalyConfig.enabled ? "" : " (anomalies are off: inert)")), true);
-        return result.anomalies();
+        return made.anomalies();
     }
 
     private static int set(CommandContext<CommandSourceStack> c, boolean on) {

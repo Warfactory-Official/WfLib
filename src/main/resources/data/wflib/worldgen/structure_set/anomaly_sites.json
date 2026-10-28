@@ -1,0 +1,4 @@
+{
+  "structures": [{"structure": "wflib:anomaly_site", "weight": 1}],
+  "placement": {"type": "minecraft:random_spread", "spacing": 12, "separation": 7, "salt": 284719}
+}

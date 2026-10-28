@@ -1,6 +1,0 @@
-{
-  "type": "wflib:anomaly_cluster",
-  "config": {
-    "tier": 3
-  }
-}
