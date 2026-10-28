@@ -199,8 +199,23 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 1. **Push** (with the user's go): WFLib -> WFMedical; wfworldgen. Then the instance gets jars built from pushed code.
 2. **Prepared tests** for the gaps listed under Tests.
 3. **Remaining GAMMA artefacts.** 87 sections remain; 68 use only effects that exist, 19 need new ones (radiation
-   restore x9, inventory weight x8, satiety x4). The user wants **no junk artefacts**: pick with them, don't bulk-add.
-   Skipped so far on purpose: Amebas (no spawn group or detector in GAMMA), Prometheus (quest reward).
+   restore x9, inventory weight x8, satiety x4). The user wants **no junk artefacts**. Junk screen of the 68
+   (2026-10-28):
+   - **Next batch, 13** (all in GAMMA's random anomaly spawns, `drx_da_main_artefacts.script`): af_blood Stone Blood,
+     af_lobster_eyes Lobster Eyes, af_medusa Jellyfish, af_mincer_meat Meat Chunk, af_pin Pin (tier 1); af_baloon
+     Bubble, af_black_spray Black Spray, af_bracelet Bracelet, af_eye Eye, af_fire Flame, af_fuzz_kolobok Kolobok,
+     af_glass Firefly, af_vyvert Wrenched (tier 2). 9 of them carry `radiation_immunity` at rate-sized values
+     (+-0.0005..0.0017), ignored until radiation is wired (item 4): adding them first drops a radiation side effect.
+   - **Unique (GAMMA spawns them once)**: af_dummy_pellicle Pellicle, af_oasis_heart Heart of the Oasis. Candidates
+     for rare tier-4 (PIT) finds; user's call.
+   - **Junk, out (53)**: the 32 of `items_artefacts_junk.ltx` (no effects: af_atom, af_ball, af_bat, af_black,
+     af_black_angel, af_cell, af_chelust, af_cocoon, af_dragon_eye, af_ear, af_elektron, af_fire_loop, af_fonar,
+     af_fountain, af_generator, af_grapes, af_kislushka, af_kogot, af_lighthouse, af_medallion, af_moh, af_peas,
+     af_repei, af_sandstone, af_serofim, af_signet, af_skull_miser, af_spaika, af_star_phantom, af_sun, af_tapeworm,
+     af_zhelch); 11 `af_ah_*` "Anomalous Sample" collector items (New Storylines; flat 4000, junk meshes, "lack of
+     useful properties"); af_geliy, af_gimlet, af_vaselisk (New Storylines quest objects, no effects); af_lucifer
+     (scripted easter egg, 666); af_base, af_base_1 (abstract parent sections); Amebas x3 (no spawn group or
+     detector); af_tlf_prometheus (quest reward).
 4. **Radiation**: map `radiation_immunity` / `radiation_restore_speed` onto WFLib's `radiation/` system.
 5. **Psy anomalies** (Radar, Darkness, psy field) feeding WFMedical stress.
 6. **User's Echo detector model** (when they provide it).
