@@ -13,6 +13,8 @@ public final class WFSounds {
             DeferredRegister.create(Registries.SOUND_EVENT, WFLib.MODID);
 
     public static final DeferredHolder<SoundEvent, SoundEvent> NUCLEAR_EXPLOSION = register("weapon.nuclear_explosion");
+    /** GAMMA cigarette use sound (third-party, internal only), whole {@link com.wf.wflib.smoking.SmokingTimeline}. */
+    public static final DeferredHolder<SoundEvent, SoundEvent> CIGARETTE = register("smoking.cigarette");
     public static final DeferredHolder<SoundEvent, SoundEvent> PDA_CLICK = register("pda.click");
     public static final DeferredHolder<SoundEvent, SoundEvent> PDA_HOVER = register("pda.hover");
     public static final DeferredHolder<SoundEvent, SoundEvent> FIRE_DISINTEGRATION = register("weapon.fire.disintegration");

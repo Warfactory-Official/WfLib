@@ -1,4 +1,5 @@
 {
+  "smoking.cigarette": { "sounds": ["wflib:smoking/cigarette"] },
   "pda.click": { "sounds": ["wflib:pda/click"] },
   "pda.hover": { "sounds": ["wflib:pda/hover"] },
   "pda_music": {

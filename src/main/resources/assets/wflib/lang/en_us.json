@@ -252,6 +252,7 @@
   "wflib.tv.range": "OUT OF DATALINK RANGE",
   "wflib.tv.terrain": "NO TERRAIN DATA",
   "wflib.tv.hint": "[%s] let go  [%s] view  scroll zoom",
+  "item.wflib.cigarette": "Cigarette",
   "item.wflib.pda": "PDA",
   "item.wflib.nvg_gen1": "Gen 1 Night Vision Monocular",
   "item.wflib.nvg_pvs7": "AN/PVS-7 Night Vision Goggle",

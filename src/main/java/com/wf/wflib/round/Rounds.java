@@ -123,6 +123,8 @@ public final class Rounds implements SimKind<RoundBatch> {
     private static long nextKey = 1L;
     /** Config {@code rounds.rewindWholeFlight}; false => rewind spent by the first sweeping step. */
     public static boolean rewindWholeFlight = true;
+    /** Config {@code rounds.nearMissRadius}; 0 => no {@link RoundNearMissEvent}. */
+    public static double nearMissRadius = 3.0;
 
     private Rounds() {
     }
@@ -474,6 +476,9 @@ public final class Rounds implements SimKind<RoundBatch> {
                     glance = strike.ricochet();
                     break;
                 }
+            }
+            if (sweep != DARK && preset.entityContact() && nearMissRadius > 0.0) {
+                nearMiss(level, preset, shooterRoot, from, end, velocity, struck);
             }
             Vec3 bounceAt = null;
             Vec3 bounce = null;
@@ -1250,6 +1255,34 @@ public final class Rounds implements SimKind<RoundBatch> {
             out.sort(NEAREST);
         }
         return out;
+    }
+
+    /** {@link RoundNearMissEvent} for every player (not {@code struck}, not the shooter's vehicle) the segment passes. */
+    private static void nearMiss(ServerLevel level, KineticPreset preset, @Nullable Entity shooterRoot, Vec3 from,
+                                 Vec3 to, Vec3 velocity, @Nullable List<Entity> struck) {
+        List<ServerPlayer> players = level.players();
+        double r = nearMissRadius;
+        double lx = Math.min(from.x, to.x) - r, hx = Math.max(from.x, to.x) + r;
+        double ly = Math.min(from.y, to.y) - r, hy = Math.max(from.y, to.y) + r;
+        double lz = Math.min(from.z, to.z) - r, hz = Math.max(from.z, to.z) + r;
+        Vec3 d = to.subtract(from);
+        double len2 = d.lengthSqr();
+        for (int i = 0, n = players.size(); i < n; i++) {
+            ServerPlayer p = players.get(i);
+            Vec3 eye = p.getEyePosition();
+            if (eye.x < lx || eye.x > hx || eye.y < ly || eye.y > hy || eye.z < lz || eye.z > hz) {
+                continue;
+            }
+            double t = len2 == 0.0 ? 0.0 : eye.subtract(from).dot(d) / len2;
+            if (t < 0.0 || t > 1.0 || !p.isAlive() || p.isSpectator() || struck != null && struck.contains(p)
+                    || shooterRoot != null && p.getRootVehicle() == shooterRoot) {
+                continue;
+            }
+            double distance = eye.distanceTo(from.add(d.scale(t)));
+            if (distance <= r) {
+                NeoForge.EVENT_BUS.post(new RoundNearMissEvent(level, p, preset, distance, velocity));
+            }
+        }
     }
 
     /** Vehicle passengers: rewind 0 (the hull is live). */

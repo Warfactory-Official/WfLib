@@ -30,6 +30,7 @@ public final class WFConfig {
     public static final ModConfigSpec.DoubleValue INTERCEPTOR_GRAZE_DAMAGE;
     public static final ModConfigSpec.DoubleValue MIN_PROJECTILE_DAMAGE;
     public static final ModConfigSpec.BooleanValue REWIND_WHOLE_FLIGHT;
+    public static final ModConfigSpec.DoubleValue NEAR_MISS_RADIUS;
     public static final ModConfigSpec.DoubleValue UNLOADED_PRELOAD_BLAST;
     public static final ModConfigSpec.BooleanValue BLOCK_DAMAGE;
     public static final ModConfigSpec.DoubleValue BLOCK_TOUGHNESS_SCALE;
@@ -178,6 +179,10 @@ public final class WFConfig {
                 .comment("Lag compensation: true = every step of a round sweeps targets as its shooter saw them;",
                         "false = first step only, later steps sweep live targets.")
                 .define("rewindWholeFlight", true);
+        NEAR_MISS_RADIUS = b
+                .comment("A round passing within this many blocks of a player's eyes without hitting posts a",
+                        "RoundNearMissEvent (suppression). 0 disables.")
+                .defineInRange("nearMissRadius", 3.0, 0.0, 64.0);
         UNLOADED_PRELOAD_BLAST = b
                 .comment("A round hitting unloaded ground with at least this blast size loads the blast's chunks",
                         "(async) and waits for them; smaller ones show their blast at once and apply it to the",
@@ -584,6 +589,7 @@ public final class WFConfig {
         MissileSimConfig.INTERCEPTOR_GRAZE_DAMAGE = INTERCEPTOR_GRAZE_DAMAGE.get().floatValue();
         MissileSimConfig.MIN_PROJECTILE_DAMAGE = MIN_PROJECTILE_DAMAGE.get().floatValue();
         com.wf.wflib.round.Rounds.rewindWholeFlight = REWIND_WHOLE_FLIGHT.get();
+        com.wf.wflib.round.Rounds.nearMissRadius = NEAR_MISS_RADIUS.get();
         com.wf.wflib.round.Rounds.preloadBlast = UNLOADED_PRELOAD_BLAST.get().floatValue();
         com.wf.wflib.round.pen.BlockDamage.enabled = BLOCK_DAMAGE.get();
         com.wf.wflib.round.pen.BlockDamage.toughnessScale = BLOCK_TOUGHNESS_SCALE.get().floatValue();

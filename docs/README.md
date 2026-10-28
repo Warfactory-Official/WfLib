@@ -28,6 +28,7 @@ the look-at probe, recon/sonar, and the UI widget system other mods build HUDs f
 | [maps-and-telemetry](maps-and-telemetry.md) | map API + telemetry packets |
 | [ui-widgets](ui-widgets.md) | UI widget system: pieces, expressions, input, hosts, JSON layouts |
 | [pda](pda.md) | handheld PDA: focus/input, rendering, app API, shipped apps |
+| [smoking](smoking.md) | cigarette item, first/third person animation, near-miss round event |
 | [nvg](nvg.md) | night vision goggles: helmet mount, flip, IR illuminator, intensifier optics JSON, sensor modes |
 | [grenades](grenades.md) | thrown charge entity, grenade warheads (frag rays, flashbang, smoke x16, thermite), smoke sight blocking, flash post chain, hearing loss |
 | [radiation](radiation.md) | NTM NEXT radiation field + item/inventory hazards: divergences, gaps |

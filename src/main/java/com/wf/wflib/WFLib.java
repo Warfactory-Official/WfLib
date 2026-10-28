@@ -124,6 +124,7 @@ public class WFLib {
            com.wf.wflib.armor.ArmorPresets.bootstrap();
            com.wf.wflib.hazard.HazardSystem.registerContent();
            DroneTracker.bootstrap();
+           com.wf.wflib.smoking.Smoking.bootstrap();
            com.wf.wflib.pda.drone.PdaDrones.register();
            com.wf.wflib.sim.SimKinds.register(com.wf.wflib.sim.SimMissileManager.KIND);
            com.wf.wflib.sim.SimKinds.register(com.wf.wflib.round.Rounds.KIND);

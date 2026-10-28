@@ -76,6 +76,10 @@ public final class ModItems {
     public static final DeferredHolder<Item, Item> CAMERA_LINKER =
             ITEMS.register("camera_linker", () -> new CameraLinkerItem(new Item.Properties().stacksTo(1)));
 
+    /** Smoked for stress relief where a mod answers {@link com.wf.wflib.smoking.CigaretteSmokedEvent}. */
+    public static final DeferredHolder<Item, Item> CIGARETTE =
+            ITEMS.register("cigarette", () -> new com.wf.wflib.smoking.CigaretteItem(new Item.Properties().stacksTo(20)));
+
     public static final DeferredHolder<Item, Item> PDA =
             ITEMS.register("pda", () -> new com.wf.wflib.pda.PdaItem(new Item.Properties().stacksTo(1)));
 

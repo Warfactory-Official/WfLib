@@ -171,6 +171,7 @@ public class WFLibClient {
             com.wf.wflib.artifact.client.ArtifactRenderer.register();
             com.wf.wflib.round.client.RoundLights.register();
             com.wf.wflib.barrel.client.BarrelGlow.register();
+            com.wf.wflib.smoking.client.SmokingEffects.register();
             com.wf.wflib.nvg.client.NvgIllumination.register();
             com.wf.gemrender.light.Lights.irView(com.wf.wflib.nvg.client.NvgClient::irView);
             com.wf.gemrender.light.Lights.nightSky(com.wf.wflib.nvg.client.NvgClient::nightSky);
