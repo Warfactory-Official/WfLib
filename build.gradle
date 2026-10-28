@@ -86,13 +86,14 @@ repositories {
     // --- WarForge Factions Remaintained ------------------------------------------------------
     // The 1.21.1 NeoForge build comes from the snapshots channel below (WarForge's multi-version CI publishes
     // warforge-remaintained-1.21.1-neoforge:<version>-SNAPSHOT). Its release maven is still on 2.1.0 (1.20.1
-    // Forge); mavenLocal stays for a local WarForge build (`publishToMavenLocal` in its checkout).
+    // Forge); mavenLocal stays for a local WarForge build (`publishToMavenLocal` in its checkout), and for a
+    // local wfweight build ahead of its published snapshot.
     maven {
         name = 'Warfactory Releases'
         url = 'https://repo.warfactory.co/releases'
         content { includeGroup 'com.flansmod.warforge' }
     }
-    mavenLocal { content { includeGroup 'com.flansmod.warforge' } }
+    mavenLocal { content { includeGroup 'com.flansmod.warforge'; includeGroup 'warfactory.ultimateweight' } }
 
     // --- GemRender + AHF + wfweight: Warfactory's self-hosted Maven, snapshots channel --------
     maven {

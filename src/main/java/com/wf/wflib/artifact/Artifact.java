@@ -20,6 +20,7 @@ import net.minecraft.resources.ResourceLocation;
  * @param strike        strike_immunity: blunt blows (melee, gravitational anomalies)
  * @param healthRestore health_restore_speed: share of full health back per game second (X-Ray conditions run on
  *                      game time: {@link #TIME_FACTOR})
+ * @param powerRestore  power_restore_speed: share of full stamina back per game second, negative slows (WFWeight)
  * @param bloom         strength of the bloom off its glowing parts, 0..1: the glow texture blurred
  *                      ({@code <glow>_bloom.png}) drawn under the glow, on the same parts (moving with the arcs, round
  *                      the core)
@@ -27,8 +28,8 @@ import net.minecraft.resources.ResourceLocation;
  * @param lightRange    trail_light_range, blocks
  */
 public record Artifact(String id, ResourceLocation model, ResourceLocation body, ResourceLocation glow, boolean arcs,
-                       float core, float shock, float burn, float strike, float healthRestore, float bloom,
-                       int lightRgb, float lightRange) {
+                       float core, float shock, float burn, float strike, float healthRestore, float powerRestore,
+                       float bloom, int lightRgb, float lightRange) {
     /** GAMMA's alife time_factor: game seconds per real second, which its restore speeds are per. */
     public static final float TIME_FACTOR = 6.0F;
 
@@ -46,23 +47,28 @@ public record Artifact(String id, ResourceLocation model, ResourceLocation body,
         return healthRestore * TIME_FACTOR * maxHealth;
     }
 
+    /** Stamina back per tick while worn, as a share of the most (WFWeight's stamina modifiers). */
+    public double staminaPerTick() {
+        return powerRestore * TIME_FACTOR / 20.0D;
+    }
+
 
     /**
      * {@code af_dummy_battery} (Battery, electric, tier 2): a charged lattice from Electros. GAMMA: shock +12.1%,
-     * burn -9.5%, strike -27%, stamina back faster ({@code power_restore_speed} 0.00066: needs WFWeight, not yet),
+     * burn -9.5%, strike -27%, stamina back faster ({@code power_restore_speed} 0.00066, with WFWeight),
      * radiation none; a pale blue glow (0.6/0.7/0.9, 2 m).
      */
     public static final Artifact BATTERY = new Artifact("battery", wflib("models/artifact/battery.glb"),
             wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/battery_lightning.png"), true, 0.0F,
-            0.1212F, -0.095F, -0.27F, 0.0F, 0.8F, 0x99B3E6, 2.0F);
+            0.1212F, -0.095F, -0.27F, 0.0F, 0.00066F, 0.8F, 0x99B3E6, 2.0F);
 
     /**
      * {@code af_soul} (Soul, chemical, tier 2): a green spiral glowing in a veined shell, from acid anomalies. GAMMA:
      * health back 0.0003 a game second (0.18% a real second, a heart a minute or so), stamina back slower
-     * ({@code power_restore_speed} -0.00035: needs WFWeight, not yet), radiation immunity 0.00043 (nothing); a green
+     * ({@code power_restore_speed} -0.00035, with WFWeight), radiation immunity 0.00043 (nothing); a green
      * glow (0.5/0.7/0.2, 2 m).
      */
     public static final Artifact SOUL = new Artifact("soul", wflib("models/artifact/soul.glb"),
             wflib("textures/artifact/sopli2.png"), wflib("textures/artifact/soul_glow.png"), false, 0.30F,
-            0.0F, 0.0F, 0.0F, 0.0003F, 0.9F, 0x80B333, 2.0F);
+            0.0F, 0.0F, 0.0F, 0.0003F, -0.00035F, 0.9F, 0x80B333, 2.0F);
 }

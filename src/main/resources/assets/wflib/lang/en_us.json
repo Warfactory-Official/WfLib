@@ -205,6 +205,7 @@
   "item.wflib.battery": "Battery",
   "item.wflib.soul": "Soul",
   "item.wflib.artifact.health": "Health regeneration +%s per minute",
+  "item.wflib.artifact.stamina": "Stamina recovery %s of full a second",
   "item.wflib.artifact.shock": "Shock protection %s",
   "item.wflib.artifact.burn": "Burn protection %s",
   "item.wflib.artifact.strike": "Impact protection %s",

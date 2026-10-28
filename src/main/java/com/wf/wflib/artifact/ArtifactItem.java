@@ -31,6 +31,11 @@ public class ArtifactItem extends Item {
                             String.format(java.util.Locale.ROOT, "%.1f", artifact.healthPerSecond(20.0F) * 60.0F))
                     .withStyle(ChatFormatting.GREEN));
         }
+        if (artifact.powerRestore() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
+            lines.add(Component.translatable("item.wflib.artifact.stamina",
+                            String.format(java.util.Locale.ROOT, "%+.1f%%", artifact.staminaPerTick() * 2000.0D))
+                    .withStyle(artifact.powerRestore() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
         lines.add(Component.translatable("item.wflib.artifact.worn").withStyle(ChatFormatting.DARK_GRAY));
     }
 
