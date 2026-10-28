@@ -55,27 +55,8 @@ public final class ArtifactRenderer {
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
     private static final Map<Artifact, net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer> ITEM_RENDERERS =
             new HashMap<>();
-    /** Bloom round an artefact, white (tinted its light colour), alpha falling off from the middle. */
-    private static final ResourceLocation HALO = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
-            "textures/artifact/halo.png");
-    private static final TextureSlots HALO_ONLY = new TextureSlots() {
-        @Override
-        public ResourceLocation texture(String slot) {
-            return HALO;
-        }
-
-        @Override
-        public boolean emissive(String slot) {
-            return true;
-        }
-    };
-    /** Bloom across, over the model's size (a 0.3 m artefact gets a ~0.75 m halo). */
-    private static final float HALO_SIZE = 0.75F;
-    /**
-     * Bloom set back from the centre, away from the eye, model metres (about the artefact's radius): behind it, so
-     * the body and its core stay in front and the glow spills round the outline.
-     */
-    private static final float HALO_BACK = 0.16F;
+    /** A core's bloom across, over the core: the blurred core spills well past it. */
+    private static final float CORE_BLOOM = 1.8F;
     /** One quad (XY, facing +Z), glow slot: an artefact's core sprite. */
     private static final ResourceLocation CORE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
             "models/artifact/core.glb");
@@ -99,6 +80,21 @@ public final class ArtifactRenderer {
     /** First person, drawn apart so the glow can move: the body alone, then the glow alone. */
     private static TextureSlots bodyOnly(Artifact artifact) {
         return slot -> GLOW.equals(slot) ? null : artifact.body();
+    }
+
+    /** The glowing parts again, with the glow blurred: their bloom. */
+    private static TextureSlots bloomOnly(Artifact artifact) {
+        return new TextureSlots() {
+            @Override
+            public ResourceLocation texture(String slot) {
+                return GLOW.equals(slot) ? artifact.glowBloom() : null;
+            }
+
+            @Override
+            public boolean emissive(String slot) {
+                return true;
+            }
+        };
     }
 
     private static TextureSlots glowOnly(Artifact artifact) {
@@ -228,20 +224,26 @@ public final class ArtifactRenderer {
             float unit = m.getColumn(0, new Vector3f()).length();
             DirectPass pass = context == ItemDisplayContext.GUI ? DirectPass.GUI : DirectPass.LEVEL;
             float t = clock();
-            // Blended layers write no depth: back to front, the bloom (behind) before the core. The inventory icon
-            // stays crisp: no bloom in a 16 px cell.
-            if (context != ItemDisplayContext.GUI) {
-                face(m, context, core);
-                // Turned to the camera, the quad's +z points at it: back is -z.
-                core.translate(0.0F, 0.0F, -unit * HALO_BACK).scale(unit * HALO_SIZE);
-                DirectRenderer.submit(quad, null, 0, core, light, overlay, haloTint(t, artifact, 1.0F), pass,
-                        VariantUv.NONE, HALO_ONLY);
-            }
+            // Bloom off the glowing parts, under them (blended layers write no depth: back to front). The inventory
+            // icon stays crisp: no bloom in a 16 px cell.
+            boolean bloom = context != ItemDisplayContext.GUI;
             if (artifact.core() > 0.0F) {
+                if (bloom) {
+                    face(m, context, core);
+                    core.rotateZ(t * 0.5F).scale(unit * artifact.core() * CORE_BLOOM);
+                    DirectRenderer.submit(quad, null, 0, core, light, overlay, bloomTint(t, artifact, 1.0F), pass,
+                            VariantUv.NONE, bloomOnly(artifact));
+                }
                 face(m, context, core);
                 core.rotateZ(t * 0.5F).scale(unit * artifact.core());
                 DirectRenderer.submit(quad, null, 0, core, light, overlay, glowTint(t, artifact), pass,
                         VariantUv.NONE, glowOnly(artifact));
+            } else if (bloom) {
+                GemRenderGltfModel model = model(artifact);
+                if (model != null) {
+                    DirectRenderer.submit(model, null, 0, m, light, overlay, bloomTint(t, artifact, 1.0F), pass,
+                            VariantUv.NONE, bloomOnly(artifact));
+                }
             }
             pose.popPose();
         }
@@ -256,12 +258,12 @@ public final class ArtifactRenderer {
     }
 
     /**
-     * The bloom: its light colour at full brightness (blended, a dimmer colour would darken what is behind), its
-     * strength in the alpha (the shader multiplies it in): breathing with its glow, fading with the lift.
+     * The bloom: white (the blurred texture carries the colour), its strength in the alpha (the shader multiplies it
+     * in; a dimmer colour would darken what is behind): breathing with the glow, fading with the lift.
      */
-    private static int haloTint(float t, Artifact artifact, float lift) {
+    private static int bloomTint(float t, Artifact artifact, float lift) {
         float k = ((glowTint(t, artifact) & 0xFF) / 255.0F) * Mth.clamp(lift, 0.0F, 1.0F) * artifact.bloom();
-        return (int) (Mth.clamp(k, 0.0F, 1.0F) * 255.0F) << 24 | artifact.lightRgb() & 0xFFFFFF;
+        return (int) (Mth.clamp(k, 0.0F, 1.0F) * 255.0F) << 24 | 0xFFFFFF;
     }
 
     @Nullable
@@ -360,25 +362,25 @@ public final class ArtifactRenderer {
             Artifact artifact = item.artifact();
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF,
                     DirectPass.HAND, VariantUv.NONE, bodyOnly(artifact));
-            // Blended layers write no depth: drawn back to front, the bloom (behind) before the glow.
-            GemRenderGltfModel halo = coreModel();
-            if (halo != null) {
-                // View space: the eye looks down -z, so back is -z.
-                CORE_POSE.set(VIEW).translate(pose.artifact).translate(0.0F, 0.0F, -HeldArtifactPose.SCALE * HALO_BACK)
-                        .scale(HeldArtifactPose.SCALE * HALO_SIZE);
-                DirectRenderer.submit(halo, null, 0, CORE_POSE, light, OverlayTexture.NO_OVERLAY,
-                        haloTint(t, artifact, shownLift), DirectPass.HAND, VariantUv.NONE, HALO_ONLY);
-            }
+            // The glowing parts, bloom first then sharp (blended layers write no depth: back to front).
+            int bloom = bloomTint(t, artifact, shownLift);
             GemRenderGltfModel quad = artifact.core() > 0.0F ? coreModel() : null;
             if (quad != null) {
                 // View space: unrotated, the quad already faces the eye; it spins in its plane.
+                CORE_POSE.set(VIEW).translate(pose.artifact).rotateZ(t * 0.5F)
+                        .scale(HeldArtifactPose.SCALE * artifact.core() * CORE_BLOOM);
+                DirectRenderer.submit(quad, null, 0, CORE_POSE, light, OverlayTexture.NO_OVERLAY, bloom,
+                        DirectPass.HAND, VariantUv.NONE, bloomOnly(artifact));
                 CORE_POSE.set(VIEW).translate(pose.artifact).rotateZ(t * 0.5F)
                         .scale(HeldArtifactPose.SCALE * artifact.core());
                 DirectRenderer.submit(quad, null, 0, CORE_POSE, light, OverlayTexture.NO_OVERLAY, glowTint(t, artifact),
                         DirectPass.HAND, VariantUv.NONE, glowOnly(artifact));
             } else {
+                VariantUv uv = artifact.arcs() ? arcs(t) : VariantUv.NONE;
+                DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, bloom, DirectPass.HAND,
+                        uv, bloomOnly(artifact));
                 DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, glowTint(t, artifact),
-                        DirectPass.HAND, artifact.arcs() ? arcs(t) : VariantUv.NONE, glowOnly(artifact));
+                        DirectPass.HAND, uv, glowOnly(artifact));
             }
         }
         for (int side = 0; side < 2; side++) {
