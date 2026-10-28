@@ -187,7 +187,7 @@ public final class ArtifactRenderer {
             case THIRD_PERSON_RIGHT_HAND, THIRD_PERSON_LEFT_HAND -> {
                 pose.translate(0.0F, 0.22F + HeldArtifactPose.BOB * Mth.sin(t * 2.1F), 0.0F);
                 pose.mulPose(Axis.YP.rotation(t * 0.8F));
-                pose.scale(HeldArtifactPose.SCALE, HeldArtifactPose.SCALE, HeldArtifactPose.SCALE);
+                // True size, as on the ground: SCALE is first person's (view space, a hand's length from the eye).
             }
             default -> {
             }
