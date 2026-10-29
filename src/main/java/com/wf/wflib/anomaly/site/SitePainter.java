@@ -105,18 +105,18 @@ final class SitePainter {
             }
         }
         for (LootSpot s : l.loot) {
-            if (box.isInside(s.pos())) {
+            if (AnomalyCaves.surfaceArtefacts() && box.isInside(s.pos())) {
                 spawnArtefact(level, s);
             }
         }
     }
 
-    /** An artefact where it lies: hidden till a detector comes near ({@link ZoneArtifact}). */
-    private static void spawnArtefact(WorldGenLevel level, LootSpot s) {
+    /** An artefact 1 m over its spot, as GAMMA spawns them, drifting about its anomaly ({@link ZoneArtifact}). */
+    static void spawnArtefact(WorldGenLevel level, LootSpot s) {
         ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
                 s.loot().id)));
-        level.addFreshEntity(new ZoneArtifact(level.getLevel(), stack, s.pos().getX() + 0.5D, s.pos().getY() + 0.05D,
-                s.pos().getZ() + 0.5D));
+        level.addFreshEntity(new ZoneArtifact(level.getLevel(), stack, s.pos().getX() + 0.5D, s.pos().getY() + 1.0D,
+                s.pos().getZ() + 0.5D, s.home()));
     }
 
     static Block block(String id) {

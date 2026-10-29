@@ -72,7 +72,7 @@ public class NeutronActivationGameTest {
      * {@code GameTestHelper.makeMockServerPlayerInLevel} with the connection's channels pre-accepted: its bare
      * embedded connection negotiated nothing => the first login payload (AHF, attachment sync) throws.
      */
-    static ServerPlayer mockServerPlayer(GameTestHelper helper) {
+    public static ServerPlayer mockServerPlayer(GameTestHelper helper) {
         MinecraftServer server = helper.getLevel().getServer();
         CommonListenerCookie cookie = CommonListenerCookie.createInitial(
                 new GameProfile(UUID.randomUUID(), "test-mock-player"), false);
@@ -94,7 +94,7 @@ public class NeutronActivationGameTest {
         return player;
     }
 
-    static void remove(ServerPlayer player) {
+    public static void remove(ServerPlayer player) {
         player.server.getPlayerList().remove(player);
     }
 

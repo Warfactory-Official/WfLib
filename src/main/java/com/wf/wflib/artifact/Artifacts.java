@@ -1,15 +1,19 @@
 package com.wf.wflib.artifact;
 
+import com.wf.wflib.artifact.detect.ZoneArtifact;
 import com.wf.wflib.damage.WFDamageTypes;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 
 import org.jetbrains.annotations.Nullable;
@@ -52,14 +56,28 @@ public final class Artifacts {
         // Before NORMAL: WFMedical turns the hit into wounds there, so the cut must already be in the amount.
         NeoForge.EVENT_BUS.addListener(EventPriority.HIGH, Artifacts::onIncomingDamage);
         NeoForge.EVENT_BUS.addListener(Artifacts::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, Artifacts::onJoin);
         if (ModList.get().isLoaded("wfweight")) {
-            com.wf.wflib.compat.wfweight.ArtifactStamina.register();
+            com.wf.wflib.compat.wfweight.ArtifactWeight.register();
+        }
+    }
+
+    /** Fresh drops swap inline; {@link ArtifactItem#createEntity}'s swap lands a task later (kept for disk loads). */
+    private static void onJoin(EntityJoinLevelEvent event) {
+        if (event.loadedFromDisk() || !(event.getLevel() instanceof ServerLevel level)
+                || event.getEntity().getClass() != ItemEntity.class) {
+            return;
+        }
+        ItemEntity item = (ItemEntity) event.getEntity();
+        if (item.getItem().getItem() instanceof ArtifactItem) {
+            event.setCanceled(true);
+            level.addFreshEntity(ZoneArtifact.dropped(level, item, item.getItem()));
         }
     }
 
     /**
      * Once a second: worn artefacts' health back or drained ({@code health_restore_speed}), wounds closed, radiation
-     * dosed or cleared ({@code radiation_restore_speed}).
+     * dosed or cleared ({@code radiation_restore_speed}), hunger ({@code satiety_restore_speed} as exhaustion).
      */
     private static void onPlayerTick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
         Player player = e.getEntity();
@@ -69,10 +87,12 @@ public final class Artifacts {
         float heal = 0.0F;
         float clot = 0.0F;
         float rad = 0.0F;
+        float food = 0.0F;
         for (Artifact a : wornArtifacts(player)) {
             heal += a.healthPerSecond(player.getMaxHealth());
             clot += a.bleedingPerSecond();
             rad += a.radiationPerSecond();
+            food += a.foodPerSecond();
         }
         if (heal != 0.0F) {
             healer.accept(server, heal);
@@ -82,6 +102,9 @@ public final class Artifacts {
         }
         if (rad != 0.0F) {
             com.wf.wflib.hazard.LivingHazardProps.incrementRadiation(player, rad);
+        }
+        if (food < 0.0F) {
+            player.causeFoodExhaustion(-food * 4.0F);
         }
     }
 

@@ -2,17 +2,17 @@ package com.wf.wflib.smoking;
 
 import org.joml.Vector3f;
 
-/** One cigarette, ticks from the start of use. GAMMA {@code cigar1}: {@code tm} 10.5 s, light 4.0 s, exhale 7.0-8.1 / 10.0-11.1 s. */
+/** One cigarette, ticks from the tap. GAMMA {@code cigar1} ({@code tm} 10.5 s, light 4.0 s, exhale 7.0-8.1 / 10.0-11.1 s) minus the first 1.2 s (out of the pack). */
 public final class SmokingTimeline {
-    public static final int TICKS = 210;
-    public static final int LIT = 80;
+    public static final int TICKS = 186;
+    public static final int LIT = 56;
     private static final int DRAG = 24;
-    private static final int[][] EXHALE = {{140, 162}, {200, TICKS}};
+    private static final int[][] EXHALE = {{116, 138}, {176, TICKS}};
 
     /** AHF model space (blocks, +Y down, -Z forward), right arm: hanging fist / at the mouth. */
     private static final Vector3f HANGING = new Vector3f(-0.3125f, 0.875f, 0.0f);
     private static final Vector3f MOUTH = new Vector3f(-0.04f, -0.1f, -0.3f);
-    private static final float RAISE_FROM = 0.3f, RAISE_TO = 1.6f, LOWER_FROM = 8.9f, LOWER_TO = 9.9f;
+    private static final float RAISE_FROM = 0.0f, RAISE_TO = 0.6f, LOWER_FROM = 7.7f, LOWER_TO = 8.7f;
 
     private SmokingTimeline() {
     }

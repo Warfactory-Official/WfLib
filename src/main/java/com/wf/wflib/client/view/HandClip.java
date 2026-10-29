@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * View-space first-person tracks at uniform {@link #fps}: {@code right}/{@code left} fist x y z + quat, named prop
- * tracks (centre + quat), {@code cam} yaw/pitch/roll degrees (optional). x right, y up, -z forward.
+ * tracks (centre + quat [+ scale]), {@code cam} yaw/pitch/roll degrees (optional). x right, y up, -z forward.
  */
 public final class HandClip {
     public final float fps;
@@ -86,6 +86,15 @@ public final class HandClip {
         float[] a = track[index], b = track[index + 1];
         pos.set(a[0], a[1], a[2]).lerp(next.set(b[0], b[1], b[2]), blend);
         rot.set(a[3], a[4], a[5], a[6]).nlerp(nextRot.set(b[3], b[4], b[5], b[6]), blend);
+    }
+
+    /** Prop column 7 when baked (0 hidden), else 1. */
+    public float scale(float[][] track, float seconds) {
+        if (track[0].length < 8) {
+            return 1.0f;
+        }
+        locate(seconds, track.length);
+        return track[index][7] + (track[index + 1][7] - track[index][7]) * blend;
     }
 
     /** Zero when {@link #cam} is empty. */

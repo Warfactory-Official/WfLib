@@ -11,7 +11,6 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -99,8 +98,8 @@ public final class GltfBounds {
             if (in == null) {
                 return EMPTY;
             }
-            gltf = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8))
-                    .getAsJsonObject();
+            byte[] bytes = in.readAllBytes();
+            gltf = JsonParser.parseString(json(bytes)).getAsJsonObject();
         } catch (Exception e) {
             return EMPTY;
         }
@@ -110,6 +109,15 @@ public final class GltfBounds {
         } catch (Exception e) {
             return EMPTY;
         }
+    }
+
+    /** The JSON: all of a {@code .gltf}; a binary {@code .glb}'s first chunk (header 12 B, chunk length + type 8 B). */
+    static String json(byte[] bytes) {
+        java.nio.ByteBuffer b = java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        if (bytes.length >= 20 && b.getInt(0) == 0x46546C67) {
+            return new String(bytes, 20, b.getInt(12), StandardCharsets.UTF_8);
+        }
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private static GltfBounds build(JsonObject gltf) {

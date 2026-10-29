@@ -297,6 +297,7 @@ public class WFLibClient {
                 case com.wf.wflib.item.MissileItem ignored -> renderer(com.wf.wflib.client.render.MissileItemRenderer::instance);
                 case com.wf.wflib.kinetic.KineticShellItem ignored -> renderer(com.wf.wflib.client.render.MissileItemRenderer::instance);
                 case com.wf.wflib.nvg.NvgItem ignored -> com.wf.wflib.nvg.client.NvgItemClient.INSTANCE;
+                case com.wf.wflib.smoking.CigaretteItem ignored -> com.wf.wflib.smoking.client.CigaretteItemClient.INSTANCE;
                 case com.wf.wflib.pda.PdaItem ignored -> renderer(com.wf.wflib.pda.client.PdaRenderer::itemRenderer);
                 case com.wf.wflib.artifact.ArtifactItem artifact ->
                         renderer(() -> com.wf.wflib.artifact.client.ArtifactRenderer.itemRenderer(artifact));

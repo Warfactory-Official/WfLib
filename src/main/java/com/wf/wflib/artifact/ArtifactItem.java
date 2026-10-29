@@ -2,9 +2,13 @@ package com.wf.wflib.artifact;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+
+import com.wf.wflib.artifact.detect.ZoneArtifact;
 
 import java.util.List;
 
@@ -19,6 +23,17 @@ public class ArtifactItem extends Item {
 
     public Artifact artifact() {
         return artifact;
+    }
+
+    /** Dropped or thrown out: the artefact itself, rolling ({@link ZoneArtifact}), not an item entity. */
+    @Override
+    public boolean hasCustomEntity(ItemStack stack) {
+        return true;
+    }
+
+    @Override
+    public Entity createEntity(Level level, Entity location, ItemStack stack) {
+        return ZoneArtifact.dropped(level, location, stack);
     }
 
     /** The lowest detector rank that finds it (1 Echo, 2 Bear, 3 Veles). */
@@ -55,6 +70,14 @@ public class ArtifactItem extends Item {
             lines.add(Component.translatable("item.wflib.artifact.irradiates",
                             String.format(java.util.Locale.ROOT, "%+.1f", artifact.radiationPerSecond()))
                     .withStyle(artifact.radiation() > 0.0F ? ChatFormatting.RED : ChatFormatting.GREEN));
+        }
+        if (artifact.carry() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
+            lines.add(Component.translatable("item.wflib.artifact.carry",
+                            String.format(java.util.Locale.ROOT, "%+.0f", artifact.carry()))
+                    .withStyle(artifact.carry() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+        if (artifact.satiety() < 0.0F) {
+            lines.add(Component.translatable("item.wflib.artifact.starves").withStyle(ChatFormatting.RED));
         }
         lines.add(Component.translatable("item.wflib.artifact.worn").withStyle(ChatFormatting.DARK_GRAY));
     }

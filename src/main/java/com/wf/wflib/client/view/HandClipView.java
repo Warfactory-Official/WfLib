@@ -71,11 +71,12 @@ public final class HandClipView {
             }
             GemRenderGltfModel model = prop.handle.get();
             float[][] track = clip.prop(prop.track);
-            if (model == null || track == null) {
+            float scale = track == null ? 0.0f : clip.scale(track, seconds);
+            if (model == null || scale <= 0.0f) {
                 continue;
             }
             clip.sample(track, seconds, AT, HAND);
-            POSE.set(VIEW).translate(AT).rotate(HAND);
+            POSE.set(VIEW).translate(AT).rotate(HAND).scale(scale);
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF, DirectPass.HAND,
                     VariantUv.NONE, slot -> null);
         }

@@ -49,12 +49,18 @@ import java.util.Map;
 public final class ArtifactRenderer {
     /** The idle left hand, out of view below. */
     private static final Vector3f OFF_HAND = new Vector3f(-0.30F, -0.85F, -0.05F);
-    /** Inventory: longest side of the model, m. */
-    private static final float BODY_SIZE = 0.3F;
+    /** Inventory: share of the cell the model's on-screen extent fills. */
+    private static final float ICON_FILL = 0.9F;
+    private static final float ICON_TILT = 15.0F;
 
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
     private static final Map<Artifact, net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer> ITEM_RENDERERS =
             new HashMap<>();
+    /** Centre x, y, z and fitting scale in the tilted inventory view, of {@code model}. */
+    private record IconFit(GemRenderGltfModel model, float[] fit) {
+    }
+
+    private static final Map<Artifact, IconFit> ICON_FIT = new HashMap<>();
     /** A core's bloom across, over the core: the blurred core spills well past it. */
     private static final float CORE_BLOOM = 1.8F;
     /** One quad (XY, facing +Z), glow slot: an artefact's core sprite. */
@@ -165,7 +171,7 @@ public final class ArtifactRenderer {
 
                     @Override
                     public void transform(ItemStack stack, ItemDisplayContext context, PoseStack pose) {
-                        ArtifactRenderer.transform(context, pose);
+                        ArtifactRenderer.transform(artifact, context, pose);
                     }
 
                     @Override
@@ -176,12 +182,15 @@ public final class ArtifactRenderer {
     }
 
     /** The item display transform, as the item renderer applies it, for the core sprite to follow. */
-    private static void transform(ItemDisplayContext context, PoseStack pose) {
+    private static void transform(Artifact artifact, ItemDisplayContext context, PoseStack pose) {
         float t = clock();
         switch (context) {
             case GUI, FIXED -> {
-                pose.scale(0.9F / BODY_SIZE, 0.9F / BODY_SIZE, 0.9F / BODY_SIZE);
-                pose.mulPose(Axis.XP.rotationDegrees(15));
+                GemRenderGltfModel model = model(artifact);
+                float[] fit = model == null ? new float[] {0.0F, 0.0F, 0.0F, ICON_FILL / 0.3F} : iconFit(artifact, model);
+                pose.scale(fit[3], fit[3], fit[3]);
+                pose.mulPose(Axis.XP.rotationDegrees(ICON_TILT));
+                pose.translate(-fit[0], -fit[1], -fit[2]);
             }
             case GROUND -> pose.mulPose(Axis.YP.rotation(t * 0.8F));
             case THIRD_PERSON_RIGHT_HAND, THIRD_PERSON_LEFT_HAND -> {
@@ -192,6 +201,35 @@ public final class ArtifactRenderer {
             default -> {
             }
         }
+    }
+
+    /** Rest-pose box of {@code model}, centred, scaled so its extent seen through {@link #ICON_TILT} fills the cell. */
+    private static float[] iconFit(Artifact artifact, GemRenderGltfModel m) {
+        IconFit cached = ICON_FIT.get(artifact);
+        if (cached != null && cached.model() == m) {
+            return cached.fit();
+        }
+        Matrix4f[] palette = m.restPalette();
+        float[] box = new float[6];
+        Vector3f lo = new Vector3f(Float.POSITIVE_INFINITY);
+        Vector3f hi = new Vector3f(Float.NEGATIVE_INFINITY);
+        Vector3f p = new Vector3f();
+        for (int i = 0; i < m.bounds().size(); i++) {
+            m.bounds().box(i, box);
+            for (int c = 0; c < 8; c++) {
+                palette[m.bounds().slot(i)].transformPosition(box[(c & 1) * 3], box[1 + (c >> 1 & 1) * 3],
+                        box[2 + (c >> 2 & 1) * 3], p);
+                lo.min(p);
+                hi.max(p);
+            }
+        }
+        Vector3f size = hi.sub(lo, new Vector3f());
+        float tilt = (float) Math.toRadians(ICON_TILT);
+        float tall = size.y * Mth.cos(tilt) + size.z * Mth.sin(tilt);
+        Vector3f mid = lo.add(hi).mul(0.5F);
+        float[] fit = {mid.x, mid.y, mid.z, ICON_FILL / Math.max(1.0E-3F, Math.max(size.x, tall))};
+        ICON_FIT.put(artifact, new IconFit(m, fit));
+        return fit;
     }
 
     /**
@@ -219,7 +257,7 @@ public final class ArtifactRenderer {
             }
             pose.pushPose();
             pose.translate(0.5F, 0.5F, 0.5F);
-            transform(context, pose);
+            transform(artifact, context, pose);
             Matrix4f m = pose.last().pose();
             float unit = m.getColumn(0, new Vector3f()).length();
             DirectPass pass = context == ItemDisplayContext.GUI ? DirectPass.GUI : DirectPass.LEVEL;

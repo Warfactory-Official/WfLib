@@ -8,10 +8,8 @@ import com.wf.gemrender.direct.GemRenderItemRenderer;
 import com.wf.gemrender.direct.ItemAppearance;
 import com.wf.gemrender.direct.TextureSlots;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
-import com.wf.gemrender.light.Lights;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.WFSounds;
-import com.wf.wflib.artifact.ArtifactItem;
 import com.wf.wflib.artifact.detect.ArtifactEntities;
 import com.wf.wflib.artifact.detect.Detection;
 import com.wf.wflib.artifact.detect.DetectorItem;
@@ -112,7 +110,7 @@ public final class DetectorClient {
             LocalPlayer p = Minecraft.getInstance().player;
             return p != null && Detection.revealed(p, a);
         };
-        event.enqueueWork(DetectorClient::registerLights);
+        event.enqueueWork(ZoneArtifactClient::registerLights);
     }
 
     @SubscribeEvent
@@ -228,24 +226,5 @@ public final class DetectorClient {
                 return DetectorClient.slots(tier, mine && flash > 0.3F);
             }
         };
-    }
-
-    /** A revealed artefact glows as it does held: its light at it, for the player whose detector shows it. */
-    private static void registerLights() {
-        Lights.register((sink, partialTick) -> {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.level == null || mc.player == null || held == null) {
-                return;
-            }
-            for (ZoneArtifact a : mc.level.getEntitiesOfClass(ZoneArtifact.class, mc.player.getBoundingBox()
-                    .inflate(held.reveal + 1.0D), ZoneArtifact.shownHere)) {
-                if (a.item().getItem() instanceof ArtifactItem item) {
-                    var art = item.artifact();
-                    Vec3 p = a.getPosition(partialTick).add(0.0D, ZoneArtifactRenderer.LIFT, 0.0D);
-                    sink.point(p.x, p.y, p.z, art.lightRange(), art.lightRgb(),
-                            art.lightRange() * art.lightRange() * 0.35F, false);
-                }
-            }
-        });
     }
 }

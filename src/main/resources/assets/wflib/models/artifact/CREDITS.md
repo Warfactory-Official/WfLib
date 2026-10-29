@@ -23,6 +23,19 @@ STALKER Anomaly's artefact meshes (GSC Game World / Anomaly), converted by devto
     `flame` (af_fire), `kolobok` (af_fuzz_kolobok), `firefly` (af_glass), `wrenched` (af_vyvert).
   - Base: `bubble` (af_baloon), `eye` (af_eye), `pellicle` (artefact_plenka_coc), `oasis_heart` (af_cristall_plant).
   - Not drawn: Bubble's and Wrenched's xdistort shells, Heart of the Oasis' `pautina` copy of its glow card.
+- 2026-10-29 batch 3, same sources; `sap/*` and `amk/arts/*` textures from GAMMA's mods or Anomaly's base archives.
+  - Base: `droplets` (artefact_kaply), `crystal_thorn` (artefact_needles2), `sea_urchin` (af_rusty_sea_urchin),
+    `thorn` (artefact_needles1), `spring` (artefact_pustishka).
+  - "New Storylines (DLTX minimodpack)" by Demonized: `lamp` (af_fonar).
+  - Fixed, the rest: `compass`, `death_lamp` (artefact_death_lamp), `empty` (artefact_empty), `full_empty`
+    (artefact_full_empty), `goldfish` (af_gold_fish), `gravi`, `volat_emerald` (af_monolith), `nightstar`
+    (af_night_star); Perk-Based Artefacts' `ball`, `bat`, `black_angel`, `cell`, `chain` (af_chelust), `cocoon`,
+    `dragon_eye`, `electron` (af_elektron), `fountain`, `generator`, `claw` (af_kogot), `beacon` (af_lighthouse),
+    `medal` (af_medallion), `moss` (af_moh), `moon` (af_peas), `thistle` (af_repei), `sandstone`, `seraphim`
+    (af_serofim), `misers_skull` (af_skull_miser), `spike` (af_spaika), `phantom_star` (af_star_phantom), `sun`,
+    `tapeworm`, `scar` (af_zhelch).
+  - Electron's, Lamp's and Goldfish's xdistort shells drawn as veils (nothing else solid); Black Angel's not drawn.
+  - `*_solid.png`: a body's opaque copy of a texture another part draws blended.
 
 Licence unrecorded: for this internal build only; clear or replace before anything ships.
 

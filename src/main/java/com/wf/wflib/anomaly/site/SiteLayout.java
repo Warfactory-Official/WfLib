@@ -88,7 +88,7 @@ public final class SiteLayout {
     public record Placed(Kind kind, BlockPos pos) {
     }
 
-    public record LootSpot(Loot loot, BlockPos pos) {
+    public record LootSpot(Loot loot, BlockPos pos, BlockPos home) {
     }
 
     final SitePlan plan;
@@ -402,7 +402,7 @@ public final class SiteLayout {
                     at = new BlockPos(x, y, z);
                 }
             }
-            loot.add(new LootSpot(l, at != null ? at : anchor.pos()));
+            loot.add(new LootSpot(l, at != null ? at : anchor.pos(), anchor.pos()));
         }
     }
 

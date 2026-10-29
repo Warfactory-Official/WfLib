@@ -27,10 +27,12 @@ class SmokingClipTest {
     void everyTrackHoldsOneRowPerFrame() throws IOException {
         HandClip c = clip();
         int frames = Math.round(c.duration * c.fps) + 1;
-        for (float[][] track : new float[][][]{c.right, c.left, c.prop("pack"), c.prop("cig")}) {
+        for (float[][] track : new float[][][]{c.right, c.left, c.prop("cig")}) {
             assertEquals(frames, track.length, 1);
             assertEquals(7, track[0].length);
         }
+        assertEquals(frames, c.prop("lighter").length, 1);
+        assertEquals(8, c.prop("lighter")[0].length);
         assertEquals(c.right.length, c.cam.length);
         assertEquals(3, c.cam[0].length);
     }
@@ -52,12 +54,25 @@ class SmokingClipTest {
         HandClip c = clip();
         Vector3f hand = new Vector3f(), cig = new Vector3f();
         Quaternionf q = new Quaternionf();
-        for (float t = 3.0F; t < 8.0F; t += 0.5F) {
+        for (float t = 1.8F; t < 6.8F; t += 0.5F) {
             c.sample(c.right, t, hand, q);
             c.sample(c.prop("cig"), t, cig, q);
             assertTrue(hand.distance(cig) < 0.12F, t + " s: hand " + hand + " cigarette " + cig);
             assertTrue(cig.y > -0.15F && cig.y < 0.0F && cig.z < -0.12F && cig.z > -0.30F,
                     t + " s: cigarette not at the mouth " + cig);
+        }
+    }
+
+    @Test
+    void theButtFacesTheMouthUntilTheFlick() throws IOException {
+        HandClip c = clip();
+        Vector3f cig = new Vector3f(), butt = new Vector3f(), face = new Vector3f();
+        Quaternionf q = new Quaternionf();
+        for (float t = 0.5F; t < 8.0F; t += 0.25F) {
+            c.sample(c.prop("cig"), t, cig, q);
+            q.transform(butt.set(0.0F, 1.0F, 0.0F));
+            face.set(0.0F, -0.08F, 0.0F).sub(cig).normalize();
+            assertTrue(butt.dot(face) > Math.cos(Math.toRadians(10.0)), t + " s: butt " + butt + " face " + face);
         }
     }
 

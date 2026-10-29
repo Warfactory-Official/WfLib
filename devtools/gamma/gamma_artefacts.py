@@ -85,5 +85,7 @@ for name in sorted(sections):
         v = num(get(absec, k))
         if abs(v) > 1e-9: fx[k] = v
     out.append({'weight': get(name, 'inv_weight'), 'light': get(name, 'trail_light_color'), 'range': get(name, 'trail_light_range'), 'id': name, 'visual': get(name, 'visual'), 'tier': get(name, 'af_rank') or get(name, 'tier'),
-                'name': get(name, 'inv_name'), 'cost': num(get(name, 'cost')), 'fx': fx})
+                'name': get(name, 'inv_name'), 'cost': num(get(name, 'cost')), 'fx': fx,
+                'particles': get(name, 'particles'), 'show': get(name, 'det_show_particles'),
+                'show_snd': get(name, 'det_show_snd')})
 json.dump(out, open(sys.argv[3] if len(sys.argv) > 3 else '/dev/stdout', 'w'), indent=1)

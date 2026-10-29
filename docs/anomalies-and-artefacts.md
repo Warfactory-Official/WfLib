@@ -27,8 +27,8 @@ Checkouts side by side in one workspace (`~/projects/wf2-21/`; older machine `~/
 | WFLib (mod id `wflib`) | `WF-Ballistics` | `main` -> `origin/main` (Warfactory-Official/WfLib) | anomalies, sites, artefacts, detectors, bolts, screen effects |
 | WFMedical | `WFMedical` | `neoforge-1.21.1` -> `origin/neoforge-1.21.1` | stress (= psy), healing / drain / clot / thin, GAMMA hit + psy screen effects |
 | WFWeight | `Ultimate-Weight` | `master` -> `origin/master` | `api/StaminaModifiers` (artefact power_restore) |
-| wfcore | `Warfactory-Modern-Core` | `master` -> `origin/1.21.1` | `AnomalySiteDensity`: site density from worldgen resource rules |
-| wfworldgen (Go) | `worldgen-workspace` | `master` -> `origin/master` | "Anomalies" section: pick fields / autogen cells per tier |
+| wfcore | `Warfactory-Modern-Core` | `master` -> `origin/1.21.1` | `AnomalySiteDensity`: site density from worldgen resource rules + `AnomalyCaves.allocation` from `anomaly_caves` (`AnomalyCaveQuota`) |
+| wfworldgen (Go) | `worldgen-workspace` | `master` -> `origin/master` | "Anomalies" section: pick fields / autogen cells per tier; `caves` = fixed cave-field + artefact allotment |
 | MineAssault | `MineAssault` | `master` (+ `origin/instance/ma-0f896c4-wflib-main`) | `ZoneHandsViewmodel`: detector on DAR hands + bolts in first person; `libs/wfweight-*.jar` |
 | GemRender | `GemRender` | `main` | glTF rendering, lens pass, lights; WFLib / MineAssault need 0.1.19 (`GltfSkeleton`, `flushOpaque`) |
 | mc-harness | `mc-harness` | (local) | headless client checks: `scenarios/wf_zone.mjs` |
@@ -38,6 +38,10 @@ Data flow: wfworldgen writes resource rules (system `anomaly`, targets `wflib:an
 per candidate chunk -> `SitePainter` builds terrain, ruins, anomalies and hidden `ZoneArtifact`s -> players find
 them with a `DetectorItem`, probe with bolts (`Bolts`), wear them in Curios -> `Artifacts` applies immunities and
 restores, calling WFMedical / WFWeight hooks when those mods are loaded.
+
+Cave flow: `anomalies.caves {count, artefacts, tiers, tier_share, spacing}` -> `resources.anomaly_caves` ->
+wfcore `AllocationIndex.caveSlots` (`AnomalyCaveQuota.allocate`) -> `AnomalyCaves.allocation` -> placement
+`wflib:cave_slot` -> structure `wflib:anomaly_cave`.
 
 ### Push state (2026-10-29)
 
@@ -109,18 +113,57 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   `Artifact.ALL`; `pickLoot(r, tier, kinds)` filters by each artefact's `minTier` and element; `Artifact.UNIQUE` weight
   1/8: ~1.3% of tier-4 draws).
 
+### Cave fields (`anomaly/site`, 2026-10-29, uncommitted)
+
+- Surface sites stay. Caves added beside; `AnomalyCaves.surfaceArtefacts()` false while an allocation exists => surface
+  sites keep anomalies, drop artefacts (`SitePainter.paint` loot loop). Commands/tests without wfcore: unchanged.
+- Fixed allotment, no runtime state: `AnomalyCaveQuota` (wfcore) = pure f(seed, spec, landmask). Dart-throw hashed chunks
+  over the rectangle: `zone >= 0.5` (land), `>= spacing` apart (default half mean distance), until exactly `count`; else
+  throw. Tier by `tiers` weights; `artefacts` split by `tier_share` (largest remainder) => sum == `artefacts` exactly.
+  Resource-rule density (`m`) FORBIDDEN here: rolled counts, not a total. Precedent: `deposit_regions`.
+- Never past budget: structure start saved with its chunk; paint only from the saved plan; artefact kinds drawn from the
+  slot seed (`CavePlan.roll`, exactly `slot.artefacts` draws). Uniques (`Artifact.UNIQUE`): only at the one slot
+  `Slot.hosts` hashes to => <= 1 per world. Chunk deleted/regenerated => same artefacts again (no ledger).
+- Placement `wflib:cave_slot` (`AnomalyCaves.Placement`): start chunks == slots; structure set `anomaly_caves`, structure
+  `anomaly_cave`, step `top_layer_modification` (after fluid springs; wall springs would flood the chamber), biomes
+  `#minecraft:is_overworld`. `anomalies.enabled=false` at gen time => no field, budget unspent for that chunk.
+- `CaveProbe`: `getBaseColumn` (cheese caves/caverns; carvers NOT in it) on a 9x9 grid, step 12, round the slot chunk;
+  air run 8..28 blocks, top >= 24 under surface; score = grid points within 2 steps open at run floor+2 (>= 12 of 25);
+  best score wins, tie nearest slot. None => chamber cut 38..58 under surface at the slot (`natural=false`).
+  Natural run found => dome height capped at run - 2.
+- `CaveLayout` (pure): ragged disc radius 18..38 by tier; floor = y0 +-2 noise; dome ceiling floor+4..+H (H 9/10/12/14).
+  Anomalies 3..10 by tier (FLOOR, CEILING at ceiling-1, FIELD near middle; spacing 7/6/5/4); artefacts on floor 2-4.5
+  blocks from anchor anomalies (hardest first), `home` = anchor. `CavePainter`: cut air, fill floor/ceiling cap
+  (deepslate, 10% tuff, 5% smooth basalt), up to 10 deep under floor. Chamber always sculpted, even in natural caves
+  (guarantees floors/ceilings for exact counts).
+- Commands: `/wflib anomalies cave <tier> [artefacts]` (floor under feet), `/wflib anomalies cave slots` (totals + 5
+  nearest slots).
+- Verified 2026-10-29 (harness `wf_cave_fields.mjs`, wfcore server, seed 0, pack `anomalies.caves {12, 60}`): totals `12 fields, 60
+  artefacts`; slots #7 t2, #5 t1, #6 t3 forceloaded (15x15 chunks): zone_artifact entities 6/3/8 == slot artefacts, at
+  y -53/-50/29. Chamber look and natural-vs-cut split not inspected.
+- Gaps: no Go preview of fields (wfcore-native); ledger absent; natural-cave choice ignores carver caves; deeprock
+  (player-unbreakable) chambers reachable only by natural caves/ravines or from above through deepslate.
+
 ### Artefacts (`com.wf.wflib.artifact`)
 
 - `Artifact` record: id, glb model (`models/artifact/<id>.glb`), texture slots, arcs, core sprite, per-hit
   `immunity` (`Hit`: SHOCK, BURN, STRIKE, WOUND, BULLET, EXPLOSION, CHEMICAL, PSY), health / power (stamina) /
   bleeding restore, `radShield` (radiation_immunity), `radiation` (radiation_restore_speed), bloom, light, detect
   rank, element, min tier. Values are GAMMA's resolved numbers.
-- `Artifact.ALL` (29): BATTERY, SOUL; 2026-10-28: CRYSTAL, ITCHER, SPONGE, FIREBALL, SPARKLER, GLASS_BEADS, MOONLIGHT,
+- `Artifact.ALL` (67): BATTERY, SOUL; 2026-10-28: CRYSTAL, ITCHER, SPONGE, FIREBALL, SPARKLER, GLASS_BEADS, MOONLIGHT,
   FLASH (item `wflib:flash_artifact`: `wflib:flash` = Flash anomaly block item), ICE, RING, DUMMY, STONE_FLOWER;
   2026-10-29: STONE_BLOOD, LOBSTER_EYES, JELLYFISH (af_medusa), MEAT_CHUNK, PIN, BUBBLE (af_baloon), BLACK_SPRAY,
-  BRACELET, EYE, FLAME (af_fire), KOLOBOK, FIREFLY (af_glass), WRENCHED (af_vyvert); `UNIQUE`: PELLICLE,
-  OASIS_HEART (tier 4). Element / tier = GAMMA `af_class_<elemental|psio_gravi|phyto_chem>_<south|mid|north>` (lowest;
-  elemental split by `af_<fire|elec>_t*`); rank = DAO Svarog `items_devices.ltx` af_class lists. Items registered from `ALL` in `ModItems.ARTIFACTS`; masses in `ItemMasses`; Curios
+  BRACELET, EYE, FLAME (af_fire), KOLOBOK, FIREFLY (af_glass), WRENCHED (af_vyvert); batch 3: DEATH_LAMP, DROPLETS
+  (af_drops), EMPTY, FULL_EMPTY, GOLDFISH, GRAVI, NIGHTSTAR, CRYSTAL_THORN / SEA_URCHIN / THORN (af_rusty_*), SPRING
+  (af_dummy_spring); 25 Perk-Based (no stats in GAMMA; perks not ported => worn they do nothing): BALL, BAT,
+  BLACK_ANGEL, CELL, CHAIN (af_chelust), COCOON, DRAGON_EYE, ELECTRON, LAMP (af_fonar), FOUNTAIN, GENERATOR, CLAW
+  (af_kogot), BEACON (af_lighthouse), MEDAL, MOSS (af_moh), MOON (af_peas), THISTLE (af_repei), SANDSTONE, SERAPHIM,
+  MISERS_SKULL, SPIKE, PHANTOM_STAR, SUN, TAPEWORM, SCAR (af_zhelch). `UNIQUE`: PELLICLE, OASIS_HEART, COMPASS,
+  VOLAT_EMERALD (af_monolith) (tier 4). Element / tier = GAMMA `af_class_<elemental|psio_gravi|phyto_chem>_<south|mid|
+  north>` (lowest; elemental split by `af_<fire|elec>_t*`); unlisted (drops, rusty, spring) by SoC origin, tier 1;
+  perk ones `af_class_weak_low` 1 / `_high` 2, element by trail light colour (divergence: GAMMA ties them to none).
+  Rank = DAO Svarog `items_devices.ltx` af_class lists (unlisted 1). Items registered from `ALL` in
+  `ModItems.ARTIFACTS`; masses in `ItemMasses`; Curios
   tag `data/curios/tags/item/artifact.json`; lang `item.wflib.<id>`.
 - `Artifacts` (server): `LivingIncomingDamageEvent` at HIGH (before WFMedical turns hits into wounds) scales by
   `1 - immunity`, stacked per worn artefact; `hit(DamageSource)` maps damage types to `Hit`. Once a second: health
@@ -128,7 +171,9 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   `LivingHazardProps.incrementRadiation`. `psyProtection(player)` for stress. `shieldDose`: radShield as a RAD/s budget
   per tick across every dose (`ContaminationUtil.contaminate`, after armour; negative adds once a tick).
   `RAD_PER_UNIT` 1000; X-Ray subtracts radiation_immunity per hit, not per second.
-  Stamina: `compat/wfweight/ArtifactStamina` (WFWeight `StaminaModifiers`).
+  WFWeight (`compat/wfweight/ArtifactWeight`): power_restore -> `StaminaModifiers`, additional_inventory_weight
+  (`carry`, kg) -> `CarryModifiers` (WFWeight API added 2026-10-29). satiety_restore -> food exhaustion x4/point;
+  positive not applied (only GAMMA's misery bread, not ported).
 - Hooks claimed by WFMedical (`compat/wflib/ArmorBridge`, `StressBridge`): `healer` -> `MedicalHealing.heal`
   (negative = `drain`: a self-healing blunt_force_trauma on the torso), `clotter` -> `MedicalHealing.clot` /
   `thin` (negative: transient bleeding x (1 + thinning)), `PsyExposureEvent` + stress gain x `(1 - psyProtection)`.
@@ -140,15 +185,25 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
     whenever that does not hide something meant to show through (Flash's shell stays blended, its blue comes from
     the rays behind it).
   - First person: arms via WFLib `PlayerArms`/`ArmViewPose`, artefact floats over the palm (`HeldArtifactPose`,
-    `SCALE` 0.4 in view space). Inventory/ground/item frames/others' hands: GemRender item renderer at true size.
+    `SCALE` 0.4 in view space). Ground/others' hands/world (`ZoneArtifactRenderer`, context NONE): GemRender item
+    renderer at true size. Inventory/item frames: fitted per model (rest-pose bounds seen through the 15 deg tilt fill
+    0.9 of the cell; models span 0.09-1.02 m).
     Held artefacts add a GemRender point light.
-- Missing GAMMA effects, not implemented: additional_inventory_weight (WFWeight carry capacity),
-  satiety_restore_speed.
 
 ### Detection, collection, bolts (`artifact/detect`)
 
-- `ZoneArtifact`: hidden entity holding the artefact stack, placed by `SitePainter`; shown to a client only inside its
-  detector's reveal radius; taken by interacting. `detectRank` = lowest detector rank that finds it.
+- `ZoneArtifact` = X-Ray `CArtefact` lying in the world (`Artefact.cpp`, GAMMA `item_artefact.script` FollowByPath):
+  - Body: ball of the model's mean extent (server reads the glb via `GltfBounds`), gravity 0.04, bounce 0.35, roll
+    0.9/tick, rests; orientation quaternion synced, slerped. Anomalies ignore it (zones' `ignore_artefacts`).
+  - Zone's (site; spawned 1 m over its spot, home = anchor anomaly): hidden until a detector's reveal radius
+    (`Detection.revealed`), then taken with use. Unseen by every player => drifts: way point within 4 m of home,
+    kick `F x 0.02 s` (one ODE step, `applyGravityAccel`) when < 0.7 m/s or < 0.707 m/s along the way, F = GAMMA's
+    commonest field forces xz 200 / y 10 (y only with ground within 0.75 m). Shown => no drift. Players nudge it.
+  - Dropped (item entity swapped on join: fresh => inline `Artifacts.onJoin`; disk load => `createEntity`, a task later): seen by all, no drift, walked up (40-tick delay).
+  - Client (`ZoneArtifactClient`): shown => `det_show_particles` + `det_show_snd` once, `particles` looped, trail
+    light; unseen > 40 m => show-particles blink per 12 real min. Groups per artefact `Artifact.idleFx/showFx`
+    (GAMMA's `particles` / `det_show_particles`; files from "Particles Cinematic VFX").
+  - `detectRank` = lowest detector rank that finds it. Never despawns.
 - `DetectorTier`: ECHO (rank 1, range 30, reveal 3, LED), BEAR (2, 30, 4, DIRECTION), VELES (3, 30, 5, SCREEN). Beep
   interval lerps 2 s -> 0.05 s with distance. `DetectorItem`, `Detection` (server search), client `DetectorClient`
   (models, sounds, faces), `DetectorHud`, `DetectorProbe`, `ZoneArtifactRenderer`.
@@ -205,7 +260,7 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   `time_release` fade out), plus camera-shake keys.
 - **Camera effectors (`.anm`, `anims/camera_effects/`)**: object motion (position and rotation envelopes) applied to
   the camera: hit kicks, earthquakes, drunk sway, fatigue, item use, waking up.
-- Base files: `anomaly/db/meshes/anims.db0` -> `devtools/xray-db.py <out> 'anims/*' ~/Games/GAMMA/anomaly/db/meshes/anims.db0`
+- Base files: `anomaly/db/meshes/anims.db0` -> `devtools/xray-db.py <out> 'anims/*' ~/games/gamma/anomaly/db/meshes/anims.db0`
   (128 `.ppe`, ~50 non-weapon camera `.anm`). Mod overrides: `gamma/mods/*/gamedata/anims/`. Triggers: base scripts
   (`devtools/xray-db.py <out> 'scripts/*' .../configs/scripts.db0`), mod scripts, and configs (`misc/postprocess.ltx`,
   zone and creature LTX). Formats: xray-monolith `src/xrEngine` (`PostProcessAnimator.cpp`, `Envelope.cpp`, object
@@ -299,10 +354,11 @@ Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_f
 ## Tests and benches
 
 - Unit: `anomaly/` AnomalyPathTest, AnomalyTypesTest (incl. psy field), BlastTuningTest, MincerTuningTest,
-  SitePlanTest; `anomaly/site/AnomalyMixTest` (loot tier filter, element lean, uniques rare); `artifact/ArtifactsTest`
+  SitePlanTest; `anomaly/site/AnomalyMixTest` (loot tier filter, element lean, uniques rare); `CaveLayoutTest` (exact
+  artefacts, floors, unique hosts); `artifact/ArtifactsTest`
   (immunity / psy stacking, rad shield budget, restore rates); `artifact/detect/DetectorTierTest` (beep curve, ranks);
   `artifact/client/HeldArtifactPoseTest`. WFMedical `PhysiologyTest` thinning.
-- GameTests (own batches: new `defaultBatch` rows reshuffle packing-sensitive lanes): `anomaly/gametest/
+- GameTests (own batches: new `defaultBatch` rows reshuffle packing-sensitive lanes): `anomaly/gametest/CaveFieldGameTest` (batch `anomaly_caves`: exact artefact entities per tier), 
   RebounderGameTest`, `SiteLayoutGameTest` (+ FISSURES vents = STEAM_VENT, batch `anomaly_sites`); `artifact/gametest/
   ArtifactGameTest` (damage type -> Hit; reveal/take by rank and radius; batch `artifacts`), `BoltGameTest` (rest on
   flat / stairs / after a wall, sets off a Springboard, walk-over returns the same stack, throw takes one; batch
@@ -326,12 +382,12 @@ Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_f
     (`-PquickPlay=anomaly-bench`, `JAVA_TOOL_OPTIONS=-Dwflib.anomalyTest=hands`).
 - Gaps: worn-artefact effects end to end (Curios only with `-PwithCurios`: `Artifacts.shieldDose` / restores tested as
   pure math, not through a worn slot); detector state machine (client-only; harness screenshots); wfcore
-  `AnomalySiteDensity` (needs a server with rule files). wfworldgen: `internal/world/anomalies_test.go` (3, pass).
+  `AnomalySiteDensity` (needs a server with rule files). wfworldgen: `internal/world/anomalies_test.go` (5, pass); wfcore `AnomalyCaveQuotaTest` (4); harness `wf_cave_fields.mjs`.
 
 ## Asset pipeline (GAMMA -> WFLib)
 
-GAMMA is installed at `~/Games/GAMMA` (`gamma/mods/*` in MO2 order from `gamma/profiles/G.A.M.M.A/modlist.txt`,
-base archives in `anomaly/db/`). All converted art is third-party: **internal only**, provenance in the
+GAMMA: MO2 dir `~/games/gamma/GAMMA` (`mods/*` in order from `profiles/G.A.M.M.A/modlist.txt`), base
+archives `~/games/gamma/anomaly/db/`. All converted art is third-party: **internal only**, provenance in the
 `CREDITS.md` beside the models; clear or replace before anything ships.
 
 1. Extract base files the mods don't ship loose: `devtools/xray-db.py <out> '<glob>' <archive>...`
@@ -345,9 +401,14 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
    `glowsolid` (opaque, self-lit); `lightplanes` -> `glow` (additive light cards; drawn alpha-blended);
    `xdistortcolor(l)` -> blended veil; `xdistort` -> refraction only, not drawn.
 5. `GAMMA=<mo2 dir> devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib [id...]`: converts
-   `BATCH` (both batches; ids limit it): textures (max 512 px, `_bloom.png` blurred copies for blended glows), glbs (`--centre`).
+   `BATCH` (ids limit it): textures (max 512 px, `_bloom.png` blurred copies for glows), glbs (`--centre`). Texture
+   both body (alpha forced opaque) and blended elsewhere => body copy `<name>_solid.png`. Batch 3 kinds by shader:
+   window / pautina -> veil; xdistort -> veil only where nothing else is solid.
    Afterwards by hand: Ring scaled x4 and stood upright; Sparkler/Dummy shells MASK 0.3, Fireball shell OPAQUE.
    Delete `_bloom.png` files no blended glow uses.
+   Particles: `devtools/gamma/gamma_artefacts.py` gives each section's `particles` / `det_show_particles`; import
+   groups with `devtools/xray-assets.py <every mod gamedata in MO2 order> <base> -- <group>...` (base needs
+   `textures/glow/*`). Re-import overwrites existing sounds byte-different: restore tracked ones.
 6. New artefact: add the `Artifact` constant (GAMMA numbers, light = trail_light_color), add to `ALL` and
    `AnomalyMix.Loot`, item model json (copy `models/item/battery.json`), lang, Curios tag, `ItemMasses` entry, then
    run `hold` (with Curios) and `gallery` day and night. Check the id doesn't collide with an existing item (every
@@ -361,13 +422,10 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
    ported ones in play (strengths are GAMMA's; WFMedical's own overlays still layer on top).
 3. **Detectors**: review DAR hands in game (`wf_zone.mjs`); zoom placement is approximate (`aim_hud_offset_pos`
    only); third-person / inventory pose is bind pose; then delete the old static `models/detector/<id>.glb`.
-4. **Remaining GAMMA artefacts** (user, 2026-10-29: perks later):
-   - **Perk artefacts (25)**: GAMMA's Perk-Based Artefacts (`perk_based_artefacts.script`) gives each a scripted perk
-     (e.g. af_serofim cheats death once). Each needs its own effect: af_ball, af_bat, af_black_angel, af_cell,
-     af_chelust, af_cocoon, af_dragon_eye, af_elektron, af_fonar, af_fountain, af_generator, af_kogot, af_lighthouse,
-     af_medallion, af_moh, af_peas, af_repei, af_sandstone, af_serofim, af_skull_miser, af_spaika, af_star_phantom,
-     af_sun, af_tapeworm, af_zhelch.
-   - Effects still missing for other sections: additional_inventory_weight (x8), satiety_restore_speed (x4).
+4. **GAMMA artefacts left** (user, 2026-10-29: perks later):
+   - **Perks of the 25 Perk-Based artefacts** (in game, no effect yet): `perk_based_artefacts.script` (4620 lines,
+     GAMMA mod "52- Perk-Based Artefacts - Demonized"), e.g. af_serofim cheats death once.
+   - Out: af_misery_bread (dev joke), af_quest_b14_twisted (quest).
    - **Junk, out (28)**: af_atom, af_black, af_ear, af_fire_loop, af_grapes, af_kislushka, af_signet; 11 `af_ah_*`;
      af_geliy, af_gimlet, af_vaselisk; af_lucifer; af_base, af_base_1; Amebas x3; af_tlf_prometheus.
 5. **User's Echo detector model** (when they provide it).
@@ -381,6 +439,9 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 - The bench anomaly sits 6 blocks ahead of the player; any visual check in front of it is seen through its lens.
 - WFMedical resolves a **stale** local WFLib snapshot without complaint; republish WFLib first.
 - `wflib:flash` is taken (anomaly block item): artefact ids must not collide with anomaly ids.
+- Artefact item entities never exist: swapped for `ZoneArtifact` on join. `createEntity` alone => fresh drop lands a `TickTask` later.
+- `GameTestHelper.makeMockServerPlayerInLevel` throws on the first login payload: use
+  `NeutronActivationGameTest.mockServerPlayer` (in `level.players()`, unlike `FakePlayerFactory`).
 - `Map.ofEntries` in `ItemMasses` throws on duplicate keys at class load: check for duplicates when adding masses.
 - An old worldgen pack naming placed features `wflib:anomaly_cluster_tier_N` makes wfcore throw: regenerate it.
 - Dev runs: a brand-new run dir shows FML's early window unparked until `config/fml.toml` has

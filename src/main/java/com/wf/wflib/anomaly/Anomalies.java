@@ -31,6 +31,7 @@ public final class Anomalies {
     public static void register(IEventBus modBus) {
         modBus.addListener(Anomalies::onPayloads);
         com.wf.wflib.anomaly.site.AnomalySites.register(modBus);
+        com.wf.wflib.anomaly.site.AnomalyCaves.register(modBus);
         NeoForge.EVENT_BUS.addListener(Anomalies::onCommands);
         NeoForge.EVENT_BUS.addListener(Anomalies::onDrops);
         NeoForge.EVENT_BUS.addListener(Anomalies::onIncomingDamage);
@@ -86,7 +87,42 @@ public final class Anomalies {
                                 .executes(c -> site(c, word(c, "motif"), null))
                                 .then(Commands.argument("ruin", com.mojang.brigadier.arguments.StringArgumentType.word())
                                         .suggests((c, b) -> suggest(b, com.wf.wflib.anomaly.site.SitePlan.Overlay.values()))
-                                        .executes(c -> site(c, word(c, "motif"), word(c, "ruin")))))))));
+                                        .executes(c -> site(c, word(c, "motif"), word(c, "ruin")))))))
+                .then(Commands.literal("cave")
+                        .then(Commands.literal("slots").executes(Anomalies::caveSlots))
+                        .then(Commands.argument("tier", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1,
+                                        com.wf.wflib.anomaly.site.AnomalyMix.TIERS))
+                                .executes(c -> cave(c, 2))
+                                .then(Commands.argument("artefacts",
+                                                com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 64))
+                                        .executes(c -> cave(c, com.mojang.brigadier.arguments.IntegerArgumentType
+                                                .getInteger(c, "artefacts"))))))));
+    }
+
+    /** A cave field round the player, floor under their feet. */
+    private static int cave(CommandContext<CommandSourceStack> c, int artefacts) {
+        int tier = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "tier");
+        var made = com.wf.wflib.anomaly.site.AnomalyCaves.place(c.getSource().getLevel(),
+                net.minecraft.core.BlockPos.containing(c.getSource().getPosition()), tier, artefacts);
+        c.getSource().sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
+                "Tier %d cave field, radius %d: %d anomalies, %d artefacts%s", tier, made.plan().radius(),
+                made.anomalies(), made.artefacts(), AnomalyConfig.enabled ? "" : " (anomalies are off: inert)")), true);
+        return made.anomalies();
+    }
+
+    /** The world's cave allocation: totals, and the five slots nearest the caller. */
+    private static int caveSlots(CommandContext<CommandSourceStack> c) {
+        var slots = com.wf.wflib.anomaly.site.AnomalyCaves.allocation.slots();
+        int total = slots.stream().mapToInt(com.wf.wflib.anomaly.site.AnomalyCaves.Slot::artefacts).sum();
+        c.getSource().sendSuccess(() -> Component.literal(slots.size() + " cave fields, " + total
+                + " artefacts in the world"), false);
+        net.minecraft.world.phys.Vec3 at = c.getSource().getPosition();
+        slots.stream().sorted(java.util.Comparator.comparingDouble(s ->
+                        Math.hypot(s.chunkX() * 16 + 8 - at.x, s.chunkZ() * 16 + 8 - at.z))).limit(5)
+                .forEach(s -> c.getSource().sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
+                        "#%d tier %d, %d artefacts, start %d %d", s.index(), s.tier(), s.artefacts(),
+                        s.chunkX() * 16 + 8, s.chunkZ() * 16 + 8)), false));
+        return slots.size();
     }
 
     private static String word(CommandContext<CommandSourceStack> c, String name) {

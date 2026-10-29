@@ -2,7 +2,7 @@
 
 Usage (from the repo root): python3 -I devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib [id...]
   <base>: Anomaly's base archives extracted (devtools/xray-db.py <base> 'meshes/dynamics/artefacts/*' ... and
-  'textures/artifact/*', 'textures/pfx/*'); GAMMA itself at $GAMMA (default ~/Games/GAMMA/gamma). [id...]: only these.
+  'textures/artifact/*', 'textures/pfx/*'); GAMMA's MO2 dir at $GAMMA (default ~/games/gamma/GAMMA). [id...]: only these.
   Texture 'pfx/x' -> textures/artifact/x.png. Kinds follow each OGF child's shader (list them with
   devtools/xray-ogf.py <ogf>): models\artefact(2)/xanomaly -> body, selflightl -> glowsolid, lightplanes -> glow,
   xdistortcolor(l) -> veil (then cut out by hand where it hides nothing: see docs/anomalies-and-artefacts.md),
@@ -12,7 +12,7 @@ import os, sys, subprocess, json
 from PIL import Image, ImageFilter
 BASE, R = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
-GAMMA = os.path.expanduser(os.environ.get('GAMMA', '~/Games/GAMMA/gamma'))
+GAMMA = os.path.expanduser(os.environ.get('GAMMA', '~/games/gamma/GAMMA'))
 ONLY = set(sys.argv[3:])
 def find(rel):
     out = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'gamma_find.py'), GAMMA, BASE, rel],
@@ -57,23 +57,66 @@ BATCH = {
  'pellicle': ('artefact_plenka_coc', [(0, 'body', 'pfx/pfx_anomaly_19', 'veil')]),
  'oasis_heart': ('af_cristall_plant', [(0, 'body', 'artifact_hell1', 'veil'), (1, 'body2', 'af_cristall_jup', 'body'),
                                        (2, 'glow', 'pfx/pfx_anomaly_4', 'glow')]),
+ # 2026-10-29 batch 3: kinds by shader (window, pautina -> veil; xdistort -> veil only where nothing else is solid)
+ 'compass': ('af_compass', [(0, 'body', 'artifact_simple2', 'veil'), (1, 'glow', 'artifact_sopli2', 'glowsolid')]),  # af_compass
+ 'death_lamp': ('artefact_death_lamp', [(0, 'glow', 'artefact_death_skull_glow', 'glow'), (1, 'body', 'artefact_death_lamp', 'body'), (2, 'glow2', 'artefact_death_skull_glow2', 'glowsolid'), (3, 'body2', 'artefact_death_skull', 'body')]),  # af_death_lamp
+ 'droplets': ('artefact_kaply', [(0, 'body', 'artifact_sopli2', 'body')]),  # af_drops
+ 'empty': ('artefact_empty', [(0, 'body', 'artefact_empty', 'body')]),  # af_empty
+ 'full_empty': ('artefact_full_empty', [(0, 'body', 'artefact_full_empty', 'body'), (1, 'glow', 'artefact_full_empty', 'glow')]),  # af_full_empty
+ 'goldfish': ('af_gold_fish', [(0, 'body', 'artifact_anim_dist', 'veil'), (1, 'glow', 'artifact_myasorubka3', 'glow')]),  # af_gold_fish
+ 'gravi': ('af_gravi', [(0, 'body', 'artifact_myasorubka3', 'body')]),  # af_gravi
+ 'volat_emerald': ('af_monolith', [(0, 'glow', 'artifact_monolith_lava', 'glow'), (1, 'body', 'artifact_monohell1_00', 'veil'), (2, 'glow2', 'artifact_monolith_lavahell', 'glow')]),  # af_monolith
+ 'nightstar': ('af_night_star', [(0, 'body', 'artifact_myasorubka3', 'body'), (1, 'glow', 'artifact_myasorubka2', 'glowsolid')]),  # af_night_star
+ 'crystal_thorn': ('artefact_needles2', [(0, 'body', 'artifact_liana2', 'veil'), (1, 'body2', 'pfx/pfx_anomaly_vegetation', 'body')]),  # af_rusty_kristall
+ 'sea_urchin': ('af_rusty_sea_urchin', [(0, 'body', 'artifact_myasorubka3', 'body'), (1, 'body2', 'artifact_simple3', 'veil')]),  # af_rusty_sea
+ 'thorn': ('artefact_needles1', [(0, 'body', 'artifact_liana2', 'veil'), (1, 'body2', 'pfx/pfx_anomaly_vegetation', 'body')]),  # af_rusty_thorn
+ 'spring': ('artefact_pustishka', [(0, 'body', 'artifact_pustishka', 'body'), (1, 'body2', 'artifact_sopli', 'veil')]),  # af_dummy_spring
+ 'ball': ('af_ball', [(0, 'body', 'brown_skin', 'body'), (1, 'body2', 'blue_insides', 'veil'), (2, 'glow', 'blue_insides', 'glowsolid')]),  # af_ball
+ 'bat': ('af_bat', [(0, 'body', 'artifact_val024', 'body'), (1, 'glow', 'artifact_val000', 'glowsolid')]),  # af_bat
+ 'black_angel': ('af_black_angel', [(0, 'body', 'artifact_val033', 'body')]),  # af_black_angel
+ 'cell': ('af_cell', [(0, 'body', 'artifact_val029', 'veil'), (1, 'glow', 'artifact_val013', 'glowsolid')]),  # af_cell
+ 'chain': ('af_chelust', [(0, 'glow', 'amk/arts/chelust', 'glow')]),  # af_chelust
+ 'cocoon': ('af_cocoon', [(0, 'body', 'sap/sap_paytina', 'veil'), (1, 'body2', 'sap/sap_paytina_01', 'veil'), (2, 'body3', 'sap/sap_paytina_02', 'veil'), (3, 'body4', 'sap/sap_paytina_03', 'veil'), (4, 'body5', 'sap/sap_paytina_def', 'body'), (5, 'body6', 'sap/sap_paytina_04', 'veil')]),  # af_cocoon
+ 'dragon_eye': ('af_dragon_eye', [(0, 'body', 'artifact_lavahell1', 'veil'), (1, 'glow', 'pfx/pfx_anomaly_6', 'glow'), (2, 'glow2', 'artifact_lava', 'glowsolid')]),  # af_dragon_eye
+ 'electron': ('af_elektron', [(0, 'body', 'amk/arts/elektron', 'veil')]),  # af_elektron
+ 'lamp': ('af_fonar', [(0, 'body', 'amk/arts/fonar', 'veil'), (1, 'glow', 'amk/arts/fonar_self', 'glowsolid')]),  # af_fonar
+ 'fountain': ('af_fountain', [(0, 'body', 'artifact_val025', 'body')]),  # af_fountain
+ 'generator': ('af_generator', [(0, 'glow', 'sap/sap_generator_00', 'glow'), (1, 'body', 'sap/sap_generator', 'body')]),  # af_generator
+ 'claw': ('af_kogot', [(0, 'body', 'amk/arts/kogot', 'body'), (1, 'glow', 'amk/arts/kogot_inner', 'glowsolid')]),  # af_kogot
+ 'beacon': ('af_lighthouse', [(0, 'body', 'artifact_val031', 'body'), (1, 'glow', 'artifact_val005', 'glow')]),  # af_lighthouse
+ 'medal': ('af_medallion', [(0, 'body', 'sap/sap_medal_00', 'veil'), (1, 'body2', 'sap/sap_medal', 'body'), (2, 'glow', 'sap/sap_medal_01', 'glow')]),  # af_medallion
+ 'moss': ('af_moh', [(0, 'body', 'amk/arts/mox', 'body'), (1, 'glow', 'artifact_sopli', 'glowsolid')]),  # af_moh
+ 'moon': ('af_peas', [(0, 'glow', 'artifact_val022', 'glowsolid'), (1, 'body', 'artifact_val023', 'body')]),  # af_peas
+ 'thistle': ('af_repei', [(0, 'body', 'amk/arts/repei_1', 'body'), (1, 'body2', 'artifact_lavahell1', 'body')]),  # af_repei
+ 'sandstone': ('af_sandstone', [(0, 'body', 'sap/sap_sand', 'veil'), (1, 'glow', 'sap/sap_gubka', 'glow')]),  # af_sandstone
+ 'seraphim': ('af_serofim', [(0, 'body', 'sap/sap_serafim_high', 'body'), (1, 'glow', 'sap/sap_serafim_low', 'glow'), (2, 'body2', 'sap/sap_serafim_medium', 'body')]),  # af_serofim
+ 'misers_skull': ('af_skull_miser', [(0, 'glow', 'blue_insides', 'glowsolid'), (1, 'body', 'bright_red_skin', 'body')]),  # af_skull_miser
+ 'spike': ('af_spaika', [(0, 'body', 'artifact_val028', 'body'), (1, 'body2', 'artifact_val027', 'body')]),  # af_spaika
+ 'phantom_star': ('af_star_phantom', [(0, 'glow', 'sap/sap_star_of_ph', 'glow')]),  # af_star_phantom
+ 'sun': ('af_sun', [(0, 'body', 'sap/sap_glass', 'body'), (1, 'glow', 'sap/sap_gubka', 'glow')]),  # af_sun
+ 'tapeworm': ('af_tapeworm', [(0, 'body', 'sap/sap_orbital', 'body')]),  # af_tapeworm
+ 'scar': ('af_zhelch', [(0, 'body', 'amk/arts/zhelch', 'body'), (1, 'glow', 'amk/arts/zhelch', 'glowsolid')]),  # af_zhelch
 }
 if ONLY:
     BATCH = {k: v for k, v in BATCH.items() if k in ONLY}
 os.makedirs(f'{R}/textures/artifact', exist_ok=True)
+# A texture both body (alpha forced opaque) and blended elsewhere: the body copy is <name>_solid.
+BLENDED = {t for _, parts in BATCH.values() for _, _, t, k in parts if k in ('glow', 'veil')}
+def png(tex, kind):
+    return tex.split('/')[-1] + ('_solid' if kind == 'body' and tex in BLENDED else '')
 done = {}
 for key, (mesh, parts) in BATCH.items():
     for _, slot, tex, kind in parts:
-        name = tex.split('/')[-1]
+        name = png(tex, kind)
         dst = f'{R}/textures/artifact/{name}.png'
-        if tex not in done:
+        if name not in done:
             src = find(f'textures/{tex}.dds' if '/' in tex else f'textures/artifact/{tex}.dds')
             im = Image.open(src).convert('RGBA')
             if max(im.size) > 512:
                 k = 512 / max(im.size); im = im.resize((max(1, int(im.size[0]*k)), max(1, int(im.size[1]*k))), Image.LANCZOS)
             if kind == 'body':
                 im.putalpha(255)  # STALKER's body alpha is gloss, not cut-out
-            im.save(dst, optimize=True); done[tex] = im.size
+            im.save(dst, optimize=True); done[name] = im.size
         if kind.startswith('glow') and not os.path.exists(dst.replace('.png', '_bloom.png')):
             im = Image.open(dst)
             Image.open(dst).filter(ImageFilter.GaussianBlur(max(2, im.size[0] // 40))).save(dst.replace('.png', '_bloom.png'))

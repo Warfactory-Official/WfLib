@@ -53,6 +53,7 @@ public class WFLib {
         com.wf.wflib.armor.ArmorMaterials.register(modEventBus);
         com.wf.wflib.backpack.Backpacks.register(modEventBus);
         com.wf.wflib.carry.Carry.register(modEventBus);
+        com.wf.wflib.smoking.Smoking.register(modEventBus);
         if (net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
             com.wf.wflib.compat.wfweight.ItemWeights.register();
         }

@@ -20,7 +20,7 @@ public final class ArtifactEntities {
 
     public static final DeferredHolder<EntityType<?>, EntityType<ZoneArtifact>> ZONE_ARTIFACT = TYPES.register(
             "zone_artifact", () -> EntityType.Builder.<ZoneArtifact>of(ZoneArtifact::new, MobCategory.MISC)
-                    .sized(0.45F, 0.45F).clientTrackingRange(4).updateInterval(20).build("zone_artifact"));
+                    .sized(0.3F, 0.3F).clientTrackingRange(4).updateInterval(2).build("zone_artifact"));
     public static final DeferredHolder<EntityType<?>, EntityType<BoltEntity>> BOLT = TYPES.register("bolt",
             () -> EntityType.Builder.<BoltEntity>of(BoltEntity::new, MobCategory.MISC)
                     .sized(0.15F, 0.15F).clientTrackingRange(4).updateInterval(1).build("bolt"));

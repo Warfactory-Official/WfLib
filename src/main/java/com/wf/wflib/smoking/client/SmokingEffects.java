@@ -4,7 +4,7 @@ import com.wf.gemrender.light.LightSink;
 import com.wf.gemrender.light.Lights;
 import com.wf.wflib.WFLib;
 import com.wf.wflib.WFSounds;
-import com.wf.wflib.smoking.CigaretteItem;
+import com.wf.wflib.smoking.Smoking;
 import com.wf.wflib.smoking.SmokingTimeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** Sound + ember light for every player in use of a {@link CigaretteItem}. */
+/** Sound + ember light for every player with a {@link Smoking.Session}. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class SmokingEffects {
     static final int EMBER_RGB = 0xFF6A1A;
@@ -40,20 +40,15 @@ public final class SmokingEffects {
         Lights.register(SmokingEffects::collect);
     }
 
-    private static boolean smoking(Player p) {
-        return p.isUsingItem() && p.getUseItem().getItem() instanceof CigaretteItem;
-    }
-
-    private static int tick(Player p) {
-        return SmokingTimeline.TICKS - p.getUseItemRemainingTicks();
-    }
-
+    /** One per {@link Smoking.Session}: the sound outlives the timeline, a natural end never sets {@link #isStopped}. */
     private static final class Voice extends AbstractTickableSoundInstance {
         private final Player player;
+        private final Smoking.Session session;
 
-        Voice(Player player) {
+        Voice(Player player, Smoking.Session session) {
             super(WFSounds.CIGARETTE.get(), SoundSource.PLAYERS, player.getRandom());
             this.player = player;
+            this.session = session;
             this.volume = 0.6F;
             update();
         }
@@ -66,11 +61,15 @@ public final class SmokingEffects {
 
         @Override
         public void tick() {
-            if (player.isRemoved() || !smoking(player)) {
+            if (!current()) {
                 stop();
                 return;
             }
             update();
+        }
+
+        boolean current() {
+            return !player.isRemoved() && session.equals(Smoking.session(player));
         }
     }
 
@@ -81,10 +80,17 @@ public final class SmokingEffects {
             VOICES.clear();
             return;
         }
-        VOICES.values().removeIf(v -> v.isStopped());
+        VOICES.values().removeIf(v -> {
+            if (v.current()) {
+                return false;
+            }
+            mc.getSoundManager().stop(v);
+            return true;
+        });
         for (AbstractClientPlayer p : mc.level.players()) {
-            if (smoking(p) && !VOICES.containsKey(p.getUUID())) {
-                Voice v = new Voice(p);
+            Smoking.Session s = Smoking.session(p);
+            if (s != null && !VOICES.containsKey(p.getUUID())) {
+                Voice v = new Voice(p, s);
                 VOICES.put(p.getUUID(), v);
                 mc.getSoundManager().play(v);
             }
@@ -104,12 +110,13 @@ public final class SmokingEffects {
             return;
         }
         for (AbstractClientPlayer p : mc.level.players()) {
-            if (!smoking(p)) {
+            int tick = Smoking.tick(p);
+            if (tick < 0) {
                 continue;
             }
-            float seconds = (tick(p) + partialTick) / 20.0F;
+            float seconds = (tick + partialTick) / 20.0F;
             float flicker = 0.85F + 0.15F * (float) Math.sin(seconds * 23.0);
-            float k = intensity(tick(p), flicker);
+            float k = intensity(tick, flicker);
             if (k <= 0.0F) {
                 continue;
             }

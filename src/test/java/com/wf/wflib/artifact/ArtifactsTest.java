@@ -1,11 +1,13 @@
 package com.wf.wflib.artifact;
 
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArtifactsTest {
     @Test
@@ -55,6 +57,32 @@ class ArtifactsTest {
         assertEquals(0.0003F * 6.0F * 20.0F, Artifact.SOUL.healthPerSecond(20.0F), 1e-6F);
         assertEquals(0.00408F * 6.0F, Artifact.GLASS_BEADS.bleedingPerSecond(), 1e-6F);
         assertEquals(0.00066D * 6.0D / 20.0D, Artifact.BATTERY.staminaPerTick(), 1e-9D);
+        assertEquals(-0.1F * 6.0F * 20.0F, Artifact.DEATH_LAMP.foodPerSecond(), 1e-4F);
+        assertEquals(14.0F, Artifact.GRAVI.carry());
+    }
+
+    /** Every model, texture (blended glows' bloom too) and particle group an artefact names is in the jar. */
+    @Test
+    void everyAssetIsThere() {
+        for (Artifact a : Artifact.ALL) {
+            assertTrue(exists(a.model()), a.model().toString());
+            a.slots().forEach((slot, tex) -> {
+                assertTrue(exists(tex), a.id() + " " + tex);
+                if (Artifact.bloomSlot(slot)) {
+                    assertTrue(exists(Artifact.bloomOf(tex)), a.id() + " bloom " + tex);
+                }
+            });
+            for (String fx : new String[] {a.idleFx(), a.showFx()}) {
+                if (fx != null) {
+                    assertTrue(exists(ResourceLocation.fromNamespaceAndPath("wflib", "xray/particles/" + fx + ".pg")),
+                            a.id() + " " + fx);
+                }
+            }
+        }
+    }
+
+    private static boolean exists(ResourceLocation r) {
+        return ArtifactsTest.class.getResource("/assets/" + r.getNamespace() + "/" + r.getPath()) != null;
     }
 
     @Test
