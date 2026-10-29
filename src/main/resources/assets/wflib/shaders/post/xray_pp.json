@@ -1,0 +1,7 @@
+{
+    "targets": [ "wf_xray_pp_swap" ],
+    "passes": [
+        { "name": "wflib:wf_xray_pp", "intarget": "minecraft:main", "outtarget": "wf_xray_pp_swap" },
+        { "name": "blit", "intarget": "wf_xray_pp_swap", "outtarget": "minecraft:main" }
+    ]
+}

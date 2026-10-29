@@ -35,6 +35,10 @@ public final class ArmViewPose {
      * bore => hand axis puts the right elbow across the chest (p90 ~70 deg inward of straight down at {@link #SHOULDER}).
      */
     public static final float ELBOW_IN = ArmLimits.DEFAULT.elbowIn(), ELBOW_OUT = ArmLimits.DEFAULT.elbowOut();
+    /** sin of the least hand +Y tilt off the arm line that steers the elbow; below => held (straight arm: tilt = noise). */
+    static final float HAND_AXIS_MIN = (float) Math.sin(Math.toRadians(3));
+    /** rad: hinted solve, hand-axis elbow range either side of the hint. */
+    public static final float HINT_CONE = (float) Math.toRadians(30);
     /** rad: either side of the out-of-range midpoint where the elbow keeps its bound (no flapping across it). */
     static final float ELBOW_HOLD = (float) Math.toRadians(45);
 
@@ -110,7 +114,7 @@ public final class ArmViewPose {
      * where the forearm would lie along the hand's +Y, angle about the arm line from {@code pole} clamped to
      * [-{@link #ELBOW_IN}, {@link #ELBOW_OUT}]: from {@code pole} (or the held {@link Bend}) turned that way by
      * c x the angle between, c = |guess off the arm line| / elbow offset, clamped to 1; c = 1 toward {@code pole} without
-     * {@code hand}. Both bones = hinge frames: +Y along the bone, +Z elbow-out, +X = bend-plane normal shared across
+     * {@code hand}; hand +Y within {@link #HAND_AXIS_MIN} of the arm line => held. Both bones = hinge frames: +Y along the bone, +Z elbow-out, +X = bend-plane normal shared across
      * the elbow (pack hand roll never reaches the upper arm). {@code shoulder} is rewritten when the wrist is out of
      * reach, or nearer than {@code minReach} x arm length (shoulder slides back along the arm line instead of the elbow
      * folding). Joint frames out: {@code upper} at the
@@ -141,6 +145,16 @@ public final class ArmViewPose {
     public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
                       PlayerArms.Lengths lengths, float minReach, float maxReach, @Nullable Bend state, float dt,
                       Matrix4f upper, Matrix4f lower, Vector3f elbow) {
+        return solve(wrist, hand, shoulder, pole, false, lengths, minReach, maxReach, state, dt, upper, lower, elbow);
+    }
+
+    /**
+     * {@code hinted}: {@code pole} = authored elbow direction; hand-axis elbow within +-{@link #HINT_CONE} of it,
+     * inconclusive hand axis => toward it (unhinted: held).
+     */
+    public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
+                      boolean hinted, PlayerArms.Lengths lengths, float minReach, float maxReach, @Nullable Bend state,
+                      float dt, Matrix4f upper, Matrix4f lower, Vector3f elbow) {
         float l1 = lengths.upper(), l2 = lengths.forearm();
         DIR.set(wrist).sub(shoulder);
         float d = DIR.length();
@@ -168,13 +182,18 @@ public final class ArmViewPose {
             hand.transform(T.set(ARM_AXIS)).mul(-l2).add(wrist).sub(shoulder);
             T.fma(-T.dot(DIR), DIR);
             float guess = T.length();
-            rate *= guess > 1e-6F ? Math.min(1, guess / Math.max(bend, 1e-6F)) : 0;
-            to = guess > 1e-6F ? (float) Math.atan2(T.dot(LAT), T.dot(PERP)) : from;
+            if (guess > l2 * HAND_AXIS_MIN) {
+                rate *= Math.min(1, guess / Math.max(bend, 1e-6F));
+                to = (float) Math.atan2(T.dot(LAT), T.dot(PERP));
+            } else if (!hinted) {
+                rate = 0;
+                to = from;
+            }
         }
         // outside the range => nearer bound, held side within ELBOW_HOLD of the far point; elbow goes round through
         // the range, never across the body. Held side alone => parks on a bound the guess has left (hk416 inspect)
         ArmLimits limits = state == null ? ArmLimits.DEFAULT : state.limits;
-        float in = limits.elbowIn(), out = limits.elbowOut();
+        float in = hinted ? HINT_CONE : limits.elbowIn(), out = hinted ? HINT_CONE : limits.elbowOut();
         if (to < -in || to > out) {
             float far = (out + 2 * (float) Math.PI - in) / 2;
             float past = (to < -in ? to + 2 * (float) Math.PI : to) - far;

@@ -3,15 +3,24 @@ package com.wf.wflib.anomaly;
 /**
  * A field (X-Ray {@code CRadioactiveZone}: radiation, thermal, acid fields; also the no-gravity one): never blows
  * out, only works on the living inside it, every moment they stay: {@code perSecond} at the centre, falling to
- * {@code 1 - attenuation} of it at the rim ({@code RelativePower}). Radiation doses rads instead of hurting.
+ * {@code 1 - attenuation} of it at the rim ({@code RelativePower}). Radiation doses rads, psy goes to {@link Psy}.
  *
  * @param radius      blocks ($def_sphere)
  * @param perSecond   max_start_power per second, in X-Ray hits ({@link MincerTuning#FULL_HIT} each)
  * @param attenuation how much of it is gone at the rim
- * @param radiation   doses rads (WFLib radiation) rather than hurting
+ * @param kind        what it does with that
  */
-public record FieldTuning(double radius, double perSecond, double attenuation, boolean radiation)
+public record FieldTuning(double radius, double perSecond, double attenuation, Kind kind)
         implements AnomalyBehaviour {
+    public enum Kind {
+        /** Hurts with the anomaly's damage type. */
+        HURT,
+        /** Doses rads (WFLib radiation). */
+        RADIATION,
+        /** STALKER psy units ({@link Psy}). */
+        PSY
+    }
+
     /** Hurts every this often (Minecraft's invulnerability window swallows faster hits). */
     public static final int PULSE_TICKS = 10;
     /** An X-Ray radiation hit of 1.0 (deadly), in rads. */
@@ -35,6 +44,11 @@ public record FieldTuning(double radius, double perSecond, double attenuation, b
     @Override
     public boolean trips(double dist) {
         return false;
+    }
+
+    /** One pulse's psy at {@code dist}, STALKER units. */
+    public float psy(double dist) {
+        return (float) (perSecond * relativePower(dist) * PULSE_TICKS / 20.0D);
     }
 
     /** One pulse's hurt at {@code dist}, health points. */

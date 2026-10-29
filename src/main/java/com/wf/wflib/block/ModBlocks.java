@@ -230,6 +230,10 @@ public class ModBlocks {
     public static final DeferredHolder<Block, Block> THERMAL_FIELD = anomaly("thermal_field", AnomalyType.THERMAL_FIELD);
     public static final DeferredHolder<Block, Block> ACID_FIELD = anomaly("acid_field", AnomalyType.ACID_FIELD);
     public static final DeferredHolder<Block, Block> NO_GRAVITY = anomaly("no_gravity", AnomalyType.NO_GRAVITY);
+    public static final DeferredHolder<Block, Block> STEAM_VENT = anomaly("steam_vent", AnomalyType.STEAM_VENT);
+    public static final DeferredHolder<Block, Block> PSY_FIELD = anomaly("psy_field", AnomalyType.PSY_FIELD);
+    public static final DeferredHolder<Block, Block> RADAR = anomaly("radar", AnomalyType.RADAR);
+    public static final DeferredHolder<Block, Block> DARKNESS = anomaly("darkness", AnomalyType.DARKNESS);
 
     /** An anomaly block and its item, both added to {@link #ANOMALIES} / {@link #ANOMALY_ITEMS}. */
     private static DeferredHolder<Block, Block> anomaly(String id, AnomalyType type) {

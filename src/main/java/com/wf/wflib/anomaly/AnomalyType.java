@@ -42,7 +42,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
          */
         REBOUNDS,
         /** No gravity inside ({@code CNoGravityZone}): the living, loose objects and projectiles float. */
-        WEIGHTLESS;
+        WEIGHTLESS,
+        /**
+         * Radar ({@code anomalies_near_actor_functions.zone_mine_radar}): psy {@code 0.0015 (1 - (d/R)^2)} every 100 ms
+         * within {@link #AURA} blocks ({@code (radius + 1) * 2}).
+         */
+        PSY_AURA;
+
+        public static final double AURA = 8.0D;
 
         /** Leaves its block: center() follows a path. */
         public boolean moves() {
@@ -185,6 +192,13 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     () -> WFSounds.ANOMALY_ZHAR.get(),
                     null,
                     true));
+
+    /**
+     * A FISSURES vent: a Steam anomaly whose idle is a standing plume ({@code wflib/vent_steam}: GAMMA's
+     * zone_steam_idle smoke, blended, denser, slower to fade), so the site's smoke is the anomalies'.
+     */
+    public static final AnomalyType STEAM_VENT = new AnomalyType("Steam Vent", STEAM.behaviour(),
+            STEAM.look().idle("wflib/vent_steam"), STEAM.damage(), STEAM.sounds());
 
     /**
      * {@code zone_mine_flash} (Dynamic Anomalies Overhaul, a "temporal" anomaly): whatever large and alive steps in is
@@ -404,7 +418,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
      * middle (here 40 rads/s) and half that at the rim (attenuation 0.5). Invisible: a geiger counter finds it.
      */
     public static final AnomalyType RADIATION_FIELD = new AnomalyType("Radiation Field",
-            new FieldTuning(15.0D, 0.04D, 0.5D, true),
+            new FieldTuning(15.0D, 0.04D, 0.5D, FieldTuning.Kind.RADIATION),
             new AnomalyLook(Style.ELECTRIC, 1.0F, 0.0D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
                     0xFFFFFF, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.RADIATION,
@@ -415,7 +429,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
      * rim (attenuation 0.54); a faint shimmer and smoke, crackling fire.
      */
     public static final AnomalyType THERMAL_FIELD = new AnomalyType("Thermal Field",
-            new FieldTuning(15.0D, 0.33D, 0.54D, false),
+            new FieldTuning(15.0D, 0.33D, 0.54D, FieldTuning.Kind.HURT),
             new AnomalyLook(Style.FIRE, 6.0F, 1.0D, 0.004F, 0.2F, 0.0F, 0.0F, 0.6F, 0, 0.0D, 0.0D,
                     0xFFD6AD, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.FIRE,
@@ -426,7 +440,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
      * rim (attenuation 0.46); green specks drifting up, buzzing.
      */
     public static final AnomalyType ACID_FIELD = new AnomalyType("Acid Field",
-            new FieldTuning(15.0D, 0.17D, 0.46D, false),
+            new FieldTuning(15.0D, 0.17D, 0.46D, FieldTuning.Kind.HURT),
             new AnomalyLook(Style.ACID, 10.0F, 0.0D, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0, 0.0D, 0.0D,
                     0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.ACID,
@@ -437,10 +451,63 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
      * ({@link Quirk#WEIGHTLESS}) until it drifts out; harmless but for the fall after.
      */
     public static final AnomalyType NO_GRAVITY = new AnomalyType("No-Gravity",
-            new FieldTuning(5.0D, 0.0D, 0.0D, false),
+            new FieldTuning(5.0D, 0.0D, 0.0D, FieldTuning.Kind.HURT),
             new AnomalyLook(Style.GRAVITY, 2.5F, 1.2D, 0.008F, 0.15F, 0.0F, 0.0F, 1.5F, 0, 0.02D, 0.0D,
                     0xDCFFCB, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(() -> WFSounds.ANOMALY_GRAVI_IDLE00.get(), null, 0, null, null, null),
             Quirk.WEIGHTLESS);
+
+    /**
+     * {@code zone_field_psychic_average}: 15 m of psy (telepatic), 0.55 a second at the middle, half of it at the rim
+     * (attenuation 0.5); nothing to see (no idle particles: only STALKER's postprocess_psi).
+     */
+    public static final AnomalyType PSY_FIELD = new AnomalyType("Psy Field",
+            new FieldTuning(15.0D, 0.55D, 0.5D, FieldTuning.Kind.PSY),
+            new AnomalyLook(Style.ELECTRIC, 1.0F, 0.0D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
+                    0xFFFFFF, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
+            WFDamageTypes.PSY,
+            new AnomalySounds(null, null, 0, null, null, null));
+
+    /**
+     * {@code zone_mine_radar} (Dynamic Anomalies Overhaul, a {@code CMosquitoBald}): a psy jolt at whatever steps in
+     * (max_start_power 0.6, telepatic, no throw, ignore_small false; awaking and blowout 100 ms each), ready again in
+     * 1.5 s (accamulate_time); round it a psy aura ({@link Quirk#PSY_AURA}). Blue-white flash (0.8/0.9/1, 30 m, 1 s).
+     * Its zone ($def_sphere 2; DAO rolls 2-3) x1.5.
+     */
+    public static final AnomalyType RADAR = new AnomalyType("Radar",
+            new BlastTuning(3.0D, 2, 4, 30, 0.6D, 0.0D, true, 0),
+            new AnomalyLook(Style.ELECTRIC, 1.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
+                    0xCCE6FF, 30.0F, 20, 0.0F, 1.0F, "eugenium_anomalies/anomaly_radar/radar_idle",
+                    "eugenium_anomalies/anomaly_radar/radar_blast", 1.5F, 1.0F),
+            WFDamageTypes.PSY,
+            new AnomalySounds(
+                    () -> WFSounds.ANOMALY_RADAR_IDLE.get(),
+                    () -> WFSounds.ANOMALY_RADAR_BLOWOUT.get(),
+                    0,
+                    () -> WFSounds.ANOMALY_RADAR_BLOWOUT.get(),
+                    () -> WFSounds.ANOMALY_RADAR_BLOWOUT.get(),
+                    null),
+            Quirk.PSY_AURA);
+
+    /**
+     * {@code zone_mine_darkness} (Dynamic Anomalies Overhaul, a {@code CMincer} hitting telepatic): pulls the living
+     * in hard and snaps (awaking 10 + explosion 59 ms) with a psy hit of 2 (max_start_power: a whole psy health and
+     * more); bodies it kills are torn; gone 5 s (disable_time). Silent but for its idle hum; no light. Its poltergeist
+     * spawns are left out. Zone ($def_sphere 4) x1.25.
+     */
+    public static final AnomalyType DARKNESS = new AnomalyType("Darkness",
+            new MincerTuning(5.0D, 0.75D, 0.6D, 0.5D, 2, 100, 2.0D, 1.67D, 1.0D, 0.6D, 0.5D, 0.8D, 0.5D, 0.5D,
+                    0.5D, 100, 100),
+            new AnomalyLook(Style.GRAVITY, 3.0F, 1.0D, 0.012F, 0.4F, 0.03F, 3.0F, 2.0F, 10, 0.15D, 0.5D,
+                    0xE6FFD9, 0.0F, 0, 0.0F, 0.0F, "eugenium_anomalies/anomaly_darkness/darkness_idle", null,
+                    1.25F, 1.0F),
+            WFDamageTypes.PSY,
+            new AnomalySounds(
+                    () -> WFSounds.ANOMALY_DARKNESS_IDLE.get(),
+                    null,
+                    0,
+                    null,
+                    null,
+                    () -> WFSounds.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
 }

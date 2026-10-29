@@ -3,6 +3,7 @@
   "values": [
     "wflib:gas",
     "wflib:radiation",
+    "wflib:psy",
     "wflib:digamma",
     "wflib:asbestos",
     "wflib:blacklung"

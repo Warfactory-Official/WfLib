@@ -32,6 +32,13 @@ public record AnomalyLook(Style style, float lensRadius, double lensHeight, floa
                           float idleLight, float spentPresence, @Nullable String idleParticles,
                           @Nullable String blowoutParticles, float particleScale, float particleHeight) {
 
+    /** This look with {@code group} as its idle particles. */
+    public AnomalyLook idle(String group) {
+        return new AnomalyLook(style, lensRadius, lensHeight, idleStrength, idleTurn, blowoutStrength, blowoutTurn,
+                idleDebris, blowoutDebris, idleSpin, blowoutSpin, flashRgb, flashRange, flashTicks, idleLight,
+                spentPresence, group, blowoutParticles, particleScale, particleHeight);
+    }
+
     /** Particles and sounds: STALKER's sets, with vanilla stand-ins. */
     public enum Style {
         /** Orbiting grit, a rumble, a thump or a rev-up and boom. */

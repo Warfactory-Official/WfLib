@@ -18,6 +18,8 @@ public final class UiLayout {
     private final ResourceLocation id;
     private final WidgetDef root;
     private final float reference;
+    private float designWidth;
+    private float designHeight;
     private LayoutPlan plan;
 
     public UiLayout(ResourceLocation id, WidgetDef root) {
@@ -31,6 +33,26 @@ public final class UiLayout {
         this.id = id;
         this.root = root;
         this.reference = reference;
+    }
+
+    /** Absolute layout authored for {@code width} x {@code height} units: surfaces fit it to their quad, bars where the aspect differs. */
+    public UiLayout withDesignSize(float width, float height) {
+        if (reference != 0 || !(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException("design size " + width + "x" + height + " needs an absolute layout: " + id);
+        }
+        UiLayout sized = new UiLayout(id, root, 0);
+        sized.designWidth = width;
+        sized.designHeight = height;
+        return sized;
+    }
+
+    /** 0 = none declared. */
+    public float designWidth() {
+        return designWidth;
+    }
+
+    public float designHeight() {
+        return designHeight;
     }
 
     /** Same tree in host units. */

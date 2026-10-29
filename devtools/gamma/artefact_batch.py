@@ -1,8 +1,9 @@
 """Convert the artefact batch: textures (+ bloom for glow ones) and glb models, parts on slots by STALKER shader.
 
-Usage (from the repo root): python3 -I devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib
+Usage (from the repo root): python3 -I devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib [id...]
   <base>: Anomaly's base archives extracted (devtools/xray-db.py <base> 'meshes/dynamics/artefacts/*' ... and
-  'textures/artifact/*'); GAMMA itself at ~/Games/GAMMA/gamma. Kinds follow each OGF child's shader (list them with
+  'textures/artifact/*', 'textures/pfx/*'); GAMMA itself at $GAMMA (default ~/Games/GAMMA/gamma). [id...]: only these.
+  Texture 'pfx/x' -> textures/artifact/x.png. Kinds follow each OGF child's shader (list them with
   devtools/xray-ogf.py <ogf>): models\artefact(2)/xanomaly -> body, selflightl -> glowsolid, lightplanes -> glow,
   xdistortcolor(l) -> veil (then cut out by hand where it hides nothing: see docs/anomalies-and-artefacts.md),
   xdistort -> left out. Hand fixes after conversion (Ring scale, MASK shells) are not redone by this script.
@@ -11,12 +12,13 @@ import os, sys, subprocess, json
 from PIL import Image, ImageFilter
 BASE, R = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
-GAMMA = os.path.expanduser('~/Games/GAMMA/gamma')
+GAMMA = os.path.expanduser(os.environ.get('GAMMA', '~/Games/GAMMA/gamma'))
+ONLY = set(sys.argv[3:])
 def find(rel):
     out = subprocess.run([sys.executable, '-I', os.path.join(HERE, 'gamma_find.py'), GAMMA, BASE, rel],
                          capture_output=True, text=True).stdout.strip().split('\t')
     return out[2] if len(out) > 2 and out[1] != 'None' else None
-BASE_MESH = {'artefact_itcher', 'artefact_ring'}  # the mod copies use a layout xray-ogf can't read
+BASE_MESH = {'artefact_itcher', 'artefact_ring'}  # converted from base; mod copies differ
 # id: (mesh, [(child, slot, texture, kind)]) kind: body (lit, opaque), veil (lit, blended), glow (emissive, blended)
 BATCH = {
  'crystal': ('af_cristall', [(1, 'glow', 'artifact_lavahell1', 'glowsolid')]),
@@ -35,14 +37,37 @@ BATCH = {
  'dummy': ('af_dummy_dummy', [(0, 'glow', 'artifact_anim_lightning', 'glow'), (1, 'glow2', 'artifact_sopli2', 'glowsolid'),
                               (2, 'body', 'artifact_sopli', 'veil')]),
  'stone_flower': ('af_cristall_flower', [(0, 'body', 'artifact_myasorubka2', 'body'), (1, 'glow', 'artifact_hell1', 'glowsolid')]),
+ 'stone_blood': ('af_blood', [(0, 'glow', 'artifact_blood', 'glowsolid')]),
+ 'lobster_eyes': ('artefact_lobster_eyes', [(0, 'glow', 'artefact_lobster_eyes', 'glowsolid'),
+                                            (1, 'body', 'artefact_lobster_eyes', 'body')]),
+ 'jellyfish': ('af_medusa', [(0, 'body', 'artifact_anim_dist', 'veil'), (1, 'glow', 'artifact_myasorubka3', 'glowsolid')]),
+ 'meat_chunk': ('af_mincer_meat', [(0, 'glow', 'artifact_mincer_meat', 'glowsolid')]),
+ 'pin': ('artefact_pin', [(0, 'body', 'artefact_pin', 'body'), (1, 'body', 'artefact_pin', 'body')]),
+ 'bubble': ('af_baloon', [(1, 'glow', 'artifact_mp_green', 'glowsolid')]),
+ 'black_spray': ('artefact_black_spray', [(0, 'body', 'artefact_black_spray', 'body'),
+                                          (1, 'glow', 'artefact_black_spray', 'glowsolid')]),
+ 'bracelet': ('artefact_bracelet', [(0, 'glow', 'artefact_bracelet', 'glowsolid')]),
+ 'eye': ('af_eye', [(0, 'glow', 'artifact_eye', 'glowsolid')]),
+ 'flame': ('af_fire', [(0, 'body', 'artifact_lavahell1', 'veil'), (1, 'glow', 'pfx/pfx_anomaly_1', 'glow'),
+                       (2, 'glow2', 'artifact_lava', 'glowsolid')]),
+ 'kolobok': ('af_fuzz_kolobok', [(0, 'body', 'artifact_sopli', 'veil'), (1, 'glow', 'artifact_mp_green', 'glowsolid')]),
+ 'firefly': ('af_glass', [(0, 'glow', 'artifact_fire_light', 'glow'), (1, 'body', 'artifact_myasorubka2', 'body'),
+                          (2, 'glow2', 'pfx/pfx_anomaly_4', 'glow')]),
+ 'wrenched': ('af_vyvert', [(1, 'body', 'artifact_myasorubka3', 'body')]),
+ 'pellicle': ('artefact_plenka_coc', [(0, 'body', 'pfx/pfx_anomaly_19', 'veil')]),
+ 'oasis_heart': ('af_cristall_plant', [(0, 'body', 'artifact_hell1', 'veil'), (1, 'body2', 'af_cristall_jup', 'body'),
+                                       (2, 'glow', 'pfx/pfx_anomaly_4', 'glow')]),
 }
+if ONLY:
+    BATCH = {k: v for k, v in BATCH.items() if k in ONLY}
 os.makedirs(f'{R}/textures/artifact', exist_ok=True)
 done = {}
 for key, (mesh, parts) in BATCH.items():
     for _, slot, tex, kind in parts:
-        dst = f'{R}/textures/artifact/{tex}.png'
+        name = tex.split('/')[-1]
+        dst = f'{R}/textures/artifact/{name}.png'
         if tex not in done:
-            src = find(f'textures/artifact/{tex}.dds')
+            src = find(f'textures/{tex}.dds' if '/' in tex else f'textures/artifact/{tex}.dds')
             im = Image.open(src).convert('RGBA')
             if max(im.size) > 512:
                 k = 512 / max(im.size); im = im.resize((max(1, int(im.size[0]*k)), max(1, int(im.size[1]*k))), Image.LANCZOS)

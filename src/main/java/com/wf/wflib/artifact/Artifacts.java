@@ -12,14 +12,18 @@ import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
 
 /**
  * Artefacts at work: each worn in a Curios {@code artifact} slot scales the hits of its kinds by
  * {@code 1 - immunity} (GAMMA stacks them the same way, one after another), gives health (or drains it), stamina (with
- * WFWeight) and wound closing (with WFMedical) over time, and keeps psy off (WFMedical's stress). Without Curios
- * nothing is worn.
+ * WFWeight) and wound closing (with WFMedical) over time, keeps psy off (WFMedical's stress) and radiation
+ * ({@link #shieldDose}). Without Curios nothing is worn.
  */
 public final class Artifacts {
     /**
@@ -35,8 +39,8 @@ public final class Artifacts {
     };
 
     /**
-     * How worn artefacts close wounds: called once a second with their summed bleeding_restore per real second. A
-     * mod with wounds (WFMedical) claims it; without one there is nothing to close.
+     * How worn artefacts close wounds (negative: open them): called once a second with their summed bleeding_restore
+     * per real second. A mod with wounds (WFMedical) claims it; without one there is nothing to close.
      */
     public static BiConsumer<ServerPlayer, Float> clotter = (player, rate) -> {
     };
@@ -53,7 +57,10 @@ public final class Artifacts {
         }
     }
 
-    /** Once a second: worn artefacts' health back or drained ({@code health_restore_speed}), wounds closed. */
+    /**
+     * Once a second: worn artefacts' health back or drained ({@code health_restore_speed}), wounds closed, radiation
+     * dosed or cleared ({@code radiation_restore_speed}).
+     */
     private static void onPlayerTick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
         Player player = e.getEntity();
         if (!(e.getEntity() instanceof ServerPlayer server) || player.tickCount % 20 != 0 || player.isDeadOrDying()) {
@@ -61,17 +68,20 @@ public final class Artifacts {
         }
         float heal = 0.0F;
         float clot = 0.0F;
-        for (ItemStack stack : worn(player)) {
-            if (stack.getItem() instanceof ArtifactItem item) {
-                heal += item.artifact().healthPerSecond(player.getMaxHealth());
-                clot += item.artifact().bleedingPerSecond();
-            }
+        float rad = 0.0F;
+        for (Artifact a : wornArtifacts(player)) {
+            heal += a.healthPerSecond(player.getMaxHealth());
+            clot += a.bleedingPerSecond();
+            rad += a.radiationPerSecond();
         }
         if (heal != 0.0F) {
             healer.accept(server, heal);
         }
-        if (clot > 0.0F) {
+        if (clot != 0.0F) {
             clotter.accept(server, clot);
+        }
+        if (rad != 0.0F) {
+            com.wf.wflib.hazard.LivingHazardProps.incrementRadiation(player, rad);
         }
     }
 
@@ -80,39 +90,77 @@ public final class Artifacts {
      * negative makes it worse. WFMedical scales stress gain by {@code 1 - psyProtection}.
      */
     public static float psyProtection(Player player) {
-        float pass = 1.0F;
-        for (ItemStack stack : worn(player)) {
-            if (stack.getItem() instanceof ArtifactItem item) {
-                pass *= 1.0F - item.artifact().immunity(Artifact.Hit.PSY);
+        return 1.0F - damageScale(wornArtifacts(player), Artifact.Hit.PSY);
+    }
+
+    /** What is left of a hit of {@code hit} through {@code worn}: each takes its share in turn; never below 0. */
+    static float damageScale(List<Artifact> worn, @Nullable Artifact.Hit hit) {
+        float scale = 1.0F;
+        if (hit != null) {
+            for (Artifact a : worn) {
+                scale *= 1.0F - a.immunity(hit);
             }
         }
-        return 1.0F - Math.max(0.0F, pass);
+        return Math.max(0.0F, scale);
     }
 
     private static void onIncomingDamage(LivingIncomingDamageEvent e) {
         if (!(e.getEntity() instanceof Player player) || player.level().isClientSide) {
             return;
         }
-        float scale = 1.0F;
-        for (ItemStack stack : worn(player)) {
-            if (stack.getItem() instanceof ArtifactItem item) {
-                scale *= 1.0F - immunity(item.artifact(), e.getSource());
-            }
-        }
+        float scale = damageScale(wornArtifacts(player), hit(e.getSource()));
         if (scale != 1.0F) {
-            e.setAmount(e.getAmount() * Math.max(0.0F, scale));
+            e.setAmount(e.getAmount() * scale);
         }
     }
 
-    /** The share of {@code source} this artefact takes away (negative: adds). */
-    static float immunity(Artifact artifact, DamageSource source) {
-        Artifact.Hit hit = hit(source);
-        return hit == null ? 0.0F : artifact.immunity(hit);
+    /** Server tick a player's shield budget was last refilled on, and what is left of it (RAD). */
+    private static final Map<Player, double[]> SHIELD = new WeakHashMap<>();
+
+    /**
+     * A radiation dose (RAD) through {@code player}'s worn artefacts: their {@code radiation_immunity} is a budget of
+     * {@link Artifact#radShieldPerSecond} a second, spent a tick at a time across every dose that tick; a negative
+     * one adds its share to the first dose of each tick instead.
+     */
+    public static double shieldDose(Player player, double dose) {
+        if (dose <= 0.0D) {
+            return dose;
+        }
+        List<Artifact> worn = wornArtifacts(player);
+        if (worn.isEmpty()) {
+            return dose;
+        }
+        long tick = player.level().getGameTime();
+        double[] budget = SHIELD.computeIfAbsent(player, p -> new double[] {Long.MIN_VALUE, 0.0D});
+        if (budget[0] != tick) {
+            budget[0] = tick;
+            budget[1] = radShieldPerSecond(worn) / 20.0D;
+        }
+        double[] out = shield(dose, budget[1]);
+        budget[1] = out[1];
+        return out[0];
+    }
+
+    /** {@code {dose left, budget left}}: a positive budget soaks the dose up; a negative one is added once. */
+    static double[] shield(double dose, double budget) {
+        if (budget < 0.0D) {
+            return new double[] {dose - budget, 0.0D};
+        }
+        double taken = Math.min(dose, budget);
+        return new double[] {dose - taken, budget - taken};
+    }
+
+    static float radShieldPerSecond(List<Artifact> worn) {
+        float sum = 0.0F;
+        for (Artifact a : worn) {
+            sum += a.radShieldPerSecond();
+        }
+        return sum;
     }
 
     /** STALKER's hit kind for a damage: what an artefact's {@code *_immunity} answers to. */
-    @org.jetbrains.annotations.Nullable
-    static Artifact.Hit hit(DamageSource source) {
+    @Nullable
+    public static Artifact.Hit hit(DamageSource source) {
         if (source.is(WFDamageTypes.ELECTRIC) || source.is(DamageTypes.LIGHTNING_BOLT)) {
             return Artifact.Hit.SHOCK;
         }
@@ -121,6 +169,9 @@ public final class Artifacts {
         }
         if (source.is(DamageTypeTags.IS_EXPLOSION) || source.is(WFDamageTypes.EXPLOSIVE)) {
             return Artifact.Hit.EXPLOSION;
+        }
+        if (source.is(WFDamageTypes.PSY)) {
+            return Artifact.Hit.PSY;
         }
         if (source.is(WFDamageTypes.ACID) || source.is(WFDamageTypes.GAS)) {
             return Artifact.Hit.CHEMICAL;
@@ -138,6 +189,20 @@ public final class Artifacts {
             return Artifact.Hit.WOUND;
         }
         return null;
+    }
+
+    public static List<Artifact> wornArtifacts(Player player) {
+        List<ItemStack> worn = worn(player);
+        if (worn.isEmpty()) {
+            return List.of();
+        }
+        List<Artifact> out = new java.util.ArrayList<>(worn.size());
+        for (ItemStack stack : worn) {
+            if (stack.getItem() instanceof ArtifactItem item) {
+                out.add(item.artifact());
+            }
+        }
+        return out;
     }
 
     /** Artefacts in {@code player}'s Curios {@code artifact} slots; none without Curios. */

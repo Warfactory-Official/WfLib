@@ -286,12 +286,10 @@ public final class ContaminationUtil {
         }
 
         switch (hazard) {
-            case RADIATION -> LivingHazardProps.incrementRadiation(entity,
-                    amount * (cont == ContaminationType.RAD_BYPASS ? 1D : calculateRadiationMod(entity)));
+            case RADIATION -> LivingHazardProps.incrementRadiation(entity, dose(entity, cont, amount));
             case DIGAMMA -> LivingHazardProps.incrementDigamma(entity, amount);
             case NEUTRON -> {
-                LivingHazardProps.incrementRadiation(entity,
-                        amount * (cont == ContaminationType.RAD_BYPASS ? 1D : calculateRadiationMod(entity)));
+                LivingHazardProps.incrementRadiation(entity, dose(entity, cont, amount));
                 LivingHazardProps.setNeutron(entity, amount);
             }
             case MONOXIDE -> {
@@ -300,6 +298,12 @@ public final class ContaminationUtil {
             }
         }
         return true;
+    }
+
+    private static double dose(LivingEntity entity, ContaminationType cont, double amount) {
+        if (cont == ContaminationType.RAD_BYPASS) return amount;
+        double dose = amount * calculateRadiationMod(entity);
+        return entity instanceof Player player ? com.wf.wflib.artifact.Artifacts.shieldDose(player, dose) : dose;
     }
 
     public static void radiate(Level level, double x, double y, double z, double range, double rad) {

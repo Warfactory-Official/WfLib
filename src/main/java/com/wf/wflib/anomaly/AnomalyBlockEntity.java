@@ -2,6 +2,7 @@ package com.wf.wflib.anomaly;
 
 import com.wf.wflib.anomaly.AnomalyType.Quirk;
 import com.wf.wflib.block.ModBlockEntities;
+import com.wf.wflib.damage.WFDamageTypes;
 import com.wf.wflib.hazard.ContaminationUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -9,6 +10,7 @@ import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -221,6 +223,10 @@ public class AnomalyBlockEntity extends BlockEntity {
             be.setChanged();
             level.sendBlockUpdated(pos, state, state, net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
         }
+        if (be.type.quirk() == Quirk.PSY_AURA && be.age % FieldTuning.PULSE_TICKS == 0
+                && level instanceof ServerLevel server) {
+            be.aura(server, be.center());
+        }
         if (be.phase == Phase.SPENT) {
             return;
         }
@@ -294,11 +300,20 @@ public class AnomalyBlockEntity extends BlockEntity {
      */
     private void dwell(ServerLevel level, LivingEntity living, double dist) {
         if (behaviour() instanceof FieldTuning field) {
-            if (field.radiation()) {
-                ContaminationUtil.contaminate(living, ContaminationUtil.HazardType.RADIATION,
+            boolean pulse = (age + living.getId()) % FieldTuning.PULSE_TICKS == 0 && field.perSecond() > 0.0D;
+            switch (field.kind()) {
+                case RADIATION -> ContaminationUtil.contaminate(living, ContaminationUtil.HazardType.RADIATION,
                         ContaminationUtil.ContaminationType.CREATIVE, field.dose(dist));
-            } else if ((age + living.getId()) % FieldTuning.PULSE_TICKS == 0 && field.perSecond() > 0.0D) {
-                living.hurt(source(level), field.hit(dist, living instanceof Player));
+                case PSY -> {
+                    if (pulse) {
+                        Psy.expose(living, field.psy(dist), source(level));
+                    }
+                }
+                case HURT -> {
+                    if (pulse) {
+                        living.hurt(source(level), field.hit(dist, living instanceof Player));
+                    }
+                }
             }
         }
         double near = 1.0D - (dist / behaviour().radius()) * (dist / behaviour().radius());
@@ -315,6 +330,18 @@ public class AnomalyBlockEntity extends BlockEntity {
                 }
             }
             default -> {
+            }
+        }
+    }
+
+    /** {@link Quirk#PSY_AURA}: one pulse's psy at each player near. */
+    private void aura(ServerLevel level, Vec3 c) {
+        for (ServerPlayer player : level.players()) {
+            double d = player.getEyePosition().distanceTo(c);
+            if (d < Quirk.AURA && !player.isSpectator()) {
+                double k = d / Quirk.AURA;
+                Psy.expose(player, (float) (0.0015D * (1.0D - k * k) * FieldTuning.PULSE_TICKS / 2.0D),
+                        source(level));
             }
         }
     }
@@ -353,7 +380,11 @@ public class AnomalyBlockEntity extends BlockEntity {
         if (hit <= 0.0F) {
             return;
         }
-        living.hurt(source(level), hit);
+        if (type.damage() == WFDamageTypes.PSY) {
+            Psy.expose(living, hit / MincerTuning.FULL_HIT, source(level));
+        } else {
+            living.hurt(source(level), hit);
+        }
         if (type.sounds().hit() != null) {
             level.playSound(null, living.getX(), living.getY(), living.getZ(), type.sounds().hit().get(),
                     SoundSource.HOSTILE, 1.0F, 1.0F);
@@ -425,7 +456,8 @@ public class AnomalyBlockEntity extends BlockEntity {
             return false;
         }
         return e instanceof LivingEntity || e instanceof ItemEntity || e instanceof ExperienceOrb
-                || e instanceof Projectile || e instanceof VehicleEntity;
+                || e instanceof Projectile || e instanceof VehicleEntity
+                || e instanceof com.wf.wflib.artifact.detect.BoltEntity;
     }
 
     /** One tick of this anomaly on {@code e} (caller checks {@link #affected} and range). */

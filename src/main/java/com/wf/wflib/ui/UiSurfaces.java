@@ -40,6 +40,8 @@ public final class UiSurfaces {
         UiContext context;
         float unitsW;
         float unitsH;
+        float contentW;
+        float contentH;
         int maxFps;
         int clear;
         long requestedFrame;
@@ -61,6 +63,14 @@ public final class UiSurfaces {
     public static ResourceLocation request(Object key, UiLayout layout, UiContext context, int pixelWidth,
                                            int pixelHeight, float unitsWidth, float unitsHeight, int maxFps,
                                            int clearArgb) {
+        return request(key, layout, context, pixelWidth, pixelHeight, unitsWidth, unitsHeight, unitsWidth,
+                unitsHeight, maxFps, clearArgb);
+    }
+
+    /** As above; the layout fills only the centred {@code contentWidth} x {@code contentHeight} of the surface (bars, {@code clearArgb}, around it). */
+    public static ResourceLocation request(Object key, UiLayout layout, UiContext context, int pixelWidth,
+                                           int pixelHeight, float unitsWidth, float unitsHeight, float contentWidth,
+                                           float contentHeight, int maxFps, int clearArgb) {
         Surface surface = SURFACES.get(key);
         if (surface == null || surface.instance.layout() != layout) {
             if (surface != null) {
@@ -74,6 +84,8 @@ public final class UiSurfaces {
         surface.context = context;
         surface.unitsW = unitsWidth;
         surface.unitsH = unitsHeight;
+        surface.contentW = contentWidth;
+        surface.contentH = contentHeight;
         surface.maxFps = maxFps;
         surface.clear = clearArgb;
         surface.requestedFrame = UiHud.frame();
@@ -111,7 +123,8 @@ public final class UiSurfaces {
             Canvas canvas = Canvas.shared().begin(surface.target, surface.unitsW, surface.unitsH, surface.clear);
             UiStats.mark(UiStats.BEGIN);
             try {
-                surface.instance.render(canvas, 0, 0, surface.unitsW, surface.unitsH, partialTick);
+                surface.instance.render(canvas, (surface.unitsW - surface.contentW) / 2, (surface.unitsH - surface.contentH) / 2,
+                        surface.contentW, surface.contentH, partialTick);
             } finally {
                 canvas.end();
                 UiStats.end();

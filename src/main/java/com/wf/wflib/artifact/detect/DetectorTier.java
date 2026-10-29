@@ -42,7 +42,7 @@ public enum DetectorTier {
     }
 
     public ResourceLocation model() {
-        return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/detector/" + id + ".glb");
+        return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/detector/lowpoly/" + id + ".glb");
     }
 
     public ResourceLocation texture() {

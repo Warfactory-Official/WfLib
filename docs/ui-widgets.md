@@ -93,6 +93,7 @@ Native widget = any `WidgetDef`; read subjects through `binder.subject(..)` => `
 
 - HUD: CombinedAssault (JSON presets `combinedassault:vehicle|rotary_wing|fixed_wing|ship|scope|hit`, `client/hud/CaHudSource`), MineAssault (`mineassault:gun`, Java), wflib TV (`wflib:tv`, Java), `/wfui demo` (Java).
 - Feed OSD: `wflib:camera_osd`, absolute 320x180 units (relative default 270 => drawn at 67%), `Canvas.begin(fbo, .., topRowFirst = true)` over the feed picture.
+- In-world: `WorldScreens.texture(key, layout, ctx, distance, w, h, fallbackUnits, maxFps)` => `UiSurfaces` texture id (null beyond `RANGE` 24 blocks); `draw(pose, ..)` adds an unlit XY quad. Surface aspect = the screen's; layout with `size: [w, h]` (absolute layouts only) is fitted centred, bars `0xFF000000`; else fills, `fallbackUnits` across. px / unit from projected width (1..4). CombinedAssault: model `screen_<id>` slot meshes (vehicle pack format §14.5).
 - Probe panel, nodes, job bar; map painter + `MapTool.render(Canvas, MapView)` (Xaero, JourneyMap): canvas; 3D probe elements through vanilla between `suspend`/`resume`.
 
 ## 96. JSON layouts (`ui/json/`)

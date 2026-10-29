@@ -1,6 +1,7 @@
 package com.wf.wflib.anomaly.gametest;
 
 import com.wf.wflib.WFLib;
+import com.wf.wflib.anomaly.site.AnomalyMix;
 import com.wf.wflib.anomaly.site.SiteLayout;
 import com.wf.wflib.anomaly.site.SitePlan;
 import com.wf.wflib.anomaly.site.SiteStyle;
@@ -55,6 +56,18 @@ public class SiteLayoutGameTest {
                     }
                 }
             }
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty", batch = "anomaly_sites")
+    public static void fissureVentsAreSteamVents(GameTestHelper helper) {
+        for (int tier = 1; tier <= SitePlan.TIERS; tier++) {
+            SitePlan plan = SitePlan.roll(RandomSource.create(tier), tier, SiteStyle.PLAINS, SitePlan.Motif.FISSURES,
+                    null);
+            SiteLayout l = SiteLayout.build(plan, 0, 0, HILLS, SiteStyle.PLAINS, id -> null);
+            long steam = l.anomalies().stream().filter(p -> p.kind() == AnomalyMix.Kind.STEAM_VENT).count();
+            helper.assertTrue(steam >= 3, "t" + tier + ": " + steam + " steam vents");
         }
         helper.succeed();
     }

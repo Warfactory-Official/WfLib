@@ -192,18 +192,35 @@ public final class PlayerArms {
                 armour(armour, base, light, argb);
             }
         }
+        bindSkins();
+        draw(base, light, argb, player.getSkin(), !covered[0] && player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE),
+                !covered[1] && player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE));
+    }
+
+    /** Bare arms in {@code skin}, both sleeves shown; for views with no player entity (title screen). */
+    public void submit(Matrix4f base, int light, int argb, PlayerSkin skin) {
+        palette(0, false);
+        palette(1, false);
+        bindSkins();
+        draw(base, light, argb, skin, true, true);
+    }
+
+    private void bindSkins() {
         for (GltfPaletteLayout.SkinBlock block : model.layout().skins()) {
             int[] slots = block.jointSlots();
             for (int k = 0; k < slots.length; k++) {
                 palette[block.base() + k].set(palette[slots[k]]).mul(block.inverseBind()[k]);
             }
         }
-        PlayerSkin skin = player.getSkin();
+    }
+
+    private void draw(Matrix4f base, int light, int argb, PlayerSkin skin, boolean rightSleeveShown,
+                      boolean leftSleeveShown) {
         boolean test = WFClientConfig.armTestSkin();
         ResourceLocation texture = test ? TEST_SKIN : skin.texture();
         boolean slim = !test && skin.model() == PlayerSkin.Model.SLIM;
-        boolean rightSleeve = !test && !covered[0] && player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE);
-        boolean leftSleeve = !test && !covered[1] && player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE);
+        boolean rightSleeve = !test && rightSleeveShown;
+        boolean leftSleeve = !test && leftSleeveShown;
         TextureSlots slots = slot -> slot.endsWith("_slim") != slim ? null
                 : switch (slim ? slot.substring(0, slot.length() - "_slim".length()) : slot) {
                     case "player_arm" -> texture;

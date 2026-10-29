@@ -21,6 +21,8 @@ public final class WFDamageTypes {
     public static final ResourceKey<DamageType> RADIATION = key("radiation");
     /** A gravitational anomaly's blowout (STALKER's {@code strike}). */
     public static final ResourceKey<DamageType> GRAVITY_ANOMALY = key("gravity_anomaly");
+    /** STALKER's telepatic hits where nothing models psy (WFMedical's stress does: {@code PsyExposureEvent}). */
+    public static final ResourceKey<DamageType> PSY = key("psy");
 
     private WFDamageTypes() {
     }

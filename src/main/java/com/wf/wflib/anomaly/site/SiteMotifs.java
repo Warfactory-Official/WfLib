@@ -9,7 +9,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -422,14 +421,14 @@ final class SiteMotifs {
         }
     }
 
-    /** A hot vent: a lit campfire set into the ground over a hay bale, so it sends up a tall column of smoke. */
+    /** A vent: a Steam Vent anomaly over magma ringed with basalt; its idle plume is the smoke. */
     private static void vent(SiteLayout l, int x, int z) {
         int y = l.height(x, z);
-        l.put(x, y - 1, z, Blocks.HAY_BLOCK);
-        l.put(x, y, z, Blocks.CAMPFIRE.defaultBlockState().setValue(CampfireBlock.SIGNAL_FIRE, true));
+        l.put(x, y, z, Blocks.MAGMA_BLOCK);
         for (Direction d : Direction.Plane.HORIZONTAL) {
             l.put(x + d.getStepX(), y, z + d.getStepZ(), Blocks.BASALT);
         }
+        l.anomalies.add(new SiteLayout.Placed(AnomalyMix.Kind.STEAM_VENT, new net.minecraft.core.BlockPos(x, y + 1, z)));
     }
 
     /** A branching scorch: a random walk out, splitting now and then. */

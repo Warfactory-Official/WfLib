@@ -59,6 +59,7 @@ format](https://docs.illusivesoulworks.com/curios/slots/datapack-example).
 - `PdaRenderer` (HAND pass): glTF `wflib:models/pda/pda.glb` (placeholder: MineAssault `tools/ma.py pda-placeholder`), nodes `grip_left` / `grip_right` = wrist goals for `client.view.PlayerArms` + `ArmViewPose` (shared with MineAssault).
 - Material `extras.textureSlot: "screen"` <- `UiSurfaces` texture of `PdaShell` (384x240 units, v0 = top; px/unit = integer nearest raised screen's window px, `SCREEN_WIDTH` must match model); `TextureSlots.emissive` => unlit.
 - Placeholder 0.232 x 0.148 m, screen 0.224 x 0.14. `VIEW_SCALE` 1.9 over the metric model: raised screen ~half the view wide; arms solve to the scaled grips.
+- No player entity (title screen): `PlayerArms.submit(base, light, argb, PlayerSkin)` = bare arms, sleeves on; wfcore `client/title` draws model + arms under its own perspective, `DirectRenderer.flush(HAND)` by hand.
 - Elsewhere (`GemRenderItemRenderer`): `screen` slot = `textures/pda/screen_off.png`; 3P carried by top edge, screen out.
 - Surface redraw 20 fps at rest, every frame focused. Cursor / hit table 1 frame stale.
 

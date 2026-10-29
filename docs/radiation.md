@@ -34,6 +34,7 @@ Port of NTM NEXT `handler/radiation`, `hazard`, `extprop/HbmLivingProps`, `util/
 | HUD | `RadiationHudRenderer` dose bar + rate icons | `GeigerHud`: GemRender LCD bottom-left, rate = synced `radBuf`, dose, log bar; gate = inventory has `#wflib:geiger_counter` |
 | container trafo | box / bag / toolbox / crates | any `container` / `bundle_contents` stack; box sqrt -> `#wflib:rad_containment`; bag x2, sealed crates absent |
 | MK5 fallout | `EntityFalloutRain`: terrain -> fallout / waste blocks | `Fallout` per-chunk ground source: `falloutRad*(1-d/R)^2`, `R = 2.5r`, `falloutHalfLifeSeconds`; loaded chunk surface pocket driven to it each second; no blocks, no force-load |
+| artefacts | none | worn artefacts' `radiation_immunity` soak dose after armour (`Artifacts.shieldDose`), skipped by `RAD_BYPASS` |
 | command | `/hbmrad` | `/wfrad` + `get <pos>`, `geiger` |
 | config | `ConfigSchema` | `wflib-radiation.toml` |
 

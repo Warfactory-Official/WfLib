@@ -1,0 +1,27 @@
+{
+    "blend": { "func": "add", "srcrgb": "one", "dstrgb": "zero" },
+    "vertex": "blit",
+    "fragment": "wflib:wf_xray_pp",
+    "attributes": [ "Position" ],
+    "samplers": [ { "name": "DiffuseSampler" } ],
+    "uniforms": [
+        {"name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"name": "OutSize", "type": "float", "count": 2, "values": [1.0, 1.0]},
+        {"name": "BaseR", "type": "float", "count": 1, "values": [0.5]},
+        {"name": "BaseG", "type": "float", "count": 1, "values": [0.5]},
+        {"name": "BaseB", "type": "float", "count": 1, "values": [0.5]},
+        {"name": "AddR", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "AddG", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "AddB", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "GrayColorR", "type": "float", "count": 1, "values": [0.333]},
+        {"name": "GrayColorG", "type": "float", "count": 1, "values": [0.333]},
+        {"name": "GrayColorB", "type": "float", "count": 1, "values": [0.333]},
+        {"name": "Gray", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "Blur", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "DualH", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "DualV", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "Noise", "type": "float", "count": 1, "values": [0.0]},
+        {"name": "Grain", "type": "float", "count": 1, "values": [1.0]},
+        {"name": "Seed", "type": "float", "count": 1, "values": [0.0]}
+    ]
+}

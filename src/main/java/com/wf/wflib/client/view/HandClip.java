@@ -1,9 +1,8 @@
-package com.wf.wflib.smoking.client;
+package com.wf.wflib.client.view;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wf.wflib.WFLib;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.joml.Quaternionf;
@@ -12,38 +11,45 @@ import org.joml.Vector3f;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.Map;
 
-/** {@code assets/wflib/smoking/cigarette.json} (tools/smoking/bake_cigarette.py): view-space tracks, uniform {@link #fps}. */
-final class SmokingClip {
-    static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "smoking/cigarette.json");
+/**
+ * View-space first-person tracks at uniform {@link #fps}: {@code right}/{@code left} fist x y z + quat, named prop
+ * tracks (centre + quat), {@code cam} yaw/pitch/roll degrees (optional). x right, y up, -z forward.
+ */
+public final class HandClip {
+    public final float fps;
+    public final float duration;
+    public final float[][] right, left;
+    /** Empty when the source has no camera effector. */
+    public final float[][] cam;
+    private final Map<String, float[][]> props = new HashMap<>();
 
-    final float fps;
-    final float duration;
-    /** Fist: x, y, z, qx, qy, qz, qw per frame. */
-    final float[][] right, left, pack, cig;
-    /** Yaw, pitch, roll degrees per frame. */
-    final float[][] cam;
-
-    private SmokingClip(JsonObject json) {
+    private HandClip(JsonObject json) {
         fps = json.get("fps").getAsFloat();
         duration = json.get("duration").getAsFloat();
         right = track(json, "right");
         left = track(json, "left");
-        pack = track(json, "pack");
-        cig = track(json, "cig");
-        cam = track(json, "cam");
-    }
-
-    static SmokingClip load(ResourceManager resources) {
-        try (Reader in = resources.openAsReader(ID)) {
-            return parse(in);
-        } catch (IOException e) {
-            throw new UncheckedIOException(ID.toString(), e);
+        cam = json.has("cam") ? track(json, "cam") : new float[0][];
+        for (String key : json.keySet()) {
+            if (!key.equals("right") && !key.equals("left") && !key.equals("cam") && json.get(key).isJsonArray()
+                    && json.getAsJsonArray(key).get(0).isJsonArray()) {
+                props.put(key, track(json, key));
+            }
         }
     }
 
-    static SmokingClip parse(Reader in) {
-        return new SmokingClip(JsonParser.parseReader(in).getAsJsonObject());
+    public static HandClip load(ResourceManager resources, ResourceLocation id) {
+        try (Reader in = resources.openAsReader(id)) {
+            return parse(in);
+        } catch (IOException e) {
+            throw new UncheckedIOException(id.toString(), e);
+        }
+    }
+
+    public static HandClip parse(Reader in) {
+        return new HandClip(JsonParser.parseReader(in).getAsJsonObject());
     }
 
     private static float[][] track(JsonObject json, String name) {
@@ -59,26 +65,35 @@ final class SmokingClip {
         return out;
     }
 
+    /** Prop track {@code name}; null => not baked. */
+    public float[][] prop(String name) {
+        return props.get(name);
+    }
+
     private final Vector3f next = new Vector3f();
     private final Quaternionf nextRot = new Quaternionf();
     private int index;
     private float blend;
 
-    /** Frame pair and blend at {@code seconds}, clamped to the clip. */
     private void locate(float seconds, int frames) {
         float f = Math.clamp(seconds * fps, 0.0f, frames - 1);
         index = Math.min((int) f, frames - 2);
         blend = f - index;
     }
 
-    void sample(float[][] track, float seconds, Vector3f pos, Quaternionf rot) {
+    public void sample(float[][] track, float seconds, Vector3f pos, Quaternionf rot) {
         locate(seconds, track.length);
         float[] a = track[index], b = track[index + 1];
         pos.set(a[0], a[1], a[2]).lerp(next.set(b[0], b[1], b[2]), blend);
         rot.set(a[3], a[4], a[5], a[6]).nlerp(nextRot.set(b[3], b[4], b[5], b[6]), blend);
     }
 
-    void sampleCamera(float seconds, float[] out) {
+    /** Zero when {@link #cam} is empty. */
+    public void sampleCamera(float seconds, float[] out) {
+        if (cam.length < 2) {
+            out[0] = out[1] = out[2] = 0.0f;
+            return;
+        }
         locate(seconds, cam.length);
         for (int i = 0; i < 3; i++) {
             out[i] = cam[index][i] + (cam[index + 1][i] - cam[index][i]) * blend;

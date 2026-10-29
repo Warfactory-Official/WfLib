@@ -23,7 +23,7 @@ public final class ArtifactEntities {
                     .sized(0.45F, 0.45F).clientTrackingRange(4).updateInterval(20).build("zone_artifact"));
     public static final DeferredHolder<EntityType<?>, EntityType<BoltEntity>> BOLT = TYPES.register("bolt",
             () -> EntityType.Builder.<BoltEntity>of(BoltEntity::new, MobCategory.MISC)
-                    .sized(0.15F, 0.15F).clientTrackingRange(4).updateInterval(2).build("bolt"));
+                    .sized(0.15F, 0.15F).clientTrackingRange(4).updateInterval(1).build("bolt"));
 
     public static final DeferredHolder<Item, Item> DETECTOR_ECHO = ModItems.ITEMS.register("detector_echo",
             () -> new DetectorItem(DetectorTier.ECHO, new Item.Properties().stacksTo(1)));
@@ -32,7 +32,7 @@ public final class ArtifactEntities {
     public static final DeferredHolder<Item, Item> DETECTOR_VELES = ModItems.ITEMS.register("detector_veles",
             () -> new DetectorItem(DetectorTier.VELES, new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, Item> BOLT_ITEM = ModItems.ITEMS.register("bolt",
-            () -> new BoltItem(new Item.Properties().stacksTo(1)));
+            () -> new BoltItem(new Item.Properties()));
 
     public static void register(IEventBus modBus) {
         TYPES.register(modBus);

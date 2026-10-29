@@ -1,5 +1,6 @@
 package com.wf.wflib.smoking.client;
 
+import com.wf.wflib.client.view.HandClip;
 import com.wf.wflib.smoking.SmokingTimeline;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -15,18 +16,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SmokingClipTest {
 
-    private static SmokingClip clip() throws IOException {
+    private static HandClip clip() throws IOException {
         try (Reader in = new InputStreamReader(SmokingClipTest.class.getResourceAsStream(
                 "/assets/wflib/smoking/cigarette.json"), StandardCharsets.UTF_8)) {
-            return SmokingClip.parse(in);
+            return HandClip.parse(in);
         }
     }
 
     @Test
     void everyTrackHoldsOneRowPerFrame() throws IOException {
-        SmokingClip c = clip();
+        HandClip c = clip();
         int frames = Math.round(c.duration * c.fps) + 1;
-        for (float[][] track : new float[][][]{c.right, c.left, c.pack, c.cig}) {
+        for (float[][] track : new float[][][]{c.right, c.left, c.prop("pack"), c.prop("cig")}) {
             assertEquals(frames, track.length, 1);
             assertEquals(7, track[0].length);
         }
@@ -48,12 +49,12 @@ class SmokingClipTest {
 
     @Test
     void theCigaretteIsInTheRightHandWhileSmokingAndAtTheMouth() throws IOException {
-        SmokingClip c = clip();
+        HandClip c = clip();
         Vector3f hand = new Vector3f(), cig = new Vector3f();
         Quaternionf q = new Quaternionf();
         for (float t = 3.0F; t < 8.0F; t += 0.5F) {
             c.sample(c.right, t, hand, q);
-            c.sample(c.cig, t, cig, q);
+            c.sample(c.prop("cig"), t, cig, q);
             assertTrue(hand.distance(cig) < 0.12F, t + " s: hand " + hand + " cigarette " + cig);
             assertTrue(cig.y > -0.15F && cig.y < 0.0F && cig.z < -0.12F && cig.z > -0.30F,
                     t + " s: cigarette not at the mouth " + cig);
@@ -62,7 +63,7 @@ class SmokingClipTest {
 
     @Test
     void samplingClampsToTheClip() throws IOException {
-        SmokingClip c = clip();
+        HandClip c = clip();
         Vector3f a = new Vector3f(), b = new Vector3f();
         Quaternionf q = new Quaternionf();
         c.sample(c.right, -5.0F, a, q);

@@ -41,8 +41,20 @@ public class ArtifactItem extends Item {
                             String.format(java.util.Locale.ROOT, "%+.1f%%", artifact.staminaPerTick() * 2000.0D))
                     .withStyle(artifact.power() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
-        if (artifact.bleeding() > 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfmedical")) {
-            lines.add(Component.translatable("item.wflib.artifact.bleeding").withStyle(ChatFormatting.GREEN));
+        if (artifact.bleeding() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfmedical")) {
+            lines.add(artifact.bleeding() > 0.0F
+                    ? Component.translatable("item.wflib.artifact.bleeding").withStyle(ChatFormatting.GREEN)
+                    : Component.translatable("item.wflib.artifact.thins").withStyle(ChatFormatting.RED));
+        }
+        if (artifact.radShield() != 0.0F) {
+            lines.add(Component.translatable("item.wflib.artifact.radiation",
+                            String.format(java.util.Locale.ROOT, "%+.1f", artifact.radShieldPerSecond()))
+                    .withStyle(artifact.radShield() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+        if (artifact.radiation() != 0.0F) {
+            lines.add(Component.translatable("item.wflib.artifact.irradiates",
+                            String.format(java.util.Locale.ROOT, "%+.1f", artifact.radiationPerSecond()))
+                    .withStyle(artifact.radiation() > 0.0F ? ChatFormatting.RED : ChatFormatting.GREEN));
         }
         lines.add(Component.translatable("item.wflib.artifact.worn").withStyle(ChatFormatting.DARK_GRAY));
     }

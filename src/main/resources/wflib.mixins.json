@@ -64,7 +64,10 @@
     "xaero.minimap.AccessorMinimapFBORenderer",
     "xaero.minimap.AccessorMinimapElementMapRendererHandler",
     "MixinPdaCanvasFont",
-    "MixinPdaCanvas"
+    "MixinPdaCanvas",
+    "AccessorContainerMenu",
+    "MixinCreativeInventorySlots",
+    "MixinGameRendererXrScreen"
   ],
   "injectors": {
     "defaultRequire": 1

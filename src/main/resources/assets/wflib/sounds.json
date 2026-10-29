@@ -559,6 +559,33 @@
       }
     ]
   },
+  "anomaly.radar_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/radar/radar_idle",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
+  "anomaly.radar_blowout": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/radar/radar_blowout",
+        "stream": false,
+        "attenuation_distance": 24
+      }
+    ]
+  },
+  "anomaly.darkness_idle": {
+    "sounds": [
+      {
+        "name": "wflib:xray/eugenium_anomaly/darkness/darkness_idle",
+        "stream": false,
+        "attenuation_distance": 16
+      }
+    ]
+  },
   "anomaly.net_idle": {
     "sounds": [
       {
@@ -742,5 +769,10 @@
   "detector.echo_beep": {"sounds": [{"name": "wflib:xray/detector/art_beep1", "attenuation_distance": 8}]},
   "detector.bear_beep": {"sounds": [{"name": "wflib:xray/detector/da2_beep1", "attenuation_distance": 8}]},
   "detector.draw": {"sounds": [{"name": "wflib:xray/detector/detector_draw", "attenuation_distance": 8}]},
-  "detector.holster": {"sounds": [{"name": "wflib:xray/detector/detector_holster", "attenuation_distance": 8}]}
+  "detector.holster": {"sounds": [{"name": "wflib:xray/detector/detector_holster", "attenuation_distance": 8}]},
+  "bolt.impact.concrete": {"sounds": [{"name": "wflib:xray/bolt/concrete_1", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/concrete_2", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/concrete_3", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/concrete_4", "attenuation_distance": 12}]},
+  "bolt.impact.default": {"sounds": [{"name": "wflib:xray/bolt/default_1", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/default_2", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/default_3", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/default_4", "attenuation_distance": 12}]},
+  "bolt.impact.dirt": {"sounds": [{"name": "wflib:xray/bolt/dirt_1", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/dirt_2", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/dirt_3", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/dirt_4", "attenuation_distance": 12}]},
+  "bolt.impact.metal": {"sounds": [{"name": "wflib:xray/bolt/metal_1", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/metal_2", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/metal_3", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/metal_4", "attenuation_distance": 12}]},
+  "bolt.impact.water": {"sounds": [{"name": "wflib:xray/bolt/water_1", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/water_2", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/water_3", "attenuation_distance": 12}, {"name": "wflib:xray/bolt/water_4", "attenuation_distance": 12}]}
 }

@@ -28,14 +28,15 @@ class AnomalyTypesTest {
     @Test
     void everyParticleGroupIsShippedAndEveryBlowoutHasASound() throws IllegalAccessException {
         List<AnomalyType> types = all();
-        assertEquals(22, types.size());
+        assertEquals(26, types.size());
         for (AnomalyType type : types) {
             for (String group : new String[]{type.look().idleParticles(), type.look().blowoutParticles()}) {
                 if (group != null) {
                     assertTrue(Files.exists(PARTICLES.resolve(group + ".pg")), type.name() + ": " + group);
                 }
             }
-            if (!(type.behaviour() instanceof FieldTuning)) {
+            // DAO's Darkness blows out in silence.
+            if (!(type.behaviour() instanceof FieldTuning) && type != AnomalyType.DARKNESS) {
                 assertTrue(type.sounds().blowout() != null, type.name());
             }
         }
@@ -52,6 +53,9 @@ class AnomalyTypesTest {
         FieldTuning rad = (FieldTuning) AnomalyType.RADIATION_FIELD.behaviour();
         assertEquals(0.04D * FieldTuning.FULL_DOSE / 20.0D, rad.dose(0.0D), 1e-9);
         assertEquals(0.0F, ((FieldTuning) AnomalyType.NO_GRAVITY.behaviour()).hit(0.0D, true));
+        FieldTuning psy = (FieldTuning) AnomalyType.PSY_FIELD.behaviour();
+        assertEquals(0.55F * FieldTuning.PULSE_TICKS / 20.0F, psy.psy(0.0D), 1e-6);
+        assertEquals(0.0F, psy.psy(psy.radius()));
     }
 
     @Test

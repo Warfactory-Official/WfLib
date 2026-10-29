@@ -51,6 +51,9 @@ public final class WFClientConfig {
     public static final ModConfigSpec.BooleanValue PDA_VIGNETTE;
     public static final ModConfigSpec.BooleanValue PDA_SOUNDS;
 
+    public static final ModConfigSpec.DoubleValue SCREEN_EFFECTS;
+    public static final ModConfigSpec.DoubleValue CAMERA_SHAKE;
+
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
 
@@ -159,6 +162,13 @@ public final class WFClientConfig {
         PDA_NOISE = b.define("noise", true);
         PDA_VIGNETTE = b.define("vignette", true);
         PDA_SOUNDS = b.comment("Bundled PDA hover and click sounds (including tab/page changes).").define("sounds", true);
+        b.pop();
+
+        b.comment("STALKER (GAMMA) screen and camera effects: anomalies near, hits, psy, healing.").push("screenEffects");
+        SCREEN_EFFECTS = b.comment("Post-process effects (colour, double vision, noise), 0 off .. 1 as GAMMA.")
+                .defineInRange("strength", 1.0D, 0.0D, 1.0D);
+        CAMERA_SHAKE = b.comment("Camera kicks and sway, 0 off .. 1 as GAMMA.")
+                .defineInRange("cameraShake", 1.0D, 0.0D, 1.0D);
         b.pop();
 
         SPEC = b.build();

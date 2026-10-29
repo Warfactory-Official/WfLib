@@ -1,7 +1,7 @@
 # Anomalies, anomaly sites, artefacts, detectors (STALKER Zone project)
 
 Handoff doc: what the project is, what exists, where it lives, how to build and test it, and what is left. State
-as of 2026-10-28. Read this top to bottom before touching anything; the "Gotchas" section has cost real hours.
+as of 2026-10-29. Read this top to bottom before touching anything; the "Gotchas" section has cost real hours.
 
 ## The goal (as the user put it)
 
@@ -20,32 +20,35 @@ as of 2026-10-28. Read this top to bottom before touching anything; the "Gotchas
 
 ## Repos and how the pieces connect
 
-| repo | path | branch -> remote | role |
+Checkouts side by side in one workspace (`~/projects/wf2-21/`; older machine `~/Codebases/`).
+
+| repo | dir | branch -> remote | role |
 |---|---|---|---|
-| WFLib (mod id `wflib`) | `~/Codebases/WFLib-main` (worktree of `~/Codebases/WF-Ballistics`) | `main` -> `origin/main` (Warfactory-Official/WF-Ballistics) | anomalies, sites, artefacts, detectors, bolts, bench |
-| WFMedical | `~/Codebases/WFMedical-neoforge` | `wf/deploy-neoforge` -> `origin/neoforge-1.21.1` | stress (= psy), healing/drain/clotting hooks |
-| WFWeight | `~/Codebases/Ultimate-Weight` | `master` | `api/StaminaModifiers` (artefact power_restore) |
-| wfcore | `~/Codebases/WFModernCore-1.21.1` | `anomaly-site-density` (pushed) | feeds site density from worldgen resource rules |
-| wfworldgen (Go) | `~/Codebases/wfworldgen` | `master` -> `origin/master` | "Anomalies" section: pick fields / autogen cells per tier |
-| MineAssault | `~/Codebases/MineAssault/.claude/worktrees/instance-build` | local `instance/ma-0f896c4-wflib-main` (no remote) | `ZoneHandsViewmodel`: detector + bolt in first-person arms |
-| GemRender | `~/Codebases/GemRender` | `main` | glTF rendering, lens (refraction) pass, lights; WFLib needs >= 0.1.18 |
+| WFLib (mod id `wflib`) | `WF-Ballistics` | `main` -> `origin/main` (Warfactory-Official/WfLib) | anomalies, sites, artefacts, detectors, bolts, screen effects |
+| WFMedical | `WFMedical` | `neoforge-1.21.1` -> `origin/neoforge-1.21.1` | stress (= psy), healing / drain / clot / thin, GAMMA hit + psy screen effects |
+| WFWeight | `Ultimate-Weight` | `master` -> `origin/master` | `api/StaminaModifiers` (artefact power_restore) |
+| wfcore | `Warfactory-Modern-Core` | `master` -> `origin/1.21.1` | `AnomalySiteDensity`: site density from worldgen resource rules |
+| wfworldgen (Go) | `worldgen-workspace` | `master` -> `origin/master` | "Anomalies" section: pick fields / autogen cells per tier |
+| MineAssault | `MineAssault` | `master` (+ `origin/instance/ma-0f896c4-wflib-main`) | `ZoneHandsViewmodel`: detector on DAR hands + bolts in first person; `libs/wfweight-*.jar` |
+| GemRender | `GemRender` | `main` | glTF rendering, lens pass, lights; WFLib / MineAssault need 0.1.19 (`GltfSkeleton`, `flushOpaque`) |
+| mc-harness | `mc-harness` | (local) | headless client checks: `scenarios/wf_zone.mjs` |
 
 Data flow: wfworldgen writes resource rules (system `anomaly`, targets `wflib:anomaly_site_tier_1..4`) -> wfcore
 `integration/wflib/AnomalySiteDensity` sets `AnomalySites.density` -> WFLib's `anomaly_site` structure picks a tier
 per candidate chunk -> `SitePainter` builds terrain, ruins, anomalies and hidden `ZoneArtifact`s -> players find
-them with a `DetectorItem`, probe with `BoltItem`, wear them in Curios -> `Artifacts` applies immunities and
+them with a `DetectorItem`, probe with bolts (`Bolts`), wear them in Curios -> `Artifacts` applies immunities and
 restores, calling WFMedical / WFWeight hooks when those mods are loaded.
 
-### Push state (2026-10-28: everything pushed)
+### Push state (2026-10-29)
 
-- WFLib `main`: the artefact batch, glow/layering fixes, gallery bench, rigged low-poly detectors (`d9689cb`),
-  `devtools/` (`ab8ae34`) and this doc. WFMedical `neoforge-1.21.1` `7c83840`; wfworldgen `master` `42ba399`; wfcore and
-  WFWeight had nothing new. Nightlies for WFLib and WFMedical passed.
-- **Push order for cross-repo API changes: WFWeight -> WFLib -> WFMedical.** Remote CI resolves the published
-  snapshots; WFMedical's CI fails to compile until WFLib's nightly with the new API is published.
-- MineAssault: the detector/bolt viewmodel is on branch **`instance/ma-0f896c4-wflib-main`** (pushed; `c0385d2`),
-  not `master`. `master` cannot build (it imports `com.wf.gemrender.gltf.GltfSkeleton`, on no pushed GemRender
-  branch). **Cherry-pick `ZoneHandsViewmodel` (c0385d2) to master once GemRender's GltfSkeleton lands.**
+- Pushed: everything up to WFLib `791ffff`, WFMedical `7c83840`, wfworldgen `42ba399`, MineAssault branch
+  `instance/ma-0f896c4-wflib-main` (`c0385d2`).
+- Uncommitted (2026-10-29 pass): WFLib, WFMedical (thinning, psy -> stress, tests), GemRender (blended after weather),
+  MineAssault `master` (`ZoneHandsViewmodel` applied from `c0385d2` + DAR hands + tag bolts), mc-harness
+  `scenarios/wf_zone.mjs`. WFLib/WFMedical working trees also hold another session's uncommitted smoking/UI/treatment
+  work: commit own hunks only.
+- **Push order for cross-repo API changes: GemRender, WFWeight -> WFLib -> WFMedical, MineAssault.** Remote CI
+  resolves the published snapshots; dependents fail to compile until the upstream nightly is published.
 - Not in git on purpose: `art/detectors/handoff/` (an 8 MB copy of the user's detector zip).
 
 ## Build, install, run
@@ -55,8 +58,9 @@ restores, calling WFMedical / WFWeight hooks when those mods are loaded.
 - WFMedical: JDK 21, `./gradlew build`. It asks for `wflib ${wflib_version}-SNAPSHOT` with mavenLocal first: **always
   republish WFLib first**, else it silently compiles against a stale snapshot ("cannot find symbol clotter").
 - WFWeight: JDK 25, `./gradlew :1.21.1:neoforge:publishToMavenLocal`. Its shared JUnit tests are not wired.
-- MineAssault instance jar: in the worktree, `./gradlew -I ../maven-local-first.gradle -Pahf_version=1.0.10
-  -Pgemrender_version=0.1.18 build -x test`. Never `pkill -f instance-build` (matches your own shell).
+- MineAssault: `./gradlew build -x test` (mavenLocal-first init script in `~/.local/share/gradle/init.d/` puts local
+  WFLib / GemRender first). Never `pkill -f <dir>` from a shell whose command line holds it.
+- GemRender: `./gradlew :1.21.1:publishToMavenLocal`.
 - Prism instance: `~/.local/share/PrismLauncher/instances/wf2-internal-client-0.1.0-internal.20261017-2139/minecraft/mods`.
   Move replaced jars to `mods-backup-YYYYMMDD/`, never delete. Before swapping WFLib, **link-check dependents**
   (MineAssault, CombinedAssault, wfcore, WFMedical...) against the new jar: list members that disappeared
@@ -65,16 +69,16 @@ restores, calling WFMedical / WFWeight hooks when those mods are loaded.
   the user may be playing.
 
 **Our scripts live in `devtools/` (tracked)**: `anomaly-bench.sh`, `park-window.py`, `xray-ogf.py`, `xray-db.py`,
-`xray-assets.py`, `gamma/*`. Upstream ignores any `tools/` folder (other people's local generators referenced in
+`xray-assets.py`, `gamma/*`, `detectors/bake_hands.py`. Upstream ignores any `tools/` folder (other people's local generators referenced in
 older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
 
 ## WFLib code map
 
 ### Anomalies (`com.wf.wflib.anomaly`)
 
-- `AnomalyType` (22): VORTEX (`wflib:gravity_anomaly`), WHIRLIGIG, SPRINGBOARD, ELECTRO, BURNER, ACID, STEAM, FLASH,
+- `AnomalyType` (26): VORTEX (`wflib:gravity_anomaly`), WHIRLIGIG, SPRINGBOARD, ELECTRO, BURNER, ACID, STEAM, FLASH,
   GHOST, NET, BALL_LIGHTNING, LIQUID_GOLD, GREEN_DRAGON, REBOUNDER, MEPHISTOPHELES, BURNT_FUZZ, GRABBER, COMET,
-  RADIATION_FIELD, THERMAL_FIELD, ACID_FIELD, NO_GRAVITY. Each = behaviour (`MincerTuning` | `BlastTuning` |
+  RADIATION_FIELD, THERMAL_FIELD, ACID_FIELD, NO_GRAVITY, PSY_FIELD, RADAR, DARKNESS, STEAM_VENT. Each = behaviour (`MincerTuning` | `BlastTuning` |
   `FieldTuning`) + `AnomalyLook` + damage type. One block per type (`ModBlocks`), one shared block entity.
 - Ported from GAMMA zone sections + xray-monolith code. Look: GemRender lens refraction (`Lenses.submit`) for
   gravitational ones, X-Ray particles (`client/xray`, `devtools/xray-assets.py`) for the rest.
@@ -82,9 +86,11 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   blocks, stop past 32; no anomaly sound may be `"stream": true` (only 8 streaming channels exist).
 - Commands: `/wflib anomalies [on|off]`, `/wflib anomalies site <tier> [motif|any [ruin|any|none]]` (builds a site
   near you, searches 128 blocks for ground that takes one), `/wfdebug anomaly status|measure|trace|walkaway`.
-- **Deferred by the user until psy existed: Radar, Darkness, psy field.** Psy now exists (WFMedical stress), so these
-  are buildable: they should raise stress through WFMedical (see `StressBridge`), scaled by
-  `Artifacts.psyProtection`. Skipped on purpose: Witches' Galantine (= Electro), zone_unknown (= weak Grabber).
+- Psy (damage type `wflib:psy`): `Psy.expose` -> `PsyExposureEvent` (STALKER psy units, 1 = all psy health);
+  WFMedical handles it (stress x `stressPsyGain` x (1 - `psyProtection`)); unhandled or non-player => hurt
+  `units x FULL_HIT`. PSY_FIELD (`FieldTuning.Kind.PSY`), RADAR (`Quirk.PSY_AURA` 8 m + psy blast), DARKNESS (psy
+  mincer; DAO poltergeist spawns left out). Darkness/Radar particles + sounds: DAO via `xray-assets.py`.
+- Skipped on purpose: Witches' Galantine (= Electro), zone_unknown (= weak Grabber).
 
 ### Anomaly sites (`anomaly/site`)
 
@@ -99,38 +105,37 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
 - Ruins (`SitePlan.Overlay`, min tier): VILLAGE_RUIN, CAMP, WATCHTOWER (1); TRAIN_WRECK, RADIO_MAST (2); TEMPLE,
   BUNKER (3). Village ruins use vanilla village house templates with BlockRot/BlockAge processors.
 - `SiteStyle`: biome restyle (badlands terracotta strata, desert sand...) and motif lean per biome.
-- **Smoke must come from anomalies, not campfires (user, 2026-10-28: "more polished").** Today FISSURES sites call
-  `SiteMotifs.vent()` (`SiteMotifs.java:426`, from the FISSURES case around line 188, 3 to 5+tier vents per site),
-  which sets a lit **signal campfire over a hay bale** ringed with basalt. In game that reads as vanilla's chunky
-  campfire smoke columns all over the site. Wanted: no campfire or hay; each vent is an anomaly whose own effects
-  make the smoke. Options, cheapest first:
-  - put a Steam anomaly (`AnomalyType.STEAM`, X-Ray `zones/zone_steam_idle` particles) or a Burner/Thermal Field at
-    each vent spot, ringed with basalt as now;
-  - or a dedicated low-harm "vent" anomaly type (a `Quirk` or its own `AnomalyLook`) with a soft X-Ray smoke idle
-    group (GAMMA ships smoke `.pe`/`.pg` groups: import with `devtools/xray-assets.py`).
-  Anomaly effects follow the client rules (only in compiled sections, in render distance) and the master switch, so
-  with `anomalies.enabled=false` the vents make no smoke. Decide with the user whether that is right or whether vents
-  need a decorative emitter that runs regardless. The camp ruin's campfire (`SiteRuins.java:189`) is unlit on
-  purpose (a cold fire, no smoke) and can stay.
+- FISSURES vents = STEAM_VENT anomalies (Steam behaviour; idle `xray/particles/wflib/vent_steam`: ours, GAMMA's
+  zone_steam_idle smoke blended at alpha 0.35, slower fade) over magma ringed with basalt (`SiteMotifs.vent`;
+  `Kind.STEAM_VENT` cap 0: never rolled). GAMMA's own steam idle is near-invisible additive wisps.
+  `anomalies.enabled=false` => no smoke (user, 2026-10-29). Camp ruin campfire (`SiteRuins`) unlit on purpose.
 - `AnomalyMix`: which anomaly types per element/spot (FLOOR, CEILING, FIELD) and the loot table (`Loot`, built from
-  `Artifact.ALL`; `pickLoot(r, tier, kinds)` filters by each artefact's `minTier` and element).
+  `Artifact.ALL`; `pickLoot(r, tier, kinds)` filters by each artefact's `minTier` and element; `Artifact.UNIQUE` weight
+  1/8: ~1.3% of tier-4 draws).
 
 ### Artefacts (`com.wf.wflib.artifact`)
 
 - `Artifact` record: id, glb model (`models/artifact/<id>.glb`), texture slots, arcs, core sprite, per-hit
   `immunity` (`Hit`: SHOCK, BURN, STRIKE, WOUND, BULLET, EXPLOSION, CHEMICAL, PSY), health / power (stamina) /
-  bleeding restore, bloom, light, detect rank, element, min tier. Values are GAMMA's resolved numbers.
-- `Artifact.ALL` (14): BATTERY, SOUL (earlier), and the 2026-10-28 batch: CRYSTAL, ITCHER, SPONGE, FIREBALL, SPARKLER,
-  GLASS_BEADS, MOONLIGHT, FLASH (item `wflib:flash_artifact`: `wflib:flash` is the Flash anomaly's block item),
-  ICE, RING, DUMMY, STONE_FLOWER. Items registered from `ALL` in `ModItems.ARTIFACTS`; masses in `ItemMasses`; Curios
+  bleeding restore, `radShield` (radiation_immunity), `radiation` (radiation_restore_speed), bloom, light, detect
+  rank, element, min tier. Values are GAMMA's resolved numbers.
+- `Artifact.ALL` (29): BATTERY, SOUL; 2026-10-28: CRYSTAL, ITCHER, SPONGE, FIREBALL, SPARKLER, GLASS_BEADS, MOONLIGHT,
+  FLASH (item `wflib:flash_artifact`: `wflib:flash` = Flash anomaly block item), ICE, RING, DUMMY, STONE_FLOWER;
+  2026-10-29: STONE_BLOOD, LOBSTER_EYES, JELLYFISH (af_medusa), MEAT_CHUNK, PIN, BUBBLE (af_baloon), BLACK_SPRAY,
+  BRACELET, EYE, FLAME (af_fire), KOLOBOK, FIREFLY (af_glass), WRENCHED (af_vyvert); `UNIQUE`: PELLICLE,
+  OASIS_HEART (tier 4). Element / tier = GAMMA `af_class_<elemental|psio_gravi|phyto_chem>_<south|mid|north>` (lowest;
+  elemental split by `af_<fire|elec>_t*`); rank = DAO Svarog `items_devices.ltx` af_class lists. Items registered from `ALL` in `ModItems.ARTIFACTS`; masses in `ItemMasses`; Curios
   tag `data/curios/tags/item/artifact.json`; lang `item.wflib.<id>`.
 - `Artifacts` (server): `LivingIncomingDamageEvent` at HIGH (before WFMedical turns hits into wounds) scales by
   `1 - immunity`, stacked per worn artefact; `hit(DamageSource)` maps damage types to `Hit`. Once a second: health
-  restore -> `Artifacts.healer`, bleeding restore -> `Artifacts.clotter`. `psyProtection(player)` for stress.
+  restore -> `Artifacts.healer`, bleeding restore -> `Artifacts.clotter` (negative too), radiation restore ->
+  `LivingHazardProps.incrementRadiation`. `psyProtection(player)` for stress. `shieldDose`: radShield as a RAD/s budget
+  per tick across every dose (`ContaminationUtil.contaminate`, after armour; negative adds once a tick).
+  `RAD_PER_UNIT` 1000; X-Ray subtracts radiation_immunity per hit, not per second.
   Stamina: `compat/wfweight/ArtifactStamina` (WFWeight `StaminaModifiers`).
 - Hooks claimed by WFMedical (`compat/wflib/ArmorBridge`, `StressBridge`): `healer` -> `MedicalHealing.heal`
-  (negative = `drain`: a self-healing blunt_force_trauma on the torso), `clotter` -> `MedicalHealing.clot`, stress
-  gain x `(1 - psyProtection)`.
+  (negative = `drain`: a self-healing blunt_force_trauma on the torso), `clotter` -> `MedicalHealing.clot` /
+  `thin` (negative: transient bleeding x (1 + thinning)), `PsyExposureEvent` + stress gain x `(1 - psyProtection)`.
 - Rendering (`artifact/client/ArtifactRenderer`, GemRender direct path). **Slot naming is the contract**:
   - `body*`: lit. `glow` / `glow2`: unlit, blended, bloom. `glowsolid` / `glowsolid2`: unlit, opaque, **no bloom**
     (a bloom pass on an opaque part draws its blurred copy over it at equal depth; that bug made Crystal/Fireball
@@ -141,8 +146,8 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   - First person: arms via WFLib `PlayerArms`/`ArmViewPose`, artefact floats over the palm (`HeldArtifactPose`,
     `SCALE` 0.4 in view space). Inventory/ground/item frames/others' hands: GemRender item renderer at true size.
     Held artefacts add a GemRender point light.
-- Missing GAMMA effects, not implemented: radiation immunity (ignored; WFLib has a `radiation/` package to wire it
-  to), radiation_restore_speed, additional_inventory_weight (WFWeight carry capacity), satiety_restore_speed.
+- Missing GAMMA effects, not implemented: additional_inventory_weight (WFWeight carry capacity),
+  satiety_restore_speed.
 
 ### Detection, collection, bolts (`artifact/detect`)
 
@@ -151,112 +156,48 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
 - `DetectorTier`: ECHO (rank 1, range 30, reveal 3, LED), BEAR (2, 30, 4, DIRECTION), VELES (3, 30, 5, SCREEN). Beep
   interval lerps 2 s -> 0.05 s with distance. `DetectorItem`, `Detection` (server search), client `DetectorClient`
   (models, sounds, faces), `DetectorHud`, `DetectorProbe`, `ZoneArtifactRenderer`.
-- `BoltItem` / `BoltEntity`: thrown, trips anomalies (items otherwise never set them off).
-- Models: `models/detector/{echo,bear,veles,bolt}.glb` from GAMMA "Devices of Anomaly Redone" + base bolt (see
-  `models/artifact/CREDITS.md`). **Echo is a placeholder for the user's own model**: replace `echo.glb` keeping
-  the slot names `DetectorClient` binds.
-- MineAssault `ZoneHandsViewmodel`: detector in the left hand with its face drawn on the device (Bear LED ring,
-  Veles blips), bolt in the right with a throw tied to the item cooldown; uses WFLib `PlayerArms`.
+- Bolts: `Bolts.THROWABLE` = `#wflib:throwable_bolts` (`wflib:bolt`, `#c:bolts`: GregTech's every material); right
+  click throws one (`RightClickItem` for foreign items, `BoltItem.use` for ours), stack shrinks unless creative,
+  12-tick cooldown per player. `BoltEntity` (plain `Entity`, carries the stack): gravity 0.04, drag 0.99, water sink,
+  per-axis bounce (restitution 0.3, Coulomb friction -> spin), tumble on knocks > 0.06, rolling on ground, rest ->
+  flat, wakes when moved; glances off bodies; no damage; anomalies take it as a body (`AnomalyBlockEntity.affected`).
+  Picked up by walking over (landed) or use: same stack back. Despawn 6000 ticks. Drawn as its item's sprite
+  (`BoltRenderer`, `FIXED`), synced quaternion slerped. Impact sounds by surface (Oleh's). `wflib:bolt`: 1 iron nugget
+  -> 2, sprite from GAMMA's icon atlas.
+- Detectors draw `models/detector/lowpoly/<id>.glb` (old static glbs still in place, unused; delete once approved).
+  **Echo is a placeholder for the user's own model**: same bone + clip names, or re-bake.
+- First person (MineAssault `ZoneHandsViewmodel` on WFLib `DetectorAnim`): DAR states (`models/detector/lowpoly/
+  states.json`) SHOW / HIDE / IDLE / MOVING / CROUCH_MOVING / SPRINT / ZOOM_IN / ZOOM / ZOOM_OUT / THROW_START /
+  THROW / THROW_END, 0.15 s crossfade; hide holds the next detector back. Zoom = use key with the detector out and no
+  bolt in the main hand. Left arm on the baked fist track; device on the baked `detector` track with its own clip's
+  `wpn_body` motion cancelled (`B0 * B(t)^-1`); faces (`DetectorAnim.Face`: Veles `cover_power`, Bear `screen_bone`)
+  follow the posed bone. Zoomed: + `aim_hud_offset_pos` (approximation: X-Ray's `UpdateHudAdditional` not ported).
+  Right hand: MA's bolt throw; the held bolt drawn as its stack's sprite.
+- Hand clips: `assets/wflib/detector/hands/<tier>/<anm_state>.json` (`HandClip`, prop `detector`), baked by
+  `devtools/detectors/bake_hands.py` (MineAssault `stalker_hud_dump.py` + local `tools/handclip/handclip.py`; DAR
+  hands + device OGF/OMF). `hands_orientation` = X-Ray `setHPB(x, y, z)`: x HEADING, y PITCH, z bank. Device clip
+  aligned (cut / held) to the hand clip's frames; DAR's state speed x the motion's own.
+- Rigged low-poly sources: `art/detectors/` (`README.md`, `detectors.blend`, `build.py` / `validate.py`,
+  `source-study.json`). Bones: Echo `lid` (`light_bone_3` rides it), `button`, `on_switch`; Bear `cover`,
+  `tuner_bone`, `on_switch`, `screen_bone*`, `light_bone_1/2`; Veles `cover` -> `cover_power` (display), `joint1`,
+  `switch`, `light_bone_1..9`.
+- Gap: third person / inventory / ground detectors in bind pose (no clip).
 
-### Setting up the rigged low-poly detectors (to do)
+## Screen and camera effects (GAMMA's, ported 2026-10-29)
 
-The user supplied `~/Downloads/WFLib-detectors-lowpoly.zip`. **Use the repo copies, not the zip's GLBs**: the zip's
-are portable previews with the PNGs embedded; the runtime GLBs use resource-pack texture slots like every other
-WFLib model. What exists (made 2026-10-28 by another session, **untracked in git**: commit `art/detectors/` (the
-`.blend` is 8 MB; ask whether it belongs in git or LFS) and `models/detector/lowpoly/`):
-
-- `src/main/resources/assets/wflib/models/detector/lowpoly/{echo,bear,veles}.glb`: skinned, metres, centred bind pose,
-  same material slots as today (`body`, `aref` Echo-only MASK double-sided, `lights` BLEND), so
-  `DetectorClient.slots()` works unchanged. Echo 1,270 tris / 7 bones / 16 clips, Bear 1,506 / 9 / 18, Veles
-  1,239 / 14 / 16. Clips keep GAMMA's names (`barry_echo_*`, `barry_bear_*`, `barry_veles_*`), 30 Hz, OMF speed baked.
-- `art/detectors/`: `README.md` (bones per device, scope; read it), `detectors.blend` (editable), `build.py` /
-  `validate.py` (Blender, headless), `states.json` (GAMMA state -> [hand clip, device clip, optional speed]; HUD
-  offsets `hands_position`/`hands_orientation`/`aim_hud_offset_*`), `source-study.json` (source OGF/OMF paths),
-  `handoff/` (= the zip). Rebuild: `blender -b --factory-startup --python-exit-code 1 --python art/detectors/build.py`
-  then `validate.py`.
-- Bones that matter at runtime: Echo `lid` (hinged cover, `light_bone_3` rides it), `button`, `on_switch`; Bear
-  `cover` (wire cage), `tuner_bone`, `on_switch`, `screen_bone*`, `light_bone_1/2`; Veles `cover` ->
-  **`cover_power` is the display bone** (DAR's `detector_ui_bone`), `joint1`, `switch`, `light_bone_1..9`.
-
-Steps:
-
-1. **Swap the models.** Point `DetectorTier.model()` at `models/detector/lowpoly/<id>.glb` (or move the low-poly GLBs
-   over `models/detector/<id>.glb` once they are approved; keep the old ones in git history). Inventory, ground and
-   others' hands go through `DetectorClient`'s item renderer: play `barry_<id>_idle` there (or nothing: bind pose).
-2. **A state machine for the device clips**, client side, per detector in hand, driven from `states.json` (load it
-   as a resource, or port the table into `DetectorTier`): `anm_show` / `anm_show_fast` / `_quick` on switching to
-   it, `anm_hide*` on switching away (hold the next item back until it ends, as `ArtifactRenderer` does for
-   artefacts), `anm_idle`, `anm_idle_moving` (x1.15) when walking, `anm_idle_moving_crouch`, `anm_idle_sprint`
-   (x1.4), `anm_zoom_in` / `anm_idle_zoom` / `anm_zoom_out` when the player raises it to read it, and
-   `anm_throw_start` / `anm_throw` / `anm_throw_end` while the other hand throws a bolt. Bear's `anm_show_dead` draw = a
-   detector with no charge, if batteries ever exist. Cross-fade between clips with GemRender's blended pose
-   (`DirectRenderer` blend path) rather than snapping. Pass the clip (`model.animation(name)`) and its time to
-   `DirectRenderer.submit` in place of the `null` clip used today.
-3. **Faces on the moving parts.** `ZoneHandsViewmodel.drawDetector` places the LED ring / blips with fixed
-   model-space offsets (`FACE` table). With animation the parts move: take the posed bone from GemRender
-   (`PoseCache`'s `boneMatrix(String nodeName, Matrix4f)`, node slots, not skin slots) and draw the Veles screen on
-   `cover_power`, the Bear's LEDs from `screen_bone*` / `light_bone_*`, the Echo's LED on `light_bone_1/2/3`.
-   Light the `lights` slot per bone if the face should blink per LED (today the whole slot is lit or not).
-4. **Hands.** The GLBs are device rigs only; GAMMA animates the arms with separate hand clips
-   (`states.json` first entry, e.g. `barry_echo_idle_hands`) from DAR's
-   `meshes/anomaly_weapons/hud_hands_animation/barry_devices_hud_hands.omf` (mod `416- Devices of Anomaly Redone`).
-   Bake them exactly as the cigarette was (`docs/smoking.md`): MineAssault `tools/blender/stalker_hud_dump.py` with
-   the hands OGF + that OMF -> per-frame fist frames JSON -> WFLib `PlayerArms` solved to the fist tracks
-   (`ArmViewPose`), applying `hands_position` / `hands_orientation` from `states.json`. Until then keep today's
-   IK pose, with the device parented to the left fist.
-5. **HUD offset and aim.** `states.json` `hud` gives the device placement relative to the hands and the zoomed
-   ("aim") offset; replace `ZoneHandsViewmodel`'s hand-tuned `DETECTOR_UP` / `M` constants with these.
-6. **Check** with the MineAssault `hands` bench (`-Dwflib.anomalyTest=hands`, ws15): draw, idle, walk, sprint, zoom,
-   throw, holster for each tier; the face must stay on the device through every clip; screenshots by day and night.
-7. **The user's own Echo model** (still to come) must keep the same bone names and clip names, or `states.json` must
-   be regenerated for it.
-
-### Bolt rework (to do; the user's spec, 2026-10-28)
-
-Wanted: **a 2D item** (flat sprite, not the 3D `bolt.glb`), **full physics when thrown and on the ground**,
-**pickup-able**, **every GregTech bolt works as one**, plus **one WFLib bolt** for packs without GregTech.
-
-Today (`artifact/detect/BoltItem`, `BoltEntity`, `ArtifactEntities`): a `ThrowableItemProjectile` with a simple
-reflect-and-damp bounce, settles flat, despawns after 60 s, **cannot be picked up**, and **throwing never takes a
-bolt from the stack** (infinite bolts). Drawn with `bolt.glb` through `DetectorClient`.
-
-1. **2D item**: `wflib:bolt` gets a plain `item/generated` model with `layer0` = a bolt sprite
-   (`textures/item/bolt.png`; GAMMA's inventory icon lives in the `ui_icon_equipment` atlas, or draw one).
-   Drop `bolt.glb` from the item path; the thrown entity draws the **item sprite**, not the glb: render the stack
-   with `ItemRenderer` in `ItemDisplayContext.GROUND`/`FIXED`, oriented by the entity's own rotation (below), so a
-   GregTech bolt flies and lies as its own GregTech sprite. Same in first person (`ZoneHandsViewmodel` currently
-   draws `DetectorClient.boltModel()`): draw the held stack's sprite in the fist.
-2. **Physics**: a plain `Entity` (or keep the projectile base for the throw and owner) with its own state:
-   gravity, air drag, **spin** (angular velocity about a random axis on release, synced), **tumbling** in flight,
-   bounce off block faces with restitution and friction that turn linear speed into spin, **rolling and sliding**
-   to rest on slopes, rest detection when speed and spin are both small, then lie flat (yaw kept). Collide with
-   entities (glance off; no damage). Interact with water (sink slowly) and with anomalies exactly as now
-   (anomalies treat it as a body; keep `Anomalies` checks working: they look for `BoltEntity`). Sync position,
-   velocity and orientation with interpolation so clients see smooth tumbling. Impact sound per hit scaled by
-   speed (GAMMA's "Oleh's Bolt Impact Sounds" are already referenced in credits).
-3. **Throwing consumes one**: `stack.shrink(1)` unless creative; the entity carries the thrown stack (count 1).
-4. **Pick-up**: walking over it after a short delay (like arrows: `playerTouch` -> `inventory.add`, take animation,
-   `ItemPickupEvent`-style), plus interact to pick up; give back **the same stack** (a GregTech bolt comes back as
-   that GregTech bolt). No despawn while it lies in a loaded chunk? Ask the user; vanilla items despawn at 5 min.
-5. **GregTech compat**: any item in tag **`c:bolts`** throws as a bolt. GTCEu 1.21.1 (8.0.0, in the wf2 instance)
-   generates `gtceu:<material>_bolt` items tagged `c:bolts` and `c:bolts/<material>` (from `TagPrefix.bolt`;
-   `defaultTagPath("bolts/%s")`, `unformattedTagPath("bolts")`), at runtime. Use the tag, not a GTCEu dependency:
-   a `wflib:throwable_bolts` item tag containing `#c:bolts` and `wflib:bolt` (ship `wflib:bolt` in `c:bolts` too so
-   other mods see it). Throwing is not on GregTech's items, so hook it: `PlayerInteractEvent.RightClickItem` for any
-   stack in the tag (cancel and throw), with the cooldown per player, not per item. **Check first that GTCEu doesn't
-   give bolts a right-click use** (tool or placement); if it does, require sneaking or the detector in the other hand.
-   Optional per-material mass / bounciness from the material if GTCEu's API is present (soft dependency only).
-6. **The WFLib bolt**: keep `wflib:bolt` (stackable to 64, cheap recipe, e.g. iron nugget(s)), with the new sprite;
-   `ItemMasses` keeps its 0.05 kg.
-7. **Tests**: GameTest that a thrown bolt comes to rest on flat ground, on a slope, against a wall; that it sets off an
-   anomaly; that walking over it returns the same item (wflib and a stand-in tagged item); that throwing shrinks the
-   stack. Bench: screenshots of a bolt mid-air and lying, day and night.
-
-## Screen and camera effects (planned: port all of GAMMA's)
-
-**The user wants every visual screen effect from Anomaly/GAMMA brought over**: dizziness, damage effects from
-anomalies, healing and drug effects, and anything else misc. Nothing below is ported yet, except what is listed under
-"Already in Warfactory". Inventory taken 2026-10-28 from Anomaly's base archives and GAMMA's mods.
+- Runtime (WFLib `client/xray`): `XrEnvelope` (interp.cpp), `XrPostEffect` (`.ppe`), `XrCameraMotion` (`.anm`,
+  chunk `0x1100`, v4/v5), `XrScreen` (effectors by id: `post(id, file, loop, factor)`, `factor`, `stop`, `camera`;
+  summed as `CCameraManager::UpdatePPEffectors`; shader `wf_xray_pp` = r2 `postprocess.ps`; drawn after the level +
+  hands, before the GUI: `MixinGameRendererXrScreen`, also under F1). Camera: yaw / pitch / roll only, translation
+  dropped. Client config `screenEffects.strength` / `cameraShake`.
+- Files: `assets/wflib/xray/anims/*.ppe`, `camera_effects/*.anm` (GAMMA winners via `gamma_find.py`).
+- Triggers: WFLib `AnomalyScreen` (zone `postprocess` per type, `CZoneEffector` ramp, nearest per effect;
+  `anomalies.enabled` gates), `RadiationScreen` (dose > 0.3 / 0.45 units: alcohol / radiation); WFMedical
+  `compat/wflib/ScreenEffectsClient` (hits, bloody, low health, deimos, psy = stress, finished treatment).
+- Base Anomaly's `psi.ppe` and `electra_mine.ppe` are empty: psy fields / electro mines colour nothing (as GAMMA).
+- Not ported: monster attack effectors (no monsters), blowout / psi-storm, sleep / thirst / alcohol items, helmet
+  mask + visor + gas mask fog, NVG (WFLib `nvg/` own), weapon switch / headlamp / inertia camera, colour map
+  (`cm_influence`, `cm_tex1`), GAMMA death sequence; WFMedical: `pripyat_horror.anm` at low stamina.
 
 ### What X-Ray has, and where the files are
 
@@ -359,22 +300,21 @@ Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_f
   `GiveUpOverlay`; post shaders `opioid_haze`, `passout_blur`, `blood_desaturate`.
 - WFLib: `anomaly/client/TimeSlipOverlay` (the Flash's white-out and blackout), the anomaly lens (GemRender), NVG.
 
-### Suggested shape
-
-- WFLib client runtime, used by everyone: a `.ppe` player (parse the envelopes; play by id, once or looped, with a
-  factor; one post shader that does blur, duality, noise, grey and colour) and a camera effector player (parse `.anm`,
-  apply through `ViewportEvent.ComputeCameraAngles` plus a position offset). Ship the files converted or as-is under
-  `assets/wflib/`.
-- Anomalies (WFLib) drive the proximity ramp per type. Damage, psy, healing and drugs belong to WFMedical: it owns
-  health, bleeding, stress and drug items, and already has the overlays above. Radiation goes with WFLib's
-  `radiation/`.
-- Every effect gets a client toggle or strength setting.
-
 ## Tests and benches
 
-- Unit (`src/test/.../anomaly`): AnomalyPathTest, AnomalyTypesTest, BlastTuningTest, MincerTuningTest, SitePlanTest;
-  `artifact/client/HeldArtifactPoseTest`. GameTests: `anomaly/gametest/RebounderGameTest`, `SiteLayoutGameTest`
-  (layouts need Blocks, which plain unit tests can't load), plus `ItemMassGameTest`.
+- Unit: `anomaly/` AnomalyPathTest, AnomalyTypesTest (incl. psy field), BlastTuningTest, MincerTuningTest,
+  SitePlanTest; `anomaly/site/AnomalyMixTest` (loot tier filter, element lean, uniques rare); `artifact/ArtifactsTest`
+  (immunity / psy stacking, rad shield budget, restore rates); `artifact/detect/DetectorTierTest` (beep curve, ranks);
+  `artifact/client/HeldArtifactPoseTest`. WFMedical `PhysiologyTest` thinning.
+- GameTests (own batches: new `defaultBatch` rows reshuffle packing-sensitive lanes): `anomaly/gametest/
+  RebounderGameTest`, `SiteLayoutGameTest` (+ FISSURES vents = STEAM_VENT, batch `anomaly_sites`); `artifact/gametest/
+  ArtifactGameTest` (damage type -> Hit; reveal/take by rank and radius; batch `artifacts`), `BoltGameTest` (rest on
+  flat / stairs / after a wall, sets off a Springboard, walk-over returns the same stack, throw takes one; batch
+  `bolts`); `ItemMassGameTest`. WFMedical `WfLibArtifactGameTest` (drain, clot, thin), `WfLibStressGameTest` (psy ->
+  stress). Known flakes in WFLib's suite: `apilotfliesthedronefromtheiranchor`,
+  `animpactonunloadedgroundwaitsforitschunk`, `alockedsimcomesbackandstays`.
+- mc-harness `scenarios/wf_zone.mjs` (MineAssault client): detectors through DAR states per tier, bolts mid-air /
+  lying / walked over, the 2026-10-29 artefacts day + night, a FISSURES site, psy anomalies. Screenshots by eye.
 - `devtools/anomaly-bench.sh`: dev client into `run/saves/anomaly-bench`, window parked on Hyprland **workspace 15**
   (never on the user's visible workspaces), writes `run/wflib-anomaly-test.txt`, screenshots in `run/screenshots`.
   Env: `BENCH_TEST`, `BENCH_BLOCK=wflib:<anomaly>`, `BENCH_ITEM=wflib:<artefact>`, `BENCH_TIME=day|night`,
@@ -388,10 +328,9 @@ Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_f
   - `clusters` (`-Dwflib.anomalyTest.motifs=`, `.ruin=`, `.tier=`): builds sites and screenshots them.
   - `detect`, `hands`: detector/bolt flow; `hands` is run from the MineAssault worktree's dev client
     (`-PquickPlay=anomaly-bench`, `JAVA_TOOL_OPTIONS=-Dwflib.anomalyTest=hands`).
-- **Gaps (the user asked for prepared tests for everything):** no automated test of `Artifacts.hit()` mapping per
-  damage type, `psyProtection` stacking, WFMedical `drain`/`clot` from artefacts, `AnomalyMix.pickLoot` tier
-  filtering, `ZoneArtifact` reveal/take, detector beep timing, bolt tripping, wfcore density plumbing, or the
-  wfworldgen Anomalies output. Visual checks (gallery) are screenshots judged by eye.
+- Gaps: worn-artefact effects end to end (Curios only with `-PwithCurios`: `Artifacts.shieldDose` / restores tested as
+  pure math, not through a worn slot); detector state machine (client-only; harness screenshots); wfcore
+  `AnomalySiteDensity` (needs a server with rule files). wfworldgen: `internal/world/anomalies_test.go` (3, pass).
 
 ## Asset pipeline (GAMMA -> WFLib)
 
@@ -409,8 +348,8 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
    `models\artefact`, `artefact2`, `xanomaly` -> `body` (texture alpha is gloss: forced opaque); `selflightl` ->
    `glowsolid` (opaque, self-lit); `lightplanes` -> `glow` (additive light cards; drawn alpha-blended);
    `xdistortcolor(l)` -> blended veil; `xdistort` -> refraction only, not drawn.
-5. `devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib`: converts the 2026-10-28 batch (edit
-   `BATCH` for new ones): textures (max 512 px, `_bloom.png` blurred copies for blended glows), glbs (`--centre`).
+5. `GAMMA=<mo2 dir> devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib [id...]`: converts
+   `BATCH` (both batches; ids limit it): textures (max 512 px, `_bloom.png` blurred copies for blended glows), glbs (`--centre`).
    Afterwards by hand: Ring scaled x4 and stood upright; Sparkler/Dummy shells MASK 0.3, Fireball shell OPAQUE.
    Delete `_bloom.png` files no blended glow uses.
 6. New artefact: add the `Artifact` constant (GAMMA numbers, light = trail_light_color), add to `ALL` and
@@ -420,47 +359,25 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 
 ## Remaining work (rough priority)
 
-1. **Instance jars from pushed code**: rebuild the Prism instance's WFLib/WFMedical from `main` / `neoforge-1.21.1`.
-2. **Prepared tests** for the gaps listed under Tests.
-1a. **Rigged low-poly detectors in game** (clips, faces on bones, then baked hands) and the **bolt rework**
-   (2D, physics, pick-up, GregTech `c:bolts`): see their sections under Detection.
-2a. **Port GAMMA's screen and camera effects** (see that section): the `.ppe` and `.anm` players first, then
-   anomaly proximity effects, then damage, psy and healing in WFMedical.
-2b. **Anomaly-made smoke instead of campfires** at FISSURES vents (see Anomaly sites). Check with
-   `/wflib anomalies site 1 fissures none` or `BENCH_TEST=clusters -Dwflib.anomalyTest.motifs=fissures`.
-3. **Remaining GAMMA artefacts.** 87 sections remain; 68 use only effects that exist, 19 need new ones (radiation
-   restore x9, inventory weight x8, satiety x4). The user wants **no junk artefacts**. Junk screen of the 68
-   (2026-10-28):
-   - **Next batch, 13** (all in GAMMA's random anomaly spawns, `drx_da_main_artefacts.script`): af_blood Stone Blood,
-     af_lobster_eyes Lobster Eyes, af_medusa Jellyfish, af_mincer_meat Meat Chunk, af_pin Pin (tier 1); af_baloon
-     Bubble, af_black_spray Black Spray, af_bracelet Bracelet, af_eye Eye, af_fire Flame, af_fuzz_kolobok Kolobok,
-     af_glass Firefly, af_vyvert Wrenched (tier 2). 9 of them carry `radiation_immunity` at rate-sized values
-     (+-0.0005..0.0017), ignored until radiation is wired (item 4): adding them first drops a radiation side effect.
-   - **Unique (GAMMA spawns them once)**: af_dummy_pellicle Pellicle, af_oasis_heart Heart of the Oasis. Candidates
-     for rare tier-4 (PIT) finds; user's call.
-   - **Perk artefacts (25), not junk in GAMMA**: base Anomaly's `items_artefacts_junk.ltx` gives these no stats, but
-     GAMMA's Perk-Based Artefacts (`perk_based_artefacts.script`, "special perks and unique properties to junk
-     artefacts") gives each a scripted perk, e.g. af_serofim Seraphim cheats death once (collapse, revive). Each needs
-     its own new effect: af_ball, af_bat, af_black_angel, af_cell, af_chelust, af_cocoon, af_dragon_eye, af_elektron,
-     af_fonar, af_fountain, af_generator, af_kogot, af_lighthouse, af_medallion, af_moh, af_peas, af_repei,
-     af_sandstone, af_serofim, af_skull_miser, af_spaika, af_star_phantom, af_sun, af_tapeworm, af_zhelch. Read the
-     perk table in that script before choosing.
-   - **Junk, out (28)**: the 7 junk-file artefacts with no perk (af_atom, af_black, af_ear, af_fire_loop, af_grapes,
-     af_kislushka, af_signet); 11 `af_ah_*` "Anomalous Sample" collector items (New Storylines; flat 4000, junk meshes, "lack of
-     useful properties"); af_geliy, af_gimlet, af_vaselisk (New Storylines quest objects, no effects); af_lucifer
-     (scripted easter egg, 666); af_base, af_base_1 (abstract parent sections); Amebas x3 (no spawn group or
-     detector); af_tlf_prometheus (quest reward).
-4. **Radiation**: map `radiation_immunity` / `radiation_restore_speed` onto WFLib's `radiation/` system.
-5. **Psy anomalies** (Radar, Darkness, psy field) feeding WFMedical stress.
-6. **User's Echo detector model** (when they provide it).
-7. **MineAssault**: move `ZoneHandsViewmodel` to master once GemRender `GltfSkeleton` is pushed.
-8. **GemRender blended draw order** (needs the user's decision; affects every GemRender translucent part): the
-   level pass flushes opaque and blended piles together at `AFTER_ENTITIES` (`direct/DirectEvents.onRenderStage`),
-   before vanilla clouds, so clouds draw over blended parts (Flash's rays, Moonlight's arcs, the Battery's lightning)
-   outside the hand. Fix idea: flush only opaque there, blended at `AFTER_WEATHER`.
-9. Nice to have: bloom that spills past the silhouette (only the Soul has a halo, via its core sprite; GAMMA's comes
+1. **Commit / push** (user's go), order above; then rebuild the Prism instance's WFLib / WFMedical / MineAssault /
+   GemRender / WFWeight from pushed code (link-check dependents first, see Build).
+2. **Screen effects not yet ported** (Screen and camera effects, "Not ported"); camera translation; review the
+   ported ones in play (strengths are GAMMA's; WFMedical's own overlays still layer on top).
+3. **Detectors**: review DAR hands in game (`wf_zone.mjs`); zoom placement is approximate (`aim_hud_offset_pos`
+   only); third-person / inventory pose is bind pose; then delete the old static `models/detector/<id>.glb`.
+4. **Remaining GAMMA artefacts** (user, 2026-10-29: perks later):
+   - **Perk artefacts (25)**: GAMMA's Perk-Based Artefacts (`perk_based_artefacts.script`) gives each a scripted perk
+     (e.g. af_serofim cheats death once). Each needs its own effect: af_ball, af_bat, af_black_angel, af_cell,
+     af_chelust, af_cocoon, af_dragon_eye, af_elektron, af_fonar, af_fountain, af_generator, af_kogot, af_lighthouse,
+     af_medallion, af_moh, af_peas, af_repei, af_sandstone, af_serofim, af_skull_miser, af_spaika, af_star_phantom,
+     af_sun, af_tapeworm, af_zhelch.
+   - Effects still missing for other sections: additional_inventory_weight (x8), satiety_restore_speed (x4).
+   - **Junk, out (28)**: af_atom, af_black, af_ear, af_fire_loop, af_grapes, af_kislushka, af_signet; 11 `af_ah_*`;
+     af_geliy, af_gimlet, af_vaselisk; af_lucifer; af_base, af_base_1; Amebas x3; af_tlf_prometheus.
+5. **User's Echo detector model** (when they provide it).
+6. Nice to have: bloom that spills past the silhouette (only the Soul has a halo, via its core sprite; GAMMA's comes
    from screen-wide bloom); third-person artefacts sit at the fist rather than floating over it.
-10. Licences for the third-party art before any public release.
+7. Licences for the third-party art before any public release.
 
 ## Gotchas
 
@@ -473,3 +390,11 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 - Dev runs: a brand-new run dir shows FML's early window unparked until `config/fml.toml` has
   `earlyWindowControl = false` (the bench script sets it).
 - MC dev windows get exactly GL 3.2 on NVIDIA; GL 3.3-only calls abort the JVM.
+- GemRender LEVEL pass: opaque at `AFTER_ENTITIES` / `AFTER_BLOCK_ENTITIES`, blended held to `AFTER_WEATHER`
+  (`DirectRenderer.flushOpaque`; held instances' bone data copied, bases rebased): clouds stay behind blended parts.
+- MineAssault dev runs load `libs/wfweight-*.jar`: WFLib's artefact stamina needs WFWeight's `StaminaModifiers`
+  (refreshed 2026-10-29); a stale jar => `ClassNotFoundException IStaminaModifier` at load.
+- `Entity.equals` / `hashCode` = entity id; singleplayer client and server players share it: per-player static maps
+  touched on both sides need one map per side (`Bolts`).
+- `tools/handclip/handclip.py` (local) reads `hands_orientation[1]` as heading; X-Ray's y is PITCH
+  (`setHPB(x, y, z)`). WFMedical's bandage bake (0, 20, 0) is affected.

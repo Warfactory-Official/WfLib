@@ -24,6 +24,9 @@ import java.util.Map;
  *                  {@link #TIME_FACTOR}); negative drains
  * @param power     power_restore_speed: share of full stamina per game second (WFWeight), negative slows
  * @param bleeding  bleeding_restore_speed: wounds close by this share a game second (WFMedical's clotting)
+ * @param radShield radiation_immunity ({@code hit_absorbation_sect}): radiation units taken off incoming dose per game
+ *                  second while any comes in; negative adds. X-Ray subtracts it per radiation hit, not per second
+ * @param radiation radiation_restore_speed: radiation units per game second, positive irradiates
  * @param bloom     strength of the bloom off its glowing parts, 0..1 (each glow texture blurred:
  *                  {@code <texture>_bloom.png})
  * @param lightRgb  trail_light_color, while held or shown
@@ -33,7 +36,8 @@ import java.util.Map;
  * @param minTier   the lowest anomaly site tier it grows at (GAMMA's south 1, mid 2, north 3)
  */
 public record Artifact(String id, ResourceLocation model, Map<String, ResourceLocation> slots, boolean arcs, float core,
-                       Map<Hit, Float> immunity, float health, float power, float bleeding, float bloom, int lightRgb,
+                       Map<Hit, Float> immunity, float health, float power, float bleeding, float radShield,
+                       float radiation, float bloom, int lightRgb,
                        float lightRange, int detectRank, Element element, int minTier) {
 
     /** What a hit can be, for immunities: STALKER's {@code *_immunity} kinds that this world has a damage for. */
@@ -58,6 +62,8 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
 
     /** GAMMA's alife time_factor: game seconds per real second, which its restore speeds are per. */
     public static final float TIME_FACTOR = 6.0F;
+    /** RAD per STALKER radiation unit: 1 kills there, ~1000 RAD here. */
+    public static final float RAD_PER_UNIT = 1000.0F;
 
     public float immunity(Hit hit) {
         return immunity.getOrDefault(hit, 0.0F);
@@ -97,6 +103,16 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
         return bleeding * TIME_FACTOR;
     }
 
+    /** RAD/s kept off incoming dose while worn (negative: added while dosed). */
+    public float radShieldPerSecond() {
+        return radShield * TIME_FACTOR * RAD_PER_UNIT;
+    }
+
+    /** RAD/s dosed while worn (negative: cleared). */
+    public float radiationPerSecond() {
+        return radiation * TIME_FACTOR * RAD_PER_UNIT;
+    }
+
     private static ResourceLocation wflib(String path) {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, path);
     }
@@ -110,6 +126,8 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
         private float health;
         private float power;
         private float bleeding;
+        private float radShield;
+        private float radiation;
         private float bloom = 0.8F;
         private int lightRgb = 0xFFFFFF;
         private float lightRange = 2.0F;
@@ -157,6 +175,16 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             return this;
         }
 
+        Builder radShield(float v) {
+            radShield = v;
+            return this;
+        }
+
+        Builder radiation(float v) {
+            radiation = v;
+            return this;
+        }
+
         Builder bloom(float v) {
             bloom = v;
             return this;
@@ -177,7 +205,7 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
 
         Artifact build() {
             return new Artifact(id, wflib("models/artifact/" + id + ".glb"), Map.copyOf(slots), arcs, core,
-                    Map.copyOf(immunity), health, power, bleeding, bloom, lightRgb, lightRange, detectRank, element,
+                    Map.copyOf(immunity), health, power, bleeding, radShield, radiation, bloom, lightRgb, lightRange, detectRank, element,
                     minTier);
         }
     }
@@ -194,7 +222,7 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .light(0x99B3E6, 2.0F).found(1, Element.ELECTRIC, 1).build();
     /** {@code af_soul}: a green spiral glowing in a veined shell. */
     public static final Artifact SOUL = artifact("soul").slot("body", "sopli2").slot("glow", "soul_glow").core(0.30F)
-            .bloom(0.9F).health(0.0003F).power(-0.00035F).light(0x80B333, 2.0F).found(1, Element.GRAVITY, 1).build();
+            .bloom(0.9F).health(0.0003F).power(-0.00035F).radShield(0.00043F).light(0x80B333, 2.0F).found(1, Element.GRAVITY, 1).build();
 
     /** {@code af_cristall} (Crystal): burning orange crystal from thermal anomalies. */
     public static final Artifact CRYSTAL = artifact("crystal").slot("glowsolid", "artifact_lavahell1")
@@ -248,6 +276,77 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
             .slot("glowsolid", "artifact_hell1").resists(Hit.BURN, -0.176F).resists(Hit.CHEMICAL, 0.24888F)
             .resists(Hit.PSY, 0.11F).light(0x666600, 2.0F).found(1, Element.GRAVITY, 1).build();
 
+    /** {@code af_blood} (Stone Blood). */
+    public static final Artifact STONE_BLOOD = artifact("stone_blood").slot("glowsolid", "artifact_blood")
+            .resists(Hit.CHEMICAL, 0.24888F).resists(Hit.PSY, -0.0694445F).bleeding(0.004082F)
+            .light(0x80B333, 2.0F).found(1, Element.CHEMICAL, 1).build();
+    /** {@code af_lobster_eyes} (Lobster Eyes). */
+    public static final Artifact LOBSTER_EYES = artifact("lobster_eyes").slot("glowsolid", "artefact_lobster_eyes")
+            .slot("body", "artefact_lobster_eyes").resists(Hit.BURN, 0.1625F).resists(Hit.EXPLOSION, -0.54F)
+            .resists(Hit.PSY, 0.165F).radShield(-0.000475F).light(0x666600, 2.0F).found(1, Element.FIRE, 1).build();
+    /** {@code af_medusa} (Jellyfish). */
+    public static final Artifact JELLYFISH = artifact("jellyfish").slot("body", "artifact_anim_dist")
+            .slot("glowsolid", "artifact_myasorubka3").resists(Hit.WOUND, 0.07125F).resists(Hit.BULLET, 0.097431F)
+            .resists(Hit.EXPLOSION, -0.2833375F).resists(Hit.PSY, -0.0694445F)
+            .light(0x666600, 2.0F).found(1, Element.GRAVITY, 1).build();
+    /** {@code af_mincer_meat} (Meat Chunk). */
+    public static final Artifact MEAT_CHUNK = artifact("meat_chunk").slot("glowsolid", "artifact_mincer_meat")
+            .resists(Hit.BULLET, 0.194862F).resists(Hit.CHEMICAL, 0.24888F).bleeding(-0.002045F)
+            .light(0x80B333, 2.0F).found(1, Element.CHEMICAL, 1).build();
+    /** {@code af_pin} (Pin). */
+    public static final Artifact PIN = artifact("pin").slot("body", "artefact_pin").resists(Hit.BURN, 0.1625F)
+            .resists(Hit.CHEMICAL, -0.27F).resists(Hit.PSY, 0.11F).radShield(-0.000475F)
+            .light(0x666600, 2.0F).found(1, Element.FIRE, 1).build();
+    /** {@code af_baloon} (Bubble). */
+    public static final Artifact BUBBLE = artifact("bubble").slot("glowsolid", "artifact_mp_green")
+            .resists(Hit.BURN, 0.33F).resists(Hit.CHEMICAL, 0.77F).health(-0.0006F).radShield(0.00129F)
+            .light(0x80B333, 2.0F).found(3, Element.CHEMICAL, 3).build();
+    /** {@code af_black_spray} (Black Spray). */
+    public static final Artifact BLACK_SPRAY = artifact("black_spray").slot("body", "artefact_black_spray")
+            .slot("glowsolid", "artefact_black_spray").resists(Hit.STRIKE, 0.93F).resists(Hit.WOUND, -0.24F)
+            .resists(Hit.PSY, 0.33F).health(0.0003F).bleeding(-0.004082F).radShield(0.00043F)
+            .light(0xE66633, 2.0F).found(3, Element.GRAVITY, 3).build();
+    /** {@code af_bracelet} (Bracelet). */
+    public static final Artifact BRACELET = artifact("bracelet").slot("glowsolid", "artefact_bracelet")
+            .resists(Hit.EXPLOSION, -0.54F).resists(Hit.CHEMICAL, 0.37332F).resists(Hit.PSY, 0.165F)
+            .power(0.00066F).bleeding(-0.002041F).light(0x666600, 1.5F).found(2, Element.CHEMICAL, 2).build();
+    /** {@code af_eye} (Eye). */
+    public static final Artifact EYE = artifact("eye").slot("glowsolid", "artifact_eye").resists(Hit.SHOCK, -0.135F)
+            .resists(Hit.CHEMICAL, -0.27F).resists(Hit.PSY, 0.11F).bleeding(0.00612F)
+            .light(0xE66633, 2.0F).found(2, Element.GRAVITY, 2).build();
+    /** {@code af_fire} (Flame). */
+    public static final Artifact FLAME = artifact("flame").slot("body", "artifact_lavahell1")
+            .slot("glow", "pfx_anomaly_1").slot("glowsolid2", "artifact_lava").resists(Hit.BURN, 0.1625F)
+            .resists(Hit.WOUND, 0.285F).resists(Hit.CHEMICAL, -0.46665F).resists(Hit.PSY, 0.11F).power(-0.0007F)
+            .bleeding(0.008157F).radShield(-0.001425F).light(0xE66633, 2.0F).found(3, Element.FIRE, 3).build();
+    /** {@code af_fuzz_kolobok} (Kolobok). */
+    public static final Artifact KOLOBOK = artifact("kolobok").slot("body", "artifact_sopli")
+            .slot("glowsolid", "artifact_mp_green").resists(Hit.BULLET, -0.125F).health(0.0006F).power(-0.0007F)
+            .radShield(0.00086F).light(0x80B333, 2.0F).found(2, Element.CHEMICAL, 2).build();
+    /** {@code af_glass} (Firefly). */
+    public static final Artifact FIREFLY = artifact("firefly").slot("glow", "artifact_fire_light")
+            .slot("body", "artifact_myasorubka2").slot("glow2", "pfx_anomaly_4").resists(Hit.BULLET, -0.24F)
+            .resists(Hit.PSY, -0.0694445F).health(0.0009F).power(-0.00105F).radShield(0.0013F)
+            .light(0x80B333, 2.0F).found(3, Element.CHEMICAL, 3).build();
+    /** {@code af_vyvert} (Wrenched). */
+    public static final Artifact WRENCHED = artifact("wrenched").slot("body", "artifact_myasorubka3")
+            .resists(Hit.WOUND, 0.21375F).resists(Hit.BULLET, 0.097431F).resists(Hit.CHEMICAL, 0.24888F)
+            .bleeding(-0.004082F).radShield(-0.000475F).light(0x666600, 2.0F).found(2, Element.GRAVITY, 2).build();
+    /** {@code af_dummy_pellicle} (Pellicle): GAMMA spawns it once; here a rare tier-4 find. */
+    public static final Artifact PELLICLE = artifact("pellicle").slot("body", "pfx_anomaly_19")
+            .resists(Hit.CHEMICAL, 0.125F).found(3, Element.CHEMICAL, 4).build();
+    /** {@code af_oasis_heart} (Heart of the Oasis): GAMMA spawns it once; here a rare tier-4 find. */
+    public static final Artifact OASIS_HEART = artifact("oasis_heart").slot("body", "artifact_hell1")
+            .slot("body2", "af_cristall_jup").slot("glow", "pfx_anomaly_4").resists(Hit.BURN, -0.3046875F)
+            .resists(Hit.SHOCK, -0.22725F).resists(Hit.BULLET, -0.35F).resists(Hit.CHEMICAL, -0.46665F)
+            .health(0.0012F).power(0.00099F).bleeding(0.00816F).radShield(0.00173F)
+            .light(0xFFFFBF, 2.0F).found(1, Element.EXOTIC, 4).build();
+
+    /** GAMMA's one-off artefacts: drawn far less often than the rest. */
+    public static final List<Artifact> UNIQUE = List.of(PELLICLE, OASIS_HEART);
+
     public static final List<Artifact> ALL = List.of(BATTERY, SOUL, CRYSTAL, ITCHER, SPONGE, FIREBALL, SPARKLER,
-            GLASS_BEADS, MOONLIGHT, FLASH, ICE, RING, DUMMY, STONE_FLOWER);
+            GLASS_BEADS, MOONLIGHT, FLASH, ICE, RING, DUMMY, STONE_FLOWER, STONE_BLOOD, LOBSTER_EYES, JELLYFISH,
+            MEAT_CHUNK, PIN, BUBBLE, BLACK_SPRAY, BRACELET, EYE, FLAME, KOLOBOK, FIREFLY, WRENCHED, PELLICLE,
+            OASIS_HEART);
 }

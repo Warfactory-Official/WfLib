@@ -62,6 +62,9 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_FLASH_SHIELD = register("anomaly.flash_shield");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GHOST_IDLE = register("anomaly.ghost_idle");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_GHOST_BLOWOUT = register("anomaly.ghost_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RADAR_IDLE = register("anomaly.radar_idle");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RADAR_BLOWOUT = register("anomaly.radar_blowout");
+    public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_DARKNESS_IDLE = register("anomaly.darkness_idle");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_NET_IDLE = register("anomaly.net_idle");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_NET_BLOWOUT = register("anomaly.net_blowout");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_NET_SHIELD = register("anomaly.net_shield");
@@ -86,6 +89,12 @@ public final class WFSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_BEAR_BEEP = register("detector.bear_beep");
     public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_DRAW = register("detector.draw");
     public static final DeferredHolder<SoundEvent, SoundEvent> DETECTOR_HOLSTER = register("detector.holster");
+    /** A thrown bolt landing ("Oleh's Bolt Impact Sounds"), by what it hit. */
+    public static final DeferredHolder<SoundEvent, SoundEvent> BOLT_IMPACT_CONCRETE = register("bolt.impact.concrete");
+    public static final DeferredHolder<SoundEvent, SoundEvent> BOLT_IMPACT_DEFAULT = register("bolt.impact.default");
+    public static final DeferredHolder<SoundEvent, SoundEvent> BOLT_IMPACT_DIRT = register("bolt.impact.dirt");
+    public static final DeferredHolder<SoundEvent, SoundEvent> BOLT_IMPACT_METAL = register("bolt.impact.metal");
+    public static final DeferredHolder<SoundEvent, SoundEvent> BOLT_IMPACT_WATER = register("bolt.impact.water");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RND_FLY1 = register("anomaly.rnd_fly1");
     public static final DeferredHolder<SoundEvent, SoundEvent> ANOMALY_RND_FLY2 = register("anomaly.rnd_fly2");
 

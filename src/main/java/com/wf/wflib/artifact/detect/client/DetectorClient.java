@@ -19,7 +19,6 @@ import com.wf.wflib.artifact.detect.DetectorTier;
 import com.wf.wflib.artifact.detect.ZoneArtifact;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -107,19 +106,6 @@ public final class DetectorClient {
         };
     }
 
-    public static final ResourceLocation BOLT_MODEL = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
-            "models/detector/bolt.glb");
-    private static final ResourceLocation BOLT_TEXTURE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
-            "textures/detector/bolt.png");
-
-    public static GemRenderGltfModel boltModel() {
-        return MODELS.computeIfAbsent(BOLT_MODEL, GemRenderModels::handle).get();
-    }
-
-    public static TextureSlots boltSlots() {
-        return slot -> BOLT_TEXTURE;
-    }
-
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         ZoneArtifact.shownHere = a -> {
@@ -132,7 +118,7 @@ public final class DetectorClient {
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ArtifactEntities.ZONE_ARTIFACT.get(), ZoneArtifactRenderer::new);
-        event.registerEntityRenderer(ArtifactEntities.BOLT.get(), ThrownItemRenderer::new);
+        event.registerEntityRenderer(ArtifactEntities.BOLT.get(), BoltRenderer::new);
     }
 
     @SubscribeEvent
@@ -154,30 +140,6 @@ public final class DetectorClient {
                 }
             }, holder.get());
         }
-        GemRenderItemRenderer bolt = new GemRenderItemRenderer(new ItemAppearance() {
-            @Override
-            public GemRenderGltfModel model(ItemStack stack, ItemDisplayContext context) {
-                return boltModel();
-            }
-
-            @Override
-            public void transform(ItemStack stack, ItemDisplayContext context, PoseStack pose) {
-                float s = context == ItemDisplayContext.GUI ? 9.0F : 5.0F;
-                pose.scale(s, s, s);
-                pose.mulPose(Axis.ZP.rotationDegrees(45.0F));
-            }
-
-            @Override
-            public TextureSlots slots(ItemStack stack, ItemDisplayContext context) {
-                return boltSlots();
-            }
-        });
-        event.registerItem(new IClientItemExtensions() {
-            @Override
-            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return bolt;
-            }
-        }, ArtifactEntities.BOLT_ITEM.get());
     }
 
     @SubscribeEvent

@@ -45,7 +45,12 @@ public final class AnomalyMix {
         ACID_FIELD("acid_field", 3, Element.CHEMICAL, Spot.FIELD, 1),
         GRABBER("grabber", 4, Element.CHEMICAL, Spot.CEILING, 2),
         RADIATION_FIELD("radiation_field", 2, Element.EXOTIC, Spot.FIELD, 1),
-        FLASH("flash", 3, Element.EXOTIC, Spot.FLOOR, 1);
+        FLASH("flash", 3, Element.EXOTIC, Spot.FLOOR, 1),
+        PSY_FIELD("psy_field", 3, Element.EXOTIC, Spot.FIELD, 1),
+        DARKNESS("darkness", 3, Element.EXOTIC, Spot.FLOOR, 1),
+        RADAR("radar", 4, Element.EXOTIC, Spot.FLOOR, 1),
+        /** FISSURES vents only ({@code SiteMotifs}): never rolled. */
+        STEAM_VENT("steam_vent", 1, Element.FIRE, Spot.FLOOR, 0);
 
         public final String id;
         public final int rank;
@@ -63,7 +68,6 @@ public final class AnomalyMix {
         }
     }
 
-    /** Artefacts by element (wflib item ids): what a cluster can grow. */
     /** Artefacts a site can grow, each with its element and lowest tier ({@link com.wf.wflib.artifact.Artifact}). */
     public enum Loot {
         BATTERY(com.wf.wflib.artifact.Artifact.BATTERY),
@@ -79,18 +83,39 @@ public final class AnomalyMix {
         ICE(com.wf.wflib.artifact.Artifact.ICE),
         RING(com.wf.wflib.artifact.Artifact.RING),
         DUMMY(com.wf.wflib.artifact.Artifact.DUMMY),
-        STONE_FLOWER(com.wf.wflib.artifact.Artifact.STONE_FLOWER);
+        STONE_FLOWER(com.wf.wflib.artifact.Artifact.STONE_FLOWER),
+        STONE_BLOOD(com.wf.wflib.artifact.Artifact.STONE_BLOOD),
+        LOBSTER_EYES(com.wf.wflib.artifact.Artifact.LOBSTER_EYES),
+        JELLYFISH(com.wf.wflib.artifact.Artifact.JELLYFISH),
+        MEAT_CHUNK(com.wf.wflib.artifact.Artifact.MEAT_CHUNK),
+        PIN(com.wf.wflib.artifact.Artifact.PIN),
+        BUBBLE(com.wf.wflib.artifact.Artifact.BUBBLE),
+        BLACK_SPRAY(com.wf.wflib.artifact.Artifact.BLACK_SPRAY),
+        BRACELET(com.wf.wflib.artifact.Artifact.BRACELET),
+        EYE(com.wf.wflib.artifact.Artifact.EYE),
+        FLAME(com.wf.wflib.artifact.Artifact.FLAME),
+        KOLOBOK(com.wf.wflib.artifact.Artifact.KOLOBOK),
+        FIREFLY(com.wf.wflib.artifact.Artifact.FIREFLY),
+        WRENCHED(com.wf.wflib.artifact.Artifact.WRENCHED),
+        PELLICLE(com.wf.wflib.artifact.Artifact.PELLICLE),
+        OASIS_HEART(com.wf.wflib.artifact.Artifact.OASIS_HEART);
 
         public final String id;
         public final Element element;
         public final int minTier;
+        /** Draw weight per unit of a site's pull: {@link #UNIQUE_SHARE} for GAMMA's one-offs. */
+        public final int share;
 
         Loot(com.wf.wflib.artifact.Artifact artifact) {
             this.id = artifact.id();
             this.element = artifact.element();
             this.minTier = artifact.minTier();
+            this.share = com.wf.wflib.artifact.Artifact.UNIQUE.contains(artifact) ? UNIQUE_SHARE : COMMON_SHARE;
         }
     }
+
+    static final int COMMON_SHARE = 8;
+    static final int UNIQUE_SHARE = 1;
 
     public static final int TIERS = 4;
     /** Chance of an artefact, and of a second (only once there is a first) and a third. */
@@ -189,6 +214,7 @@ public final class AnomalyMix {
                 for (Kind k : kinds) {
                     n += k.element == l.element ? 3 : 0;
                 }
+                n *= l.share;
             }
             w[l.ordinal()] = n;
             total += n;

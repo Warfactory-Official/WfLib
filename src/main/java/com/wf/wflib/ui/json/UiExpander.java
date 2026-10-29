@@ -67,9 +67,9 @@ public final class UiExpander {
 
     // ------------------------------------------------------------------ files
 
-    /** {@code {"scaling": "relative"|"absolute", "reference": 270, "use": [..], "constants": {..}, "root": {..}}} */
+    /** {@code {"scaling": "relative"|"absolute", "reference": 270, "size": [w, h] (absolute), "use": [..], "constants": {..}, "root": {..}}} */
     UiLayout layout(ResourceLocation id, String file, JsonObject json) {
-        allowOnly(file, json, "scaling", "reference", "use", "constants", "root");
+        allowOnly(file, json, "scaling", "reference", "size", "use", "constants", "root");
         Scope scope = fileScope(file, uses(file, json), object(file, json, "constants"));
         String scaling = json.has("scaling") ? json.get("scaling").getAsString() : "relative";
         float reference = switch (scaling) {
@@ -88,7 +88,23 @@ public final class UiExpander {
         if (!json.has("root")) {
             throw new UiJsonException(file, "no `root`");
         }
-        return new UiLayout(id, widget(json.get("root"), file + "/root", scope), reference);
+        UiLayout layout = new UiLayout(id, widget(json.get("root"), file + "/root", scope), reference);
+        if (json.has("size")) {
+            if (reference != 0) {
+                throw new UiJsonException(file + "/size", "only absolute layouts have a design size");
+            }
+            var size = json.get("size");
+            if (!size.isJsonArray() || size.getAsJsonArray().size() != 2) {
+                throw new UiJsonException(file + "/size", "needs [width, height]");
+            }
+            float w = size.getAsJsonArray().get(0).getAsFloat();
+            float h = size.getAsJsonArray().get(1).getAsFloat();
+            if (!(w > 0) || !(h > 0)) {
+                throw new UiJsonException(file + "/size", "needs positive numbers");
+            }
+            return layout.withDesignSize(w, h);
+        }
+        return layout;
     }
 
     /** {@code {"use": [..], "constants": {..}, "params": {"name": "num" | {"type": .., "default": ..}}, "root": {..}}} */

@@ -110,14 +110,15 @@ def main():
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', src, '-ac', '1', '-c:a', 'libvorbis', '-q:a', '5', dst],
                        check=True)
         print(f'sound {rel}')
-    if sounds:
+    if sounds and not os.path.exists(os.path.join(OUT, 'sounds/xray/CREDITS.md')):
         write('sounds/xray/CREDITS.md', """# X-Ray sounds
 
 Converted by devtools/xray-assets.py from STALKER GAMMA's audio mods (Dark Signal Blowout and Anomalies Audio by
 Shrike, Dynamic Anomalies Overhaul, and others) and STALKER Anomaly's own archives. Licence unrecorded: for this
 internal build only; clear them before anything ships.
 """)
-    write('textures/xray/CREDITS.md', """# X-Ray particle textures
+    if not os.path.exists(os.path.join(OUT, 'textures/xray/CREDITS.md')):
+        write('textures/xray/CREDITS.md', """# X-Ray particle textures
 
 Converted by devtools/xray-assets.py from STALKER GAMMA's particle mods ("Particles Cinematic VFX", Dynamic Anomalies
 Overhaul and others), whose textures in turn come from other games (Unreal Engine samples, Crysis 3, Far Cry 4,

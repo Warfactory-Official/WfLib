@@ -22,6 +22,8 @@ import sys
 HEADER, TEXTURE, VERTICES, INDICES, CHILDREN = 0x1, 0x2, 0x3, 0x4, 0x9
 # Skinned (compressed) vertex: bone ids, P N T B, weights, uv.
 SKINNED = {1: (60, 1, 0), 2: (64, 2, 1), 3: (70, 3, 2), 4: (76, 4, 3)}
+# OGF_VERTEXFORMAT_FVF_<n>L = n * 0x12071980: same layouts.
+SKINNED.update({n * 0x12071980: SKINNED[n] for n in (1, 2, 3, 4)})
 FVF_STATIC = 0x112
 
 
@@ -49,8 +51,8 @@ def mesh(child):
     if kind in SKINNED:
         size, links, weights = SKINNED[kind]
         # 1 link: P N T B uv, then its u32 bone; 2-4: u16 bones first, P N T B, weights, uv.
-        bone_bytes = 0 if kind == 1 else 2 * links
-        uv_at = 48 if kind == 1 else size - 8
+        bone_bytes = 0 if links == 1 else 2 * links
+        uv_at = 48 if links == 1 else size - 8
         for _ in range(count):
             p = struct.unpack_from('<3f', vtx, at + bone_bytes)
             n = struct.unpack_from('<3f', vtx, at + bone_bytes + 12)
