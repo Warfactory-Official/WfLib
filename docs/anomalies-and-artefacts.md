@@ -41,12 +41,8 @@ restores, calling WFMedical / WFWeight hooks when those mods are loaded.
 
 ### Push state (2026-10-29)
 
-- Pushed: everything up to WFLib `791ffff`, WFMedical `7c83840`, wfworldgen `42ba399`, MineAssault branch
-  `instance/ma-0f896c4-wflib-main` (`c0385d2`).
-- Uncommitted (2026-10-29 pass): WFLib, WFMedical (thinning, psy -> stress, tests), GemRender (blended after weather),
-  MineAssault `master` (`ZoneHandsViewmodel` applied from `c0385d2` + DAR hands + tag bolts), mc-harness
-  `scenarios/wf_zone.mjs`. WFLib/WFMedical working trees also hold another session's uncommitted smoking/UI/treatment
-  work: commit own hunks only.
+- Pushed: WFLib `646015c`, WFMedical `a1460d0`, GemRender `a5af843`, MineAssault `master` `fd3e369`, wfworldgen
+  `42ba399`. mc-harness `scenarios/wf_zone.mjs` local only (no remote).
 - **Push order for cross-repo API changes: GemRender, WFWeight -> WFLib -> WFMedical, MineAssault.** Remote CI
   resolves the published snapshots; dependents fail to compile until the upstream nightly is published.
 - Not in git on purpose: `art/detectors/handoff/` (an 8 MB copy of the user's detector zip).
@@ -359,8 +355,8 @@ base archives in `anomaly/db/`). All converted art is third-party: **internal on
 
 ## Remaining work (rough priority)
 
-1. **Commit / push** (user's go), order above; then rebuild the Prism instance's WFLib / WFMedical / MineAssault /
-   GemRender / WFWeight from pushed code (link-check dependents first, see Build).
+1. Rebuild the Prism instance's WFLib / WFMedical / MineAssault / GemRender / WFWeight from pushed code (link-check
+   dependents first, see Build).
 2. **Screen effects not yet ported** (Screen and camera effects, "Not ported"); camera translation; review the
    ported ones in play (strengths are GAMMA's; WFMedical's own overlays still layer on top).
 3. **Detectors**: review DAR hands in game (`wf_zone.mjs`); zoom placement is approximate (`aim_hud_offset_pos`
