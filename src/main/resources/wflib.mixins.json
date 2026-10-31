@@ -6,9 +6,10 @@
   "plugin": "com.wf.wflib.mixin.core.WFMixinPlugin",
   "mixins": [
     "armor.MixinArmorSlot",
+    "carry.MixinPlayerShoulder",
     "colony.MixinEntity",
-    "backpack.MixinInventoryMenu",
-    "backpack.MixinServerGamePacketListenerImpl",
+    "core.MixinInventoryMenuSlots",
+    "core.MixinServerGamePacketListenerImplSlots",
     "radiation.MixinLevelChunk",
     "mine.MixinLevelChunkWatch",
     "radiation.MixinIOWorker",
@@ -74,8 +75,9 @@
     "map.xaero.minimap.AccessorMinimapElementMapRendererHandler",
     "pda.MixinPdaCanvasFont",
     "pda.MixinPdaCanvas",
-    "backpack.AccessorContainerMenu",
-    "backpack.MixinCreativeInventorySlots",
+    "core.AccessorContainerMenu",
+    "core.MixinCreativeInventorySlots",
+    "core.MixinContainerScreenFindSlot",
     "xray.MixinGameRendererXrScreen"
   ],
   "injectors": {

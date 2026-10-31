@@ -56,7 +56,7 @@ public final class ItemMasses {
             Map.entry("plate_carrier", 2.0), Map.entry("ceramic_plate", 2.0), Map.entry("steel_plate", 3.2),
             Map.entry("combat_helmet", 1.4), Map.entry("hazmat_suit", 4.0),
             Map.entry("mw_6b47", 1.5), Map.entry("mw_bearsuit", 3.0), Map.entry("mw_bearpants", 1.5),
-            Map.entry("mw_uniform", 1.5), Map.entry("mw_exo", 12.0), Map.entry("mw_ghillie", 3.0),
+            Map.entry("mw_uniform", 1.5), Map.entry("mw_exo", 12.0), Map.entry("exo_test", 12.0), Map.entry("exo_cell", 1.5), Map.entry("exo_cell_large", 4.0), Map.entry("mw_ghillie", 3.0),
 
             Map.entry("mining_charge", 5.0), Map.entry("deep_mining_charge", 12.0),
             Map.entry("missile_listener_debug", 1.0), Map.entry("drone_net", 8.0), Map.entry("drone_pad", 40.0),

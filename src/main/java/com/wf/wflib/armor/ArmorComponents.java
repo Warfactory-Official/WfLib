@@ -37,6 +37,31 @@ public final class ArmorComponents {
                     .networkSynchronized(ItemContainerContents.STREAM_CODEC)
                     .build());
 
+    /** Hit points per {@code ExoSpec.parts()} entry; absent = pristine. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<java.util.List<Integer>>> EXO_PARTS =
+            COMPONENTS.register("exo_parts", () -> DataComponentType.<java.util.List<Integer>>builder()
+                    .persistent(ExtraCodecs.NON_NEGATIVE_INT.listOf())
+                    .networkSynchronized(ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list()))
+                    .build());
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ItemContainerContents>> EXO_BATTERY =
+            COMPONENTS.register("exo_battery", () -> DataComponentType.<ItemContainerContents>builder()
+                    .persistent(ItemContainerContents.CODEC)
+                    .networkSynchronized(ItemContainerContents.STREAM_CODEC)
+                    .build());
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> ENERGY =
+            COMPONENTS.register("energy", () -> DataComponentType.<Integer>builder()
+                    .persistent(ExtraCodecs.NON_NEGATIVE_INT)
+                    .networkSynchronized(ByteBufCodecs.VAR_INT)
+                    .build());
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ItemContainerContents>> EXO_BELT =
+            COMPONENTS.register("exo_belt", () -> DataComponentType.<ItemContainerContents>builder()
+                    .persistent(ItemContainerContents.CODEC)
+                    .networkSynchronized(ItemContainerContents.STREAM_CODEC)
+                    .build());
+
     private ArmorComponents() {
     }
 

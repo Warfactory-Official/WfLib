@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.wf.wflib.carry.api.Carry;
+import com.wf.wflib.carry.api.Shoulder;
 import com.wf.wflib.core.api.WFLib;
 
 public final class CarryPackets {
@@ -56,10 +57,11 @@ public final class CarryPackets {
     }
 
     /** S2C: entity's carried stack. */
-    public record Carried(int entity, ItemStack stack) implements CustomPacketPayload {
+    public record Carried(int entity, ItemStack stack, ItemStack gun) implements CustomPacketPayload {
         public static final Type<Carried> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carry_carried"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Carried> STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, Carried::entity, ItemStack.OPTIONAL_STREAM_CODEC, Carried::stack, Carried::new);
+                ByteBufCodecs.VAR_INT, Carried::entity, ItemStack.OPTIONAL_STREAM_CODEC, Carried::stack,
+                ItemStack.OPTIONAL_STREAM_CODEC, Carried::gun, Carried::new);
 
         @Override
         public Type<Carried> type() {
@@ -70,6 +72,7 @@ public final class CarryPackets {
             ctx.enqueueWork(() -> {
                 if (ctx.player().level().getEntity(entity) instanceof Player p) {
                     p.setData(Carry.CARRIED, stack);
+                    p.setData(Shoulder.HELD, gun);
                 }
             });
         }

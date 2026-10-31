@@ -37,7 +37,7 @@ class ArchitectureTest {
             Map.entry("mist", Set.of("armor")),
             Map.entry("view", Set.of("armor")),
             Map.entry("round", Set.of("armor")),
-            Map.entry("armor", Set.of("nvg", "skin")),
+            Map.entry("armor", Set.of("nvg", "skin", "backpack", "carry", "probe")),
             Map.entry("backpack", Set.of("probe")),
             Map.entry("hazard", Set.of("armor")),
             Map.entry("radiation", Set.of("hazard")),

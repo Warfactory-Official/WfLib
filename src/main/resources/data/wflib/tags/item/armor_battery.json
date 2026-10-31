@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "wflib:exo_cell",
+    "wflib:exo_cell_large",
+    {"id": "#gtceu:batteries", "required": false}
+  ]
+}

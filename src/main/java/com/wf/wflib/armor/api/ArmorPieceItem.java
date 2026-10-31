@@ -34,7 +34,8 @@ public class ArmorPieceItem extends ArmorItem {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        return ArmorStacks.blocked(player, getEquipmentSlot(), stack) ? InteractionResultHolder.fail(stack)
+        return ArmorStacks.blocked(player, getEquipmentSlot(), stack) || !Dress.selfAllowed(player, stack)
+                ? InteractionResultHolder.fail(stack)
                 : super.use(level, player, hand);
     }
 
@@ -50,6 +51,11 @@ public class ArmorPieceItem extends ArmorItem {
                                             Player player, SlotAccess access) {
         if (other.getItem() instanceof com.wf.wflib.nvg.api.NvgItem && com.wf.wflib.core.api.WFSystems.enabled("nvg")) {
             return com.wf.wflib.nvg.api.NvgMount.fit(preset, stack, other, slot, player);
+        }
+        com.wf.wflib.armor.api.exo.ExoSpec exo = com.wf.wflib.armor.api.exo.ExoProfiles.of(stack);
+        if (exo != null && stack.getCount() == 1 && slot.allowModification(player)
+                && com.wf.wflib.armor.api.exo.ExoStacks.repairWith(stack, exo, other)) {
+            return true;
         }
         if (action != ClickAction.SECONDARY || stack.getCount() != 1 || !slot.allowModification(player)) {
             return false;

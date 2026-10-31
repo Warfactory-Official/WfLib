@@ -27,14 +27,14 @@ import com.wf.wflib.core.api.WFLib;
 /**
  * Worn backpack = player attachment {@link #WORN}, no equipment slot; contents exposed as player capability
  * {@link #HANDLER}. Contents on the stack ({@link #CONTENTS}); edited through {@link BackpackContainer}: owner's
- * {@code InventoryMenu} (mixin, slots {@link #FIRST_SLOT}..) or another player's {@link BackpackMenu} (probe action
+ * {@code InventoryMenu} (group {@link #SLOTS}) or another player's {@link BackpackMenu} (probe action
  * {@link #OPEN}, refused while {@link #LOCKED}). Sync: owner full stack, trackers without contents. Holders are
  * registered by {@code BackpackSystem}.
  */
 public final class Backpacks {
     public static final int MAX_SLOTS = 64;
-    /** {@code InventoryMenu}: 46 vanilla slots, then backpack slots. */
-    public static final int FIRST_SLOT = 46;
+    /** {@link com.wf.wflib.core.api.MenuSlots} group of the owner's {@code InventoryMenu} backpack slots. */
+    public static final ResourceLocation SLOTS = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "backpack");
     /** Open + stay open within this (feet to feet); probe reach is 8. */
     public static final double VIEW_RANGE = 4;
     public static final ResourceLocation OPEN = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "backpack_open");

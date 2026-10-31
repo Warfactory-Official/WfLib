@@ -63,7 +63,9 @@ public final class SystemGameTests {
             Map.entry("artifact", List.of(com.wf.wflib.artifact.gametest.ArtifactGameTest.class)),
             Map.entry("mine", List.of(com.wf.wflib.mine.gametest.NavalMineGameTest.class)),
             Map.entry("compat", List.of(com.wf.wflib.compat.gametest.ItemMassGameTest.class)),
-            Map.entry("armor", List.of(com.wf.wflib.armor.gametest.ArmorGameTest.class)),
+            Map.entry("armor", List.of(com.wf.wflib.armor.gametest.ArmorGameTest.class,
+                    com.wf.wflib.armor.gametest.ExoGameTest.class,
+                    com.wf.wflib.armor.gametest.DressGameTest.class)),
             Map.entry("packs", List.of(com.wf.wflib.packs.gametest.PacksGameTest.class)),
             Map.entry("carry", List.of(com.wf.wflib.carry.gametest.CarryGameTest.class)),
             Map.entry("radiation", List.of(

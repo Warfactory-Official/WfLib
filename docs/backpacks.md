@@ -26,3 +26,10 @@ Subclass `backpack.BackpackItem`: `spec()` (`BackpackSpec`), `model()` (armour-f
 ## wfweight (`compat/wfweight/BackpackWeight`, priority 300 > nested 100 / MineAssault 200)
 - Unit = `emptyKg + contentWeight * sum(contents)`, nested depth via `WeightViews1211.stackWeight`.
 - Worn pack = inventory source.
+
+## Inventory menu slot groups
+- `core.api.MenuSlots.register(id, priority, capacity, enabled, factory, quickMove)` at startup; one mixin (`MixinInventoryMenuSlots`) appends all enabled groups.
+- Index = `slots.size()` at append time per menu; resolve with `MenuSlots.range(player, id)` / `groupAt`. Hard-coded offsets FORBIDDEN.
+- Order = priority desc, id. `enabled`/`capacity` MUST match client + server. Registration closes at first menu construction.
+- Non-contiguous `Slot.index` => `IllegalStateException`. Creative slot packets + tracking padding cover every group.
+- Group slot -> inventory 9..45; inventory -> first group whose `QuickMove.intake` > 0.

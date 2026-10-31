@@ -3,6 +3,7 @@ package com.wf.wflib.backpack.client;
 import com.wf.wflib.backpack.api.BackpackItem;
 import com.wf.wflib.backpack.BackpackPackets;
 import com.wf.wflib.backpack.api.Backpacks;
+import com.wf.wflib.core.api.MenuSlots;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -73,7 +74,7 @@ final class BackpackPanel {
         Player player = Minecraft.getInstance().player;
         ItemStack worn = Backpacks.worn(player);
         int size = ((BackpackItem) worn.getItem()).spec().slots();
-        GRID.layout(screen.getMenu().slots, Backpacks.FIRST_SLOT, size, x0() + PAD, HEAD);
+        GRID.layout(screen.getMenu().slots, MenuSlots.range(player, Backpacks.SLOTS).first(), size, x0() + PAD, HEAD);
         GuiGraphics g = e.getGuiGraphics();
         int ox = screen.getGuiLeft();
         int oy = screen.getGuiTop();

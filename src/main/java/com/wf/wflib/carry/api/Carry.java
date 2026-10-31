@@ -110,6 +110,7 @@ public final class Carry {
     }
 
     public static void set(ServerPlayer player, ItemStack stack) {
+        Shoulder.stash(player);
         player.setData(CARRIED, stack);
         refresh(player);
         sync(player);
@@ -145,7 +146,8 @@ public final class Carry {
         if (!(player instanceof ServerPlayer sp)) {
             return;
         }
-        com.wf.wflib.carry.CarryPackets.Carried packet = new CarryPackets.Carried(sp.getId(), carried(sp).copy());
+        com.wf.wflib.carry.CarryPackets.Carried packet = new CarryPackets.Carried(sp.getId(), carried(sp).copy(),
+                sp.getData(Shoulder.HELD).copy());
         PacketDistributor.sendToPlayer(sp, packet);
         PacketDistributor.sendToPlayersTrackingEntity(sp, packet);
     }

@@ -5,6 +5,9 @@ import com.wf.wflib.artifact.api.Artifacts;
 import com.wf.wflib.artifact.detect.Detection;
 import com.wf.wflib.artifact.api.ZoneArtifact;
 import com.wf.wflib.damage.api.WFDamageTypes;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import net.minecraft.core.SectionPos;
+import net.minecraft.util.Mth;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -146,6 +149,24 @@ public class ArtifactGameTest {
         helper.getLevel().addFreshEntity(a);
         double[] path = {0.0D};
         Vec3[] last = {at};
+        int cx = SectionPos.blockToSectionCoord(Mth.floor(at.x));
+        int cz = SectionPos.blockToSectionCoord(Mth.floor(at.z));
+        boolean[] forced = {true};
+        Runnable force = () -> {
+            for (int ox = -1; ox <= 1; ox++) {
+                for (int oz = -1; oz <= 1; oz++) {
+                    ForcedChunks.set(helper.getLevel(), cx + ox, cz + oz, forced[0]);
+                }
+            }
+        };
+        force.run();
+        Runnable release = () -> {
+            if (forced[0]) {
+                forced[0] = false;
+                force.run();
+            }
+        };
+        helper.runAtTickTime(298, release);
         helper.onEachTick(() -> {
             path[0] += a.position().subtract(last[0]).horizontalDistance();
             last[0] = a.position();
@@ -153,7 +174,10 @@ public class ArtifactGameTest {
             helper.assertTrue(d < ZoneArtifact.RANGE + 5.0D, "drifted off: " + d);
             helper.assertTrue(a.getY() > at.y - 1.5D, "fell through: " + a.getY());
         });
-        helper.succeedWhen(() -> helper.assertTrue(path[0] > 8.0D, "barely moved: " + path[0]));
+        helper.succeedWhen(() -> {
+            helper.assertTrue(path[0] > 8.0D, "barely moved: " + path[0] + " ticks=" + a.tickCount);
+            release.run();
+        });
     }
 
     @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts", timeoutTicks = 200)

@@ -69,6 +69,8 @@ public final class ItemWeights implements IWeightCompatProvider {
             for (ItemStack i : ArmorStacks.inserts(s)) {
                 kg += WeightViews1211.stackWeight(i, depth);
             }
+            kg += WeightViews1211.stackWeight(com.wf.wflib.armor.api.exo.ExoStacks.battery(s), depth);
+            kg += WeightViews1211.stackWeight(com.wf.wflib.armor.api.exo.ExoStacks.belt(s), depth);
         }
         return kg;
     }

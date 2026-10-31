@@ -1,7 +1,6 @@
-package com.wf.wflib.mixin.backpack;
+package com.wf.wflib.mixin.core;
 
-import com.wf.wflib.backpack.BackpackSystem;
-import com.wf.wflib.backpack.api.Backpacks;
+import com.wf.wflib.core.api.MenuSlots;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -13,20 +12,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Creative slot writes for worn backpack slots; vanilla accepts 1..45 only. */
+/** Creative slot writes for {@link MenuSlots} groups; vanilla accepts 1..45 only. */
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class MixinServerGamePacketListenerImpl {
+public abstract class MixinServerGamePacketListenerImplSlots {
     @Shadow
     public ServerPlayer player;
 
     @Inject(method = "handleSetCreativeModeSlot", cancellable = true, at = @At(value = "INVOKE", shift = At.Shift.AFTER,
             target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/server/level/ServerLevel;)V"))
-    private void wflib$backpackSlot(ServerboundSetCreativeModeSlotPacket packet, CallbackInfo ci) {
-        if (!BackpackSystem.active()) {
-            return;
-        }
+    private void wflib$groupSlot(ServerboundSetCreativeModeSlotPacket packet, CallbackInfo ci) {
         int index = packet.slotNum();
-        if (index < Backpacks.FIRST_SLOT || index >= Backpacks.FIRST_SLOT + Backpacks.MAX_SLOTS) {
+        if (MenuSlots.groupAt(player, index) == null) {
             return;
         }
         ci.cancel();

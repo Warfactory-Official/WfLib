@@ -16,6 +16,9 @@ public final class ArmorConfig {
     private static final ModConfigSpec.DoubleValue FIRE_TIER_VALUE;
     private static final ModConfigSpec.DoubleValue LAVA_TIER_VALUE;
     private static final ModConfigSpec.DoubleValue ACUTE_FRACTION_VALUE;
+    private static final ModConfigSpec.BooleanValue SELF_DRESS_VALUE;
+    private static final ModConfigSpec.IntValue ASSIST_TICKS_VALUE;
+    private static final ModConfigSpec.IntValue STAND_TICKS_VALUE;
 
     /**
      * @param manageVanillaArmor     derive a profile from vanilla defense/toughness for unregistered armour (e.g. GregTech, NTM); off restricts to authored pieces
@@ -25,12 +28,16 @@ public final class ArmorConfig {
      * @param fireTier               fire damage, condition points per exposure interval; same units as a suit's THERMAL tier
      * @param lavaTier               lava, as {@code fireTier}
      * @param acuteFraction          flat share of max condition lost on first contact with a hazard; percentage so cheap and powered armour pay the same proportion
+     * @param selfDress              master switch: off => no authored piece can be equipped or removed unaided
+     * @param assistTicks            another player putting on / taking off a piece, via the probe
+     * @param standTicks             removing a piece onto an armour stand, via the probe
      */
     public record Values(boolean manageVanillaArmor, boolean mobArmor, int exposureIntervalTicks,
-                         int persistIntervalTicks, double fireTier, double lavaTier, double acuteFraction) {
+                         int persistIntervalTicks, double fireTier, double lavaTier, double acuteFraction,
+                         boolean selfDress, int assistTicks, int standTicks) {
     }
 
-    private static volatile Values values = new Values(true, true, 5, 100, 60.0D, 400.0D, 0.04D);
+    private static volatile Values values = new Values(true, true, 5, 100, 60.0D, 400.0D, 0.04D, true, 200, 100);
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -62,6 +69,17 @@ public final class ArmorConfig {
         ACUTE_FRACTION_VALUE = builder
                 .comment("Share of maximum condition that first contact with a hazard costs outright.")
                 .defineInRange("acuteFraction", 0.04D, 0.0D, 1.0D);
+        SELF_DRESS_VALUE = builder
+                .comment("Wearers may equip and remove authored armour themselves.",
+                        "Off: only another player (probe, 'assistTicks') or an armour stand (probe, 'standTicks').",
+                        "A piece can also opt out alone: pack key 'selfDress'.")
+                .define("selfDress", true);
+        ASSIST_TICKS_VALUE = builder
+                .comment("Ticks for another player to put on or take off a piece that cannot be self-dressed.")
+                .defineInRange("assistTicks", 200, 1, 12000);
+        STAND_TICKS_VALUE = builder
+                .comment("Ticks to take such a piece off onto an armour stand.")
+                .defineInRange("standTicks", 100, 1, 12000);
         builder.pop();
         SPEC = builder.build();
     }
@@ -84,7 +102,7 @@ public final class ArmorConfig {
         }
         set(new Values(MANAGE_VANILLA_VALUE.get(), MOB_ARMOR_VALUE.get(), EXPOSURE_INTERVAL_VALUE.get(),
                 PERSIST_INTERVAL_VALUE.get(), FIRE_TIER_VALUE.get(), LAVA_TIER_VALUE.get(),
-                ACUTE_FRACTION_VALUE.get()));
+                ACUTE_FRACTION_VALUE.get(), SELF_DRESS_VALUE.get(), ASSIST_TICKS_VALUE.get(), STAND_TICKS_VALUE.get()));
     }
 
     private static void set(Values next) {

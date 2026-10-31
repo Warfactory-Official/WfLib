@@ -1,6 +1,8 @@
 package com.wf.wflib.compat.api;
 
+import com.wf.wflib.compat.gt.GregtechBattery;
 import com.wf.wflib.compat.gt.GregtechEMP;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.ModList;
@@ -21,5 +23,19 @@ public final class GregtechCompat {
     public static boolean applyEMP(Level level, BlockPos pos, int lockTicks, boolean drain, boolean pauseWork,
                                    boolean breakMaintenance) {
         return isActive() && GregtechEMP.apply(level, pos, lockTicks, drain, pauseWork, breakMaintenance);
+    }
+
+    /** EU stored in a GTCEu electric item; -1 = not one. */
+    public static long itemCharge(ItemStack stack) {
+        return isActive() ? GregtechBattery.charge(stack) : -1;
+    }
+
+    public static long itemMaxCharge(ItemStack stack) {
+        return isActive() ? GregtechBattery.maxCharge(stack) : -1;
+    }
+
+    /** EU drawn; -1 = not a GTCEu electric item. */
+    public static long itemDischarge(ItemStack stack, long eu, boolean simulate) {
+        return isActive() ? GregtechBattery.discharge(stack, eu, simulate) : -1;
     }
 }

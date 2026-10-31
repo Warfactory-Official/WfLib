@@ -12,6 +12,8 @@ import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
 import net.neoforged.neoforge.event.entity.EntityMountEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -23,6 +25,7 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import com.wf.wflib.carry.api.Shoulder;
 import com.wf.wflib.core.api.WFLib;
 
 /** Open carry of one {@code carriable} item in both hands, no inventory slot. */
@@ -39,6 +42,14 @@ public final class CarrySystem implements WFSystem {
         attachments.register("carried", () -> AttachmentType.builder(() -> ItemStack.EMPTY)
                 .serialize(ItemStack.OPTIONAL_CODEC).copyOnDeath().build());
         attachments.register(modBus);
+        DeferredRegister.DataComponents components =
+                DeferredRegister.createDataComponents(net.minecraft.core.registries.Registries.DATA_COMPONENT_TYPE, WFLib.MODID);
+        components.<net.minecraft.world.item.component.ItemContainerContents>registerComponentType("shouldered_gun",
+                b -> b.persistent(net.minecraft.world.item.component.ItemContainerContents.CODEC)
+                        .networkSynchronized(net.minecraft.world.item.component.ItemContainerContents.STREAM_CODEC));
+        attachments.register("shouldered_gun", () -> AttachmentType.builder(() -> ItemStack.EMPTY)
+                .serialize(ItemStack.OPTIONAL_CODEC).copyOnDeath().build());
+        components.register(modBus);
         modBus.addListener(RegisterPayloadHandlersEvent.class, event -> {
             var r = event.registrar("carry-1");
             r.playToServer(CarryPackets.Pickup.TYPE, CarryPackets.Pickup.STREAM_CODEC, CarryPackets.Pickup::handle);
@@ -55,6 +66,8 @@ public final class CarrySystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(PlayerInteractEvent.EntityInteract.class, CarryServer::onEntityInteract);
         NeoForge.EVENT_BUS.addListener(ItemEntityPickupEvent.Pre.class, CarryServer::onPickup);
         NeoForge.EVENT_BUS.addListener(EntityMountEvent.class, CarryServer::onMount);
+        NeoForge.EVENT_BUS.addListener(EntityJoinLevelEvent.class, CarryServer::onItemJoin);
+        NeoForge.EVENT_BUS.addListener(ItemExpireEvent.class, CarryServer::onItemExpire);
         NeoForge.EVENT_BUS.addListener(LivingDropsEvent.class, CarryServer::onDrops);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.StartTracking.class, CarryServer::onStartTracking);
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent e) -> Carry.sync(e.getEntity()));
@@ -67,5 +80,6 @@ public final class CarrySystem implements WFSystem {
         modBus.addListener(RegisterKeyMappingsEvent.class, CarryClient::keys);
         modBus.addListener(EntityRenderersEvent.AddLayers.class, CarryClient::layers);
         NeoForge.EVENT_BUS.register(CarryClient.class);
+        NeoForge.EVENT_BUS.register(com.wf.wflib.carry.client.ShoulderClient.class);
     }
 }

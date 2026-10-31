@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.wf.wflib.backpack.api.BackpackMenu;
 import com.wf.wflib.backpack.api.Backpacks;
 import com.wf.wflib.backpack.client.BackpackClient;
+import com.wf.wflib.core.api.MenuSlots;
 import com.wf.wflib.core.api.WFSystem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -41,6 +42,9 @@ public final class BackpackSystem implements WFSystem {
     @Override
     public void register(IEventBus modBus, ModContainer container) {
         active = true;
+        MenuSlots.register(Backpacks.SLOTS, 0, Backpacks.MAX_SLOTS, () -> true,
+                (owner, i) -> new BackpackSlot(Backpacks.container(owner), i, true),
+                (player, source, stack) -> Backpacks.container(player).slots());
         DeferredRegister<AttachmentType<?>> attachments =
                 DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, WFLib.MODID);
         DeferredRegister.DataComponents components =

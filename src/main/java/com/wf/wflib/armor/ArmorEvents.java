@@ -58,6 +58,7 @@ public final class ArmorEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         ArmorExposure.tick(event.getServer());
+        com.wf.wflib.armor.api.exo.ExoServer.tick(event.getServer());
         BLOCKED.forEach((entity, slots) -> {
             for (EquipmentSlot slot : slots) {
                 ItemStack stack = entity.getItemBySlot(slot);

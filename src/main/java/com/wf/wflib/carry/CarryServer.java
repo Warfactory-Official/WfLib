@@ -1,6 +1,7 @@
 package com.wf.wflib.carry;
 
 import com.wf.wflib.carry.api.Carry;
+import com.wf.wflib.carry.api.Shoulder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,7 +13,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityMountEvent;
+import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
@@ -29,6 +32,50 @@ final class CarryServer {
     private CarryServer() {
     }
 
+    private static final java.util.Map<java.util.UUID, Integer> LOCKED_SLOT = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<java.util.UUID, Integer> SYNCED_GUN = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int GUN_SYNC_TICKS = 5;
+
+    /** Arms the carried kit when permitted; gun held => hotbar slot locked, gun state re-synced when it changes. */
+    private static void shoulder(ServerPlayer player) {
+        if (Shoulder.PERMIT.get().test(player) && Shoulder.arm(player)) {
+            Carry.sync(player);
+        }
+        ItemStack gun = Shoulder.gun(player);
+        if (gun.isEmpty()) {
+            LOCKED_SLOT.remove(player.getUUID());
+            SYNCED_GUN.remove(player.getUUID());
+            return;
+        }
+        int locked = LOCKED_SLOT.computeIfAbsent(player.getUUID(), u -> player.getInventory().selected);
+        if (player.getInventory().selected != locked) {
+            player.getInventory().selected = locked;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(locked));
+        }
+        if (player.tickCount % GUN_SYNC_TICKS == 0) {
+            int hash = ItemStack.hashItemAndComponents(gun);
+            Integer last = SYNCED_GUN.put(player.getUUID(), hash);
+            if (last != null && last != hash) {
+                Carry.sync(player);
+            }
+        }
+    }
+
+    /** Dropped carriables never despawn: set on every join, so load-from-disk and every drop path are covered. */
+    static void onItemJoin(EntityJoinLevelEvent e) {
+        if (e.getEntity() instanceof ItemEntity item && !e.getLevel().isClientSide
+                && item.getItem().is(Carry.CARRIABLE)) {
+            item.setUnlimitedLifetime();
+        }
+    }
+
+    /** Backstop for an entity whose lifespan was reset after join. */
+    static void onItemExpire(ItemExpireEvent e) {
+        if (e.getEntity().getItem().is(Carry.CARRIABLE)) {
+            e.setExtraLife(6000);
+        }
+    }
+
     static void onTick(PlayerTickEvent.Pre e) {
         Player player = e.getEntity();
         if (player.level().isClientSide) {
@@ -41,6 +88,12 @@ final class CarryServer {
         Carry.refresh(player);
         if (Carry.carrying(player)) {
             player.setSprinting(false);
+            if (player instanceof ServerPlayer sp) {
+                shoulder(sp);
+            }
+        } else {
+            LOCKED_SLOT.remove(player.getUUID());
+            SYNCED_GUN.remove(player.getUUID());
         }
     }
 
@@ -125,6 +178,7 @@ final class CarryServer {
                 || player.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
             return;
         }
+        Shoulder.stash(player);
         ItemStack stack = Carry.carried(player);
         if (!stack.isEmpty()) {
             e.getDrops().add(new ItemEntity(player.level(), player.getX(), player.getEyeY() - 0.3, player.getZ(),
@@ -135,7 +189,8 @@ final class CarryServer {
 
     static void onStartTracking(PlayerEvent.StartTracking e) {
         if (e.getTarget() instanceof ServerPlayer target && e.getEntity() instanceof ServerPlayer viewer) {
-            PacketDistributor.sendToPlayer(viewer, new CarryPackets.Carried(target.getId(), Carry.carried(target).copy()));
+            PacketDistributor.sendToPlayer(viewer, new CarryPackets.Carried(target.getId(), Carry.carried(target).copy(),
+                    target.getData(Shoulder.HELD).copy()));
         }
     }
 }

@@ -93,6 +93,12 @@ public final class ArmorResolution {
      */
     public static ArmorResult resolveSlot(LivingEntity entity, EquipmentSlot slot, DamageSource source,
                                           float amount, boolean applyWear) {
+        return resolveSlot(entity, slot, null, source, amount, applyWear);
+    }
+
+    /** @param limb lowercase body zone for exo part wear ({@code head torso left_arm ...}); null = unknown */
+    public static ArmorResult resolveSlot(LivingEntity entity, EquipmentSlot slot, @Nullable String limb,
+                                          DamageSource source, float amount, boolean applyWear) {
         ProtectionType type = ArmorProjection.typeFor(source);
         if (type == null) {
             return ArmorResult.untouched(ProtectionType.IMPACT, amount);
@@ -102,7 +108,7 @@ public final class ArmorResolution {
         if (piece != null) {
             worn.add(piece);
         }
-        return resolve(entity, type, amount, worn, source, applyWear);
+        return resolve(entity, type, amount, worn, source, applyWear, limb);
     }
 
     /**
@@ -153,6 +159,12 @@ public final class ArmorResolution {
     public static ArmorResult resolve(LivingEntity entity, ProtectionType type, float amount,
                                       List<WornArmor> worn, @Nullable DamageSource source,
                                       boolean applyWear) {
+        return resolve(entity, type, amount, worn, source, applyWear, null);
+    }
+
+    private static ArmorResult resolve(LivingEntity entity, ProtectionType type, float amount,
+                                       List<WornArmor> worn, @Nullable DamageSource source,
+                                       boolean applyWear, @Nullable String limb) {
         List<ArmorLayer> layers = new ArrayList<>();
         List<WornArmor> owners = new ArrayList<>();
         List<Integer> within = new ArrayList<>();
@@ -178,6 +190,9 @@ public final class ArmorResolution {
         if (applyWear && !result.wear().isEmpty()) {
             StrikeContext strike = source == null ? null : StrikeContext.of(source);
             applyWear(result, owners, within, strike == null ? 1.0f : strike.threat().wearFactor());
+        }
+        if (applyWear) {
+            com.wf.wflib.armor.api.exo.ExoParts.hit(entity, worn, limb, result);
         }
         return result;
     }
@@ -257,7 +272,8 @@ public final class ArmorResolution {
         StrikeContext strike = StrikeContext.of(event.getSource());
         List<HitboxPart> parts = strike == null ? null : strike.parts();
         ArmorResult result = parts == null ? resolveWhole(entity, event.getSource(), type, amount, true)
-                : resolveSlot(entity, slotFor(parts.get(0)), event.getSource(), amount, true);
+                : resolveSlot(entity, slotFor(parts.get(0)), parts.get(0).name().toLowerCase(java.util.Locale.ROOT),
+                event.getSource(), amount, true);
         if (result.absorbed() <= 0.0D) {
             return;
         }

@@ -45,6 +45,9 @@ public final class CompatSystem implements WFSystem {
             if (WFSystems.enabled("artifact")) {
                 ArtifactWeight.register();
             }
+            if (WFSystems.enabled("armor")) {
+                com.wf.wflib.compat.wfweight.ExoWeight.register();
+            }
             if (WFSystems.enabled("backpack")) {
                 BackpackWeight.register();
             }

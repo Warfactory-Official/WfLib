@@ -1,5 +1,6 @@
 package com.wf.wflib.armor.api;
 
+import com.wf.wflib.armor.api.exo.ExoSpec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ArmorItem;
@@ -18,10 +19,12 @@ import com.wf.wflib.core.api.WFLib;
  * @param model    a rigged glTF for GemRender to draw, or null to render as a vanilla armour texture
  * @param nvgMount accepts a {@link com.wf.wflib.nvg.api.NvgItem}; drawn at the model's {@code socket_nvg}
  * @param occupies other armour slots a suit fills: kept empty while worn, protected by this piece
+ * @param exo      exoskeleton capabilities; garments only
+ * @param selfDress the wearer may equip and remove it unaided; false => {@link Dress}
  */
 public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, int durability,
                           ArmorSpec spec, @Nullable ResourceLocation model, boolean nvgMount,
-                          Set<EquipmentSlot> occupies) {
+                          Set<EquipmentSlot> occupies, @Nullable ExoSpec exo, boolean selfDress) {
 
     public ArmorPreset {
         if (durability <= 0) {
@@ -30,6 +33,9 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
         if (!occupies.isEmpty() && (type == null || occupies.contains(type.getSlot())
                 || !occupies.stream().allMatch(s -> s.getType() == EquipmentSlot.Type.HUMANOID_ARMOR))) {
             throw new IllegalArgumentException("occupies = other armour slots of a garment: " + id + " " + occupies);
+        }
+        if (exo != null && type == null) {
+            throw new IllegalArgumentException("an insert cannot be an exoskeleton: " + id);
         }
         occupies = occupies.isEmpty() ? Set.of() : java.util.Collections.unmodifiableSet(EnumSet.copyOf(occupies));
     }
@@ -62,6 +68,8 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
         private ResourceLocation model;
         private boolean nvgMount;
         private final Set<EquipmentSlot> occupies = EnumSet.noneOf(EquipmentSlot.class);
+        private ExoSpec exo;
+        private boolean selfDress = true;
 
         private Builder(String path, @Nullable ArmorItem.Type type, int durability) {
             this.id = rl(path);
@@ -96,13 +104,23 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
             return this;
         }
 
+        public Builder exo(ExoSpec spec) {
+            this.exo = spec;
+            return this;
+        }
+
+        public Builder selfDress(boolean selfDress) {
+            this.selfDress = selfDress;
+            return this;
+        }
+
         public Builder occupies(EquipmentSlot... slots) {
             occupies.addAll(java.util.List.of(slots));
             return this;
         }
 
         public ArmorPreset build() {
-            return new ArmorPreset(id, type, durability, spec.build(), model, nvgMount, occupies);
+            return new ArmorPreset(id, type, durability, spec.build(), model, nvgMount, occupies, exo, selfDress);
         }
     }
 }

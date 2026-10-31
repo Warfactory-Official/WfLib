@@ -1,4 +1,4 @@
-package com.wf.wflib.mixin.backpack;
+package com.wf.wflib.mixin.core;
 
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.inventory.AbstractContainerMenu;
