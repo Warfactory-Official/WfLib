@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.build.api.Blueprint;
+import com.wf.wflib.build.api.BlueprintFormat;
 
 /** Reads Litematica's {@code .litematic}. */
 public final class LitematicaFormat implements BlueprintFormat {

@@ -2,10 +2,10 @@ package com.wf.wflib.probe.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.pda.client.PdaClient;
-import com.wf.wflib.probe.ProbeContext;
-import com.wf.wflib.probe.ProbeInfo;
-import com.wf.wflib.probe.ProbeRegistry;
+import com.wf.wflib.pda.api.client.PdaClient;
+import com.wf.wflib.probe.api.ProbeContext;
+import com.wf.wflib.probe.api.ProbeInfo;
+import com.wf.wflib.probe.api.ProbeProviders;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -66,15 +66,15 @@ public final class ProbeOverlay implements LayeredDraw.Layer {
                 return null;
             }
             BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
-            if (ProbeRegistry.hasNodes(blockEntity)) {
+            if (ProbeProviders.hasNodes(blockEntity)) {
                 ProbeSelection.clear();
                 return null;
             }
-            if (ProbeRegistry.wantsBlockData(level, pos, state, blockEntity)) {
+            if (ProbeProviders.wantsBlockData(level, pos, state, blockEntity)) {
                 ProbeClientData.request(pos, -1, gameTime, refresh);
             }
             CompoundTag data = ProbeClientData.get(pos, -1);
-            boolean supported = ProbeRegistry.collect(info, context(player, level, hit, data, partialTick),
+            boolean supported = ProbeProviders.collect(info, context(player, level, hit, data, partialTick),
                     state, pos, blockEntity);
             if (!supported && !ProbeConfig.SHOW_EVERYTHING.get()) {
                 ProbeSelection.clear();
@@ -86,15 +86,15 @@ public final class ProbeOverlay implements LayeredDraw.Layer {
 
         if (hit instanceof EntityHitResult entityHit) {
             Entity entity = entityHit.getEntity();
-            if (ProbeRegistry.hasNodes(entity)) {
+            if (ProbeProviders.hasNodes(entity)) {
                 ProbeSelection.clear();
                 return null;
             }
-            if (ProbeRegistry.wantsEntityData(entity)) {
+            if (ProbeProviders.wantsEntityData(entity)) {
                 ProbeClientData.request(entity.blockPosition(), entity.getId(), gameTime, refresh);
             }
             CompoundTag data = ProbeClientData.get(entity.blockPosition(), entity.getId());
-            boolean supported = ProbeRegistry.collect(info,
+            boolean supported = ProbeProviders.collect(info,
                     context(player, level, hit, data, partialTick), entity);
             if (!supported && !ProbeConfig.SHOW_EVERYTHING.get()) {
                 ProbeSelection.clear();

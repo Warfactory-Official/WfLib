@@ -1,7 +1,7 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.anomaly.site.AnomalyMix.Kind;
-import com.wf.wflib.anomaly.site.AnomalyMix.Loot;
+import com.wf.wflib.anomaly.api.AnomalyMix.Kind;
+import com.wf.wflib.anomaly.api.AnomalyMix.Loot;
 import com.wf.wflib.anomaly.site.SiteLayout.LootSpot;
 import com.wf.wflib.anomaly.site.SiteLayout.Placed;
 import net.minecraft.core.BlockPos;
@@ -13,6 +13,8 @@ import net.minecraft.world.level.levelgen.synth.SimplexNoise;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import com.wf.wflib.anomaly.api.AnomalyMix;
+import com.wf.wflib.anomaly.api.CavePlan;
 
 /**
  * Chamber of a cave field: footprint, floor and dome as functions of (x, z), and where anomalies and artefacts go,
@@ -29,8 +31,8 @@ public final class CaveLayout {
     final int cz;
     final int y0;
     private final SimplexNoise noise;
-    final List<Placed> anomalies = new ArrayList<>();
-    final List<LootSpot> loot = new ArrayList<>();
+    public final List<Placed> anomalies = new ArrayList<>();
+    public final List<LootSpot> loot = new ArrayList<>();
 
     private CaveLayout(CavePlan plan, int cx, int cz, int y0) {
         this.plan = plan;

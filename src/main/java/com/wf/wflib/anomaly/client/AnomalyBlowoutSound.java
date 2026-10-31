@@ -1,7 +1,6 @@
 package com.wf.wflib.anomaly.client;
 
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
-import com.wf.wflib.anomaly.AnomalyConfig;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -35,7 +34,7 @@ final class AnomalyBlowoutSound extends AbstractTickableSoundInstance {
         x = c.x;
         y = c.y + 1.0D;
         z = c.z;
-        if (be.isRemoved() || !AnomalyConfig.enabled) {
+        if (be.isRemoved()) {
             stop();
         } else if (fading && (volume -= VOLUME / FADE_TICKS) <= 0.0F) {
             stop();

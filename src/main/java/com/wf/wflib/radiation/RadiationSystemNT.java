@@ -1,6 +1,6 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.radiation.DecodeException;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
@@ -10,8 +10,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.BlockPos;
-import com.wf.wflib.client.particle.WFParticles;
-import com.wf.wflib.radiation.RadiationCarrier;
+import com.wf.wflib.particle.api.WFParticles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.minecraft.server.level.ServerPlayer;
@@ -141,13 +140,13 @@ public final class RadiationSystemNT {
     }
 
     public static void onLoadComplete() {
-        tickDelay = RadiationConfig.radTickRate;
+        tickDelay = RadiationConfig.get().radTickRate();
         if (tickDelay <= 0) throw new IllegalStateException("Radiation tick rate must be positive");
         dT = tickDelay / (double) SharedConstants.TICKS_PER_SECOND;
-        double diffusivity = RadiationConfig.radDiffusivity;
+        double diffusivity = RadiationConfig.get().radDiffusivity();
         if (diffusivity <= 0.0D || !Double.isFinite(diffusivity))
             throw new IllegalStateException("Radiation diffusivity must be positive and finite");
-        double hl = RadiationConfig.radHalfLifeSeconds;
+        double hl = RadiationConfig.get().radHalfLifeSeconds();
         if (hl <= 0.0D || !Double.isFinite(hl))
             throw new IllegalStateException("Radiation HalfLife must be positive and finite");
     }
@@ -166,7 +165,7 @@ public final class RadiationSystemNT {
 
     static void tickSim() {
         serverStopping = false;
-        if (!RadiationConfig.enableChunkRads) return;
+        if (!RadiationConfig.get().enableChunkRads()) return;
         ticks++;
         if ((ticks + 17) % tickDelay != 0) return;
         awaitSimulation();
@@ -202,7 +201,7 @@ public final class RadiationSystemNT {
 
     // Server thread; drains destruction + fog output.
     static void runWorldEffects() {
-        boolean destroy = RadiationConfig.worldRadEffects;
+        boolean destroy = RadiationConfig.get().worldRadEffects();
         for (WorldRadiationData data : worldMap.values()) {
             if (data.world.getServer() == null) continue;
             try {
@@ -396,7 +395,7 @@ public final class RadiationSystemNT {
     }
 
     public static void onServerSave(MinecraftServer server, boolean flush) {
-        if (!RadiationConfig.enableChunkRads) return;
+        if (!RadiationConfig.get().enableChunkRads()) return;
         awaitSimulation();
         saveDirtySidecar(flush);
     }
@@ -430,7 +429,7 @@ public final class RadiationSystemNT {
 
     // IOWorker reads the region file off the server thread.
     public static byte @Nullable [] readSidecar(ResourceKey<Level> dimension, ChunkPos pos) {
-        if (!RadiationConfig.enableChunkRads) return null;
+        if (!RadiationConfig.get().enableChunkRads()) return null;
         int cx = pos.x, cz = pos.z;
         if (((cx ^ (cx << 10) >> 10) | (cz ^ (cz << 10) >> 10)) != 0) return null;
         MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
@@ -484,7 +483,7 @@ public final class RadiationSystemNT {
 
     /** {@code c -> c + amount}, matching 1.7's unbounded {@code incrementRad}. */
     public static void incrementRad(ServerLevel world, BlockPos pos, double amount) {
-        if (!RadiationConfig.enableChunkRads || Math.abs(amount) < RAD_EPSILON || isOutsideWorld(world, pos)) return;
+        if (!RadiationConfig.get().enableChunkRads() || Math.abs(amount) < RAD_EPSILON || isOutsideWorld(world, pos)) return;
         addOrEmit(world, pos, amount, 0.0D, false);
     }
 
@@ -494,7 +493,7 @@ public final class RadiationSystemNT {
     // Every saturation value is CE's with no 1.7 behind it - 1.7 has no saturation argument, so
     // only the emission rates are legacy-sourced. A gameplay choice, not a fidelity one.
     public static void incrementRad(ServerLevel world, BlockPos pos, double emission, double saturation) {
-        if (!RadiationConfig.enableChunkRads || Math.abs(emission) < RAD_EPSILON || isOutsideWorld(world, pos)) return;
+        if (!RadiationConfig.get().enableChunkRads() || Math.abs(emission) < RAD_EPSILON || isOutsideWorld(world, pos)) return;
         addOrEmit(world, pos, emission, saturation, true);
     }
 
@@ -523,7 +522,7 @@ public final class RadiationSystemNT {
     }
 
     public static void setRadForCoord(ServerLevel world, BlockPos pos, double amount) {
-        if (!RadiationConfig.enableChunkRads || isOutsideWorld(world, pos)) return;
+        if (!RadiationConfig.get().enableChunkRads() || isOutsideWorld(world, pos)) return;
         long posLong = pos.asLong();
         long sck = SectionPos.blockToSection(posLong);
         long ck = SectionKeys.sectionToChunkLong(sck);
@@ -544,7 +543,7 @@ public final class RadiationSystemNT {
 
     /** A FLOOR on what an entity takes, not a term added to the field. The sweep cannot move it. */
     public static double ambientRad(ServerLevel world) {
-        if (!RadiationConfig.enableChunkRads) {
+        if (!RadiationConfig.get().enableChunkRads()) {
             return disabledAmbient.computeIfAbsent(world, level -> RadiationSettings.forLevel(level).ambientRadOrDefault());
         }
         return getWorldRadData(world).ambientRad;
@@ -556,7 +555,7 @@ public final class RadiationSystemNT {
     }
 
     public static double getRadForCoord(ServerLevel world, BlockPos pos) {
-        if (!RadiationConfig.enableChunkRads || isOutsideWorld(world, pos)) return 0D;
+        if (!RadiationConfig.get().enableChunkRads() || isOutsideWorld(world, pos)) return 0D;
         long posLong = pos.asLong();
         long sck = SectionPos.blockToSection(posLong);
         long ck = SectionKeys.sectionToChunkLong(sck);
@@ -599,7 +598,7 @@ public final class RadiationSystemNT {
     }
 
     public static void markSectionForRebuild(Level world, BlockPos pos) {
-        if (world == null || world.isClientSide() || !RadiationConfig.enableChunkRads) return;
+        if (world == null || world.isClientSide() || !RadiationConfig.get().enableChunkRads()) return;
         if (!(world instanceof ServerLevel server)) return;
         if (isOutsideWorld(server, pos)) return;
 
@@ -607,7 +606,7 @@ public final class RadiationSystemNT {
     }
 
     public static void markSectionForRebuild(Level world, long sck) {
-        if (world == null || world.isClientSide() || !RadiationConfig.enableChunkRads) return;
+        if (world == null || world.isClientSide() || !RadiationConfig.get().enableChunkRads()) return;
         if (!(world instanceof ServerLevel ws)) return;
         long ck = SectionKeys.sectionToChunkLong(sck);
         LevelChunk chunk = ws.getChunkSource().getChunkNow(ChunkPos.getX(ck), ChunkPos.getZ(ck));
@@ -622,7 +621,7 @@ public final class RadiationSystemNT {
     }
 
     public static void markSectionsForRebuild(Level world, LongIterable sections) {
-        if (world == null || world.isClientSide() || !RadiationConfig.enableChunkRads) return;
+        if (world == null || world.isClientSide() || !RadiationConfig.get().enableChunkRads()) return;
         if (!(world instanceof ServerLevel ws)) return;
         awaitSimulation();
         WorldRadiationData data = getWorldRadData(ws);
@@ -674,7 +673,7 @@ public final class RadiationSystemNT {
     }
 
     static void onChunkLoad(ServerLevel server, LevelChunk chunk) {
-        if (!RadiationConfig.enableChunkRads) return;
+        if (!RadiationConfig.get().enableChunkRads()) return;
         serverStopping = false;
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
         if (((cx ^ (cx << 10) >> 10) | (cz ^ (cz << 10) >> 10)) != 0) return;
@@ -713,7 +712,7 @@ public final class RadiationSystemNT {
     }
 
     static void onChunkUnload(ServerLevel server, LevelChunk chunk) {
-        if (!RadiationConfig.enableChunkRads) return;
+        if (!RadiationConfig.get().enableChunkRads()) return;
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
         if (((cx ^ (cx << 10) >> 10) | (cz ^ (cz << 10) >> 10)) != 0) return;
         WorldRadiationData data = worldMap.get(server);
@@ -775,7 +774,7 @@ public final class RadiationSystemNT {
         markRadSource(block, state -> emission, state -> saturation);
     }
 
-    /** Resolve all registered source blocks after {@code HazardSystem.registerContent}. */
+    /** Resolve all registered source blocks after {@code HazardRules.applyDataPack}. */
     public static void registerConstantSources(RegistryAccess registries) {
         int rules = 0;
         for (RadSourceRule rule : registries.registryOrThrow(RadSourceRule.REGISTRY)) {

@@ -148,7 +148,7 @@ size is tens of thousands of orders, and a compound each would be megabytes of t
 An order left `CLAIMED` by a save with no surviving claim goes back in the pile **unpenalised**; the world
 reloaded, which is nobody's fault.
 
-`WorkRegistry` is server-wide, on the overworld, matching `StationRegistry`. Finished jobs are kept for
+`WorkData` is server-wide, on the overworld, matching `StationData`. Finished jobs are kept for
 `RETENTION` (20 minutes) rather than deleted, because "finished, 40 blocked" is the answer to how the job
 went and a job that vanished would take that with it.
 
@@ -216,7 +216,7 @@ all four**, because every pad registered before roles existed did all four thing
 the moment to quietly stop half of them working. Absent is distinguished from empty: an operator who
 deliberately turns every role off gets an inert station back, not a reset one.
 
-`StationRegistry.allows` now asks two questions (is this station willing to receive cargo at all, and is it
+`StationData.allows` now asks two questions (is this station willing to receive cargo at all, and is it
 willing to receive it from you) so a supplier that only hands materials out cannot be flown crates.
 
 ## 21. Driving it
@@ -354,7 +354,7 @@ Each catches something the others cannot:
 factions for combat but not for building. It is separate from the explosion claim protection because they
 answer different questions.
 
-Two smaller things fell out of this. `StationRegistry.allows` now also requires the recipient to hold the
+Two smaller things fell out of this. `StationData.allows` now also requires the recipient to hold the
 `depot` role, so a supplier that only hands materials out cannot be flown crates. And `WarforgeCompat`'s
 `LOADED` flag is now computed in a guarded method: `ModList.get()` is null until mod loading has got far
 enough, and an unguarded call in a static initialiser turns that into an `ExceptionInInitializerError` that

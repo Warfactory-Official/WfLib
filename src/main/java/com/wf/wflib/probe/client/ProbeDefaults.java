@@ -1,10 +1,12 @@
 package com.wf.wflib.probe.client;
 
-import com.wf.wflib.probe.ProbeElement;
-import com.wf.wflib.probe.ProbeRegistry;
+import com.wf.wflib.probe.api.ProbeElement;
+import com.wf.wflib.probe.api.ProbeProviders;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import com.wf.wflib.core.api.WFLib;
 
 /** What the probe says about a thing nothing else described: its name, and its icon beside it. */
 public final class ProbeDefaults {
@@ -13,15 +15,15 @@ public final class ProbeDefaults {
     }
 
     public static void register() {
-        ProbeRegistry.addAnyBlock((info, ctx, state, pos, blockEntity) -> {
+        ProbeProviders.addAnyBlock(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "default_block"), (info, ctx, state, pos, blockEntity) -> {
             info.titleFallback(state.getBlock().getName());
             ItemStack pick = state.getCloneItemStack(ctx.hit(), ctx.level(), pos, ctx.player());
             if (!pick.isEmpty()) {
                 info.titleIconFallback(new ProbeElement.Icon(pick, 12, false));
             }
-        }, ProbeRegistry.DEFAULT_PRIORITY);
+        }, ProbeProviders.DEFAULT_PRIORITY);
 
-        ProbeRegistry.addAnyEntity((info, ctx, entity) -> {
+        ProbeProviders.addAnyEntity(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "default_entity"), (info, ctx, entity) -> {
             info.titleFallback(entity.getDisplayName());
             if (entity instanceof LivingEntity living) {
                 float health = living.getHealth();
@@ -29,7 +31,7 @@ public final class ProbeDefaults {
                 info.bar(health / max, 90, 0xFFCC3333,
                         Component.literal(round(health) + " / " + round(max)));
             }
-        }, ProbeRegistry.DEFAULT_PRIORITY);
+        }, ProbeProviders.DEFAULT_PRIORITY);
     }
 
     private static String round(float value) {

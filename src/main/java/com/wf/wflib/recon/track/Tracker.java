@@ -1,11 +1,11 @@
 package com.wf.wflib.recon.track;
 
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.alert.Alert;
-import com.wf.wflib.recon.alert.AlertTier;
-import com.wf.wflib.recon.alert.EngagementAuthority;
-import com.wf.wflib.recon.detect.Plot;
-import com.wf.wflib.recon.propagate.RadarPropagator;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.Alert;
+import com.wf.wflib.recon.api.AlertTier;
+import com.wf.wflib.recon.api.EngagementAuthority;
+import com.wf.wflib.recon.api.Plot;
+import com.wf.wflib.recon.api.RadarPropagator;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -13,6 +13,11 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.recon.api.IffState;
+import com.wf.wflib.recon.api.Track;
+import com.wf.wflib.recon.api.TrackId;
+import com.wf.wflib.recon.api.TrackPicture;
+import com.wf.wflib.recon.api.TrackQuality;
 
 /** Plots in, tracks out. */
 public final class Tracker {

@@ -1,9 +1,9 @@
 package com.wf.wflib.ammo.client;
 
 import com.wf.gemrender.rig.RigGeometry;
-import com.wf.wflib.ammo.Calibre;
-import com.wf.wflib.ammo.CalibreKind;
-import com.wf.wflib.ammo.ProjectileLook;
+import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.CalibreKind;
+import com.wf.wflib.ammo.api.ProjectileLook;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -18,10 +18,10 @@ public final class AmmoMeshes {
     static final int CARTRIDGE_SIDES = 12;
     static final int PROJECTILE_SIDES = 16;
     private static final float MM = 0.001f;
-    static final float FLAME_LENGTH = 25;
-    static final int FLAME_CORE = 0xFFF2B0;
-    static final int FLAME = 0xFF9A30;
-    static final int FLAME_TIP = 0xE0501A;
+    public static final float FLAME_LENGTH = 25;
+    public static final int FLAME_CORE = 0xFFF2B0;
+    public static final int FLAME = 0xFF9A30;
+    public static final int FLAME_TIP = 0xE0501A;
 
     private AmmoMeshes() {
     }
@@ -309,7 +309,7 @@ public final class AmmoMeshes {
         float b = c.bulletMm() * MM / 2;
         if (c.kind() == CalibreKind.SHOTSHELL) {
             float brass = len * 0.22f;
-            int brassRgb = com.wf.wflib.ammo.CaseMaterial.BRASS.rgb;
+            int brassRgb = com.wf.wflib.ammo.api.CaseMaterial.BRASS.rgb;
             rs.add(new Ring(0, rim, brassRgb));
             rs.add(new Ring(len * 0.03f, rim, brassRgb));
             rs.add(new Ring(len * 0.03f, head, brassRgb));

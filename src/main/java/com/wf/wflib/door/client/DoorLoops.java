@@ -1,8 +1,8 @@
 package com.wf.wflib.door.client;
 
-import com.wf.wflib.door.DoorBlockEntity;
-import com.wf.wflib.door.DoorSounds;
-import com.wf.wflib.door.DoorState;
+import com.wf.wflib.door.api.DoorBlockEntity;
+import com.wf.wflib.door.api.DoorSounds;
+import com.wf.wflib.door.api.DoorState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundEvent;

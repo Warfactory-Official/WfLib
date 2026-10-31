@@ -1,12 +1,15 @@
 package com.wf.wflib.drone.ai.coord;
 
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.DroneStateRegistry;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.ai.DroneStateHandlers;
+import com.wf.wflib.drone.api.SquadView;
 import com.wf.wflib.drone.ai.Steering;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.drone.api.CoordinationModel;
+import com.wf.wflib.drone.api.SquadAnchor;
+import com.wf.wflib.drone.api.SquadCommand;
 
 /** Slots measured off a point that is not a drone. */
 public final class VirtualStructure implements CoordinationModel {
@@ -55,7 +58,7 @@ public final class VirtualStructure implements CoordinationModel {
             return SquadAnchor.on(leader);
         }
 
-        Vec3 intent = DroneStateRegistry.get(leader.state()).guide(leader, squad)
+        Vec3 intent = DroneStateHandlers.get(leader.state()).guide(leader, squad)
                 .scale(throttle(squad, previous));
         Vec3 velocity = previous.velocity().add(intent.subtract(previous.velocity()).scale(STEER_SMOOTHING));
         Vec3 acceleration = velocity.subtract(previous.velocity());

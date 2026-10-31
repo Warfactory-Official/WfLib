@@ -1,10 +1,10 @@
 package com.wf.wflib.anomaly;
 
-import com.wf.wflib.anomaly.site.AnomalyMix;
-import com.wf.wflib.anomaly.site.AnomalyMix.Kind;
-import com.wf.wflib.anomaly.site.AnomalyMix.Spot;
-import com.wf.wflib.anomaly.site.SitePlan;
-import com.wf.wflib.anomaly.site.SiteStyle;
+import com.wf.wflib.anomaly.api.AnomalyMix;
+import com.wf.wflib.anomaly.api.AnomalyMix.Kind;
+import com.wf.wflib.anomaly.api.AnomalyMix.Spot;
+import com.wf.wflib.anomaly.api.SitePlan;
+import com.wf.wflib.anomaly.api.SiteStyle;
 import net.minecraft.util.RandomSource;
 import org.junit.jupiter.api.Test;
 

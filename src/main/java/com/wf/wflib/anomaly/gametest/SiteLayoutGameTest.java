@@ -1,22 +1,20 @@
 package com.wf.wflib.anomaly.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.anomaly.site.AnomalyMix;
+import com.wf.wflib.anomaly.api.AnomalyMix;
 import com.wf.wflib.anomaly.site.SiteLayout;
-import com.wf.wflib.anomaly.site.SitePlan;
-import com.wf.wflib.anomaly.site.SiteStyle;
+import com.wf.wflib.anomaly.api.SitePlan;
+import com.wf.wflib.anomaly.api.SiteStyle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.util.RandomSource;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Site layouts on a made-up terrain (blocks need a running game, so this is a GameTest, but it writes nothing):
  * every motif and ruin, every tier it opens at, lays out the same twice, with anomalies spaced and inside the site.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class SiteLayoutGameTest {
 
@@ -33,7 +31,7 @@ public class SiteLayoutGameTest {
         }
     };
 
-    @GameTest(template = "empty")
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty")
     public static void everyMotifLaysOutSpacedAnomaliesTheSameEveryTime(GameTestHelper helper) {
         for (SitePlan.Motif motif : SitePlan.Motif.values()) {
             for (int tier = motif.minTier; tier <= SitePlan.TIERS; tier++) {
@@ -60,7 +58,7 @@ public class SiteLayoutGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty", batch = "anomaly_sites")
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "anomaly_sites")
     public static void fissureVentsAreSteamVents(GameTestHelper helper) {
         for (int tier = 1; tier <= SitePlan.TIERS; tier++) {
             SitePlan plan = SitePlan.roll(RandomSource.create(tier), tier, SiteStyle.PLAINS, SitePlan.Motif.FISSURES,
@@ -72,7 +70,7 @@ public class SiteLayoutGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty")
     public static void everyRuinLaysOutInEveryStyle(GameTestHelper helper) {
         for (SitePlan.Overlay ruin : SitePlan.Overlay.values()) {
             for (SiteStyle style : SiteStyle.values()) {

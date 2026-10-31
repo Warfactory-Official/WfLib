@@ -3,7 +3,6 @@ package com.wf.wflib.round.pen;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.wf.wflib.WFLib;
 import com.wf.wflib.round.terrain.AsyncTerrainSource;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +17,7 @@ import net.neoforged.neoforge.registries.datamaps.RegisterDataMapTypesEvent;
 import org.slf4j.Logger;
 
 import java.util.Optional;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Block penetration resistance, mm steel-eq per metre, impulse toughness, kg m/s, and ricochet critical grazing

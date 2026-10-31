@@ -1,6 +1,6 @@
 package com.wf.wflib.backpack.client;
 
-import com.wf.wflib.backpack.BackpackMenu;
+import com.wf.wflib.backpack.api.BackpackMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;

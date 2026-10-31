@@ -1,11 +1,12 @@
 package com.wf.wflib.hazard.type;
 
-import com.wf.wflib.radiation.RadiationConfig;
+import com.wf.wflib.hazard.HazardConfig;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import com.wf.wflib.hazard.HazardProtection;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
-import com.wf.wflib.hazard.ContaminationUtil;
-import com.wf.wflib.hazard.ContaminationUtil.ContaminationType;
-import com.wf.wflib.hazard.ContaminationUtil.HazardType;
+import com.wf.wflib.hazard.api.IHazardModifier;
+import com.wf.wflib.hazard.api.ContaminationUtil;
+import com.wf.wflib.hazard.api.ContaminationUtil.ContaminationType;
+import com.wf.wflib.hazard.api.ContaminationUtil.HazardType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -16,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 public class HazardTypeRadiation implements IHazardType {
 
@@ -56,13 +58,13 @@ public class HazardTypeRadiation implements IHazardType {
         if (level <= 0) return;
 
         double rad = level / 20D;
-        if (RadiationConfig.enable528 && reacher) {
+        if (HazardConfig.get().enable528() && reacher) {
             rad = rad / 49D;
         } else if (reacher) {
             rad = Math.sqrt(rad);
         }
 
-        ContaminationUtil.contaminate(target, HazardType.RADIATION, ContaminationType.CREATIVE, rad * RadiationConfig.hazardRate);
+        ContaminationUtil.contaminate(target, HazardType.RADIATION, ContaminationType.CREATIVE, rad * HazardConfig.get().hazardRate());
     }
 
     @Override

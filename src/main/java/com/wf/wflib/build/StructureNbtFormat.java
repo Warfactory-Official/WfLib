@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.build.api.Blueprint;
+import com.wf.wflib.build.api.BlueprintFormat;
 
 /** Reads vanilla structure NBT: what a structure block saves, and what {@code /place template} loads. */
 public final class StructureNbtFormat implements BlueprintFormat {

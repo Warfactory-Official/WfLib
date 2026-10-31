@@ -1,7 +1,8 @@
 package com.wf.wflib.skin.client;
 
-import com.wf.wflib.skin.Skinnable;
-import com.wf.wflib.skin.Skins;
+import com.wf.wflib.skin.SkinChoose;
+import com.wf.wflib.skin.api.Skinnable;
+import com.wf.wflib.skin.api.Skins;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -20,7 +21,7 @@ final class SkinScreen extends Screen {
 
     @Nullable
     private final Screen parent;
-    /** {@link Skins.Choose#slot}. */
+    /** {@link SkinChoose#slot}. */
     private final int slot;
     private final List<Button> buttons = new ArrayList<>();
     private int previewX, previewY;
@@ -36,7 +37,7 @@ final class SkinScreen extends Screen {
         if (player == null) {
             return ItemStack.EMPTY;
         }
-        return slot == Skins.Choose.MAIN_HAND ? player.getItemInHand(InteractionHand.MAIN_HAND)
+        return slot == SkinChoose.MAIN_HAND ? player.getItemInHand(InteractionHand.MAIN_HAND)
                 : slot < player.inventoryMenu.slots.size() ? player.inventoryMenu.getSlot(slot).getItem() : ItemStack.EMPTY;
     }
 
@@ -62,7 +63,7 @@ final class SkinScreen extends Screen {
     }
 
     private void choose(int index) {
-        PacketDistributor.sendToServer(new Skins.Choose(slot, index));
+        PacketDistributor.sendToServer(new SkinChoose(slot, index));
         // Predicted; the server's slot sync confirms (or reverts) it.
         Skins.set(stack(), index);
         refresh();

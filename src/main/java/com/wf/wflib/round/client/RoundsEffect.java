@@ -1,17 +1,18 @@
 package com.wf.wflib.round.client;
 
-import com.wf.wflib.client.flywheel.WFFlywheelEffect;
+import com.wf.wflib.fx.api.WFFlywheelEffect;
 import dev.engine_room.flywheel.api.visual.EffectVisual;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.level.LevelAccessor;
+import com.wf.wflib.round.api.client.ClientRounds;
 
 /** One per client level: draws every modelled round. */
-final class RoundsEffect implements WFFlywheelEffect {
+public final class RoundsEffect implements WFFlywheelEffect {
 
     private final ClientLevel level;
 
-    RoundsEffect(ClientLevel level) {
+    public RoundsEffect(ClientLevel level) {
         this.level = level;
     }
 

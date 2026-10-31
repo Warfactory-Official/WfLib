@@ -1,10 +1,9 @@
 package com.wf.wflib.warhead.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.entity.AgentOrangeEntity;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.AgentOrangeWarhead;
-import com.wf.wflib.warhead.WarheadCarrier;
+import com.wf.wflib.warhead.AgentOrangeEntity;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.AgentOrangeWarhead;
+import com.wf.wflib.warhead.api.WarheadCarrier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -16,11 +15,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import com.wf.wflib.core.api.WFLib;
 
 /** Spray from above a tree: canopy + trunk gone inside the footprint; ground, buried log, outside log, mob intact. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class AgentOrangeGameTest {
 
@@ -29,7 +27,7 @@ public class AgentOrangeGameTest {
     private static final int LANE_ORIGIN = 5700;
     private static final int RADIUS = 4;
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aSprayStripsTheTreeDownToTheGround(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos base = helper.absolutePos(BlockPos.ZERO).offset(0, 20, LANE_ORIGIN);

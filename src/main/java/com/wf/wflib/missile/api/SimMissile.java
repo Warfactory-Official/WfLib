@@ -1,0 +1,377 @@
+package com.wf.wflib.missile.api;
+
+import com.wf.wflib.warhead.api.Warheads;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
+
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public final class SimMissile {
+    public UUID id;
+    public Vec3 pos;
+    public Vec3 target;
+    public double simY;
+    public double speed;
+    public long lastGameTime;
+    // Reconstruction parameters (mirror MissileEntity flight state).
+    public MissileEntity.CruiseMode cruiseMode = MissileEntity.CruiseMode.TERRAIN_FOLLOW;
+    public double cruiseAltitude = 200.0;
+    public double terrainClearance = 24.0;
+    public float explosionOffset = 0.0f;
+    public double maxTurnRate = 0.0;
+    public ResourceLocation modelId = MissileModels.defaultId();
+    public ResourceLocation detonationId = Warheads.defaultId();
+    public ResourceLocation flightSoundId = null; // null = the default missile_flight loop
+    public double flightSoundRange = MissileEntity.DEFAULT_FLIGHT_SOUND_RANGE;
+    public float flightSoundBasePitch = 1.0f;
+    public double flightSoundSpeedPitch = 0.0;
+    public ResourceLocation ascentStageId = null;
+    public ResourceLocation cruiseStageId = null;
+    public ResourceLocation attackStageId = null;
+    public int fragmentCount = MissileEntity.DEFAULT_FRAGMENT_COUNT;
+    public int impactPreloadRadius = MissileEntity.DEFAULT_IMPACT_PRELOAD_RADIUS;
+    public int splitDepth = 0;
+    public long swarmId = 0L;
+    public UUID controlId = null;
+    public UUID teamId = null;
+    // Interception.
+    public Role role = Role.NORMAL;
+    public UUID interceptTarget = null;
+    public float interceptChance = MissileConfig.defaultInterceptChance();
+    // Propulsion & fuel (carried so an offloaded missile keeps burning down and reconstructs correctly).
+    public MissileEntity.FuelType fuelType = MissileEntity.FuelType.SOLID;
+    public int fuel = MissileConfig.defaultFuelTicks();
+    public int fuelCapacity = MissileConfig.defaultFuelTicks();
+    public double acceleration = MissileEntity.DEFAULT_ACCELERATION;
+    public double deceleration = MissileEntity.DEFAULT_DECELERATION;
+    /** Radar cross-section against a reference of 1.0; see {@link MissileEntity#getRcs}. */
+    public float rcs = 1.0f;
+    public float evasion = 0.0f;
+    public boolean commander = false;
+    public Vec3 formationOffset = Vec3.ZERO;
+
+    // approach side
+    public Vec3 attackApproachDir = null;
+    public AttackProfile attackProfile = AttackProfile.SPEED;
+    public double approachJoinCap = MissileEntity.DEFAULT_APPROACH_JOIN_CAP;
+    public final List<SimMissile> swarmMembers = new ArrayList<>();
+    /** Entity NBT at offload; null = synthetic record (orbital drop, sim interceptor), built from the fields. */
+    @Nullable
+    public CompoundTag body;
+    /** Position before this tick's advance; transient. */
+    public Vec3 prevPos;
+
+    public static SimMissile fromEntity(MissileEntity m) {
+        SimMissile sm = new SimMissile();
+        sm.id = m.getUUID();
+        sm.pos = m.position();
+        sm.target = m.flight().getTarget();
+        sm.simY = m.getY();
+        sm.speed = m.flight().getCruiseSpeed();
+        sm.lastGameTime = m.level().getGameTime();
+        sm.cruiseMode = m.flight().getCruiseMode();
+        sm.cruiseAltitude = m.flight().getCruiseAltitude();
+        sm.terrainClearance = m.flight().getTerrainClearance();
+        sm.explosionOffset = m.fuze().getExplosionOffset();
+        sm.maxTurnRate = m.flight().getMaxTurnRate();
+        sm.modelId = m.getModelId();
+        sm.detonationId = m.fuze().getDetonationId();
+        sm.flightSoundId = m.getFlightSoundId();
+        sm.flightSoundRange = m.getFlightSoundRange();
+        sm.flightSoundBasePitch = m.getFlightSoundBasePitch();
+        sm.flightSoundSpeedPitch = m.getFlightSoundSpeedPitch();
+        sm.ascentStageId = m.flight().getAscentStageId();
+        sm.cruiseStageId = m.flight().getCruiseStageId();
+        sm.attackStageId = m.flight().getAttackStageId();
+        sm.fragmentCount = m.getFragmentCount();
+        sm.impactPreloadRadius = m.fuze().getImpactPreloadRadius();
+        sm.splitDepth = m.swarm().getSplitDepth();
+        sm.swarmId = m.swarm().getSwarmId();
+        sm.controlId = m.getControlId();
+        sm.teamId = m.getTeamId();
+        sm.interceptChance = m.interceptor().getChance();
+        sm.fuelType = m.motor().getFuelType();
+        sm.fuel = m.motor().getFuel();
+        sm.fuelCapacity = m.motor().getFuelCapacity();
+        sm.acceleration = m.motor().getAcceleration();
+        sm.deceleration = m.motor().getDeceleration();
+        sm.rcs = m.signature().getRcs();
+        sm.evasion = m.signature().getEvasion();
+        sm.commander = m.swarm().isCommander();
+        sm.attackApproachDir = m.flight().getAttackApproachDir();
+        sm.attackProfile = m.flight().getAttackProfile();
+        sm.approachJoinCap = m.flight().getApproachJoinCap();
+        sm.role = Role.NORMAL;
+        sm.body = m.saveWithoutId(new CompoundTag());
+        return sm;
+    }
+
+    public static SimMissile load(CompoundTag tag) {
+        SimMissile sm = new SimMissile();
+        sm.id = tag.getUUID("Id");
+        sm.pos = getVec(tag, "Pos");
+        sm.target = getVec(tag, "Target");
+        sm.simY = tag.getDouble("SimY");
+        sm.speed = tag.getDouble("Speed");
+        sm.lastGameTime = tag.getLong("LastGameTime");
+        try {
+            sm.cruiseMode = MissileEntity.CruiseMode.valueOf(tag.getString("CruiseMode"));
+        } catch (IllegalArgumentException ignored) {
+        }
+        sm.cruiseAltitude = tag.getDouble("CruiseAltitude");
+        sm.terrainClearance = tag.getDouble("TerrainClearance");
+        sm.explosionOffset = tag.getFloat("ExplosionOffset");
+        sm.maxTurnRate = tag.getDouble("MaxTurnRate");
+        sm.modelId = MissileModels.parse(tag.getString("ModelId"));
+        if (tag.contains("DetonationId")) {
+            sm.detonationId = Warheads.parse(tag.getString("DetonationId"));
+        }
+        if (tag.contains("FlightSound")) {
+            sm.flightSoundId = ResourceLocation.tryParse(tag.getString("FlightSound"));
+        }
+        if (tag.contains("FlightSoundRange")) {
+            sm.flightSoundRange = tag.getDouble("FlightSoundRange");
+        }
+        if (tag.contains("FlightSoundBasePitch")) {
+            sm.flightSoundBasePitch = tag.getFloat("FlightSoundBasePitch");
+        }
+        if (tag.contains("FlightSoundSpeedPitch")) {
+            sm.flightSoundSpeedPitch = tag.getDouble("FlightSoundSpeedPitch");
+        }
+        if (tag.contains("AscentStage")) {
+            sm.ascentStageId = FlightStages.parse(MissileEntity.Phase.ASCEND, tag.getString("AscentStage"));
+        }
+        if (tag.contains("CruiseStage")) {
+            sm.cruiseStageId = FlightStages.parse(MissileEntity.Phase.CRUISE, tag.getString("CruiseStage"));
+        }
+        if (tag.contains("AttackStage")) {
+            sm.attackStageId = FlightStages.parse(MissileEntity.Phase.ATTACK, tag.getString("AttackStage"));
+        }
+        if (tag.contains("FragmentCount")) {
+            sm.fragmentCount = tag.getInt("FragmentCount");
+        }
+        if (tag.contains("ImpactPreloadRadius")) {
+            sm.impactPreloadRadius = tag.getInt("ImpactPreloadRadius");
+        }
+        if (tag.contains("SplitDepth")) {
+            sm.splitDepth = tag.getInt("SplitDepth");
+        }
+        sm.swarmId = tag.getLong("SwarmId");
+        if (tag.hasUUID("ControlId")) {
+            sm.controlId = tag.getUUID("ControlId");
+        }
+        if (tag.hasUUID("TeamId")) {
+            sm.teamId = tag.getUUID("TeamId");
+        }
+        try {
+            sm.role = Role.valueOf(tag.getString("Role"));
+        } catch (IllegalArgumentException ignored) {
+        }
+        if (tag.hasUUID("InterceptTarget")) {
+            sm.interceptTarget = tag.getUUID("InterceptTarget");
+        }
+        if (tag.contains("InterceptChance")) {
+            sm.interceptChance = tag.getFloat("InterceptChance");
+        }
+        if (tag.contains("FuelType")) {
+            try {
+                sm.fuelType = MissileEntity.FuelType.valueOf(tag.getString("FuelType"));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        if (tag.contains("Fuel")) {
+            sm.fuel = tag.getInt("Fuel");
+        }
+        if (tag.contains("FuelCapacity")) {
+            sm.fuelCapacity = tag.getInt("FuelCapacity");
+        }
+        if (tag.contains("Acceleration")) {
+            sm.acceleration = tag.getDouble("Acceleration");
+        }
+        if (tag.contains("Deceleration")) {
+            sm.deceleration = tag.getDouble("Deceleration");
+        }
+        // Records saved before the cross-section conversion carry a boolean; read it as the equivalent.
+        sm.rcs = tag.contains("Rcs") ? tag.getFloat("Rcs")
+                : (tag.getBoolean("Stealth") ? MissileConfig.stealthRcs() : 1.0f);
+        if (tag.contains("Evasion")) {
+            sm.evasion = tag.getFloat("Evasion");
+        }
+        sm.commander = tag.getBoolean("Commander");
+        sm.formationOffset = getVec(tag, "FormationOffset");
+        if (tag.contains("AttackApproachX")) {
+            sm.attackApproachDir = new Vec3(tag.getDouble("AttackApproachX"), 0.0, tag.getDouble("AttackApproachZ"));
+        }
+        if (tag.contains("AttackProfile")) {
+            sm.attackProfile = com.wf.wflib.missile.api.AttackProfile.byName(tag.getString("AttackProfile"));
+        }
+        if (tag.contains("ApproachJoinCap")) {
+            sm.approachJoinCap = tag.getDouble("ApproachJoinCap");
+        }
+        sm.body = tag.contains("Body") ? tag.getCompound("Body") : null;
+        if (tag.contains("SwarmMembers")) {
+            ListTag memberList = tag.getList("SwarmMembers", Tag.TAG_COMPOUND);
+            for (int i = 0; i < memberList.size(); i++) {
+                sm.swarmMembers.add(load(memberList.getCompound(i)));
+            }
+        }
+        return sm;
+    }
+
+    private static void putVec(CompoundTag tag, String key, Vec3 v) {
+        tag.putDouble(key + "X", v.x);
+        tag.putDouble(key + "Y", v.y);
+        tag.putDouble(key + "Z", v.z);
+    }
+
+    private static Vec3 getVec(CompoundTag tag, String key) {
+        return new Vec3(tag.getDouble(key + "X"), tag.getDouble(key + "Y"), tag.getDouble(key + "Z"));
+    }
+
+    public MissileEntity toEntity(ServerLevel level, Vec3 spawnPos) {
+        if (this.body != null) {
+            MissileEntity m = new MissileEntity(MissileContent.STEALTH_MISSILE.get(), level);
+            m.load(this.body);
+            m.motor().setFuel(this.fuel);
+            m.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, m.getYRot(), m.getXRot());
+            return m;
+        }
+        MissileBuilder b = MissileEntity.builder(MissileContent.STEALTH_MISSILE.get(), level)
+                .target(this.target);
+        if (this.cruiseMode == MissileEntity.CruiseMode.HIGH_ALTITUDE) {
+            b.highAltitude(this.cruiseAltitude);
+        } else {
+            b.terrainFollow(this.terrainClearance);
+        }
+        b.explosionOffset(this.explosionOffset)
+                .turnRate(this.maxTurnRate)
+                .cruiseSpeed(this.speed)
+                .model(this.modelId)
+                .detonation(this.detonationId)
+                .ascentStage(this.ascentStageId)
+                .cruiseStage(this.cruiseStageId)
+                .attackStage(this.attackStageId)
+                .fragmentCount(this.fragmentCount)
+                .impactPreloadRadius(this.impactPreloadRadius)
+                .splitDepth(this.splitDepth)
+                .swarmId(this.swarmId)
+                .commander(this.commander)
+                .controlId(this.controlId)
+                .teamId(this.teamId)
+                .fuel(this.fuelType, this.fuel) // preserve remaining fuel across the offload/respawn
+                .acceleration(this.acceleration)
+                .deceleration(this.deceleration)
+                .rcs(this.rcs)
+                .evasion(this.evasion)
+                .startInCruise()
+                .startArmed(); // a simulated missile has already flown clear of its launcher
+
+        if (this.role == Role.INTERCEPTOR && this.interceptTarget != null) {
+            b.interceptor(true).lockTarget(this.interceptTarget).interceptChance(this.interceptChance);
+        }
+
+        if (this.attackApproachDir != null) {
+            b.attackFrom(this.attackApproachDir.x, this.attackApproachDir.z);
+        }
+        b.attackProfile(this.attackProfile);
+        b.approachJoinCap(this.approachJoinCap);
+
+        if (this.flightSoundId != null) {
+            b.flightSound(this.flightSoundId);
+        }
+        b.flightSoundRange(this.flightSoundRange)
+                .flightSoundBasePitch(this.flightSoundBasePitch)
+                .flightSoundSpeedPitch(this.flightSoundSpeedPitch);
+
+        MissileEntity m = b.build();
+        m.setUUID(this.id);
+        m.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, m.getYRot(), m.getXRot());
+        return m;
+    }
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+        tag.putUUID("Id", id);
+        putVec(tag, "Pos", pos);
+        putVec(tag, "Target", target);
+        tag.putDouble("SimY", simY);
+        tag.putDouble("Speed", speed);
+        tag.putLong("LastGameTime", lastGameTime);
+        tag.putString("CruiseMode", cruiseMode.name());
+        tag.putDouble("CruiseAltitude", cruiseAltitude);
+        tag.putDouble("TerrainClearance", terrainClearance);
+        tag.putFloat("ExplosionOffset", explosionOffset);
+        tag.putDouble("MaxTurnRate", maxTurnRate);
+        tag.putString("ModelId", modelId.toString());
+        tag.putString("DetonationId", detonationId.toString());
+        if (flightSoundId != null) {
+            tag.putString("FlightSound", flightSoundId.toString());
+        }
+        tag.putDouble("FlightSoundRange", flightSoundRange);
+        tag.putFloat("FlightSoundBasePitch", flightSoundBasePitch);
+        tag.putDouble("FlightSoundSpeedPitch", flightSoundSpeedPitch);
+        if (ascentStageId != null) {
+            tag.putString("AscentStage", ascentStageId.toString());
+        }
+        if (cruiseStageId != null) {
+            tag.putString("CruiseStage", cruiseStageId.toString());
+        }
+        if (attackStageId != null) {
+            tag.putString("AttackStage", attackStageId.toString());
+        }
+        tag.putInt("FragmentCount", fragmentCount);
+        tag.putInt("ImpactPreloadRadius", impactPreloadRadius);
+        tag.putInt("SplitDepth", splitDepth);
+        tag.putLong("SwarmId", swarmId);
+        if (controlId != null) {
+            tag.putUUID("ControlId", controlId);
+        }
+        if (teamId != null) {
+            tag.putUUID("TeamId", teamId);
+        }
+        tag.putString("Role", role.name());
+        if (interceptTarget != null) {
+            tag.putUUID("InterceptTarget", interceptTarget);
+        }
+        tag.putFloat("InterceptChance", interceptChance);
+        tag.putString("FuelType", fuelType.name());
+        tag.putInt("Fuel", fuel);
+        tag.putInt("FuelCapacity", fuelCapacity);
+        tag.putDouble("Acceleration", acceleration);
+        tag.putDouble("Deceleration", deceleration);
+        tag.putFloat("Rcs", rcs);
+        tag.putFloat("Evasion", evasion);
+        tag.putBoolean("Commander", commander);
+        putVec(tag, "FormationOffset", formationOffset);
+        if (attackApproachDir != null) {
+            tag.putDouble("AttackApproachX", attackApproachDir.x);
+            tag.putDouble("AttackApproachZ", attackApproachDir.z);
+        }
+        tag.putString("AttackProfile", attackProfile.name());
+        tag.putDouble("ApproachJoinCap", approachJoinCap);
+        if (body != null) {
+            tag.put("Body", body);
+        }
+        if (!swarmMembers.isEmpty()) {
+            ListTag memberList = new ListTag();
+            for (SimMissile mem : swarmMembers) {
+                memberList.add(mem.save());
+            }
+            tag.put("SwarmMembers", memberList);
+        }
+        return tag;
+    }
+
+    public enum Role {
+        NORMAL,
+        INTERCEPTOR
+    }
+}

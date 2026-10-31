@@ -1,6 +1,6 @@
 package com.wf.wflib.drone.nav;
 
-import com.wf.wflib.drone.WorldThread;
+import com.wf.wflib.core.api.WorldThread;
 import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -12,6 +12,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.wf.wflib.drone.api.TerrainField;
 
 /** Per-dimension store of coarse terrain heights, and the only place a {@link TerrainField} is made. */
 public final class TerrainCache {

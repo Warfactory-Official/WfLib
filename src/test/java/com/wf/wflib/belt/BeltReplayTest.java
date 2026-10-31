@@ -14,11 +14,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import com.wf.wflib.belt.api.BeltProbe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * In-game belt captures ({@code /ma belt record}, {@code /ma belt dump}) replayed through {@link BeltChain}: {@code
+ * In-game belt captures replayed through {@link BeltChain}: {@code
  * -PbeltReplay=<file>} prints every erratic frame; {@code src/test/resources/belt/*.jsonl} = regressions, none erratic.
  */
 class BeltReplayTest {

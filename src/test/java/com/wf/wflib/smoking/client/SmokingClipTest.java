@@ -1,6 +1,6 @@
 package com.wf.wflib.smoking.client;
 
-import com.wf.wflib.client.view.HandClip;
+import com.wf.wflib.view.api.HandClip;
 import com.wf.wflib.smoking.SmokingTimeline;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;

@@ -1,9 +1,11 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.anomaly.site.AnomalyCaves.Slot;
-import com.wf.wflib.anomaly.site.AnomalyMix.Loot;
+import com.wf.wflib.anomaly.api.AnomalyCaves.Slot;
+import com.wf.wflib.anomaly.api.AnomalyMix.Loot;
 import net.minecraft.util.RandomSource;
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.anomaly.api.AnomalyMix;
+import com.wf.wflib.anomaly.api.CavePlan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

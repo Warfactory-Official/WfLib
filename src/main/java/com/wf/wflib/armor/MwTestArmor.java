@@ -5,6 +5,8 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ArmorItem;
 
 import java.util.Map;
+import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.armor.api.ProtectionType;
 
 /**
  * Dev-only test pieces: Modular Warfare archive models ({@code modular-archive-gltf}) via GemRender.

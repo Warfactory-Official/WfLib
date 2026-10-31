@@ -1,0 +1,10 @@
+{
+    "vertex": "wflib:suppress_blit",
+    "fragment": "wflib:suppress_vignette",
+    "samplers": [
+        
+    ],
+    "uniforms": [
+        { "name": "Strength", "type": "float", "count": 1, "values": [ 0.0 ] }
+    ]
+}

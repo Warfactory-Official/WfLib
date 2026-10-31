@@ -1,8 +1,8 @@
 package com.wf.wflib.drone.ai.state;
 
-import com.wf.wflib.drone.DroneState;
-import com.wf.wflib.drone.ai.DroneAction;
-import com.wf.wflib.drone.ai.DroneSnapshot;
+import com.wf.wflib.drone.api.DroneState;
+import com.wf.wflib.drone.api.DroneAction;
+import com.wf.wflib.drone.api.DroneSnapshot;
 import com.wf.wflib.drone.ai.PowerPolicy;
 
 import java.util.List;

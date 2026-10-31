@@ -1,8 +1,8 @@
 package com.wf.wflib.orbital.payload;
 
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.grid.GridNode;
-import com.wf.wflib.recon.grid.ReconGrid;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.GridNode;
+import com.wf.wflib.recon.api.ReconGrid;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;

@@ -3,24 +3,22 @@ package com.wf.wflib.round.gametest;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.ProjectileStrikeEvent;
-import com.wf.wflib.api.StrikeContext;
-import com.wf.wflib.armor.ArmorPreset;
-import com.wf.wflib.armor.ArmorProfiles;
-import com.wf.wflib.armor.ArmorStacks;
-import com.wf.wflib.item.ModItems;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.DeferredImpact;
+import com.wf.wflib.damage.api.event.ProjectileStrikeEvent;
+import com.wf.wflib.damage.api.StrikeContext;
+import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.armor.api.ArmorProfiles;
+import com.wf.wflib.armor.api.ArmorStacks;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.DeferredImpact;
 import com.wf.wflib.round.DeferredImpacts;
-import com.wf.wflib.round.RoundEnd;
-import com.wf.wflib.round.Rounds;
-import com.wf.wflib.round.effect.ImpactContext;
-import com.wf.wflib.round.effect.ImpactEffects;
-import com.wf.wflib.round.effect.ImpactTrigger;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.round.api.RoundEnd;
+import com.wf.wflib.round.api.Rounds;
+import com.wf.wflib.round.api.ImpactContext;
+import com.wf.wflib.round.api.ImpactEffects;
+import com.wf.wflib.round.api.ImpactTrigger;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
@@ -40,7 +38,6 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -50,59 +47,60 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.wf.wflib.armor.api.ArmorContent;
+import com.wf.wflib.core.api.WFLib;
 
 /** Impact effects: every trigger once in order, each built-in, energy-scaled armour pen, thermal pen + wear. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class ImpactEffectGameTest {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String TEMPLATE = "empty";
-    private static final ResourceLocation INERT = WarheadRegistry.rl("inert");
+    private static final ResourceLocation INERT = Warheads.rl("inert");
     private static final ResourceLocation PROBE = ImpactEffects.rl("test_probe");
     private static final List<ImpactContext> PROBED = new CopyOnWriteArrayList<>();
     private static final List<ProjectileStrikeEvent> STRIKES = new CopyOnWriteArrayList<>();
     private static final List<LivingIncomingDamageEvent> HURTS = new CopyOnWriteArrayList<>();
 
-    private static final ResourceLocation ALL_TRIGGERS = KineticPresetRegistry.rl("test_fx_all_triggers");
-    private static final ResourceLocation SHORT_LIFE = KineticPresetRegistry.rl("test_fx_short_life");
-    private static final ResourceLocation IGNITE_HIT = KineticPresetRegistry.rl("test_fx_ignite_hit");
-    private static final ResourceLocation IGNITE_BLOCK = KineticPresetRegistry.rl("test_fx_ignite_block");
-    private static final ResourceLocation DAMAGE_HIT = KineticPresetRegistry.rl("test_fx_damage_hit");
-    private static final ResourceLocation EXPLODE_BLOCK = KineticPresetRegistry.rl("test_fx_explode_block");
-    private static final ResourceLocation PLAIN = KineticPresetRegistry.rl("test_fx_plain");
-    private static final ResourceLocation THERMAL = KineticPresetRegistry.rl("test_fx_thermal");
-    private static final ResourceLocation PEN = KineticPresetRegistry.rl("test_fx_energy_pen");
-    private static final ResourceLocation BENCH = KineticPresetRegistry.rl("test_fx_bench");
+    private static final ResourceLocation ALL_TRIGGERS = KineticPresets.rl("test_fx_all_triggers");
+    private static final ResourceLocation SHORT_LIFE = KineticPresets.rl("test_fx_short_life");
+    private static final ResourceLocation IGNITE_HIT = KineticPresets.rl("test_fx_ignite_hit");
+    private static final ResourceLocation IGNITE_BLOCK = KineticPresets.rl("test_fx_ignite_block");
+    private static final ResourceLocation DAMAGE_HIT = KineticPresets.rl("test_fx_damage_hit");
+    private static final ResourceLocation EXPLODE_BLOCK = KineticPresets.rl("test_fx_explode_block");
+    private static final ResourceLocation PLAIN = KineticPresets.rl("test_fx_plain");
+    private static final ResourceLocation THERMAL = KineticPresets.rl("test_fx_thermal");
+    private static final ResourceLocation PEN = KineticPresets.rl("test_fx_energy_pen");
+    private static final ResourceLocation BENCH = KineticPresets.rl("test_fx_bench");
     private static final double RIFLE = 40.0;
     private static final double PEN_SPEED = 40.0;
     private static final float PEN_MM = 100.0f;
 
-    static {
+    public static void register() {
         ImpactEffects.register(PROBE, PROBED::add);
         KineticPreset.Builder all = rifle(ALL_TRIGGERS).blockPen(10.0).passesThroughEntities();
         for (ImpactTrigger t : ImpactTrigger.VALUES) {
             all.effect(PROBE, t, 1.0, new JsonObject());
         }
-        KineticPresetRegistry.registerItemless(all.build());
-        KineticPresetRegistry.registerItemless(slow(SHORT_LIFE).life(2).effect(PROBE, ImpactTrigger.END, 1.0, new JsonObject())
+        KineticPresets.registerItemless(all.build());
+        KineticPresets.registerItemless(slow(SHORT_LIFE).life(2).effect(PROBE, ImpactTrigger.END, 1.0, new JsonObject())
                 .build());
-        KineticPresetRegistry.registerItemless(slow(IGNITE_HIT).effect(ImpactEffects.IGNITE, ImpactTrigger.HIT, 1.0,
+        KineticPresets.registerItemless(slow(IGNITE_HIT).effect(ImpactEffects.IGNITE, ImpactTrigger.HIT, 1.0,
                 json("{\"seconds\": 4}")).build());
-        KineticPresetRegistry.registerItemless(slow(IGNITE_BLOCK).effect(ImpactEffects.IGNITE, ImpactTrigger.BLOCK, 1.0,
+        KineticPresets.registerItemless(slow(IGNITE_BLOCK).effect(ImpactEffects.IGNITE, ImpactTrigger.BLOCK, 1.0,
                 new JsonObject()).build());
-        KineticPresetRegistry.registerItemless(slow(DAMAGE_HIT).effect(ImpactEffects.DAMAGE, ImpactTrigger.HIT, 1.0,
+        KineticPresets.registerItemless(slow(DAMAGE_HIT).effect(ImpactEffects.DAMAGE, ImpactTrigger.HIT, 1.0,
                 json("{\"type\": \"minecraft:in_fire\", \"amount\": 3}")).build());
-        KineticPresetRegistry.registerItemless(slow(EXPLODE_BLOCK).effect(ImpactEffects.EXPLODE, ImpactTrigger.BLOCK, 1.0,
+        KineticPresets.registerItemless(slow(EXPLODE_BLOCK).effect(ImpactEffects.EXPLODE, ImpactTrigger.BLOCK, 1.0,
                 json("{\"warhead\": \"wflib:standard\", \"size\": 3}")).build());
-        KineticPresetRegistry.registerItemless(slow(PLAIN).impactDamage(30.0).armorPenetration(20.0).build());
-        KineticPresetRegistry.registerItemless(slow(THERMAL).impactDamage(30.0).armorPenetration(20.0)
+        KineticPresets.registerItemless(slow(PLAIN).impactDamage(30.0).armorPenetration(20.0).build());
+        KineticPresets.registerItemless(slow(THERMAL).impactDamage(30.0).armorPenetration(20.0)
                 .effect(ImpactEffects.THERMAL, ImpactTrigger.HIT, 1.0, json("{\"pen\": 30, \"wear\": 3}")).build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(PEN, null, INERT).speed(PEN_SPEED).drag(0.02)
+        KineticPresets.registerItemless(KineticPreset.builder(PEN, null, INERT).speed(PEN_SPEED).drag(0.02)
                 .gravity(0.0).life(400).mass(0.0095).energyDamage(1.0e-4).caliber(7.62).armorPenetration(PEN_MM)
                 .passesThroughEntities().noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(rifle(BENCH).armorPenetration(10.0).passesThroughEntities().build());
+        KineticPresets.registerItemless(rifle(BENCH).armorPenetration(10.0).passesThroughEntities().build());
     }
 
     private static JsonObject json(String s) {
@@ -134,7 +132,7 @@ public class ImpactEffectGameTest {
      * Husk, plank, stone on one line: HIT, PIERCE_IN + PIERCE_OUT (plank), PIERCE_IN (stone), BLOCK, END, in that
      * order, each carrying its own point and velocity.
      */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void everyTriggerFiresOnceInFlightOrder(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinnedHusk(level, centre(helper, 7.0));
@@ -143,7 +141,7 @@ public class ImpactEffectGameTest {
         level.setBlockAndUpdate(plank, Blocks.OAK_PLANKS.defaultBlockState());
         level.setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
         PROBED.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(ALL_TRIGGERS), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(ALL_TRIGGERS), centre(helper, 5.0),
                 new Vec3(0.0, RIFLE, 0.0), null, null);
         boolean flying = Rounds.step(level, key);
         List<ImpactContext> mine = PROBED.stream().filter(c -> Long.valueOf(key).equals(c.key())).toList();
@@ -177,7 +175,7 @@ public class ImpactEffectGameTest {
      * unloaded; a round expiring in its air: no END); once it loads the deferred impact fires BLOCK then END, once
      * each, at the stop point.
      */
-    @GameTest(template = TEMPLATE, batch = "wflib_virtual", timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = "wflib_virtual", timeoutTicks = 2000)
     public static void unloadedGroundOwesItsEffectsToTheChunk(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -205,11 +203,11 @@ public class ImpactEffectGameTest {
                 .thenExecute(() -> {
                     helper.assertTrue(level.getChunkSource().getChunkNow(chunk.x, chunk.z) == null, "setup: loaded");
                     PROBED.clear();
-                    long key = Rounds.launch(level, KineticPresetRegistry.get(ALL_TRIGGERS), start,
+                    long key = Rounds.launch(level, KineticPresets.get(ALL_TRIGGERS), start,
                             new Vec3(0.0, -RIFLE, 0.0), null, null);
                     for (int n = 0; n < 10 && Rounds.step(level, key); n++) {
                     }
-                    long expiring = Rounds.launch(level, KineticPresetRegistry.get(SHORT_LIFE),
+                    long expiring = Rounds.launch(level, KineticPresets.get(SHORT_LIFE),
                             new Vec3(x + 0.5, 200.0, z + 0.5), new Vec3(3.0, 0.0, 0.0), null, null);
                     for (int n = 0; n < 10 && Rounds.step(level, expiring); n++) {
                     }
@@ -243,11 +241,11 @@ public class ImpactEffectGameTest {
     }
 
     /** Clear flight, destroyed: END only. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aClearFlightFiresOnlyItsEnd(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         PROBED.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(ALL_TRIGGERS), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(ALL_TRIGGERS), centre(helper, 5.0),
                 new Vec3(0.0, RIFLE, 0.0), null, null);
         Rounds.step(level, key);
         Rounds.destroy(level, key);
@@ -256,7 +254,7 @@ public class ImpactEffectGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void igniteSetsTheTargetAlight(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinnedHusk(level, centre(helper, 8.0));
@@ -269,7 +267,7 @@ public class ImpactEffectGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void igniteLightsTheOpenSideOfTheBlock(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos floor = BlockPos.containing(centre(helper, 10.0));
@@ -285,12 +283,12 @@ public class ImpactEffectGameTest {
     }
 
     /** Server-start check: shipped refs pass; an unknown damage type or warhead fails, both named. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void unknownRegistryRefsFailTheStartCheck(GameTestHelper helper) {
         RegistryAccess registries = helper.getLevel().registryAccess();
-        ImpactEffects.check(List.of(KineticPresetRegistry.get(DAMAGE_HIT), KineticPresetRegistry.get(EXPLODE_BLOCK)),
+        ImpactEffects.check(List.of(KineticPresets.get(DAMAGE_HIT), KineticPresets.get(EXPLODE_BLOCK)),
                 registries);
-        KineticPreset bad = slow(KineticPresetRegistry.rl("test_fx_unregistered_refs"))
+        KineticPreset bad = slow(KineticPresets.rl("test_fx_unregistered_refs"))
                 .effect(ImpactEffects.DAMAGE, ImpactTrigger.HIT, 1.0,
                         json("{\"type\": \"minecraft:no_such_type\", \"amount\": 1}"))
                 .effect(ImpactEffects.EXPLODE, ImpactTrigger.BLOCK, 1.0, json("{\"warhead\": \"wflib:no_such_warhead\"}"))
@@ -307,7 +305,7 @@ public class ImpactEffectGameTest {
     }
 
     /** Round (physical) then the effect's in_fire 3, i-frames ignored. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void damageAddsItsTypedHit(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinnedHusk(level, centre(helper, 8.0));
@@ -324,7 +322,7 @@ public class ImpactEffectGameTest {
     }
 
     /** Inert round, explode effect {wflib:standard, size 3} on the planks it stops on. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100)
     public static void explodeBlowsAHoleWhereItStops(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos floor = BlockPos.containing(centre(helper, 10.0));
@@ -342,7 +340,7 @@ public class ImpactEffectGameTest {
     }
 
     /** Muzzle strike: plain threat pen 20; thermal 20 + 30, wear x3. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void thermalAddsPenToTheThreat(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         float[] pen = new float[2];
@@ -367,7 +365,7 @@ public class ImpactEffectGameTest {
     }
 
     /** Same 30-damage round into a plate carrier + steel plate: the thermal one costs the plate 3x. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void thermalWearsThePlateFaster(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         int[] lost = new int[2];
@@ -379,7 +377,7 @@ public class ImpactEffectGameTest {
             ArmorStacks.setInserts(carrier, List.of(armour("steel_plate")));
             v.setItemSlot(EquipmentSlot.CHEST, carrier);
             int before = plate(v);
-            long key = Rounds.launch(level, KineticPresetRegistry.get(ids[k]),
+            long key = Rounds.launch(level, KineticPresets.get(ids[k]),
                     v.position().add(1.4, 1.0, 0.0), new Vec3(-4.0, 0.0, 0.0), null, null);
             Rounds.step(level, key);
             Rounds.destroy(level, key);
@@ -394,13 +392,13 @@ public class ImpactEffectGameTest {
 
     /**
      * {@code armorPenetrationMm} x {@code |v|^2 / v0^2}: velocity after 0/500/1000 blocks of real flight (drag 0.02,
-     * above the build limit), then a strike at that velocity. Pen read where CombinedAssault's {@code Ballistics.resolve} reads
+     * above the build limit), then a strike at that velocity. Pen read where a vehicle hit resolver reads
      * it: {@code StrikeContext.of(damage source)}; strike event agrees.
      */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void armourPenFallsWithImpactEnergy(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
-        KineticPreset preset = KineticPresetRegistry.get(PEN);
+        KineticPreset preset = KineticPresets.get(PEN);
         Vec3 start = new Vec3(centre(helper, 0.0).x, 2000.0, centre(helper, 0.0).z);
         long flight = Rounds.launch(level, preset, start, new Vec3(PEN_SPEED, 0.0, 0.0), null, null);
         double[] marks = {0.0, 500.0, 1000.0};
@@ -456,10 +454,10 @@ public class ImpactEffectGameTest {
      * Step cost of effect-free rounds, 2000 x launch+step+destroy, best of 31, 3 passes: clear, into a pinned husk
      * (pass-through), into stone. Logs only.
      */
-    @GameTest(template = TEMPLATE, required = false, batch = "wflib_fx_bench", timeoutTicks = 400)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, required = false, batch = "wflib_fx_bench", timeoutTicks = 400)
     public static void effectFreeStepCost(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
-        KineticPreset plain = KineticPresetRegistry.get(BENCH);
+        KineticPreset plain = KineticPresets.get(BENCH);
         StringBuilder out = new StringBuilder();
         BlockPos wall = BlockPos.containing(centre(helper, 12.0));
         String[] cases = {"clear", "husk", "stone"};
@@ -496,7 +494,7 @@ public class ImpactEffectGameTest {
     // --- fixtures -----------------------------------------------------------------------------
 
     private static long downOnto(ServerLevel level, GameTestHelper helper, ResourceLocation preset, double from) {
-        return Rounds.launch(level, KineticPresetRegistry.get(preset), centre(helper, from),
+        return Rounds.launch(level, KineticPresets.get(preset), centre(helper, from),
                 new Vec3(0.0, -4.0, 0.0), null, null);
     }
 
@@ -511,7 +509,7 @@ public class ImpactEffectGameTest {
     }
 
     private static ItemStack armour(String preset) {
-        return new ItemStack(ModItems.armorItem(ArmorPreset.rl(preset)));
+        return new ItemStack(ArmorContent.item(ArmorPreset.rl(preset)));
     }
 
     private static int plate(LivingEntity v) {

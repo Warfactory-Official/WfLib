@@ -1,6 +1,6 @@
 package com.wf.wflib.drone.ai;
 
-import com.wf.wflib.drone.flight.Airframe;
+import com.wf.wflib.geom.api.flight.Airframe;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 

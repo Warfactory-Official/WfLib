@@ -28,12 +28,12 @@ Unguided round (bullet, shell, bomb) with no entity: `round/Rounds`, one struct-
   `RoundDamageSource`, a `StrikeContext` (threat, travel, key, `parts()`) and AHF `AhfHitSource` (swept segment,
   tick; `LIVE` = unrewound; `hitPart` = first part => AHF pierced list = one part, read `parts()`). Armour/hit code
   reads `StrikeContext.of(source)`.
-- Headshot factor: `ArmorSystem.resolutionClaimed(victim)` (claimed players, `claimResolution` predicates) => 1;
+- Headshot factor: `ArmorResolution.resolutionClaimed(victim)` (`PLAYER_RESOLUTION` hook, `BODY_CLAIMS`) => 1;
   parts => `parts[0] == HEAD`; no parts => eye height +- 0.25 at the swept tick.
-- Pierce: preset `pierceDT/DR` on `RoundDamageSource`; `ArmorSystem.pierceDT/DR(source)` = the round's, else the
+- Pierce: preset `pierceDT/DR` on `RoundDamageSource`; `ArmorResolution.pierceDT/DR(source)` = the round's, else the
   thread context (`DamageResistanceHandler.setup`), which rounds never touch => damage nested in the hit keeps the
   outer context.
-- WFLib-owned armour (`ArmorSystem.onIncomingDamage`): parts => `resolveSlot(slotFor(parts[0]))`; else coverage
+- WFLib-owned armour (`ArmorResolution.onIncomingDamage`): parts => `resolveSlot(slotFor(parts[0]))`; else coverage
   weighted.
 - Wire (`rounds-6`; 1.4.0 `LOST` -> `DEFERRED`; 1.5.0 + pierces; 1.8.16 + ricochets): one `RoundPacket` per player
   per tick: spawns grouped by preset (+ shooter id, seq, both varint `+1`; ricochet count byte), ends (key, position as
@@ -296,7 +296,7 @@ decides (`ProjectileStrikeEvent`).
   | `wflib:thermal` | `pen` mm (0), `wear` x (1) | `hit` only: threat `penetrationMm + pen`, `wearFactor x wear` |
   | `wflib:mob_effect` | `effect` (unregistered => server start refused), `seconds` (5), `amplifier` int (0) | `hit` only: living target |
 - Target systems stay separate: vehicle armour reads `Threat.penetrationMm`; WFLib armour DT/DR plus
-  `Threat.wearFactor` (plate/insert wear points x factor, ceil; `ArmorSystem` via `StrikeContext`).
+  `Threat.wearFactor` (plate/insert wear points x factor, ceil; `ArmorResolution` via `StrikeContext`).
 - Armour pen at impact (`Rounds.threat(preset, v)`, strike path): KINETIC/SMALL_ARMS `armorPenetrationMm x |v|^2 /
   muzzleSpeed^2` (as `blockPen`); HEAT/TANDEM_HEAT/HE and motors unscaled. `Rounds.threat(preset)` = muzzle figure
   (rocket `threat()`). Measured (`armourPenFallsWithImpactEnergy`, 100 mm, 800 m/s, drag 0.02): 0 blocks 100 mm,
@@ -304,7 +304,7 @@ decides (`ProjectileStrikeEvent`).
 
 ## 30. Loading and firing one
 
-Guns live in CombinedAssault (`com.wf.combinedassault.compat.wflib`; its `docs/vehicle-pack-format.md` §11).
+Guns live in CombinedAssault (`com.wf.combinedassault.weapon.ordnance`; its `docs/vehicle-pack-format.md` §11).
 
 ```java
 long key = Rounds.fire(level, preset, muzzle, direction, inaccuracyDegrees, carrierVelocity, shooter, factionId);
@@ -333,7 +333,7 @@ rounds with preset, tracer, local, speed). Every `ClientRounds` round, tracer or
 - `RoundArc.predict` == `Rounds` step in open air bit for bit (`anArcPredictionIsTheFlight`, `RoundArcTest`). Wet
   segments diverge (water drag not predicted).
 
-Registering: `KineticPresetRegistry.register(KineticPreset.builder(...).build())` (copy-on-write, any thread) during
+Registering: `KineticPresets.register(KineticPreset.builder(...).build())` (copy-on-write, any thread) during
 mod construction => a carryable item. Vehicle weapons register model-less presets later (no item).
 
 ## 31a. Shared ammo (`ammo/`, >= 1.8.0)

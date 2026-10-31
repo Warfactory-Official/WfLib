@@ -1,7 +1,7 @@
 package com.wf.wflib.drone.ai.state;
 
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.SquadView;
 import net.minecraft.world.phys.Vec3;
 
 /** Keeping a squad's drones off one another. */

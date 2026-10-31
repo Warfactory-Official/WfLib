@@ -1,6 +1,7 @@
 package com.wf.wflib.artifact.detect;
 
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.artifact.api.DetectorTier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

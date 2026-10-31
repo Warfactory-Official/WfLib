@@ -2,7 +2,6 @@ package com.wf.wflib.door;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.wf.wflib.WFLib;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -13,14 +12,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.Arrays;
 import java.util.Locale;
+import com.wf.wflib.door.api.DoorBlockEntity;
+import com.wf.wflib.door.api.DoorType;
 
 /** {@code /wfdoor}: build a door without placing it by hand, toggle one, and lay the whole roster out in a row. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class DoorCommands {
 
     private DoorCommands() {
@@ -100,7 +99,7 @@ public final class DoorCommands {
     }
 
     private static boolean place(ServerLevel level, BlockPos pos, Direction facing, DoorType type) {
-        Block block = ModDoors.DOORS.get(type).get();
+        Block block = DoorContent.DOORS.get(type).get();
         if (!(block instanceof DoorBlock door) || !door.hasRoom(level, pos, facing.getOpposite())) {
             return false;
         }

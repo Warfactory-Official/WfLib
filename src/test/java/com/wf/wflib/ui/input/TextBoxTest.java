@@ -2,6 +2,7 @@ package com.wf.wflib.ui.input;
 
 import org.junit.jupiter.api.Test;
 import org.lwjgl.glfw.GLFW;
+import com.wf.wflib.ui.api.input.TextBox;
 
 import static org.junit.jupiter.api.Assertions.*;
 

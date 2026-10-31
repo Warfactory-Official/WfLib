@@ -1,9 +1,9 @@
 package com.wf.wflib.rail;
 
-import com.wf.wflib.rail.align.AlignElement;
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.BuildProgress;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.BuildProgress;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.demo.FivePoints;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

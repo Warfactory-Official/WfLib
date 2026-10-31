@@ -1,8 +1,9 @@
 package com.wf.wflib.hazard.type;
 
-import com.wf.wflib.radiation.RadiationConfig;
+import com.wf.wflib.hazard.HazardConfig;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import com.wf.wflib.hazard.HazardProtection;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
+import com.wf.wflib.hazard.api.IHazardModifier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 // 1.12.2: CE-derived; 1.7's eight types (HazardRegistry:150-157) hold no cold hazard - its freeze concept is
 // environmental only (ExplosionThermo, BombThermo, EntityChemical), never a held item. Zero rows is
@@ -22,7 +24,7 @@ public class HazardTypeCold implements IHazardType {
     @Override
     public void onUpdate(LivingEntity target, double level, ItemStack stack) {
         boolean reacher = HazardProtection.isHoldingReacher(target);
-        if (RadiationConfig.disableCold || reacher) return;
+        if (HazardConfig.get().disableCold() || reacher) return;
         if (target instanceof Player && HazardProtection.checkForHazmat(target)) return;
 
         int baseLevel = (int) level - 1;

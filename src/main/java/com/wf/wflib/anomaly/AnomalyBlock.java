@@ -1,7 +1,6 @@
 package com.wf.wflib.anomaly;
 
 import com.mojang.serialization.MapCodec;
-import com.wf.wflib.block.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
@@ -17,6 +16,7 @@ import net.minecraft.world.phys.shapes.EntityCollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.anomaly.api.AnomalyContent;
 
 /** An anomaly of one {@link AnomalyType}: invisible, walk-through, targetable only by creative players (to remove it). */
 public class AnomalyBlock extends BaseEntityBlock {
@@ -69,7 +69,7 @@ public class AnomalyBlock extends BaseEntityBlock {
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
                                                                   BlockEntityType<T> type) {
-        return createTickerHelper(type, ModBlockEntities.ANOMALY.get(), level.isClientSide
+        return createTickerHelper(type, AnomalyContent.ANOMALY_BE.get(), level.isClientSide
                 ? AnomalyBlockEntity::clientTick : AnomalyBlockEntity::serverTick);
     }
 }

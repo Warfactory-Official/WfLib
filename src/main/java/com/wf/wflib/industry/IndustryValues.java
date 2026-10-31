@@ -6,6 +6,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.registries.BuiltInRegistries;
+import com.wf.wflib.core.api.WFRegistry;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -44,27 +45,34 @@ public final class IndustryValues {
             "minecraft:furnace=1",
             "minecraft:blast_furnace=2");
 
-    private static final Object2IntOpenHashMap<ResourceLocation> WHITELIST = new Object2IntOpenHashMap<>();
+    /** Code-declared rows; config rows override. */
+    public static final WFRegistry<Integer> CODE_ROWS = WFRegistry.create("industry", "industry values");
 
-    static {
-        WHITELIST.defaultReturnValue(0);
-    }
+    private static volatile Object2IntOpenHashMap<ResourceLocation> table = new Object2IntOpenHashMap<>();
+    private static volatile List<? extends String> configured = DEFAULTS;
 
     private IndustryValues() {
     }
 
-    /**
-     * Replace the whitelist from config. Called on config load/reload.
-     */
-    public static void bake(List<? extends String> entries) {
-        WHITELIST.clear();
-        for (String entry : entries) {
-            parse(entry);
-        }
-        LOGGER.debug("[wflib] industry whitelist baked with {} entries", WHITELIST.size());
+    /** Rebuild the table from the code rows and the given config rows. Called on config load. */
+    static void rebake(List<? extends String> entries) {
+        configured = entries;
+        rebuild();
     }
 
-    private static void parse(String entry) {
+    /** Rebuild after the code rows are final. */
+    static void rebuild() {
+        Object2IntOpenHashMap<ResourceLocation> next = new Object2IntOpenHashMap<>();
+        next.defaultReturnValue(0);
+        CODE_ROWS.entries().forEach(e -> next.put(e.getKey(), e.getValue().intValue()));
+        for (String entry : configured) {
+            parse(entry, next);
+        }
+        table = next;
+        LOGGER.debug("[wflib] industry whitelist baked with {} entries", next.size());
+    }
+
+    private static void parse(String entry, Object2IntOpenHashMap<ResourceLocation> into) {
         String text = entry.trim();
         if (text.isEmpty()) {
             return;
@@ -87,16 +95,7 @@ public final class IndustryValues {
             return;
         }
         if (value > 0) {
-            WHITELIST.put(id, value);
-        }
-    }
-
-    /** Register or override one block's value at runtime. */
-    public static void put(ResourceLocation id, int value) {
-        if (value > 0) {
-            WHITELIST.put(id, value);
-        } else {
-            WHITELIST.removeInt(id);
+            into.put(id, value);
         }
     }
 
@@ -109,10 +108,10 @@ public final class IndustryValues {
 
     public static int valueOf(Block block) {
         ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-        return id == null ? 0 : WHITELIST.getInt(id);
+        return id == null ? 0 : table.getInt(id);
     }
 
     public static int size() {
-        return WHITELIST.size();
+        return table.size();
     }
 }

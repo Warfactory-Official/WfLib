@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import com.wf.wflib.wiki.api.Article;
 
 /**
  * Markdown (CommonMark + GFM tables / strikethrough / task lists) with YAML front matter:

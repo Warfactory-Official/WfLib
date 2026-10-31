@@ -367,8 +367,9 @@ dependencies {
     compileOnly("maven.modrinth:xaeros-world-map:${xaero_worldmap_version}") { transitive = false }
     compileOnly("maven.modrinth:xaeros-minimap:${xaero_minimap_version}") { transitive = false }
     compileOnly fileTree('libs') { include 'xaerolib-*.jar' }
-    // wfweight (optional): backpack weight bridge, compat.wfweight.BackpackWeight
+    // wfweight (optional, ModList-gated): compat.wfweight bridges; on dev runs so they load.
     compileOnly("warfactory.ultimateweight:wfweight-1.21.1-neoforge:1.0.0-SNAPSHOT") { transitive = false }
+    localRuntime "warfactory.ultimateweight:wfweight-1.21.1-neoforge:1.0.0-SNAPSHOT@jar" // shaded (snakeyaml); module runtime variant = -dev jar without it
     if (project.hasProperty('xaero')) {
         localRuntime("maven.modrinth:xaeros-world-map:${xaero_worldmap_version}") { transitive = false }
         localRuntime("maven.modrinth:xaeros-minimap:${xaero_minimap_version}") { transitive = false }
@@ -416,6 +417,7 @@ dependencies {
     testImplementation platform("org.junit:junit-bom:${junit_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
 
     // --- Other compile-only integrations (disabled until their 1.21.1 coordinates are confirmed) ---
     // TODO(port): Registrate 1.21.1
@@ -453,6 +455,41 @@ var generateModMetadata = tasks.register('generateModMetadata', ProcessResources
 }
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
+
+// native/*.zig -> natives/<platform>/: `zig` (0.16) on PATH or -Pzig=<path>; -PnativeSymbols keeps symbols. x64: x86-64-v2 + AVX2 (v3), picked at load.
+def nativeTargets = [
+        ['linux-x64', 'x86_64-linux-gnu', 'x86_64_v2', 'libwfnarrow.so'],
+        ['linux-x64', 'x86_64-linux-gnu', 'x86_64_v3', 'libwfnarrow_v3.so'],
+        ['linux-arm64', 'aarch64-linux-gnu', 'baseline', 'libwfnarrow.so'],
+        ['windows-x64', 'x86_64-windows-gnu', 'x86_64_v2', 'wfnarrow.dll'],
+        ['windows-x64', 'x86_64-windows-gnu', 'x86_64_v3', 'wfnarrow_v3.dll'],
+        ['macos-x64', 'x86_64-macos', 'x86_64_v2', 'libwfnarrow.dylib'],
+        ['macos-x64', 'x86_64-macos', 'x86_64_v3', 'libwfnarrow_v3.dylib'],
+        ['macos-arm64', 'aarch64-macos', 'apple_m1', 'libwfnarrow.dylib'],
+]
+def nativeOut = layout.buildDirectory.dir('natives')
+def buildNatives = tasks.register('buildNatives') {
+    inputs.files(fileTree('native') { include '*.zig' })
+    inputs.property('targets', nativeTargets)
+    inputs.property('strip', !project.hasProperty('nativeSymbols'))
+    outputs.dir(nativeOut)
+    doLast {
+        String zig = project.findProperty('zig') ?: 'zig'
+        nativeTargets.each { platform, target, cpu, name ->
+            File out = nativeOut.get().file("natives/${platform}/${name}").asFile
+            out.parentFile.mkdirs()
+            project.exec {
+                workingDir project.file('native')
+                commandLine([zig, 'build-lib', '-dynamic', '-O', 'ReleaseFast', '-target', target, '-mcpu', cpu,
+                             "-femit-bin=${out}", 'jni.zig'] + (project.hasProperty('nativeSymbols') ? [] : ['-fstrip']))
+            }
+        }
+        project.delete(fileTree(nativeOut) { include '**/*.o', '**/*.pdb', '**/*.lib' })
+    }
+}
+tasks.named('processResources', ProcessResources).configure {
+    from(buildNatives)
+}
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'

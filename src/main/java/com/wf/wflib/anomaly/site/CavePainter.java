@@ -12,14 +12,14 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * Writes the part of a cave field in {@code box} (one chunk): the chamber cut or filled to the layout's floor and
  * dome, then anomalies and artefacts. A field inside a natural cave only reshapes the rock it overlaps.
  */
-final class CavePainter {
+public final class CavePainter {
     /** Fill under a floor that has none, at most this deep. */
     private static final int FOOT = 10;
 
     private CavePainter() {
     }
 
-    static void paint(CaveLayout l, WorldGenLevel level, BoundingBox box) {
+    public static void paint(CaveLayout l, WorldGenLevel level, BoundingBox box) {
         BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
         int reach = l.reach();
         int minY = level.getMinBuildHeight();

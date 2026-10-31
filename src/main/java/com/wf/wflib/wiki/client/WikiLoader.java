@@ -1,9 +1,9 @@
 package com.wf.wflib.wiki.client;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.wiki.Article;
+import com.wf.wflib.wiki.api.Article;
 import com.wf.wflib.wiki.ArticleParser;
-import com.wf.wflib.wiki.Wiki;
+import com.wf.wflib.wiki.api.Wiki;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;

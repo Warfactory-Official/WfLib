@@ -1,11 +1,13 @@
 package com.wf.wflib.pda.client.theme;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.pda.client.PdaShell;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.UiEval;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.pda.api.client.PdaThemeState;
+import com.wf.wflib.ui.api.theme.PdaTheme;
 
 /**
  * Last layer of the PDA surface (under the cursor): hazard strip, bezel, scanlines, vignette and noise. Draws only decoration over fixed rectangles; strengths are capped by {@link PdaTheme}.

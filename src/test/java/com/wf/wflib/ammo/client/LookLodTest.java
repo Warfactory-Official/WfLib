@@ -1,6 +1,7 @@
 package com.wf.wflib.ammo.client;
 
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.ammo.api.client.LookLod;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

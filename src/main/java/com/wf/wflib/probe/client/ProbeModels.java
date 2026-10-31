@@ -1,16 +1,13 @@
 package com.wf.wflib.probe.client;
 
 import net.neoforged.neoforge.client.model.data.ModelData;
-import com.wf.wflib.WFLib;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -22,7 +19,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Models a probe panel may draw that are not an item and not a block. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ProbeModels {
 
     private static final Set<ResourceLocation> WANTED = new LinkedHashSet<>();

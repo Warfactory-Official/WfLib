@@ -58,9 +58,9 @@ behaviour is registered through a small registry and is meant to be extended by 
 com.wf.wflib
 ├── MissileEntity              guided-missile entity: flight, fuel, interception, detonation
 ├── MissileModels / MissileVisual / ModModels    Flywheel instanced OBJ rendering
-├── flight/                    FlightStage + FlightStageRegistry + FlightProfile (per-phase behaviour)
-├── warhead/                   WarheadRegistry (Detonation / InterceptDetonation) + payloads
-├── item/                      MissilePreset + MissilePresetRegistry (launch-ready configs → items)
+├── flight/                    FlightStage + FlightStages + FlightProfile (per-phase behaviour)
+├── warhead/                   Warheads (Detonation / InterceptDetonation) + payloads
+├── item/                      MissilePreset + MissilePresets (launch-ready configs → items)
 ├── sim/                       off-world simulation, listeners, collision prediction, tunables
 ├── chunk/                     MissileChunkLoader (force-loads the flight path)
 ├── block/                     launcher, interceptor batteries + their block entities
@@ -90,7 +90,7 @@ A warhead is a `Detonation` - given the missile and the impact position it produ
 pair it with an `InterceptDetonation`, the cheaper effect used when the missile is destroyed mid-air.
 
 ```java
-WarheadRegistry.register(new ResourceLocation("mymod", "my_warhead"), (missile, pos) -> {
+Warheads.register(new ResourceLocation("mymod", "my_warhead"), (missile, pos) -> {
     Level level = missile.level();
     if (level.isClientSide) return;
     // ... spawn your blast / effect at pos ...
@@ -103,7 +103,7 @@ A `FlightStage` returns the desired velocity for a tick (`guide`) and decides wh
 phase (`next`). Register it for the phase(s) it flies; the first stage registered for a phase is its default.
 
 ```java
-FlightStageRegistry.register(MissileEntity.Phase.CRUISE, myCruiseStage);
+FlightStages.register(MissileEntity.Phase.CRUISE, myCruiseStage);
 ```
 
 ### Add a missile preset (→ item)
@@ -112,7 +112,7 @@ A `MissilePreset` is a launch-ready configuration (model, warhead, cruise mode, 
 etc.). `ModItems` turns each registered preset into a carryable launcher item.
 
 ```java
-MissilePresetRegistry.register(
+MissilePresets.register(
     MissilePreset.builder("my_missile", /*model*/ "v2", /*warhead*/ "my_warhead")
         .terrainFollow(24.0).cruiseSpeed(1.0)
         .fuel(MissileEntity.FuelType.LIQUID, 1500)
@@ -131,8 +131,8 @@ blast.setPlayerProcessor(new PlayerProcessorStandard());
 blast.explode();
 ```
 
-Other extension points: `MissileAttitudeRegistry` (how a model orients to its heading, client-side),
-`MissileModels` (the OBJ model + rotor catalogue), and `IMissileListener` / `MissileListenerRegistry`
+Other extension points: `MissileAttitudes` (how a model orients to its heading, client-side),
+`MissileModels` (the OBJ model + rotor catalogue), and `IMissileListener` / `MissileListenerData`
 (register a source that rematerializes nearby off-world missiles). Simulation and defense tunables live in
 `sim/MissileSimConfig`; user-facing options in `config/WFConfig`.
 
@@ -151,6 +151,9 @@ NeoForge ModDevGradle project:
 
 The built jar bundles Flywheel via `jarJar`. `spark` is a runtime-only profiling dependency (pulled from
 CurseMaven). Mappings are Mojang official for 1.21.1, layered with Parchment parameter names.
+
+`physics` natives (`native/*.zig`, task `buildNatives`, run by `processResources`): Zig 0.16 on `PATH` or
+`-Pzig=<path>`; cross-compiles all 8 targets from any host. Without the library the Java narrowphase runs (bit-equal).
 
 ### WarForge
 

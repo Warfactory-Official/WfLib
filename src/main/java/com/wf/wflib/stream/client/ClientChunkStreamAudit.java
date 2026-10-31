@@ -6,6 +6,8 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.neoforged.fml.loading.FMLPaths;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.stream.api.client.OffViewChunks;
+import com.wf.wflib.stream.api.client.SodiumChunkProbe;
 
 /** The client half of {@link ChunkStreamAudit}. */
 public final class ClientChunkStreamAudit {

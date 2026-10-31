@@ -1,17 +1,17 @@
 package com.wf.wflib.orbital.payload;
 
-import com.wf.wflib.aef.ExplosionAEF;
-import com.wf.wflib.aef.standard.BlockAllocatorStandard;
-import com.wf.wflib.aef.standard.BlockProcessorStandard;
-import com.wf.wflib.aef.standard.EntityProcessorCross;
-import com.wf.wflib.aef.standard.PlayerProcessorStandard;
+import com.wf.wflib.explosion.api.ExplosionAEF;
+import com.wf.wflib.explosion.api.BlockAllocatorStandard;
+import com.wf.wflib.explosion.api.BlockProcessorStandard;
+import com.wf.wflib.explosion.api.EntityProcessorCross;
+import com.wf.wflib.explosion.api.PlayerProcessorStandard;
 import com.wf.wflib.orbital.OrbitalConfig;
 import com.wf.wflib.orbital.OrbitalDrop;
-import com.wf.wflib.orbital.SatPayload;
-import com.wf.wflib.orbital.SatVerb;
-import com.wf.wflib.orbital.Satellite;
-import com.wf.wflib.recon.env.Atmosphere;
-import com.wf.wflib.recon.env.ReconWeather;
+import com.wf.wflib.orbital.api.SatPayload;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
+import com.wf.wflib.recon.api.Atmosphere;
+import com.wf.wflib.recon.api.ReconWeather;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;

@@ -7,6 +7,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import com.wf.wflib.artifact.api.DetectorItem;
+import com.wf.wflib.artifact.api.DetectorTier;
+import com.wf.wflib.artifact.api.ZoneArtifact;
 
 /**
  * Who sees what: a player holding a detector (either hand) hears the artefacts its rank reaches within its radius,

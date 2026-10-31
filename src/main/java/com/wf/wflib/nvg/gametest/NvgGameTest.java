@@ -1,17 +1,15 @@
 package com.wf.wflib.nvg.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.armor.ArmorPreset;
-import com.wf.wflib.armor.ArmorPresets;
-import com.wf.wflib.item.ModItems;
+import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.armor.api.ArmorPresets;
 import com.wf.wflib.nvg.NvgActionPacket;
-import com.wf.wflib.nvg.NvgComponents;
-import com.wf.wflib.nvg.NvgDismountRecipe;
-import com.wf.wflib.nvg.NvgMount;
-import com.wf.wflib.nvg.NvgRegistry;
+import com.wf.wflib.nvg.api.NvgComponents;
+import com.wf.wflib.nvg.api.NvgDismountRecipe;
+import com.wf.wflib.nvg.api.NvgMount;
+import com.wf.wflib.nvg.api.NvgContent;
 import com.wf.wflib.nvg.NvgServer;
-import com.wf.wflib.nvg.NvgState;
-import com.wf.wflib.nvg.NvgWorn;
+import com.wf.wflib.nvg.api.NvgState;
+import com.wf.wflib.nvg.api.NvgWorn;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,12 +23,12 @@ import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
+import com.wf.wflib.armor.api.ArmorContent;
+import com.wf.wflib.core.api.WFLib;
 
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class NvgGameTest {
     private static final String TEMPLATE = "empty";
@@ -40,17 +38,17 @@ public class NvgGameTest {
     }
 
     private static ItemStack helmet() {
-        return new ItemStack(ModItems.armorItem(ArmorPreset.rl("combat_helmet")));
+        return new ItemStack(ArmorContent.item(ArmorPreset.rl("combat_helmet")));
     }
 
     private static ItemStack goggle(NvgState state) {
-        ItemStack nvg = new ItemStack(NvgRegistry.ITEMS.get(2).get());
+        ItemStack nvg = new ItemStack(NvgContent.NVG_PVS14.get());
         nvg.set(NvgComponents.STATE.get(), state);
         return nvg;
     }
 
     /** Click-mount flips the goggle up; dismount recipe returns it and leaves the bare helmet in the grid. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void mountThenDismount(GameTestHelper helper) {
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         ItemStack helmet = helmet();
@@ -67,7 +65,7 @@ public class NvgGameTest {
         CraftingInput input = CraftingInput.of(1, 1, List.of(helmet));
         helper.assertTrue(recipe.matches(input, helper.getLevel()), "dismount recipe did not match");
         ItemStack out = recipe.assemble(input, helper.getLevel().registryAccess());
-        helper.assertTrue(out.getItem() == NvgRegistry.ITEMS.get(2).get(), "result " + out);
+        helper.assertTrue(out.getItem() == NvgContent.NVG_PVS14.get(), "result " + out);
         ItemStack left = recipe.getRemainingItems(input).get(0);
         helper.assertTrue(left.getItem() == helmet.getItem() && NvgWorn.mounted(left).isEmpty(), "remainder " + left);
         helper.assertFalse(recipe.matches(CraftingInput.of(1, 1, List.of(helmet())), helper.getLevel()), "bare helmet matched");
@@ -77,7 +75,7 @@ public class NvgGameTest {
     }
 
     /** FLIP: down at the swap tick, not before; IR and gain actions write the mounted goggle. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void flipIrGain(GameTestHelper helper) {
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(),
                 new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "nvg"));

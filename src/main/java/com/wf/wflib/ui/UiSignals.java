@@ -5,6 +5,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiEval;
 
 /** wflib's own subjects and signals. {@code ui.time}/{@code ui.dt} are fixed slots, not signals. */
 public final class UiSignals {

@@ -1,6 +1,6 @@
 package com.wf.wflib.radio.client;
 
-import com.wf.wflib.radio.OggOpus;
+import com.wf.wflib.radio.api.OggOpus;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.sounds.AudioStream;
@@ -11,9 +11,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import com.wf.wflib.radio.api.client.RadioCatalog;
 
 /** Endless PCM of one station from a sample position: track after track, looped; next track prefetched. */
-final class StationStream implements AudioStream {
+public final class StationStream implements AudioStream {
     private final RadioCatalog.Station station;
     private final int channels;
     private final AudioFormat format;
@@ -23,7 +24,7 @@ final class StationStream implements AudioStream {
     private short[] scratch = new short[0];
 
     /** Blocks on the first track's load: caller off the sound thread. */
-    StationStream(RadioCatalog.Station station, long sample, int channels) throws IOException {
+    public StationStream(RadioCatalog.Station station, long sample, int channels) throws IOException {
         this.station = station;
         this.channels = channels;
         this.format = new AudioFormat(OggOpus.RATE, 16, channels, true, false);

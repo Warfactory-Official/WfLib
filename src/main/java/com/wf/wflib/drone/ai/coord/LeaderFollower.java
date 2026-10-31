@@ -1,10 +1,13 @@
 package com.wf.wflib.drone.ai.coord;
 
-import com.wf.wflib.drone.ai.DronePlan;
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DronePlan;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.SquadView;
 import com.wf.wflib.drone.ai.Steering;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.drone.api.CoordinationModel;
+import com.wf.wflib.drone.api.SquadAnchor;
+import com.wf.wflib.drone.api.SquadCommand;
 
 /** Slots measured off the leader itself, where the leader is a real drone flying its own route. */
 public final class LeaderFollower implements CoordinationModel {

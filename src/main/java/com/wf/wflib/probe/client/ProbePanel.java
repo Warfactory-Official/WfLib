@@ -1,9 +1,9 @@
 package com.wf.wflib.probe.client;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.probe.ProbeAction;
-import com.wf.wflib.probe.ProbeElement;
-import com.wf.wflib.probe.ProbeInfo;
+import com.wf.wflib.probe.api.ProbeAction;
+import com.wf.wflib.probe.api.ProbeElement;
+import com.wf.wflib.probe.api.ProbeInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 

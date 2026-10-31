@@ -19,7 +19,7 @@ import cam72cam.mod.math.Vec3d;
 import cam72cam.mod.math.Vec3i;
 import cam72cam.mod.world.World;
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.build.TrackLine;
 import com.wf.wflib.rail.build.TrackPieces;

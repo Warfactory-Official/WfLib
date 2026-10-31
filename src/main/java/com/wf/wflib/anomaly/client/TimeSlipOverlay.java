@@ -1,22 +1,18 @@
 package com.wf.wflib.anomaly.client;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * A Flash taking the local player: the world whites out, darkens into a blackout and comes back hours later (the
  * server says how many, on the action bar). Over everything but chat.
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class TimeSlipOverlay implements LayeredDraw.Layer {
     private static final ResourceLocation LAYER = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "time_slip");
     /** Seconds: white in, white to black, black held, black out. */
@@ -34,7 +30,6 @@ public final class TimeSlipOverlay implements LayeredDraw.Layer {
         start = System.nanoTime();
     }
 
-    @SubscribeEvent
     public static void onRegisterLayers(RegisterGuiLayersEvent event) {
         event.registerBelow(VanillaGuiLayers.CHAT, LAYER, new TimeSlipOverlay());
     }

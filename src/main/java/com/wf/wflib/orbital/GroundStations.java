@@ -1,9 +1,9 @@
 package com.wf.wflib.orbital;
 
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.ReconNetwork;
-import com.wf.wflib.recon.grid.GridNode;
-import com.wf.wflib.recon.grid.ReconGrid;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.ReconNetwork;
+import com.wf.wflib.recon.api.GridNode;
+import com.wf.wflib.recon.api.ReconGrid;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 

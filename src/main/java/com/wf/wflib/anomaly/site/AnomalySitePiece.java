@@ -1,7 +1,7 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.anomaly.site.AnomalyMix.Kind;
-import com.wf.wflib.anomaly.site.AnomalyMix.Loot;
+import com.wf.wflib.anomaly.api.AnomalyMix.Kind;
+import com.wf.wflib.anomaly.api.AnomalyMix.Loot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -19,6 +19,9 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.anomaly.api.AnomalySites;
+import com.wf.wflib.anomaly.api.SitePlan;
+import com.wf.wflib.anomaly.api.SiteStyle;
 
 /**
  * One anomaly site as a structure piece: its plan, saved; each chunk it crosses works out the same layout (cached on
@@ -31,7 +34,7 @@ public final class AnomalySitePiece extends StructurePiece {
     private final int cz;
     private SiteLayout layout;
 
-    AnomalySitePiece(SitePlan plan, SiteStyle style, int cx, int cz, BoundingBox box) {
+    public AnomalySitePiece(SitePlan plan, SiteStyle style, int cx, int cz, BoundingBox box) {
         super(AnomalySites.PIECE.get(), 0, box);
         this.plan = plan;
         this.style = style;

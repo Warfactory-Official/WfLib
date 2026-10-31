@@ -1,7 +1,7 @@
 package com.wf.wflib.rail.demo;
 
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.build.JunctionCurve;

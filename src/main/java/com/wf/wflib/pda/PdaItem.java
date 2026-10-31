@@ -1,9 +1,8 @@
 package com.wf.wflib.pda;
 
-import com.wf.wflib.block.CameraMonitorBlock;
-import com.wf.wflib.block.entity.CameraMonitorBlockEntity;
-import com.wf.wflib.drone.cam.CameraChannels;
-import com.wf.wflib.item.ModDataComponents;
+import com.wf.wflib.cam.api.CameraMonitorBlock;
+import com.wf.wflib.cam.api.CameraMonitorBlockEntity;
+import com.wf.wflib.cam.api.CameraChannels;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -17,6 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import com.wf.wflib.cam.api.CameraContent;
 
 /**
  * Handheld PDA. Use = raise / lower, handled client-side ({@code PdaClient}), never reaches the server;
@@ -40,7 +40,7 @@ public final class PdaItem extends Item {
             if (channels.isEmpty()) {
                 say(ctx.getPlayer(), Component.translatable("wflib.pda.monitor_empty").withStyle(ChatFormatting.RED));
             } else {
-                ctx.getItemInHand().set(ModDataComponents.CHANNELS.get(), channels);
+                ctx.getItemInHand().set(CameraContent.CHANNELS.get(), channels);
                 say(ctx.getPlayer(), Component.translatable("wflib.pda.monitor_copied", channels.size())
                         .withStyle(ChatFormatting.GREEN));
             }
@@ -56,7 +56,7 @@ public final class PdaItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
-        CameraChannels channels = stack.getOrDefault(ModDataComponents.CHANNELS.get(), CameraChannels.EMPTY);
+        CameraChannels channels = stack.getOrDefault(CameraContent.CHANNELS.get(), CameraChannels.EMPTY);
         lines.add(Component.translatable("wflib.pda.cameras", channels.size()).withStyle(ChatFormatting.GRAY));
     }
 }

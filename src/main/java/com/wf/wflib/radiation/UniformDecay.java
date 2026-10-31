@@ -1,7 +1,5 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.radiation.VectorApi;
-import com.wf.wflib.radiation.VectorBackend;
 import org.slf4j.LoggerFactory;
 
 /** Vectorizable post-sweep decay over contiguous uniform-section columns; it does not require FMA. */

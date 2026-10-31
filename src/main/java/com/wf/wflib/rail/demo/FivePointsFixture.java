@@ -2,10 +2,10 @@ package com.wf.wflib.rail.demo;
 
 import com.wf.wflib.rail.RailCompat;
 import com.wf.wflib.rail.RailConfig;
-import com.wf.wflib.rail.align.Alignment;
+import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.align.AlignmentEdits;
 import com.wf.wflib.rail.align.AlignmentService;
-import com.wf.wflib.rail.align.AlignmentStore;
+import com.wf.wflib.rail.align.AlignmentData;
 import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.build.BoreTrain;
@@ -135,7 +135,7 @@ public final class FivePointsFixture {
 
     /** Take the network back off the map. The tunnels and the track stay where they are. */
     public static int clear(ServerPlayer player, ServerLevel level) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         int gone = 0;
         for (FivePoints.Route route : FivePoints.routes()) {
             if (store.get(route.id()) != null && AlignmentEdits.delete(player, level, route.id())) {
@@ -148,7 +148,7 @@ public final class FivePointsFixture {
 
     /** The network's routes as they stand on the server, in build order, skipping any not drawn. */
     public static List<Alignment> drawn(ServerLevel level) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         List<Alignment> out = new ArrayList<>();
         for (FivePoints.Route route : FivePoints.routes()) {
             Alignment alignment = store.get(route.id());
@@ -252,7 +252,7 @@ public final class FivePointsFixture {
     }
 
     private void step(Work item) {
-        Alignment alignment = AlignmentStore.of(this.level).get(item.route.id());
+        Alignment alignment = AlignmentData.of(this.level).get(item.route.id());
         if (alignment == null) {
             say(item.route.name() + " is not on the map any more, so it is left unbuilt");
             item.phase = Phase.DONE;
@@ -340,7 +340,7 @@ public final class FivePointsFixture {
         if (!RailCompat.trackGraphAvailable()) {
             return;
         }
-        AlignmentStore store = AlignmentStore.of(this.level);
+        AlignmentData store = AlignmentData.of(this.level);
         for (Work built : this.work) {
             if (built.phase != Phase.DONE) {
                 continue;
@@ -397,7 +397,7 @@ public final class FivePointsFixture {
 
     /** Whether one end of a route is a junction's rather than the line's. */
     private boolean junction(Alignment route, RouteMeeting.End end) {
-        for (RouteMeeting meeting : RouteMeetings.on(AlignmentStore.of(this.level).all(), route.id())) {
+        for (RouteMeeting meeting : RouteMeetings.on(AlignmentData.of(this.level).all(), route.id())) {
             RouteMeeting.Side mine = meeting.sideOf(route.id());
             if (mine == null || mine.end() != end) {
                 continue;

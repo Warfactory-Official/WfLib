@@ -1,7 +1,7 @@
 package com.wf.wflib.probe.client;
 
-import com.wf.wflib.network.WFNetwork;
-import com.wf.wflib.probe.ProbeAction;
+import com.wf.wflib.core.api.WFNetwork;
+import com.wf.wflib.probe.api.ProbeAction;
 import com.wf.wflib.probe.ProbeActionPacket;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
@@ -19,7 +19,7 @@ public final class ProbeSelection {
     private static List<ProbeAction> actions = List.of();
     private static BlockPos targetPos = BlockPos.ZERO;
     private static int targetEntity = Integer.MIN_VALUE;
-    /** {@link com.wf.wflib.probe.ProbeNode#key()}; null = crosshair panel. */
+    /** {@link com.wf.wflib.probe.api.ProbeNode#key()}; null = crosshair panel. */
     @Nullable
     private static String targetNode;
     private static int index;

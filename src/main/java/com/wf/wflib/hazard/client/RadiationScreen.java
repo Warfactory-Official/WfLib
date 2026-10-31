@@ -1,21 +1,18 @@
 package com.wf.wflib.hazard.client;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.artifact.Artifact;
-import com.wf.wflib.client.xray.XrScreen;
-import com.wf.wflib.hazard.LivingHazardProps;
+import com.wf.wflib.artifact.api.Artifact;
+import com.wf.wflib.xray.api.XrScreen;
+import com.wf.wflib.hazard.api.LivingHazardProps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * GAMMA's radiation on the screen ({@code actor_effects.script}): past 0.3 of a lethal dose {@code alcohol.ppe}
  * looped, past 0.45 {@code radiation.ppe} too. Dose in STALKER units: {@link Artifact#RAD_PER_UNIT} RAD each.
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class RadiationScreen {
     private static final String SWAY = "wflib:radiation/alcohol";
     private static final String RAD = "wflib:radiation/radiation";

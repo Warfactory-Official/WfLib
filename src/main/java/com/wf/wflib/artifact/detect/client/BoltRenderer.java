@@ -1,7 +1,7 @@
 package com.wf.wflib.artifact.detect.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.wf.wflib.artifact.detect.BoltEntity;
+import com.wf.wflib.artifact.api.BoltEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;

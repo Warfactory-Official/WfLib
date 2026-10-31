@@ -1,19 +1,16 @@
 package com.wf.wflib.anomaly.client;
 
-import com.wf.wflib.WFLib;
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
-import com.wf.wflib.anomaly.AnomalyConfig;
 import com.wf.wflib.anomaly.AnomalyType;
-import com.wf.wflib.client.xray.XrScreen;
+import com.wf.wflib.xray.api.XrScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Anomalies colour the screen as the player nears them (X-Ray {@code CZoneEffector}): each zone class's
@@ -21,7 +18,6 @@ import java.util.Map;
  * anomaly's radius it starts at ({@code radius_max}) and peaks within ({@code radius_min}); the nearest anomaly of
  * each effect sets its factor.
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class AnomalyScreen {
     private record Zone(String ppe, float min, float max) {
     }
@@ -73,7 +69,7 @@ public final class AnomalyScreen {
     public static void onTick(ClientTickEvent.Post event) {
         LocalPlayer player = Minecraft.getInstance().player;
         FACTOR.clear();
-        if (player != null && AnomalyConfig.enabled) {
+        if (player != null) {
             for (AnomalyBlockEntity be : AnomalyClient.live()) {
                 Zone z = ZONES.get(be.type());
                 if (z == null || be.isRemoved() || be.getLevel() != player.level()) {

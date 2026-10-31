@@ -1,20 +1,19 @@
 package com.wf.wflib.nvg;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import com.wf.wflib.nvg.api.NvgState;
+import com.wf.wflib.nvg.api.NvgWorn;
 
 /** Flip = hand reaches the mount, state toggles at {@link #SWAP_TICK}, hand returns by {@link #FLIP_TICKS}. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class NvgServer {
     public static final int FLIP_TICKS = 12;
     public static final int SWAP_TICK = 6;

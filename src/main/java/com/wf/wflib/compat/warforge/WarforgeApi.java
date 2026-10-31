@@ -6,7 +6,7 @@ import com.flansmod.warforge.common.WarForgeMod;
 import com.flansmod.warforge.common.util.DimChunkPos;
 import com.flansmod.warforge.server.Faction;
 import com.flansmod.warforge.server.FactionStorage;
-import com.wf.wflib.compat.TerritoryVerdict;
+import com.wf.wflib.compat.api.TerritoryVerdict;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;

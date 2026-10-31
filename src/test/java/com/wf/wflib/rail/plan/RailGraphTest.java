@@ -1,6 +1,6 @@
 package com.wf.wflib.rail.plan;
 
-import com.wf.wflib.rail.align.Alignment;
+import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.demo.FivePoints;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

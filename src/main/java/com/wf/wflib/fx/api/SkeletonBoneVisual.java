@@ -1,0 +1,84 @@
+package com.wf.wflib.fx.api;
+
+import com.wf.wflib.missile.api.client.ModModels;
+import dev.engine_room.flywheel.api.instance.Instancer;
+import dev.engine_room.flywheel.api.visual.EffectVisual;
+import dev.engine_room.flywheel.api.visualization.VisualizationContext;
+import dev.engine_room.flywheel.lib.instance.InstanceTypes;
+import dev.engine_room.flywheel.lib.instance.TransformedInstance;
+import dev.engine_room.flywheel.lib.visual.AbstractVisual;
+import dev.engine_room.flywheel.lib.visual.SimpleDynamicVisual;
+import net.minecraft.core.Vec3i;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import org.joml.Matrix4f;
+import com.wf.wflib.fx.FlywheelModels;
+
+public class SkeletonBoneVisual extends AbstractVisual implements SimpleDynamicVisual, EffectVisual<SkeletonBoneEffect> {
+
+    /** Blocks per unit scale sunk by end of life: under the ground, cutout can't fade. */
+    private static final float SINK = 0.6F;
+
+    private final SkeletonBoneEffect effect;
+    private final TransformedInstance[] instances;
+    private final Matrix4f scratch = new Matrix4f();
+
+    SkeletonBoneVisual(VisualizationContext ctx, SkeletonBoneEffect effect, float partialTick) {
+        super(ctx, (Level) effect.level(), partialTick);
+        this.effect = effect;
+
+        Instancer<TransformedInstance> skull = instancerProvider().instancer(InstanceTypes.TRANSFORMED, FlywheelModels.cutout(ModModels.BONE_SKULL));
+        Instancer<TransformedInstance> torso = instancerProvider().instancer(InstanceTypes.TRANSFORMED, FlywheelModels.cutout(ModModels.BONE_TORSO));
+        Instancer<TransformedInstance> limb = instancerProvider().instancer(InstanceTypes.TRANSFORMED, FlywheelModels.cutout(ModModels.BONE_LIMB));
+
+        this.instances = new TransformedInstance[effect.bones.size()];
+        for (int i = 0; i < instances.length; i++) {
+            Instancer<TransformedInstance> instancer = switch (effect.bones.get(i).part) {
+                case SKULL -> skull;
+                case TORSO -> torso;
+                case LIMB -> limb;
+            };
+            instances[i] = instancer.createInstance();
+        }
+    }
+
+    @Override
+    public void beginFrame(Context context) {
+        float pt = context.partialTick();
+        Vec3i origin = renderOrigin();
+        int grey = (int) (Mth.clamp(effect.brightness, 0F, 1F) * 255F);
+
+        for (int i = 0; i < instances.length; i++) {
+            SkeletonBoneEffect.Bone bone = effect.bones.get(i);
+            TransformedInstance instance = instances[i];
+
+            if (bone.dead()) {
+                instance.setTransform(scratch.identity().scale(0F));
+                instance.setChanged();
+                continue;
+            }
+
+            scratch.identity()
+                    .translate((float) (bone.ix(pt) - origin.getX()),
+                            (float) (bone.iy(pt) - bone.sink(pt) * SINK * bone.scale - origin.getY()),
+                            (float) (bone.iz(pt) - origin.getZ()))
+                    .rotateY((float) Math.toRadians(bone.yaw))
+                    .rotate(bone.itumble(pt), bone.tax, bone.tay, bone.taz)
+                    .scale(bone.scale);
+
+            instance.setTransform(scratch);
+            instance.colorArgb(0xFF000000 | (grey << 16) | (grey << 8) | grey);
+            instance.light(ParticleLight.surface(level, bone.x, bone.y, bone.z));
+            instance.setChanged();
+        }
+    }
+
+    @Override
+    protected void _delete() {
+        for (TransformedInstance instance : instances) {
+            if (instance != null) {
+                instance.delete();
+            }
+        }
+    }
+}

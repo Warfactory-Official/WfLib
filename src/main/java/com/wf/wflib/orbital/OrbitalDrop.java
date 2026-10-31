@@ -1,10 +1,10 @@
 package com.wf.wflib.orbital;
 
 import net.minecraft.core.SectionPos;
-import com.wf.wflib.sim.SimMissileManager;
-import com.wf.wflib.MissileEntity;
-import com.wf.wflib.sim.SimMissile;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.missile.api.SimMissileManager;
+import com.wf.wflib.missile.api.MissileEntity;
+import com.wf.wflib.missile.api.SimMissile;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -13,14 +13,15 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
+import com.wf.wflib.orbital.api.Satellite;
 
 public final class OrbitalDrop {
 
-    static final ResourceLocation CARGO_LANDING =
+    public static final ResourceLocation CARGO_LANDING =
             ResourceLocation.fromNamespaceAndPath("wflib", "cargo_landing");
-    static final ResourceLocation CARGO_LANDING_SOFT =
+    public static final ResourceLocation CARGO_LANDING_SOFT =
             ResourceLocation.fromNamespaceAndPath("wflib", "cargo_landing_soft");
-    static final ResourceLocation KINETIC_ROD =
+    public static final ResourceLocation KINETIC_ROD =
             ResourceLocation.fromNamespaceAndPath("wflib", "kinetic_rod");
 
     static final double OVERSHOOT = 2000.0;
@@ -29,7 +30,7 @@ public final class OrbitalDrop {
     private OrbitalDrop() {
     }
 
-    static UUID release(ServerLevel level, Satellite self, double targetX, double targetZ,
+    public static UUID release(ServerLevel level, Satellite self, double targetX, double targetZ,
                         ResourceLocation warhead, double speed, float rcs) {
         long now = level.getGameTime();
         Vec3 above = self.position(now);
@@ -56,7 +57,7 @@ public final class OrbitalDrop {
         sm.cruiseMode = MissileEntity.CruiseMode.HIGH_ALTITUDE;
         sm.cruiseAltitude = OrbitalConfig.RELEASE_ALTITUDE;
         sm.maxTurnRate = 0.0;
-        sm.detonationId = WarheadRegistry.exists(warhead) ? warhead : WarheadRegistry.parse("inert");
+        sm.detonationId = Warheads.exists(warhead) ? warhead : Warheads.parse("inert");
         sm.fuel = 20000;
         sm.fuelCapacity = 20000;
         sm.rcs = rcs;
@@ -64,8 +65,8 @@ public final class OrbitalDrop {
         sm.lastGameTime = now;
         sm.role = SimMissile.Role.NORMAL;
         SimMissileManager.tier(level).add(sm);
-        OrbitalDescents.get(level).add(sm.id,
-                new OrbitalDescents.Descent(targetX, targetZ, warhead, self.owner()));
+        OrbitalDescentData.get(level).add(sm.id,
+                new OrbitalDescentData.Descent(targetX, targetZ, warhead, self.owner()));
         return sm.id;
     }
 

@@ -1,8 +1,7 @@
 package com.wf.wflib.carry.gametest;
 
 import com.mojang.authlib.GameProfile;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.carry.Carry;
+import com.wf.wflib.carry.api.Carry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
@@ -28,13 +27,12 @@ import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.UUID;
+import com.wf.wflib.core.api.WFLib;
 
 /** Carry rules; the tag is empty here, so state is set directly. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class CarryGameTest {
     private static final String TEMPLATE = "empty";
@@ -45,7 +43,7 @@ public class CarryGameTest {
         return p;
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void carryingBlocksAttackPickupMountAndJump(GameTestHelper helper) {
         ServerPlayer p = player(helper);
         Carry.set(p, new ItemStack(Items.ANVIL));
@@ -72,7 +70,7 @@ public class CarryGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void storageTakesTheLoadAndFullStorageRefuses(GameTestHelper helper) {
         ServerPlayer p = player(helper);
         BlockPos chest = new BlockPos(2, 1, 1);
@@ -99,7 +97,7 @@ public class CarryGameTest {
         NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(p, InteractionHand.MAIN_HAND, abs, hit));
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void dropPutsTheLoadOnTheFloor(GameTestHelper helper) {
         ServerPlayer p = player(helper);
         Carry.set(p, new ItemStack(Items.ANVIL));
@@ -110,7 +108,7 @@ public class CarryGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void pickupRefusesUntaggedItems(GameTestHelper helper) {
         ServerPlayer p = player(helper);
         ItemEntity stick = new ItemEntity(helper.getLevel(), p.getX(), p.getY(), p.getZ(), new ItemStack(Items.STICK));
@@ -122,7 +120,7 @@ public class CarryGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void creativeIsExemptAndGetsTheLoadBack(GameTestHelper helper) {
         ServerPlayer p = player(helper);
         Carry.set(p, new ItemStack(Items.ANVIL));

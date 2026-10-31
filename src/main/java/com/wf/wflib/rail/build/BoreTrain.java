@@ -1,16 +1,16 @@
 package com.wf.wflib.rail.build;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.compat.TerritoryVerdict;
+import com.wf.wflib.compat.api.TerritoryVerdict;
 import com.wf.wflib.rail.TunnelBuilder;
 import com.wf.wflib.rail.TunnelCrossings;
 import com.wf.wflib.rail.TunnelTerritory;
-import com.wf.wflib.rail.align.Alignment;
+import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.align.AlignmentEdits;
-import com.wf.wflib.rail.align.BuildProgress;
+import com.wf.wflib.rail.api.BuildProgress;
 import com.wf.wflib.rail.align.AlignmentService;
-import com.wf.wflib.rail.align.AlignmentStore;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.align.AlignmentData;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.excavate.CarvePlan;
@@ -281,7 +281,7 @@ public final class BoreTrain {
      * @return false when the route has gone from under the journey
      */
     private boolean onto(ServerLevel level, Leg next) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment route = store.get(next.route());
         if (route == null) {
             return false;
@@ -392,7 +392,7 @@ public final class BoreTrain {
         if (legs == null || legs.isEmpty()) {
             return new Launch(null, null, "there is no route to build");
         }
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         TunnelTerritory.Survey first = null;
         for (Leg leg : legs) {
             Alignment route = store.get(leg.route());
@@ -1104,7 +1104,7 @@ public final class BoreTrain {
         if (this.face <= this.reported) {
             return;
         }
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment current = store.get(this.routeId);
         if (current == null) {
             this.halted = "the route was deleted while it was being built";

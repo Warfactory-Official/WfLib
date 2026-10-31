@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 
 import java.util.List;
+import com.wf.wflib.door.api.DoorType;
 
 /** The item that places a door. */
 public class DoorItem extends BlockItem {

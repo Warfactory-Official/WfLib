@@ -1,13 +1,13 @@
 package com.wf.wflib.rail.build;
 
-import com.wf.wflib.compat.TerritoryVerdict;
+import com.wf.wflib.compat.api.TerritoryVerdict;
 import com.wf.wflib.rail.TunnelBuilder;
 import com.wf.wflib.rail.TunnelTerritory;
-import com.wf.wflib.rail.align.Alignment;
+import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.align.AlignmentEdits;
 import com.wf.wflib.rail.align.AlignmentService;
-import com.wf.wflib.rail.align.AlignmentStore;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.align.AlignmentData;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.excavate.CarvePlan;
 import com.wf.wflib.rail.excavate.CarveVolume;
@@ -80,7 +80,7 @@ public final class TrackJob {
         // Where other routes cross or branch off this one, so the joins between pieces land on the
         // meetings rather than across them. See TrackPieces: a join at a meeting is what leaves nothing
         // but gags where two railways share their ground.
-        var meetings = RouteMeetings.on(AlignmentStore.of(level).all(), route.id());
+        var meetings = RouteMeetings.on(AlignmentData.of(level).all(), route.id());
         // The bore the track runs in, so the layer may shift what has fallen into it and nothing else.
         // Open at a junction, because the block two routes share is inside both of their tunnels.
         CarveVolume tunnel = TunnelBuilder.sweep(path, profile, TunnelProfile.Kind.BORE, floorY,
@@ -177,7 +177,7 @@ public final class TrackJob {
         }
         double fraction = this.line.laid() / (double) Math.max(1, this.line.total());
         double to = fraction * this.routeLength;
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment current = store.get(this.routeId);
         if (current == null) {
             return;

@@ -2,6 +2,12 @@ package com.wf.wflib.rail.align;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.AlignProblem;
+import com.wf.wflib.rail.api.AlignResult;
+import com.wf.wflib.rail.api.Centreline;
+import com.wf.wflib.rail.api.DesignClass;
 
 /**
  * Turns a chain of PIs and radii into a centreline of straights and arcs.

@@ -1,7 +1,6 @@
 package com.wf.wflib.pda.music.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import com.wf.wflib.WFLib;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
@@ -13,6 +12,7 @@ import org.lwjgl.system.MemoryUtil;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import com.wf.wflib.core.api.WFLib;
 
 /** Now-playing cover as the fixed texture {@link #TEXTURE}, letterboxed into a square. */
 public final class CoverArt {

@@ -1,15 +1,18 @@
 package com.wf.wflib.ui;
 
 import com.wf.gemrender.ui.TextBuffer;
-import com.wf.wflib.ui.expr.CompiledExpr;
+import com.wf.wflib.ui.api.expr.CompiledExpr;
 import com.wf.wflib.ui.expr.ExprException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.Signal;
+import com.wf.wflib.ui.api.TextProp;
 
-final class TemplateParser {
+public final class TemplateParser {
     private static final Pattern NUMBER_FORMAT = Pattern.compile("(\\+)?(0)?(\\d+)?(?:\\.(\\d))?");
     private static final Pattern HEX_FORMAT = Pattern.compile("0?(\\d+)?X");
     private static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_]*(\\.[a-z_][a-z0-9_]*)+");
@@ -30,7 +33,7 @@ final class TemplateParser {
     private TemplateParser() {
     }
 
-    static TextProp parse(String template, Binder binder) {
+    public static TextProp parse(String template, Binder binder) {
         TemplateParser p = new TemplateParser();
         StringBuilder literal = new StringBuilder();
         int i = 0;

@@ -14,6 +14,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.anomaly.api.AnomalyMix;
+import com.wf.wflib.anomaly.api.SitePlan;
 
 /**
  * The motifs' work, in two passes: {@link #shape} lays the ground (bowls, trenches, how flat), before any ruin claims

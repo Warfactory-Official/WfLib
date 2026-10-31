@@ -2,8 +2,6 @@ package com.wf.wflib.smoking.client;
 
 import com.wf.gemrender.light.LightSink;
 import com.wf.gemrender.light.Lights;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.WFSounds;
 import com.wf.wflib.smoking.Smoking;
 import com.wf.wflib.smoking.SmokingTimeline;
 import net.minecraft.client.Minecraft;
@@ -12,18 +10,16 @@ import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import com.wf.wflib.smoking.SmokingSystem;
 
 /** Sound + ember light for every player with a {@link Smoking.Session}. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class SmokingEffects {
     static final int EMBER_RGB = 0xFF6A1A;
     static final float RANGE = 3F, IDLE = 2F, DRAG = 8F;
@@ -46,7 +42,7 @@ public final class SmokingEffects {
         private final Smoking.Session session;
 
         Voice(Player player, Smoking.Session session) {
-            super(WFSounds.CIGARETTE.get(), SoundSource.PLAYERS, player.getRandom());
+            super(SmokingSystem.CIGARETTE_SOUND.get(), SoundSource.PLAYERS, player.getRandom());
             this.player = player;
             this.session = session;
             this.volume = 0.6F;
@@ -74,7 +70,7 @@ public final class SmokingEffects {
     }
 
     @SubscribeEvent
-    static void onTick(ClientTickEvent.Post event) {
+    public static void onTick(ClientTickEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) {
             VOICES.clear();

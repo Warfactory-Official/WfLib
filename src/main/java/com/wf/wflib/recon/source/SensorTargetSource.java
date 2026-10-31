@@ -1,16 +1,16 @@
 package com.wf.wflib.recon.source;
 
-import com.wf.wflib.recon.Band;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.EmconState;
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.ReconNetwork;
-import com.wf.wflib.recon.SensorHandle;
-import com.wf.wflib.recon.SensorSpec;
-import com.wf.wflib.recon.Signature;
-import com.wf.wflib.recon.TargetSink;
-import com.wf.wflib.recon.TargetSource;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
+import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.EmconState;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.ReconNetwork;
+import com.wf.wflib.recon.api.SensorHandle;
+import com.wf.wflib.recon.api.SensorSpec;
+import com.wf.wflib.recon.api.Signature;
+import com.wf.wflib.recon.api.TargetSink;
+import com.wf.wflib.recon.api.TargetSource;
+import com.wf.wflib.recon.api.TargetSnapshot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;

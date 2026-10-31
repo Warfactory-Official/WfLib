@@ -1,7 +1,6 @@
 package com.wf.wflib.industry;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
@@ -9,15 +8,15 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
+import com.wf.wflib.industry.api.IndustryClusters;
+import com.wf.wflib.industry.api.IndustryData;
 
 /** Keeps {@link IndustryRegistry} in step with the world. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class IndustryTracker {
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -34,7 +33,7 @@ public final class IndustryTracker {
         try {
             int value = IndustryValues.valueOf(event.getPlacedBlock());
             if (value > 0) {
-                IndustryRegistry.get(level).add(event.getPos(), value);
+                IndustryData.get(level).add(event.getPos(), value);
                 IndustryClusters.markDirty(level);
             }
         } catch (Exception | LinkageError t) {
@@ -49,7 +48,7 @@ public final class IndustryTracker {
         }
         try {
             if (IndustryValues.valueOf(event.getState()) > 0) {
-                IndustryRegistry.get(level).remove(event.getPos());
+                IndustryData.get(level).remove(event.getPos());
                 IndustryClusters.markDirty(level);
             }
         } catch (Exception | LinkageError t) {
@@ -74,7 +73,7 @@ public final class IndustryTracker {
         ChunkAccess chunk = event.getChunk();
         ChunkPos pos = chunk.getPos();
         try {
-            IndustryRegistry registry = IndustryRegistry.get(level);
+            IndustryData registry = IndustryData.get(level);
             if (registry.isScanned(pos)) {
                 return;
             }

@@ -6,7 +6,7 @@ Image-intensifier goggles (`com.wf.wflib.nvg`). Pack runs True Darkness Biomes =
 
 | | |
 |---|---|
-| items | `nvg_gen1`, `nvg_pvs7`, `nvg_pvs14`, `nvg_pvs31`, `nvg_gpnvg18` (`NvgRegistry.GOGGLES`) |
+| items | `nvg_gen1`, `nvg_pvs7`, `nvg_pvs14`, `nvg_pvs31`, `nvg_gpnvg18` (`NvgContent.GOGGLES`) |
 | standalone | head slot (`NvgItem` = zero-protection `ArmorItem`: else `CustomHeadLayer` draws an item model), drawn on `models/nvg/harness.glb` |
 | mount | any click with goggle on cursor onto an `ArmorPreset.nvgMount()` helmet => `wflib:nvg_mount` (full stack), flipped up |
 | dismount | lone helmet in a crafting grid => goggle out, helmet stays (`wflib:nvg_dismount`) |

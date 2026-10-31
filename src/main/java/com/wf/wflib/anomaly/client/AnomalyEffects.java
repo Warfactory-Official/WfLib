@@ -3,7 +3,7 @@ package com.wf.wflib.anomaly.client;
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
 import com.wf.wflib.anomaly.AnomalyLook;
 import com.wf.wflib.anomaly.MincerTuning;
-import com.wf.wflib.client.particle.WFParticles;
+import com.wf.wflib.particle.api.WFParticles;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -79,25 +79,10 @@ final class AnomalyEffects {
     static void blowout(Level level, AnomalyBlockEntity be, Vec3 c, RandomSource random) {
         AnomalyLook look = be.type().look();
         double radius = be.behaviour().radius();
-        int since = be.sinceExplosion();
         for (int i = 0; i < (look.blowoutParticles() != null ? 0 : look.blowoutDebris()); i++) {
             switch (look.style()) {
                 case GRAVITY -> debris(level, c, random, radius * 0.8D, look.lensHeight(), look.blowoutSpin());
                 case ELECTRIC -> arc(level, c, random, radius, 2.5D);
-                case FIRE -> {
-                    if (since >= 0) {
-                        // The column: flame rising fast from a tight base, smoke above.
-                        double r = random.nextDouble() * 0.5D;
-                        double a = random.nextDouble() * Mth.TWO_PI;
-                        level.addParticle(ParticleTypes.FLAME, c.x + Math.cos(a) * r, c.y + 0.1D, c.z + Math.sin(a) * r,
-                                (random.nextDouble() - 0.5D) * 0.05D, 0.25D + random.nextDouble() * 0.2D,
-                                (random.nextDouble() - 0.5D) * 0.05D);
-                        if (i % 3 == 0) {
-                            level.addParticle(ParticleTypes.LARGE_SMOKE, c.x, c.y + 2.5D + random.nextDouble(), c.z,
-                                    (random.nextDouble() - 0.5D) * 0.05D, 0.08D, (random.nextDouble() - 0.5D) * 0.05D);
-                        }
-                    }
-                }
                 case ACID -> {
                     double a = random.nextDouble() * Mth.TWO_PI;
                     double s = 0.1D + random.nextDouble() * 0.15D;

@@ -12,7 +12,7 @@ model, a bar, a row, a column, or a lambda that draws whatever it likes**.
 | Package | `com.wf.wflib.probe` (`probe/client` for everything that draws) |
 | Elements | `ProbeElement` (a sealed set, plus `Custom` as the escape hatch |
 | Panel | `ProbeInfo`) a title and a column of elements, appended to by every provider |
-| Registration | `ProbeRegistry` |
+| Registration | `ProbeProviders` |
 | Settings | `wflib-probe.toml`: position, scale, whether models draw, refresh rate |
 
 ## 39. The elements
@@ -45,7 +45,7 @@ Providers **append**; nothing replaces. A door's provider says what the door is 
 what its lock is worth, and neither has to know the other exists. Priority orders the panel.
 
 ```java
-ProbeRegistry.addBlock(MyBlocks.REACTOR.get(), (info, ctx, state, pos, be) -> {
+ProbeProviders.addBlock(MyBlocks.REACTOR.get(), (info, ctx, state, pos, be) -> {
     if (!(be instanceof ReactorBlockEntity reactor)) return;
     info.title(state.getBlock().getName());
     info.bar(reactor.heat() / reactor.maxHeat(), 90, 0xFFCC3333,
@@ -60,7 +60,7 @@ Three registration shapes, and a predicate rather than a block is the general on
 - `addBlocks(predicate, provider, priority)` / `addEntities(...)`: "every door", "anything with a
   buffer".
 - `addAnyBlock(provider, priority)`: everything. What the built-in name-and-icon provider uses, at
-  `ProbeRegistry.DEFAULT_PRIORITY`; that priority is how the `showEverything` setting can mean "only
+  `ProbeProviders.DEFAULT_PRIORITY`; that priority is how the `showEverything` setting can mean "only
   things something has more to say about" without any other provider changing.
 
 ### Server data
@@ -70,7 +70,7 @@ are all on the client already, and reading them there costs no packets. Register
 `ProbeDataProvider` only for something the server keeps to itself:
 
 ```java
-ProbeRegistry.addBlockData(state -> state.getBlock() instanceof DoorBlock,
+ProbeProviders.addBlockData(state -> state.getBlock() instanceof DoorBlock,
         (data, player, level, pos, state, be) -> data.putInt("Powered", poweredBlocks(level, pos)), 0);
 ```
 
@@ -200,11 +200,11 @@ still a slash, just fat) and that only **coloured** text is affected.
 ### Nodes
 
 ```java
-ProbeRegistry.addEntityNodes(e -> e instanceof Tank, (out, ctx, e) ->
+ProbeProviders.addEntityNodes(e -> e instanceof Tank, (out, ctx, e) ->
         out.add(new ProbeNode("hatch", hatchWorldPos, info -> {
             info.title(name);
             info.action(ProbeAction.of(TOGGLE, 0, label));
-        }).colour(0xFFFFD44A).claimed(crosshairOnHatch)), ProbeRegistry.CAPABILITY_PRIORITY);
+        }).colour(0xFFFFD44A).claimed(crosshairOnHatch)), ProbeProviders.CAPABILITY_PRIORITY);
 ```
 
 - Target with nodes => no crosshair panel; its nodes carry everything. `addBlockNodes(Predicate<BlockEntity>, ...)`: block entities of loaded chunks in reach.

@@ -1,14 +1,15 @@
 package com.wf.wflib.recon.detect;
 
-import com.wf.wflib.drone.WorldThread;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.propagate.Propagator;
-import com.wf.wflib.recon.snapshot.ReconTerrain;
-import com.wf.wflib.recon.snapshot.SensorSnapshot;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
+import com.wf.wflib.core.api.WorldThread;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.Propagator;
+import com.wf.wflib.recon.api.ReconTerrain;
+import com.wf.wflib.recon.api.SensorSnapshot;
+import com.wf.wflib.recon.api.TargetSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.recon.api.Plot;
 
 /**
  * One sensor's look: run the band's model over every target it might see, then fuse whatever it cannot tell apart.

@@ -2,6 +2,7 @@ package com.wf.wflib.backpack;
 
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import com.wf.wflib.backpack.api.BackpackContainer;
 
 /** {@link Backpacks#HANDLER} over a worn backpack; same rules as its slots. */
 final class BackpackHandler implements IItemHandlerModifiable {

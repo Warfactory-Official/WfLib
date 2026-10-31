@@ -1,24 +1,24 @@
 package com.wf.wflib.hazard.client;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.hazard.HazardContent;
-import com.wf.wflib.hazard.LivingHazardProps;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.UiEval;
-import com.wf.wflib.ui.UiHud;
-import com.wf.wflib.ui.UiInstance;
-import com.wf.wflib.ui.UiLayout;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.widget.Point;
+import com.wf.wflib.hazard.api.HazardContent;
+import com.wf.wflib.hazard.api.LivingHazardProps;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.UiHud;
+import com.wf.wflib.ui.api.UiInstance;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.widget.Point;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.core.api.WFLib;
 
-import static com.wf.wflib.ui.Ui.layout;
-import static com.wf.wflib.ui.Ui.place;
+import static com.wf.wflib.ui.api.Ui.layout;
+import static com.wf.wflib.ui.api.Ui.place;
 
 /**
  * Geiger LCD, bottom-left (under chat's bottom line, h - 40). Replaces NTM {@code RadiationHudRenderer}.
@@ -33,7 +33,7 @@ public final class GeigerHud {
 
     public static void register() {
         UiLayout layout = layout(LAYOUT, place("4", "ui.height - 4", Point.BOTTOM_LEFT, new Lcd()));
-        UiHud.addSource(UiHud.Layer.MAIN, out -> {
+        UiHud.addSource(UiHud.Layer.MAIN, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "geiger"), 0, out -> {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null || !player.getInventory().contains(HazardContent.GEIGER_COUNTER)) return;
             if (instance == null) instance = layout.instantiate();

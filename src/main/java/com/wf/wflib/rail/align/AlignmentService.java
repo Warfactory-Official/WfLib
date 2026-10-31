@@ -1,8 +1,8 @@
 package com.wf.wflib.rail.align;
 
-import com.wf.wflib.compat.WarforgeCompat;
-import com.wf.wflib.network.RailAlignmentPacket;
-import com.wf.wflib.network.WFNetwork;
+import com.wf.wflib.compat.api.WarforgeCompat;
+import com.wf.wflib.rail.RailAlignmentPacket;
+import com.wf.wflib.core.api.WFNetwork;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.RouteStatus;
 
 /**
  * Who may see which route, and sending it to them.
@@ -96,7 +98,7 @@ public final class AlignmentService {
     /** The routes this player may see, as they will be drawn. */
     public static List<AlignmentView> viewsFor(ServerPlayer player, ServerLevel level) {
         List<AlignmentView> out = new ArrayList<>();
-        for (Alignment alignment : AlignmentStore.of(level).all()) {
+        for (Alignment alignment : AlignmentData.of(level).all()) {
             if (!visibleTo(player, alignment)) {
                 continue;
             }

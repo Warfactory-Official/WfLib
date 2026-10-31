@@ -1,14 +1,16 @@
 package com.wf.wflib.warhead;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.entity.BombletEntity;
-import com.wf.wflib.fx.ExplosionCreator;
-import com.wf.wflib.util.FragmentationUtil;
+import com.wf.wflib.warhead.api.BombletEntity;
+import com.wf.wflib.explosion.api.ExplosionCreator;
+import com.wf.wflib.explosion.api.FragmentationUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.projectile.SmallFireball;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.warhead.api.BombletWarhead;
+import com.wf.wflib.warhead.api.WarheadCarrier;
+import com.wf.wflib.core.api.WFLib;
 
 public final class FireCluster {
 
@@ -16,7 +18,6 @@ public final class FireCluster {
     private static final double HALF_ANGLE = Math.toRadians(60.0);
     private static final double SPEED = 1.2;
     private static final double SPEED_JITTER = 0.4;
-    public static boolean asFireballs = false;
 
     private FireCluster() {
     }
@@ -27,7 +28,7 @@ public final class FireCluster {
             return;
         }
         int count = source.getFragmentCount();
-        if (asFireballs) {
+        if (WarheadConfig.fireBombletsAsFireballs()) {
             spawnFireballs(level, pos, count);
         } else {
             FragmentationUtil.cone(level, pos, new Vec3(0.0, -1.0, 0.0), HALF_ANGLE, count,

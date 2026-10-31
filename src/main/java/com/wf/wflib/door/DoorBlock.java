@@ -31,6 +31,8 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.door.api.DoorBlockEntity;
+import com.wf.wflib.door.api.DoorType;
 
 /** Every block of every door. */
 public class DoorBlock extends BaseEntityBlock {
@@ -76,7 +78,7 @@ public class DoorBlock extends BaseEntityBlock {
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
                                                                  BlockEntityType<T> given) {
         return state.getValue(ROLE) == DoorRole.CORE
-                ? createTickerHelper(given, ModDoors.DOOR.get(), DoorBlockEntity::tick)
+                ? createTickerHelper(given, DoorContent.DOOR.get(), DoorBlockEntity::tick)
                 : null;
     }
 

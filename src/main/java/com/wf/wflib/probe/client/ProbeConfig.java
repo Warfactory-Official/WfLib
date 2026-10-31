@@ -33,8 +33,6 @@ public final class ProbeConfig {
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
-        b.comment("The look-at probe panel.").push("probe");
-
         ENABLED = b.comment("Draw the probe panel at all.").define("enabled", true);
         ANCHOR = b.comment("Where the panel sits on screen.").defineEnum("anchor", Anchor.CROSSHAIR_RIGHT);
         OFFSET_X = b.comment("Nudges the panel sideways from its anchor, in GUI pixels.")
@@ -74,7 +72,6 @@ public final class ProbeConfig {
                         "outside the panel, over the world, where a shadow on one side does not carry.")
                 .define("textOutline", true);
 
-        b.pop();
         SPEC = b.build();
     }
 

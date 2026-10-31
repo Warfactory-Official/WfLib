@@ -1,11 +1,11 @@
 package com.wf.wflib.rail;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.rail.align.AlignElement;
-import com.wf.wflib.rail.align.Alignment;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.align.AlignmentEdits;
-import com.wf.wflib.rail.align.AlignmentStore;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.align.AlignmentData;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.build.RailWorks;
 import com.wf.wflib.rail.build.TrackJob;
@@ -137,7 +137,7 @@ public final class TunnelBuilder {
         // and the bore leaves the course their rails stand on. See TunnelCrossings: without it the
         // second tunnel of any crossing walls off the first and sweeps its track away.
         List<RouteMeeting> meetings =
-                com.wf.wflib.rail.align.RouteMeetings.on(AlignmentStore.of(level).all(), route.id());
+                com.wf.wflib.rail.align.RouteMeetings.on(AlignmentData.of(level).all(), route.id());
         CarveVolume shared = TunnelCrossings.shared(level, route.id(), meetings, profile, floorY);
         CarveVolume bore = TunnelCrossings.boring(
                 sweep(path, profile, TunnelProfile.Kind.BORE, floorY, meetings, route.id()), shared,
@@ -199,7 +199,7 @@ public final class TunnelBuilder {
         int stretches = Math.max(1, (int) Math.ceil(length / STRETCH));
         ExcavationService service = ExcavationService.of(level);
         List<RouteMeeting> meetings =
-                com.wf.wflib.rail.align.RouteMeetings.on(AlignmentStore.of(level).all(), routeId);
+                com.wf.wflib.rail.align.RouteMeetings.on(AlignmentData.of(level).all(), routeId);
         // Only the two outermost stretch boundaries are the route's own ends; the rest are seams in the
         // middle of one tunnel, and a seam claims nothing past itself.
         ProfileVolume.End first = portalAt(meetings, routeId, RouteMeeting.End.START);
@@ -246,7 +246,7 @@ public final class TunnelBuilder {
         if (!RailConfig.TUNNEL_TRACK.get()) {
             return;
         }
-        Alignment route = AlignmentStore.of(level).get(routeId);
+        Alignment route = AlignmentData.of(level).get(routeId);
         if (route == null) {
             return;
         }
@@ -265,7 +265,7 @@ public final class TunnelBuilder {
      * nothing.</p>
      */
     private static void report(ServerLevel level, UUID routeId, double from, double to) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment current = store.get(routeId);
         if (current == null) {
             return;

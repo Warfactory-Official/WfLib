@@ -1,16 +1,15 @@
 package com.wf.wflib.round.gametest;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.Rounds;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.Rounds;
 import com.wf.wflib.round.terrain.AsyncTerrainSource;
 import com.wf.wflib.round.terrain.RegionReader;
 import com.wf.wflib.round.terrain.SectionSolidity;
 import com.wf.wflib.round.terrain.SolidityDecoder;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
@@ -26,7 +25,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
 
@@ -37,19 +35,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Locale;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Round step cost over the same flat lane loaded vs from disk (cache warm), terrain decode per column (lane +
  * {@code wflib.bench.regions} region file, default {@code world/region/r.0.0.mca} under the run dir). Logs only.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class VirtualFlightBench {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ResourceLocation ROUND = KineticPresetRegistry.rl("test_virtual_bench");
+    private static final ResourceLocation ROUND = KineticPresets.rl("test_virtual_bench");
     /** Chunk-loading twin: no terrain span walk, the pre-1.4.0 per-step ground check. */
-    private static final ResourceLocation LOADING = KineticPresetRegistry.rl("test_virtual_bench_loading");
+    private static final ResourceLocation LOADING = KineticPresets.rl("test_virtual_bench_loading");
     private static final int CHUNKS = 12;
     private static final int ROUNDS = 500;
     private static final int STEPS = 25;
@@ -64,14 +62,14 @@ public class VirtualFlightBench {
     private static final int DISPERSED = 500;
     private static final int DISPERSED_TICKS = 20;
 
-    static {
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(ROUND, null, WarheadRegistry.rl("inert")).speed(4.0)
+    public static void register() {
+        KineticPresets.registerItemless(KineticPreset.builder(ROUND, null, Warheads.rl("inert")).speed(4.0)
                 .drag(0.01).gravity(0.0).life(400).impactDamage(1.0).caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(LOADING, null, WarheadRegistry.rl("inert")).speed(4.0)
+        KineticPresets.registerItemless(KineticPreset.builder(LOADING, null, Warheads.rl("inert")).speed(4.0)
                 .drag(0.01).gravity(0.0).life(400).impactDamage(1.0).caliber(5.56).build());
     }
 
-    @GameTest(template = "empty", required = false, batch = "wflib_bench", timeoutTicks = 12000)
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", required = false, batch = "wflib_bench", timeoutTicks = 12000)
     public static void virtualFlightCost(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -123,13 +121,13 @@ public class VirtualFlightBench {
      * Unwatched rounds at random headings over a planted {@code GRID}^2-chunk field (farmland top layer: partial
      * sections): per tick round-step wall time, stalled rounds, region stats, cache size and bytes. Logs only.
      */
-    @GameTest(template = "empty", required = false, batch = "wflib_bench_dispersed", timeoutTicks = 12000)
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", required = false, batch = "wflib_bench_dispersed", timeoutTicks = 12000)
     public static void dispersedFire(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
         ChunkPos centre = new ChunkPos((o.getX() - 12000) >> 4, (o.getZ() - 12000) >> 4);
         ChunkPos template = new ChunkPos(centre.x, centre.z + 200);
-        KineticPreset preset = KineticPresetRegistry.get(ROUND);
+        KineticPreset preset = KineticPresets.get(ROUND);
         AsyncTerrainSource terrain = AsyncTerrainSource.of(level);
         long[] keys = new long[DISPERSED];
         Vec3[] last = new Vec3[DISPERSED];
@@ -267,7 +265,7 @@ public class VirtualFlightBench {
 
     /** ns per step, all rounds stepped to {@link #STEPS} synchronously. */
     private static double pass(ServerLevel level, ResourceLocation round, Vec3 start, Vec3 v) {
-        KineticPreset preset = KineticPresetRegistry.get(round);
+        KineticPreset preset = KineticPresets.get(round);
         long[] keys = new long[ROUNDS];
         for (int k = 0; k < ROUNDS; k++) {
             keys[k] = Rounds.launch(level, preset, start.add(0.0, 0.0, k * 0.013), v, null, null);

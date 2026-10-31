@@ -1,9 +1,8 @@
 package com.wf.wflib.drone;
 
-import com.wf.wflib.audio.AudioCategory;
-import com.wf.wflib.audio.Blasts;
-import com.wf.wflib.audio.WfAudio;
-import com.wf.wflib.ModEntities;
+import com.wf.wflib.audio.api.AudioCategory;
+import com.wf.wflib.audio.api.Blasts;
+import com.wf.wflib.audio.api.WfAudio;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -17,6 +16,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.drone.api.DroneModels;
 
 /** One piece of a drone that came apart in the air: a hull, a rotor disc, a gripper jaw. */
 public class DroneDebrisEntity extends Entity {
@@ -68,7 +68,7 @@ public class DroneDebrisEntity extends Entity {
      * @param spin tumble in radians/tick about each axis
      */
     public DroneDebrisEntity(Level level, Vec3 pos, ResourceLocation part, Vec3 velocity, Vec3 spin) {
-        this(ModEntities.DRONE_DEBRIS.get(), level);
+        this(DroneSystem.DRONE_DEBRIS.get(), level);
         this.setPos(pos.x, pos.y, pos.z);
         this.setDeltaMovement(velocity);
         this.entityData.set(PART, part.toString());

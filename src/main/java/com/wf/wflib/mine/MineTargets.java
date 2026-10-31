@@ -1,17 +1,15 @@
 package com.wf.wflib.mine;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.entity.glyphid.EntityGlyphid;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import com.wf.wflib.mine.api.MineTarget;
+import com.wf.wflib.core.api.WFLib;
 
 /** The stock entity matchers, and the tag generation every {@link MineTarget} memo is keyed against. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class MineTargets {
 
     /** Anything at all. A mine that goes off for a thrown snowball, if that is what you want. */
@@ -28,9 +26,6 @@ public final class MineTargets {
 
     /** Mobs only, so a minefield laid against a swarm ignores the people who laid it. */
     public static final MineTarget MOBS = MineTarget.ofClass(Mob.class);
-
-    /** The swarm specifically (see {@link EntityGlyphid}). */
-    public static final MineTarget GLYPHIDS = MineTarget.ofClass(EntityGlyphid.class);
 
     /** Volume, in blocks, at or above which a body counts as heavy. */
     private static final double HEAVY_VOLUME = 1.0;

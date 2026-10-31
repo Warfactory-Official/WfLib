@@ -6,11 +6,10 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.wf.wflib.block.entity.ReconHubBlockEntity;
-import com.wf.wflib.compat.WarforgeCompat;
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.SourceIds;
-import com.wf.wflib.recon.grid.HubIndex;
+import com.wf.wflib.recon.api.ReconHubBlockEntity;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.SourceIds;
+import com.wf.wflib.recon.api.HubIndex;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -25,6 +24,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import com.wf.wflib.recon.api.ReconMapService;
 
 /** {@code /reconmap}: turn the grid overlay on, and for an operator, point it at a network. */
 public final class ReconMapCommand {
@@ -101,7 +101,7 @@ public final class ReconMapCommand {
         if (!view.isEmpty()) {
             return;
         }
-        boolean unaffiliated = com.wf.wflib.recon.ReconOwners.owningEntity(player) == null;
+        boolean unaffiliated = com.wf.wflib.recon.api.ReconOwners.owningEntity(player) == null;
         source.sendSuccess(() -> Component.literal(unaffiliated
                         ? "  you are in no faction, so this is the unaffiliated network"
                         : "  nothing is on your faction's network here - a hub joins it only if it was built "

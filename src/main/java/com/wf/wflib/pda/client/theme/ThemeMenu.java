@@ -1,22 +1,22 @@
 package com.wf.wflib.pda.client.theme;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.config.WFClientConfig;
-import com.wf.wflib.pda.client.PdaShell;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.UiEval;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.UiAction;
-import com.wf.wflib.ui.widget.Button;
-import com.wf.wflib.ui.widget.Point;
+import com.wf.wflib.pda.PdaClientConfig;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.UiAction;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Point;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import com.wf.wflib.pda.api.client.PdaThemeState;
 
-import static com.wf.wflib.ui.Ui.at;
-import static com.wf.wflib.ui.Ui.rect;
-import static com.wf.wflib.ui.Ui.stack;
-import static com.wf.wflib.ui.Ui.text;
-import static com.wf.wflib.ui.Ui.when;
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
+import static com.wf.wflib.ui.api.Ui.when;
 
 /** The gear in the top bar and the settings panel it opens. Shell-level, so it works on every page. */
 public final class ThemeMenu {
@@ -79,12 +79,12 @@ public final class ThemeMenu {
                                 text("{pda_theme.name}", ACC))),
                 at(Float.toString(PANEL_X + PANEL_W - 22), Float.toString(PANEL_Y + 18),
                         button(item -> PdaThemeState.select(PdaThemes.step(PdaThemeState.theme().id(), 1)), 14, 12, text(">", ACC))),
-                toggle(PANEL_Y + 18 + ROW, "EFFECTS", "v_effects", WFClientConfig.PDA_EFFECTS),
-                toggle(PANEL_Y + 18 + 2 * ROW, "  SCANLINES", "v_scanlines", WFClientConfig.PDA_SCANLINES),
-                toggle(PANEL_Y + 18 + 3 * ROW, "  FLICKER", "v_flicker", WFClientConfig.PDA_FLICKER),
-                toggle(PANEL_Y + 18 + 4 * ROW, "  NOISE", "v_noise", WFClientConfig.PDA_NOISE),
-                toggle(PANEL_Y + 18 + 5 * ROW, "  VIGNETTE", "v_vignette", WFClientConfig.PDA_VIGNETTE),
-                toggle(PANEL_Y + 18 + 6 * ROW, "SOUNDS", "v_sounds", WFClientConfig.PDA_SOUNDS),
+                toggle(PANEL_Y + 18 + ROW, "EFFECTS", "v_effects", PdaClientConfig.EFFECTS),
+                toggle(PANEL_Y + 18 + 2 * ROW, "  SCANLINES", "v_scanlines", PdaClientConfig.SCANLINES),
+                toggle(PANEL_Y + 18 + 3 * ROW, "  FLICKER", "v_flicker", PdaClientConfig.FLICKER),
+                toggle(PANEL_Y + 18 + 4 * ROW, "  NOISE", "v_noise", PdaClientConfig.NOISE),
+                toggle(PANEL_Y + 18 + 5 * ROW, "  VIGNETTE", "v_vignette", PdaClientConfig.VIGNETTE),
+                toggle(PANEL_Y + 18 + 6 * ROW, "SOUNDS", "v_sounds", PdaClientConfig.SOUNDS),
                 at(Float.toString(PANEL_X + 8), Float.toString(PANEL_Y + 18 + 7 * ROW + 4),
                         button(item -> PdaThemeState.reset(), 60, 12, text("RESET", T))),
                 at(Float.toString(PANEL_X + PANEL_W - 68), Float.toString(PANEL_Y + 18 + 7 * ROW + 4),

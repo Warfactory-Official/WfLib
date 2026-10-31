@@ -1,6 +1,5 @@
 package com.wf.wflib.pda.music;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -8,6 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
+import com.wf.wflib.core.api.WFLib;
 
 /** Validated server library; capped at {@link ServerMusic#MAX_ENTRIES}. */
 public record MusicListPacket(List<Entry> entries) implements CustomPacketPayload {

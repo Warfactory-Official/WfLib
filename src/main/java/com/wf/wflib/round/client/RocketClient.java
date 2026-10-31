@@ -1,12 +1,14 @@
 package com.wf.wflib.round.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.wf.wflib.round.RocketEntity;
+import com.wf.wflib.round.api.RocketEntity;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.round.api.client.RoundRenderer;
+import com.wf.wflib.round.api.client.RoundRenderers;
 
 /** Rocket look and exhaust through {@link RoundRenderers}; unregistered preset => nothing drawn. */
 public final class RocketClient extends EntityRenderer<RocketEntity> {
@@ -17,7 +19,7 @@ public final class RocketClient extends EntityRenderer<RocketEntity> {
 
     public static void tick(RocketEntity rocket) {
         if (rocket.tickCount == 1) {
-            com.wf.wflib.ammo.client.LookRockets.launched(rocket);
+            com.wf.wflib.ammo.api.client.LookRockets.launched(rocket);
         }
         RoundRenderer renderer = rocket.preset() == null ? null : RoundRenderers.get(rocket.preset().id());
         if (renderer == null) {

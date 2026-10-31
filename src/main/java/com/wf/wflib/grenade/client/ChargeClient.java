@@ -1,13 +1,13 @@
 package com.wf.wflib.grenade.client;
 
-import com.wf.wflib.audio.AudioCategory;
-import com.wf.wflib.audio.SoundSpec;
-import com.wf.wflib.audio.client.Emitter;
-import com.wf.wflib.client.flywheel.FlywheelEffectManager;
-import com.wf.wflib.client.fx.WFLights;
-import com.wf.wflib.grenade.GrenadeWarheads;
-import com.wf.wflib.grenade.Grenades;
-import com.wf.wflib.grenade.ThrownCharge;
+import com.wf.wflib.audio.api.AudioCategory;
+import com.wf.wflib.audio.api.SoundSpec;
+import com.wf.wflib.audio.api.client.Emitter;
+import com.wf.wflib.fx.api.FlywheelEffectManager;
+import com.wf.wflib.fx.api.WFLights;
+import com.wf.wflib.grenade.api.GrenadeWarheads;
+import com.wf.wflib.grenade.api.Grenades;
+import com.wf.wflib.grenade.api.ThrownCharge;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;

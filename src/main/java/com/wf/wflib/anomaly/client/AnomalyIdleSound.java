@@ -1,7 +1,6 @@
 package com.wf.wflib.anomaly.client;
 
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
-import com.wf.wflib.anomaly.AnomalyConfig;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -25,7 +24,7 @@ final class AnomalyIdleSound extends AbstractTickableSoundInstance {
 
     @Override
     public void tick() {
-        if (be.isRemoved() || !AnomalyConfig.enabled) {
+        if (be.isRemoved()) {
             stop();
             return;
         }

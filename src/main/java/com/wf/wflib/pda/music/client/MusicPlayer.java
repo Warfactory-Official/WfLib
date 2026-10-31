@@ -2,8 +2,7 @@ package com.wf.wflib.pda.music.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.pda.client.PdaClient;
+import com.wf.wflib.pda.api.client.PdaClient;
 import com.wf.wflib.pda.music.OggAudio;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -21,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Client-only playback controller: queue (shuffle / repeat), load -> {@link OggAudio#probe} -> {@link PcmSource} ->

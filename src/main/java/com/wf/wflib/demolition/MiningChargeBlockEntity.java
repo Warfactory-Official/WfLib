@@ -7,12 +7,12 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import com.wf.wflib.block.ModBlockEntities;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import com.wf.wflib.demolition.api.DemolitionContent;
 
 /** Data for a placed mining charge. */
 public class MiningChargeBlockEntity extends BlockEntity {
@@ -21,7 +21,7 @@ public class MiningChargeBlockEntity extends BlockEntity {
     private UUID placer;
 
     public MiningChargeBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.MINING_CHARGE.get(), pos, state);
+        super(DemolitionContent.MINING_CHARGE_BE.get(), pos, state);
     }
 
     @Override

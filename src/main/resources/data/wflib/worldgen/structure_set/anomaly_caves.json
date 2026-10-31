@@ -1,4 +1,17 @@
 {
-  "structures": [{"structure": "wflib:anomaly_cave", "weight": 1}],
-  "placement": {"type": "wflib:cave_slot"}
+  "neoforge:conditions": [
+    {
+      "type": "wflib:system",
+      "system": "anomaly"
+    }
+  ],
+  "structures": [
+    {
+      "structure": "wflib:anomaly_cave",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "wflib:cave_slot"
+  }
 }

@@ -11,6 +11,18 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import com.wf.wflib.orbital.api.CargoTable;
+import com.wf.wflib.orbital.api.DeorbitReason;
+import com.wf.wflib.orbital.api.OrbitElements;
+import com.wf.wflib.orbital.api.OrbitalNet;
+import com.wf.wflib.orbital.api.SatHandle;
+import com.wf.wflib.orbital.api.SatId;
+import com.wf.wflib.orbital.api.SatPayload;
+import com.wf.wflib.orbital.api.SatPayloads;
+import com.wf.wflib.orbital.api.SatSpec;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
+import com.wf.wflib.orbital.api.TrackedObject;
 
 public final class OrbitalSelfTest {
 
@@ -154,7 +166,7 @@ public final class OrbitalSelfTest {
                             + "day/night swing stops being the mechanic",
                     OrbitalConfig.SOLAR_PER_TICK, workingDraw));
         }
-        if (OrbitalConfig.RELAY_HOP_COST <= com.wf.wflib.recon.grid.ReconGrid.MAX_HOPS) {
+        if (OrbitalConfig.RELAY_HOP_COST <= com.wf.wflib.recon.api.ReconGrid.MAX_HOPS) {
             failures.add("a relayed contact is not distinguishable from a locally measured one by hop count, "
                     + "so a relay carries its own output back and each round makes the origin's own track "
                     + "one hop worse");
@@ -241,7 +253,7 @@ public final class OrbitalSelfTest {
     }
 
     private static void registry(List<String> failures) {
-        OrbitalRegistry registry = new OrbitalRegistry();
+        OrbitalData registry = new OrbitalData();
         SatSpec spec = SatSpec.of(SatPayloads.RECON_RADAR).netId(0x1234L).callsign("KH-1");
         Satellite one = registry.add(spec, OrbitElements.leo(0L, 0.0, 0.0, 0.0));
         Satellite two = registry.add(spec.callsign("KH-2"), OrbitElements.meo(0L, 100.0, 0.0, 1.0));
@@ -331,7 +343,7 @@ public final class OrbitalSelfTest {
                 failures.add("a launched satellite could not be read back");
                 return;
             }
-            Satellite sat = OrbitalRegistry.get(level).byId(id);
+            Satellite sat = OrbitalData.get(level).byId(id);
 
             boolean hasCore = false;
             boolean hasPayload = false;
@@ -392,7 +404,7 @@ public final class OrbitalSelfTest {
     }
 
     private static void catalogue(List<String> failures) {
-        OrbitalRegistry registry = new OrbitalRegistry();
+        OrbitalData registry = new OrbitalData();
         Satellite target = registry.add(SatSpec.of(SatPayloads.RECON_RADAR).netId(0xAAAAL).callsign("THEIRS"),
                 OrbitElements.leo(0L, 0.0, 0.0, 0.0));
         registry.observe(0xBBBBL, target, 100L);
@@ -460,7 +472,7 @@ public final class OrbitalSelfTest {
             failures.add("an empty hold produced cargo");
         }
 
-        if (OrbitalConfig.RELEASE_DISTANCE <= com.wf.wflib.sim.MissileSimConfig.DESTINATION_RANGE) {
+        if (OrbitalConfig.RELEASE_DISTANCE <= com.wf.wflib.missile.api.MissileConfig.destinationRange()) {
             failures.add("things released from orbit start inside DESTINATION_RANGE, so they become real "
                     + "entities on the tick they are fired and have no flight to be detected during");
         }
@@ -476,10 +488,10 @@ public final class OrbitalSelfTest {
     }
 
     private static void weather(List<String> failures) {
-        com.wf.wflib.recon.env.Atmosphere clear =
-                new com.wf.wflib.recon.env.Atmosphere(0.0, 0.0, 0.0, 0.0);
-        com.wf.wflib.recon.env.Atmosphere storm =
-                new com.wf.wflib.recon.env.Atmosphere(0.0, 1.0, 1.0, 0.0);
+        com.wf.wflib.recon.api.Atmosphere clear =
+                new com.wf.wflib.recon.api.Atmosphere(0.0, 0.0, 0.0, 0.0);
+        com.wf.wflib.recon.api.Atmosphere storm =
+                new com.wf.wflib.recon.api.Atmosphere(0.0, 1.0, 1.0, 0.0);
         double dry = com.wf.wflib.orbital.payload.LaserPayload.transmission(clear);
         double wet = com.wf.wflib.orbital.payload.LaserPayload.transmission(storm);
         if (dry < 0.99) {
@@ -544,7 +556,7 @@ public final class OrbitalSelfTest {
             failures.add("a warning could not be cleared");
         }
 
-        if (OrbitalConfig.requireWarForOrbitalKills) {
+        if (OrbitalConfig.requireWarForOrbitalKills()) {
             failures.add("the war gate defaults on; the design has it off, so anything overhead is fair game");
         }
         if (OrbitalConfig.HUNTER_KILL_RANGE >= OrbitalConfig.POINT_DEFENCE_RANGE) {

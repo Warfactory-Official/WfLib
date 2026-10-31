@@ -5,6 +5,9 @@ import net.minecraft.server.level.ServerLevel;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.Centreline;
 
 /**
  * Turning track laid in the world into build progress on a route.
@@ -153,7 +156,7 @@ public final class AlignmentProgress {
         if (hit == null) {
             return null;
         }
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment updated = AlignmentEdits.applyBuild(hit.alignment(),
                 hit.chainage() - REPORT_HALF_WINDOW, hit.chainage() + REPORT_HALF_WINDOW, laid,
                 hit.length());
@@ -181,7 +184,7 @@ public final class AlignmentProgress {
      *                     clearance width
      */
     public static Hit nearest(ServerLevel level, UUID faction, double x, double z, double minTolerance) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Hit best = null;
         for (Alignment alignment : faction == null ? store.all() : store.byFaction(faction)) {
             if (alignment.points().size() < 2) {

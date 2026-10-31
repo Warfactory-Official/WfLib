@@ -1,17 +1,16 @@
 package com.wf.wflib.round.gametest;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.RoundPierceEvent;
-import com.wf.wflib.round.Rounds;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.event.RoundPierceEvent;
+import com.wf.wflib.round.api.Rounds;
 import com.wf.wflib.round.pen.PenMaterial;
 import com.wf.wflib.round.pen.PenTable;
 import com.wf.wflib.round.terrain.AsyncTerrainSource;
 import com.wf.wflib.round.terrain.SectionSolidity;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
@@ -26,7 +25,6 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
 
@@ -40,12 +38,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * {@code wflib:penetration} data map: a world datapack value overrides the class, {@code /reload} rebuilds the table
  * both ways and re-decodes unloaded terrain, drill and blockPen read the same value.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class PenTableGameTest {
@@ -60,18 +58,18 @@ public class PenTableGameTest {
     private static final float OVERRIDE = 123.0f;
     private static final float BLOCK_PEN = 200.0f;
     private static final double SPEED = 40.0;
-    private static final ResourceLocation PIERCER = KineticPresetRegistry.rl("test_table_pierce");
-    private static final ResourceLocation DRILL_AT = KineticPresetRegistry.rl("test_table_drill_at");
-    private static final ResourceLocation DRILL_BELOW = KineticPresetRegistry.rl("test_table_drill_below");
+    private static final ResourceLocation PIERCER = KineticPresets.rl("test_table_pierce");
+    private static final ResourceLocation DRILL_AT = KineticPresets.rl("test_table_drill_at");
+    private static final ResourceLocation DRILL_BELOW = KineticPresets.rl("test_table_drill_below");
     private static final List<RoundPierceEvent> PIERCES = new CopyOnWriteArrayList<>();
 
-    static {
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(PIERCER, null, WarheadRegistry.rl("inert")).speed(SPEED)
+    public static void register() {
+        KineticPresets.registerItemless(KineticPreset.builder(PIERCER, null, Warheads.rl("inert")).speed(SPEED)
                 .drag(0.0).gravity(0.0).life(100).mass(0.004).caliber(5.56).blockPen(BLOCK_PEN).noChunkLoading()
                 .build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(DRILL_AT, null, WarheadRegistry.rl("inert")).speed(4.0)
+        KineticPresets.registerItemless(KineticPreset.builder(DRILL_AT, null, Warheads.rl("inert")).speed(4.0)
                 .drag(0.0).gravity(0.0).life(100).penetration(1, OVERRIDE).build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(DRILL_BELOW, null, WarheadRegistry.rl("inert"))
+        KineticPresets.registerItemless(KineticPreset.builder(DRILL_BELOW, null, Warheads.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(100).penetration(1, OVERRIDE - 0.5).build());
     }
 
@@ -82,7 +80,7 @@ public class PenTableGameTest {
         }
     }
 
-    @GameTest(template = TEMPLATE, batch = "wflib_pen_table", timeoutTicks = 1200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = "wflib_pen_table", timeoutTicks = 1200)
     public static void aDatapackValueOverridesTheClassUntilReloadedAway(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         MinecraftServer server = level.getServer();
@@ -140,14 +138,14 @@ public class PenTableGameTest {
     }
 
     /** Shipped drill presets: METAL class drilled, ARMOR class stops them. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void apDrillsIronButNotObsidian(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos iron = BlockPos.containing(centre(helper, 8.0));
         BlockPos obsidian = iron.below();
         level.setBlockAndUpdate(iron, Blocks.IRON_BLOCK.defaultBlockState());
         level.setBlockAndUpdate(obsidian, Blocks.OBSIDIAN.defaultBlockState());
-        long key = Rounds.launch(level, KineticPresetRegistry.get(KineticPresetRegistry.rl("ap")),
+        long key = Rounds.launch(level, KineticPresets.get(KineticPresets.rl("ap")),
                 centre(helper, 12.0), new Vec3(0.0, -12.0, 0.0), null, null);
         boolean flying = Rounds.step(level, key);
         boolean ironGone = level.getBlockState(iron).isAir();
@@ -156,13 +154,13 @@ public class PenTableGameTest {
         level.setBlockAndUpdate(obsidian, Blocks.AIR.defaultBlockState());
         helper.assertFalse(flying, "obsidian did not stop it");
         helper.assertTrue(ironGone && obsidianKept, "iron drilled " + ironGone + ", obsidian kept " + obsidianKept);
-        float heat = KineticPresetRegistry.get(KineticPresetRegistry.rl("heat")).penetrationResistance();
+        float heat = KineticPresets.get(KineticPresets.rl("heat")).penetrationResistance();
         helper.assertTrue(heat >= PenMaterial.METAL.resistance && heat < PenMaterial.ARMOR.resistance, "heat " + heat);
         helper.succeed();
     }
 
     /** Stone: class value; data map absent for it. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aBlockWithoutAValueKeepsItsClass(GameTestHelper helper) {
         helper.assertTrue(PenTable.resistance(Blocks.STONE.defaultBlockState()) == PenMaterial.STONE.resistance
                         && PenTable.resistance(Blocks.OAK_PLANKS.defaultBlockState()) == PenMaterial.WOOD.resistance
@@ -186,7 +184,7 @@ public class PenTableGameTest {
         BlockPos wall = BlockPos.containing(centre(helper, 10.0));
         level.setBlockAndUpdate(wall, BLOCK.defaultBlockState());
         PIERCES.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(PIERCER), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(PIERCER), centre(helper, 5.0),
                 new Vec3(0.0, SPEED, 0.0), null, null);
         Rounds.step(level, key);
         Vec3 v = Rounds.velocity(level, key);
@@ -198,7 +196,7 @@ public class PenTableGameTest {
         BlockPos floor = BlockPos.containing(centre(helper, 12.0));
         for (ResourceLocation drill : new ResourceLocation[]{DRILL_BELOW, DRILL_AT}) {
             level.setBlockAndUpdate(floor, BLOCK.defaultBlockState());
-            long d = Rounds.launch(level, KineticPresetRegistry.get(drill), centre(helper, 15.0),
+            long d = Rounds.launch(level, KineticPresets.get(drill), centre(helper, 15.0),
                     new Vec3(0.0, -4.0, 0.0), null, null);
             Rounds.step(level, d);
             Rounds.destroy(level, d);
@@ -223,7 +221,7 @@ public class PenTableGameTest {
         }
     }
 
-    /** The shipped file's form ({@code wfcore} entries). */
+    /** The shipped file's form (conditional entries). */
     private static String conditional(String mod, float resistance) {
         return "{\"neoforge:conditions\": [{\"type\": \"neoforge:mod_loaded\", \"modid\": \"" + mod
                 + "\"}], \"resistance\": " + resistance + "}";

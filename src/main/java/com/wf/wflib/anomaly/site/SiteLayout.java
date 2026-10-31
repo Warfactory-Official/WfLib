@@ -1,7 +1,7 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.anomaly.site.AnomalyMix.Kind;
-import com.wf.wflib.anomaly.site.AnomalyMix.Loot;
+import com.wf.wflib.anomaly.api.AnomalyMix.Kind;
+import com.wf.wflib.anomaly.api.AnomalyMix.Loot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -17,6 +17,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.anomaly.api.AnomalyMix;
+import com.wf.wflib.anomaly.api.SitePlan;
+import com.wf.wflib.anomaly.api.SiteStyle;
 
 /**
  * Where everything in one site goes, worked out from its plan and the untouched terrain alone, so every chunk the
@@ -115,8 +118,8 @@ public final class SiteLayout {
     /** Props by position (later ones over earlier). */
     final Map<BlockPos, BlockState> props = new HashMap<>();
     final List<Spot> spots = new ArrayList<>();
-    final List<Placed> anomalies = new ArrayList<>();
-    final List<LootSpot> loot = new ArrayList<>();
+    public final List<Placed> anomalies = new ArrayList<>();
+    public final List<LootSpot> loot = new ArrayList<>();
     /** Surface for the motif's own ground; bowls, trenches and pads have their own. */
     Palette palette = Palette.of(Blocks.COARSE_DIRT);
     /** A bowl's floor, if not the palette. */
@@ -200,7 +203,7 @@ public final class SiteLayout {
     }
 
     /** A hash of a position, 0..1: per-block randomness that is the same in every chunk's pass. */
-    static double hash(int x, int z, int salt) {
+    public static double hash(int x, int z, int salt) {
         long h = x * 0x9E3779B97F4A7C15L ^ z * 0xC2B2AE3D27D4EB4FL ^ salt * 0x165667B19E3779F9L;
         h ^= h >>> 33;
         h *= 0xFF51AFD7ED558CCDL;

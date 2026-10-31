@@ -1,6 +1,5 @@
 package com.wf.wflib.stream;
 
-import com.wf.wflib.config.WFConfig;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
@@ -36,7 +35,7 @@ public final class DetachedBodies {
     }
 
     public static boolean suppressesBodyEntities(UUID playerId) {
-        return isPiloting(playerId) && WFConfig.DETACHED_SUPPRESS_BODY_ENTITIES.get();
+        return isPiloting(playerId) && StreamConfig.get().suppressBodyStream();
     }
 
     /** @return parked body's view distance, or -1 = vanilla's */
@@ -44,12 +43,12 @@ public final class DetachedBodies {
         if (!isPiloting(playerId)) {
             return -1;
         }
-        int configured = WFConfig.DETACHED_BODY_VIEW_DISTANCE.get();
+        int configured = StreamConfig.get().bodyViewDistance();
         return configured < 2 ? -1 : Math.min(configured, serverViewDistance);
     }
 
     public static boolean parksBodyTickets(UUID playerId) {
-        return isPiloting(playerId) && WFConfig.DETACHED_BODY_TICKET_RADIUS.get() >= 0;
+        return isPiloting(playerId) && StreamConfig.get().bodyTicketRadius() >= 0;
     }
 
     public static boolean mustStayPaired(Entity entity, Player player) {

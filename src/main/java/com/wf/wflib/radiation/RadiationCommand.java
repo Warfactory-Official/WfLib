@@ -1,11 +1,12 @@
 package com.wf.wflib.radiation;
 
+import com.wf.wflib.core.api.WFSystems;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.wf.wflib.hazard.ContaminationUtil;
-import com.wf.wflib.hazard.LivingHazardProps;
+import com.wf.wflib.hazard.api.ContaminationUtil;
+import com.wf.wflib.hazard.api.LivingHazardProps;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -57,6 +58,10 @@ public final class RadiationCommand {
     }
 
     private static int geiger(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        if (!WFSystems.enabled("hazard")) {
+            ctx.getSource().sendFailure(Component.literal("hazard system is off"));
+            return 0;
+        }
         ContaminationUtil.printGeigerData(ctx.getSource().getPlayerOrException());
         return 1;
     }
@@ -64,7 +69,7 @@ public final class RadiationCommand {
     private static int clearAll(CommandContext<CommandSourceStack> ctx) {
         ServerLevel level = ctx.getSource().getLevel();
         String dim = level.dimension().location().toString();
-        Fallout.clear(level);
+        FalloutData.clear(level);
         if (!RadiationSystemNT.jettisonData(level)) {
             ctx.getSource().sendFailure(Component.translatable("commands.wflib.wfrad.clearall.failed", dim));
             return 0;
@@ -74,6 +79,10 @@ public final class RadiationCommand {
     }
 
     private static int resetPlayers(CommandContext<CommandSourceStack> ctx) {
+        if (!WFSystems.enabled("hazard")) {
+            ctx.getSource().sendFailure(Component.literal("hazard system is off"));
+            return 0;
+        }
         for (ServerPlayer p : ctx.getSource().getServer().getPlayerList().getPlayers()) {
             LivingHazardProps.getData(p).radiation = 0D;
         }
@@ -82,6 +91,10 @@ public final class RadiationCommand {
     }
 
     private static int queryPlayers(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        if (!WFSystems.enabled("hazard")) {
+            ctx.getSource().sendFailure(Component.literal("hazard system is off"));
+            return 0;
+        }
         Collection<ServerPlayer> targets = EntityArgument.getPlayers(ctx, "targets");
         for (ServerPlayer p : targets) {
             ctx.getSource().sendSuccess(() -> Component.literal(p.getName().getString() + ": "
@@ -91,6 +104,10 @@ public final class RadiationCommand {
     }
 
     private static int setPlayers(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        if (!WFSystems.enabled("hazard")) {
+            ctx.getSource().sendFailure(Component.literal("hazard system is off"));
+            return 0;
+        }
         Collection<ServerPlayer> targets = EntityArgument.getPlayers(ctx, "targets");
         double value = Mth.clamp(DoubleArgumentType.getDouble(ctx, "value"), 0D, LivingHazardProps.RAD_CAP);
         for (ServerPlayer p : targets) LivingHazardProps.getData(p).radiation = value;

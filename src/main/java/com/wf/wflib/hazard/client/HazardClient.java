@@ -1,20 +1,16 @@
 package com.wf.wflib.hazard.client;
 
-import com.wf.wflib.WFLib;
 import com.wf.wflib.hazard.HazardSyncPacket;
-import com.wf.wflib.hazard.HazardSystem;
-import com.wf.wflib.hazard.LivingHazardProps;
+import com.wf.wflib.hazard.api.HazardRules;
+import com.wf.wflib.hazard.api.LivingHazardProps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 /** Hazard client: sync receive, item tooltips, remote table build. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class HazardClient {
 
     private HazardClient() {
@@ -33,19 +29,19 @@ public final class HazardClient {
 
     @SubscribeEvent
     public static void onTooltip(ItemTooltipEvent event) {
-        HazardSystem.addHazardInfo(event.getItemStack(), event.getEntity(), event.getToolTip(), event.getFlags());
+        HazardRules.addHazardInfo(event.getItemStack(), event.getEntity(), event.getToolTip(), event.getFlags());
     }
 
     /** Integrated server already built the tables; a remote client builds them off the synced registry. */
     @SubscribeEvent
     public static void onLogin(ClientPlayerNetworkEvent.LoggingIn event) {
         if (!Minecraft.getInstance().hasSingleplayerServer()) {
-            HazardSystem.applyDataPack(event.getPlayer().registryAccess());
+            HazardRules.applyDataPack(event.getPlayer().registryAccess());
         }
     }
 
     @SubscribeEvent
     public static void onTags(TagsUpdatedEvent event) {
-        if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) HazardSystem.clearCaches();
+        if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) HazardRules.clearCaches();
     }
 }

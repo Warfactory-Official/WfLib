@@ -3,13 +3,12 @@ package com.wf.wflib.probe.client;
 import com.wf.wflib.probe.ProbeSight;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.pda.client.PdaClient;
-import com.wf.wflib.probe.ProbeAction;
-import com.wf.wflib.probe.ProbeContext;
-import com.wf.wflib.probe.ProbeInfo;
-import com.wf.wflib.probe.ProbeNode;
-import com.wf.wflib.probe.ProbeRegistry;
+import com.wf.wflib.pda.api.client.PdaClient;
+import com.wf.wflib.probe.api.ProbeAction;
+import com.wf.wflib.probe.api.ProbeContext;
+import com.wf.wflib.probe.api.ProbeInfo;
+import com.wf.wflib.probe.api.ProbeNode;
+import com.wf.wflib.probe.api.ProbeProviders;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -19,7 +18,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -27,9 +25,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
@@ -44,7 +40,6 @@ import java.util.List;
  * In-world probe nodes: dots within a cone of the crosshair, nearest one focused, its panel beside it. Selection,
  * scroll, G and jobs = the crosshair panel's ({@link ProbeSelection}); the use key also activates.
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ProbeNodes implements LayeredDraw.Layer {
 
     private static final double SHOW_COS = Math.cos(Math.toRadians(25));
@@ -104,14 +99,14 @@ public final class ProbeNodes implements LayeredDraw.Layer {
         List<ProbeNode> nodes = new ArrayList<>();
         Frame frame = new Frame(level, player, eye, look, reach, clip, camera, width, height);
 
-        for (Entity entity : level.getEntities(player, box, ProbeRegistry::hasNodes)) {
+        for (Entity entity : level.getEntities(player, box, ProbeProviders::hasNodes)) {
             BlockPos pos = entity.blockPosition();
             CompoundTag data = ProbeClientData.get(pos, entity.getId());
             nodes.clear();
-            ProbeRegistry.collectNodes(nodes, context(player, level, hit, data, partialTick), entity);
-            frame.consider(nodes, pos, entity.getId(), ProbeRegistry.wantsEntityData(entity));
+            ProbeProviders.collectNodes(nodes, context(player, level, hit, data, partialTick), entity);
+            frame.consider(nodes, pos, entity.getId(), ProbeProviders.wantsEntityData(entity));
         }
-        if (ProbeRegistry.anyBlockNodes()) {
+        if (ProbeProviders.anyBlockNodes()) {
             int x0 = (int) Math.floor(box.minX) >> 4, x1 = (int) Math.floor(box.maxX) >> 4;
             int z0 = (int) Math.floor(box.minZ) >> 4, z1 = (int) Math.floor(box.maxZ) >> 4;
             for (int cx = x0; cx <= x1; cx++) {
@@ -122,13 +117,13 @@ public final class ProbeNodes implements LayeredDraw.Layer {
                     }
                     for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
                         BlockPos pos = blockEntity.getBlockPos();
-                        if (!box.contains(pos.getCenter()) || !ProbeRegistry.hasNodes(blockEntity)) {
+                        if (!box.contains(pos.getCenter()) || !ProbeProviders.hasNodes(blockEntity)) {
                             continue;
                         }
                         CompoundTag data = ProbeClientData.get(pos, -1);
                         nodes.clear();
-                        ProbeRegistry.collectNodes(nodes, context(player, level, hit, data, partialTick), blockEntity);
-                        frame.consider(nodes, pos, -1, ProbeRegistry.wantsBlockData(level, pos,
+                        ProbeProviders.collectNodes(nodes, context(player, level, hit, data, partialTick), blockEntity);
+                        frame.consider(nodes, pos, -1, ProbeProviders.wantsBlockData(level, pos,
                                 blockEntity.getBlockState(), blockEntity));
                     }
                 }

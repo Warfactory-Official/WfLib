@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.ui.api.input.Interactive;
+import com.wf.wflib.ui.api.input.UiInput;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,6 +64,20 @@ class UiInputTest {
         input.pointer(114, 58, 0); frame(input, draw);
         input.pointer(114, 58, UiInput.PRIMARY); frame(input, draw);
         assertEquals(List.of("press parent 7,4"), parent.log);
+    }
+
+    @Test
+    void pressAndReleaseBetweenTwoFramesClick() {
+        UiInput input = new UiInput();
+        Probe probe = new Probe();
+        Runnable draw = () -> input.hit(10, 10, 30, 20, probe, "b");
+        input.pointer(15, 15, 0);
+        frame(input, draw);
+        input.button(15, 15, UiInput.PRIMARY);
+        input.button(15, 15, 0);
+        input.pointer(15, 15, 0);
+        frame(input, draw);
+        assertEquals(List.of("press b 5,5", "release b true"), probe.log);
     }
 
     @Test

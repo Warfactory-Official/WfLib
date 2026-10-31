@@ -1,10 +1,11 @@
 package com.wf.wflib.anomaly;
 
+import com.wf.wflib.particle.api.XrGroups;
 import com.wf.wflib.anomaly.AnomalyLook.Style;
-import com.wf.wflib.WFSounds;
-import com.wf.wflib.damage.WFDamageTypes;
+import com.wf.wflib.damage.api.WFDamageTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.damagesource.DamageType;
+import com.wf.wflib.artifact.api.ArtifactSounds;
 
 /**
  * One kind of anomaly: what it does ({@link AnomalyBehaviour}, one per X-Ray zone class), how it looks, and what it
@@ -68,12 +69,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     0xDCFFCB, 28.0F, 8, 0.0F, 0.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_GRAVI_IDLE01.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_MINCER_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GRAVI_IDLE01.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_MINCER_BLOWOUT.get(),
                     2,
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
 
     /**
      * {@code zone_mine_gravitational_average}: smaller, quick (2.1 s), pulls harder (throw_in_impulse_alive
@@ -87,12 +88,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     0xDCFFCB, 30.0F, 8, 0.0F, 0.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_GRAVI_IDLE00.get(),
-                    () -> WFSounds.ANOMALY_GRAVI_BLOWOUT6.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GRAVI_IDLE00.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GRAVI_BLOWOUT6.get(),
                     1,
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
 
     /**
      * {@code zone_mine_gravitational_weak}: small ($def_sphere 3), slams whatever steps in 5 ticks later (awaking 50
@@ -105,11 +106,11 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
                     0xFFCC99, 30.0F, 18, 0.0F, 0.4F, null, null, 1.0F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_GRAVI_RUMBLE1.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_BLAST1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GRAVI_RUMBLE1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_BLAST1.get(),
                     2,
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_GRAVY_HIT1.get(),
                     null));
 
     /**
@@ -122,15 +123,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType ELECTRO = new AnomalyType("Electro",
             new BlastTuning(6.0D, 2, 4, 60, 0.66D, 0.0D, true, 0),
             new AnomalyLook(Style.ELECTRIC, 2.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xCCE6FF, 30.0F, 20, 9.0F, 0.0F, "zones_mine/zone_electric_mine_idle", "anomaly2/electra2_blast",
+                    0xCCE6FF, 30.0F, 20, 9.0F, 0.0F, XrGroups.ZONE_ELECTRIC_MINE_IDLE, XrGroups.ELECTRA2_BLAST,
                     3.0F, 1.0F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_ELECTRA_IDLE1.get(),
-                    () -> WFSounds.ANOMALY_ELECTRA_BLAST1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ELECTRA_IDLE1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ELECTRA_BLAST1.get(),
                     1,
-                    () -> WFSounds.ANOMALY_ELECTRA_HIT.get(),
-                    () -> WFSounds.ANOMALY_ELECTRA_HIT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ELECTRA_HIT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ELECTRA_HIT.get(),
                     null));
 
     /**
@@ -143,14 +144,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType BURNER = new AnomalyType("Burner",
             new BlastTuning(3.0D, 2, 140, 5, 0.5D, 0.0D, true, 4),
             new AnomalyLook(Style.FIRE, 1.6F, 0.6D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xFFD6AD, 9.0F, 140, 3.0F, 1.0F, "static/buble_distort", "static/zharka_static", 1.5F, 1.5F),
+                    0xFFD6AD, 9.0F, 140, 3.0F, 1.0F, XrGroups.BUBLE_DISTORT, XrGroups.ZHARKA_STATIC, 1.5F, 1.5F),
             WFDamageTypes.FIRE,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_FIRE_IDLE.get(),
-                    () -> WFSounds.ANOMALY_ZHAR_BLOW.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FIRE_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR_BLOW.get(),
                     1,
-                    () -> WFSounds.ANOMALY_ZHAR.get(),
-                    () -> WFSounds.ANOMALY_ZHAR.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR.get(),
                     null,
                     true));
 
@@ -164,15 +165,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType ACID = new AnomalyType("Acid",
             new BlastTuning(6.0D, 2, 28, 6, 0.3D, 0.0D, true, 0),
             new AnomalyLook(Style.ACID, 1.6F, 0.4D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xA6FFD1, 14.0F, 7, 8.0F, 1.0F, "zones_mine/zone_acidic_mine_idle",
-                    "zones_mine/zone_acidic_mine_hit", 3.0F, 1.0F),
+                    0xA6FFD1, 14.0F, 7, 8.0F, 1.0F, XrGroups.ZONE_ACIDIC_MINE_IDLE,
+                    XrGroups.ZONE_ACIDIC_MINE_HIT, 3.0F, 1.0F),
             WFDamageTypes.ACID,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_BUZZ_IDLE.get(),
-                    () -> WFSounds.ANOMALY_BUZZ_HIT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_BUZZ_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_BUZZ_HIT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_BUZZ_HIT.get(),
-                    () -> WFSounds.ANOMALY_BUZZ_HIT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_BUZZ_HIT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_BUZZ_HIT.get(),
                     null));
 
     /**
@@ -182,14 +183,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType STEAM = new AnomalyType("Steam",
             new BlastTuning(3.0D, 2, 140, 5, 0.5D, 0.0D, true, 0),
             new AnomalyLook(Style.FIRE, 1.6F, 0.6D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xE6EEF5, 0.0F, 0, 0.0F, 1.0F, "zones/zone_steam_idle", "static/zharka_static_steam", 1.5F, 1.5F),
+                    0xE6EEF5, 0.0F, 0, 0.0F, 1.0F, XrGroups.ZONE_STEAM_IDLE, XrGroups.ZHARKA_STATIC_STEAM, 1.5F, 1.5F),
             WFDamageTypes.FIRE,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_STEAM.get(),
-                    () -> WFSounds.ANOMALY_STEAM_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_STEAM.get(),
+                    () -> AnomalySoundEvents.ANOMALY_STEAM_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_ZHAR.get(),
-                    () -> WFSounds.ANOMALY_ZHAR.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR.get(),
                     null,
                     true));
 
@@ -198,7 +199,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
      * zone_steam_idle smoke, blended, denser, slower to fade), so the site's smoke is the anomalies'.
      */
     public static final AnomalyType STEAM_VENT = new AnomalyType("Steam Vent", STEAM.behaviour(),
-            STEAM.look().idle("wflib/vent_steam"), STEAM.damage(), STEAM.sounds());
+            STEAM.look().idle(XrGroups.VENT_STEAM), STEAM.damage(), STEAM.sounds());
 
     /**
      * {@code zone_mine_flash} (Dynamic Anomalies Overhaul, a "temporal" anomaly): whatever large and alive steps in is
@@ -208,15 +209,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType FLASH = new AnomalyType("Flash",
             new BlastTuning(4.5D, 5, 11, 1200, 0.0D, 0.4D, false, 0),
             new AnomalyLook(Style.ELECTRIC, 2.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0x806650, 30.0F, 18, 0.0F, 0.0F, "eugenium_anomalies/anomaly_flash/flash_idle",
-                    "eugenium_anomalies/anomaly_flash/flash_blast", 1.0F, 0.6F),
+                    0x806650, 30.0F, 18, 0.0F, 0.0F, XrGroups.FLASH_IDLE,
+                    XrGroups.FLASH_BLAST, 1.0F, 0.6F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_FLASH_IDLE.get(),
-                    () -> WFSounds.ANOMALY_FLASH_SHIELD.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FLASH_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FLASH_SHIELD.get(),
                     1,
-                    () -> WFSounds.ANOMALY_FLASH_SHIELD.get(),
-                    () -> WFSounds.ANOMALY_FLASH_SHIELD.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FLASH_SHIELD.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FLASH_SHIELD.get(),
                     null),
             Quirk.TIME_SLIP);
 
@@ -228,14 +229,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType GHOST = new AnomalyType("Ghost",
             new BlastTuning(3.0D, 5, 11, 20, 1.0D, 0.3D, false, 0),
             new AnomalyLook(Style.ELECTRIC, 1.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0x99FFB3, 12.0F, 18, 4.0F, 1.0F, "eugenium_anomalies/anomaly_ghost/ghost_idle",
-                    "eugenium_anomalies/anomaly_ghost/ghost_blast", 1.0F, 1.0F),
+                    0x99FFB3, 12.0F, 18, 4.0F, 1.0F, XrGroups.GHOST_IDLE,
+                    XrGroups.GHOST_BLAST, 1.0F, 1.0F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_GHOST_IDLE.get(),
-                    () -> WFSounds.ANOMALY_GHOST_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GHOST_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GHOST_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_GHOST_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GHOST_BLOWOUT.get(),
                     null,
                     null),
             Quirk.WANDER);
@@ -247,15 +248,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType NET = new AnomalyType("Net",
             new BlastTuning(4.5D, 5, 11, 20, 0.7D, 0.3D, false, 0),
             new AnomalyLook(Style.ELECTRIC, 1.5F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xCCE6FF, 0.0F, 0, 0.0F, 1.0F, "eugenium_anomalies/anomaly_net/net_idle",
-                    "eugenium_anomalies/anomaly_net/net_blast", 1.5F, 1.0F),
+                    0xCCE6FF, 0.0F, 0, 0.0F, 1.0F, XrGroups.NET_IDLE,
+                    XrGroups.NET_BLAST, 1.5F, 1.0F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_NET_IDLE.get(),
-                    () -> WFSounds.ANOMALY_NET_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_NET_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_NET_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_NET_BLOWOUT.get(),
-                    () -> WFSounds.ANOMALY_NET_SHIELD.get(),
+                    () -> AnomalySoundEvents.ANOMALY_NET_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_NET_SHIELD.get(),
                     null));
 
     /**
@@ -266,15 +267,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType BALL_LIGHTNING = new AnomalyType("Ball Lightning",
             new BlastTuning(3.0D, 1, 2, 20, 0.7D, 0.0D, true, 0),
             new AnomalyLook(Style.ELECTRIC, 1.0F, 0.75D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xCCE6FF, 30.0F, 20, 4.0F, 1.0F, "eugenium_anomalies/anomaly_point/point_idle",
-                    "eugenium_anomalies/anomaly_point/point_blast", 1.0F, 0.6F),
+                    0xCCE6FF, 30.0F, 20, 4.0F, 1.0F, XrGroups.POINT_IDLE,
+                    XrGroups.POINT_BLAST, 1.0F, 0.6F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_POINT_IDLE.get(),
-                    () -> WFSounds.ANOMALY_POINT_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_POINT_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_POINT_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_POINT_BLOWOUT.get(),
-                    () -> WFSounds.ANOMALY_POINT_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_POINT_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_POINT_BLOWOUT.get(),
                     null));
 
     /**
@@ -284,12 +285,12 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType LIQUID_GOLD = new AnomalyType("Liquid Gold",
             new BlastTuning(3.0D, 2, 30, 6, 0.8D, 0.0D, true, 0),
             new AnomalyLook(Style.ACID, 1.6F, 0.4D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xFFC34D, 0.0F, 0, 0.0F, 1.0F, "eugenium_anomalies/anomaly_gold/gold_idle",
-                    "eugenium_anomalies/anomaly_gold/gold_blast", 1.5F, 1.0F),
+                    0xFFC34D, 0.0F, 0, 0.0F, 1.0F, XrGroups.GOLD_IDLE,
+                    XrGroups.GOLD_BLAST, 1.5F, 1.0F),
             WFDamageTypes.ACID,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_GOLD_IDLE.get(),
-                    () -> WFSounds.ANOMALY_GOLD_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GOLD_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GOLD_BLOWOUT.get(),
                     1,
                     null,
                     null,
@@ -304,15 +305,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType GREEN_DRAGON = new AnomalyType("Green Dragon",
             new BlastTuning(4.5D, 5, 11, 20, 0.15D, 0.3D, true, 0),
             new AnomalyLook(Style.ACID, 1.6F, 0.4D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0x8CFF8C, 0.0F, 0, 0.0F, 1.0F, "eugenium_anomalies/anomaly_green_dragon/green_dragon_idle",
-                    "eugenium_anomalies/anomaly_green_dragon/green_dragon_blast", 1.5F, 1.0F),
+                    0x8CFF8C, 0.0F, 0, 0.0F, 1.0F, XrGroups.GREEN_DRAGON_IDLE,
+                    XrGroups.GREEN_DRAGON_BLAST, 1.5F, 1.0F),
             WFDamageTypes.ACID,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_GREEN_DRAGON_IDLE.get(),
-                    () -> WFSounds.ANOMALY_GREEN_DRAGON_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GREEN_DRAGON_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GREEN_DRAGON_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_GREEN_DRAGON_BLOWOUT.get(),
-                    () -> WFSounds.ANOMALY_GREEN_DRAGON_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GREEN_DRAGON_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_GREEN_DRAGON_BLOWOUT.get(),
                     null),
             Quirk.SLOWS);
 
@@ -325,15 +326,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType REBOUNDER = new AnomalyType("Rebounder",
             new BlastTuning(6.0D, 2, 2, 8, 0.65D, 1.6D, true, 0),
             new AnomalyLook(Style.GRAVITY, 2.5F, 2.5D, 0.02F, 0.4F, 0.03F, 2.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xDCFFCB, 0.0F, 0, 0.0F, 1.0F, null, "eugenium_anomalies/anomaly_sphere/sphere_blast", 1.5F,
+                    0xDCFFCB, 0.0F, 0, 0.0F, 1.0F, null, XrGroups.SPHERE_BLAST, 1.5F,
                     1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_SPHERE_IDLE.get(),
-                    () -> WFSounds.ANOMALY_SPHERE_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_SPHERE_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_SPHERE_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_SPHERE_BLOWOUT.get(),
-                    () -> WFSounds.ANOMALY_SPHERE_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_SPHERE_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_SPHERE_BLOWOUT.get(),
                     null),
             Quirk.REBOUNDS);
 
@@ -346,16 +347,16 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
             new MincerTuning(6.0D, 0.8D, 1.0D, 1.0D, 30, 60, 1.5D, 2.2D, 0.6D, 0.8D, 0.6D, 0.6D, 0.6D, 0.3D,
                     0.3D, 100, 100),
             new AnomalyLook(Style.GRAVITY, 2.0F, 0.8D, 0.006F, 0.3F, 0.02F, 3.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xB3CCA6, 20.0F, 16, 0.0F, 0.0F, "eugenium_anomalies/anomaly_mefistotel/mefistotel_idle",
-                    "eugenium_anomalies/anomaly_mefistotel/mefistotel_blast", 1.5F, 1.0F),
+                    0xB3CCA6, 20.0F, 16, 0.0F, 0.0F, XrGroups.MEFISTOTEL_IDLE,
+                    XrGroups.MEFISTOTEL_BLAST, 1.5F, 1.0F),
             WFDamageTypes.ELECTRIC,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_MEFISTOTEL_IDLE.get(),
-                    () -> WFSounds.ANOMALY_MEFISTOTEL_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_MEFISTOTEL_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_MEFISTOTEL_BLOWOUT.get(),
                     1,
-                    () -> WFSounds.ANOMALY_MEFISTOTEL_BLOWOUT.get(),
-                    () -> WFSounds.ANOMALY_MEFISTOTEL_SHIELD.get(),
-                    () -> WFSounds.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
+                    () -> AnomalySoundEvents.ANOMALY_MEFISTOTEL_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_MEFISTOTEL_SHIELD.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
 
     /**
      * {@code zone_burning_fuzz} (Burnt Fuzz, GAMMA balance; STALKER's strands are a level mesh, here simulated rope):
@@ -366,13 +367,13 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType BURNT_FUZZ = new AnomalyType("Burnt Fuzz",
             new BlastTuning(2.0D, 1, 20, 100, 0.3D, 0.0D, true, 0, 0.25D),
             new AnomalyLook(Style.FUZZ, 1.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.1F, 0, 0.0D, 0.0D,
-                    0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, "anomaly2/electra_entrance_small", 1.0F, 1.0F),
+                    0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, XrGroups.ELECTRA_ENTRANCE_SMALL, 1.0F, 1.0F),
             WFDamageTypes.ACID,
             new AnomalySounds(
                     null,
-                    () -> WFSounds.ANOMALY_BFUZZ_BLOWOUT.get(),
+                    () -> ArtifactSounds.ANOMALY_BFUZZ_BLOWOUT.get(),
                     0,
-                    () -> WFSounds.ANOMALY_BFUZZ_HIT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_BFUZZ_HIT.get(),
                     null,
                     null));
 
@@ -384,14 +385,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType GRABBER = new AnomalyType("Grabber",
             new BlastTuning(3.75D, 2, 140, 5, 1.5D, 0.5D, true, 0, 0.05D),
             new AnomalyLook(Style.FUZZ, 1.5F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.15F, 0, 0.0D, 0.0D,
-                    0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, "anomaly2/pux_blast", 1.5F, 1.0F),
+                    0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, XrGroups.PUX_BLAST, 1.5F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
             new AnomalySounds(
                     null,
-                    () -> WFSounds.ANOMALY_RND_FLY2.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RND_FLY2.get(),
                     1,
-                    () -> WFSounds.ANOMALY_RND_FLY1.get(),
-                    () -> WFSounds.ANOMALY_RND_FLY1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RND_FLY1.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RND_FLY1.get(),
                     null));
 
     /**
@@ -402,14 +403,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType COMET = new AnomalyType("Comet",
             new BlastTuning(3.0D, 2, 20, 2, 1.0D, 0.0D, false, 5),
             new AnomalyLook(Style.FIRE, 1.5F, 0.0D, 0.008F, 0.6F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xFFB066, 8.0F, 40, 6.0F, 1.0F, "anomaly2/heat_02", "anomaly2/heat_03", 1.0F, 0.5F),
+                    0xFFB066, 8.0F, 40, 6.0F, 1.0F, XrGroups.HEAT_02, XrGroups.HEAT_03, 1.0F, 0.5F),
             WFDamageTypes.FIRE,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_FIREBALL_IDLE.get(),
-                    () -> WFSounds.ANOMALY_FIREBALL_BLOW.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FIREBALL_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_FIREBALL_BLOW.get(),
                     1,
-                    () -> WFSounds.ANOMALY_ZHAR.get(),
-                    () -> WFSounds.ANOMALY_ZHAR.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR.get(),
+                    () -> AnomalySoundEvents.ANOMALY_ZHAR.get(),
                     null),
             Quirk.ORBIT);
 
@@ -433,7 +434,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
             new AnomalyLook(Style.FIRE, 6.0F, 1.0D, 0.004F, 0.2F, 0.0F, 0.0F, 0.6F, 0, 0.0D, 0.0D,
                     0xFFD6AD, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.FIRE,
-            new AnomalySounds(() -> WFSounds.ANOMALY_FIRE2.get(), null, 0, null, null, null));
+            new AnomalySounds(() -> AnomalySoundEvents.ANOMALY_FIRE2.get(), null, 0, null, null, null));
 
     /**
      * {@code zone_field_acidic_average}: 15 m of caustic air, 0.17 a second at the middle (chemical), 54% of it at the
@@ -444,7 +445,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
             new AnomalyLook(Style.ACID, 10.0F, 0.0D, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0, 0.0D, 0.0D,
                     0xA6FFD1, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.ACID,
-            new AnomalySounds(() -> WFSounds.ANOMALY_BUZZ_IDLE.get(), null, 0, null, null, null));
+            new AnomalySounds(() -> AnomalySoundEvents.ANOMALY_BUZZ_IDLE.get(), null, 0, null, null, null));
 
     /**
      * No-gravity ({@code CNoGravityZone}, which no STALKER level places): whatever comes inside floats
@@ -455,7 +456,7 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
             new AnomalyLook(Style.GRAVITY, 2.5F, 1.2D, 0.008F, 0.15F, 0.0F, 0.0F, 1.5F, 0, 0.02D, 0.0D,
                     0xDCFFCB, 0.0F, 0, 0.0F, 1.0F, null, null, 1.0F, 1.0F),
             WFDamageTypes.GRAVITY_ANOMALY,
-            new AnomalySounds(() -> WFSounds.ANOMALY_GRAVI_IDLE00.get(), null, 0, null, null, null),
+            new AnomalySounds(() -> AnomalySoundEvents.ANOMALY_GRAVI_IDLE00.get(), null, 0, null, null, null),
             Quirk.WEIGHTLESS);
 
     /**
@@ -478,15 +479,15 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
     public static final AnomalyType RADAR = new AnomalyType("Radar",
             new BlastTuning(3.0D, 2, 4, 30, 0.6D, 0.0D, true, 0),
             new AnomalyLook(Style.ELECTRIC, 1.0F, 0.5D, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0, 0.0D, 0.0D,
-                    0xCCE6FF, 30.0F, 20, 0.0F, 1.0F, "eugenium_anomalies/anomaly_radar/radar_idle",
-                    "eugenium_anomalies/anomaly_radar/radar_blast", 1.5F, 1.0F),
+                    0xCCE6FF, 30.0F, 20, 0.0F, 1.0F, XrGroups.RADAR_IDLE,
+                    XrGroups.RADAR_BLAST, 1.5F, 1.0F),
             WFDamageTypes.PSY,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_RADAR_IDLE.get(),
-                    () -> WFSounds.ANOMALY_RADAR_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RADAR_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RADAR_BLOWOUT.get(),
                     0,
-                    () -> WFSounds.ANOMALY_RADAR_BLOWOUT.get(),
-                    () -> WFSounds.ANOMALY_RADAR_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RADAR_BLOWOUT.get(),
+                    () -> AnomalySoundEvents.ANOMALY_RADAR_BLOWOUT.get(),
                     null),
             Quirk.PSY_AURA);
 
@@ -500,14 +501,14 @@ public record AnomalyType(String name, AnomalyBehaviour behaviour, AnomalyLook l
             new MincerTuning(5.0D, 0.75D, 0.6D, 0.5D, 2, 100, 2.0D, 1.67D, 1.0D, 0.6D, 0.5D, 0.8D, 0.5D, 0.5D,
                     0.5D, 100, 100),
             new AnomalyLook(Style.GRAVITY, 3.0F, 1.0D, 0.012F, 0.4F, 0.03F, 3.0F, 2.0F, 10, 0.15D, 0.5D,
-                    0xE6FFD9, 0.0F, 0, 0.0F, 0.0F, "eugenium_anomalies/anomaly_darkness/darkness_idle", null,
+                    0xE6FFD9, 0.0F, 0, 0.0F, 0.0F, XrGroups.DARKNESS_IDLE, null,
                     1.25F, 1.0F),
             WFDamageTypes.PSY,
             new AnomalySounds(
-                    () -> WFSounds.ANOMALY_DARKNESS_IDLE.get(),
+                    () -> AnomalySoundEvents.ANOMALY_DARKNESS_IDLE.get(),
                     null,
                     0,
                     null,
                     null,
-                    () -> WFSounds.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
+                    () -> AnomalySoundEvents.ANOMALY_ANOMALY_BODY_TEAR_1.get()));
 }

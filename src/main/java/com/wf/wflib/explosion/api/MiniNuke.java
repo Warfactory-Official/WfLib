@@ -1,0 +1,117 @@
+package com.wf.wflib.explosion.api;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.UUID;
+import com.wf.wflib.explosion.nuke.Nuke;
+
+public final class MiniNuke {
+
+    private MiniNuke() {
+    }
+
+    public static void detonate(Level level, Vec3 center, MukeParams p) {
+        detonate(level, center, p, null);
+    }
+
+    /** {@code igniterFaction}: missile's {@code teamId}, or null when unattributed. */
+    public static void detonate(Level level, Vec3 center, MukeParams p, UUID igniterFaction) {
+        if (level.isClientSide) {
+            return;
+        }
+
+        if (!p.miniNuke) {
+            Nuke.detonate(level, center, (int) p.blastRadius);
+            return;
+        }
+
+        if (!p.safe) {
+            BlockProcessorStandard processor = new BlockProcessorStandard().setNoDrop();
+            if (p.fire) {
+                processor.withBlockEffect(new BlockMutatorFire());
+            }
+            new ExplosionAEF(level, center.x, center.y, center.z, p.blastRadius)
+                    .setBlockAllocator(new BlockAllocatorStandard(p.resolution))
+                    .setBlockProcessor(processor)
+                    .igniterFaction(igniterFaction)
+                    .explode();
+        }
+
+        if (p.killRadius > 0) {
+            ExplosionNukeGeneric.dealDamage(level, center.x, center.y, center.z, p.killRadius);
+        }
+
+        level.addFreshEntity(new EntityNukeTorex(level, center.add(0.0, 1.5, 0.0), p.blastRadius));
+
+        float radMod = p.radiationLevel / 3F;
+        for (int i = -2; i <= 2; i++) {
+            for (int j = -2; j <= 2; j++) {
+                if (Math.abs(i) + Math.abs(j) >= 4) continue;
+                BlockPos pos = BlockPos.containing(center.x + i * 16, center.y, center.z + j * 16);
+                RadiationSink.SINK.get().increment((ServerLevel) level, pos, 50D / (Math.abs(i) + Math.abs(j) + 1) * radMod);
+            }
+        }
+    }
+
+    // Ported from HBM: shrapnel dropped; resolution lowered (synchronous pass).
+
+    public static MukeParams tots() {
+        MukeParams p = new MukeParams();
+        p.blastRadius = 10F;
+        p.killRadius = 30F;
+        p.resolution = 24;
+        return p;
+    }
+
+    public static MukeParams low() {
+        MukeParams p = new MukeParams();
+        p.blastRadius = 15F;
+        p.killRadius = 45F;
+        p.radiationLevel = 2F;
+        return p;
+    }
+
+    /** Wired to {@code Warheads.MININUKE}. */
+    public static MukeParams medium() {
+        MukeParams p = new MukeParams();
+        p.blastRadius = 20F;
+        p.killRadius = 55F;
+        p.radiationLevel = 3F;
+        return p;
+    }
+
+    public static MukeParams safe() {
+        MukeParams p = new MukeParams();
+        p.safe = true;
+        p.killRadius = 45F;
+        p.radiationLevel = 2F;
+        return p;
+    }
+
+    public static MukeParams fatman() {
+        MukeParams p = new MukeParams();
+        p.miniNuke = false;
+        p.blastRadius = 35F;
+        return p;
+    }
+
+    /** Tunables for a mini-nuke blast; WF port of HBM's {@code MukeParams}. */
+    public static class MukeParams {
+        /** {@code false}: full-size "fatman", delegates to {@link Nuke#detonate}. */
+        public boolean miniNuke = true;
+        /** {@code true}: no terrain destruction, kill radius + visual only. */
+        public boolean safe = false;
+        /** Crater power, vanilla explosion units. */
+        public float blastRadius = 15F;
+        /** Blocks. */
+        public float killRadius = 45F;
+        /** Leave fire in the cleared crater. */
+        public boolean fire = true;
+        /** Block-allocator ray resolution; higher = smoother sphere, heavier synchronous pass. */
+        public int resolution = 32;
+        public float radiationLevel = 1F;
+    }
+}

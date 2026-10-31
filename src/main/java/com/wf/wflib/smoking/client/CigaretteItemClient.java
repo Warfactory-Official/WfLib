@@ -6,7 +6,6 @@ import com.wf.gemrender.asset.ModelCache;
 import com.wf.gemrender.direct.GemRenderItemRenderer;
 import com.wf.gemrender.direct.ItemAppearance;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
-import com.wf.wflib.WFLib;
 import com.wf.wflib.smoking.Smoking;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
@@ -17,6 +16,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.core.api.WFLib;
 
 /** Placeholder glb in every context; per-context placement in {@code models/item/cigarette.json}. */
 public final class CigaretteItemClient implements IClientItemExtensions {

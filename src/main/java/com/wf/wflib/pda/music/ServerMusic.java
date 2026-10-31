@@ -1,7 +1,6 @@
 package com.wf.wflib.pda.music;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Server library {@code <world>/pda_music/**.{ogg,opus,oga}}. Only files passing {@link OggAudio#probe} are listed

@@ -1,7 +1,7 @@
 package com.wf.wflib.pda.music.client;
 
 import com.wf.wflib.pda.music.OggAudio;
-import com.wf.wflib.radio.OggOpus;
+import com.wf.wflib.radio.api.OggOpus;
 import org.lwjgl.stb.STBVorbis;
 import org.lwjgl.stb.STBVorbisInfo;
 import org.lwjgl.system.MemoryStack;

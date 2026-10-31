@@ -5,15 +5,14 @@ import com.mojang.math.Axis;
 import com.wf.gemrender.direct.GemRenderItemRenderer;
 import com.wf.gemrender.direct.ItemAppearance;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ammo.Ammo;
-import com.wf.wflib.ammo.AmmoItems;
-import com.wf.wflib.ammo.AmmoVariant;
-import com.wf.wflib.ammo.Calibre;
-import com.wf.wflib.ammo.ProjectileLook;
-import com.wf.wflib.client.flywheel.FlywheelEffectManager;
-import com.wf.wflib.client.flywheel.InstancedTrailEffect;
-import com.wf.wflib.round.client.ClientRounds;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.AmmoItems;
+import com.wf.wflib.ammo.api.AmmoVariant;
+import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.ProjectileLook;
+import com.wf.wflib.fx.api.FlywheelEffectManager;
+import com.wf.wflib.fx.api.InstancedTrailEffect;
+import com.wf.wflib.round.api.client.ClientRounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +24,8 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.ammo.api.client.AmmoModels;
+import com.wf.wflib.core.api.WFLib;
 
 /** Cartridge item renderer (GemRender direct path) + trails behind entity-less rounds whose look has one. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -44,6 +45,22 @@ public final class AmmoClient {
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(AmmoModels::init);
         NeoForge.EVENT_BUS.addListener(AmmoClient::onClientTick);
+    }
+
+    public static void register(net.neoforged.bus.api.IEventBus modBus) {
+        modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class, event -> {
+            var extensions = new net.neoforged.neoforge.client.extensions.common.IClientItemExtensions() {
+                @Override
+                public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                    return renderer();
+                }
+            };
+            for (net.minecraft.world.item.Item item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
+                if (item instanceof com.wf.wflib.ammo.api.CartridgeItem && !event.isItemRegistered(item)) {
+                    event.registerItem(extensions, item);
+                }
+            }
+        });
     }
 
     public static GemRenderItemRenderer renderer() {

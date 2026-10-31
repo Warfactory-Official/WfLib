@@ -6,25 +6,24 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.server.level.ServerPlayer;
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.AlignPoint;
-import com.wf.wflib.rail.align.AlignmentStore;
-import com.wf.wflib.rail.align.DesignClass;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.align.AlignmentData;
+import com.wf.wflib.rail.api.DesignClass;
 import com.wf.wflib.rail.align.LineColour;
 import com.wf.wflib.rail.excavate.CarveVolume;
 import com.wf.wflib.rail.excavate.TunnelProfile;
 import com.wf.wflib.rail.excavate.TunnelProfiles;
-import com.wf.wflib.rail.excavate.ClaimRegistry;
+import com.wf.wflib.rail.excavate.ChunkClaims;
 import com.wf.wflib.rail.build.BoreTrain;
 import com.wf.wflib.rail.build.RailWorks;
 import com.wf.wflib.rail.build.TrackJob;
 import com.wf.wflib.rail.demo.FivePoints;
 import com.wf.wflib.rail.plan.Leg;
 import com.wf.wflib.rail.plan.RailGraph;
-import com.wf.wflib.rail.plan.Stations;
+import com.wf.wflib.rail.plan.RailStationData;
 import com.wf.wflib.rail.supply.Bill;
 import com.wf.wflib.rail.supply.Depot;
 import com.wf.wflib.rail.supply.Stores;
@@ -44,7 +43,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.Arrays;
@@ -53,7 +51,6 @@ import java.util.Locale;
 import java.util.UUID;
 
 /** {@code /wfrail}: drive the excavator by hand, and read back what it cost. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class RailCommands {
 
     private RailCommands() {
@@ -357,7 +354,7 @@ public final class RailCommands {
         int loaded = 0;
         for (int cx = box.minX() >> 4; cx <= box.maxX() >> 4; cx++) {
             for (int cz = box.minZ() >> 4; cz <= box.maxZ() >> 4; cz++) {
-                if (ClaimRegistry.isLoaded(level, new ChunkPos(cx, cz))) {
+                if (ChunkClaims.isLoaded(level, new ChunkPos(cx, cz))) {
                     loaded++;
                 }
             }
@@ -399,7 +396,7 @@ public final class RailCommands {
      */
     private static int routes(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        var store = AlignmentStore.of(level);
+        var store = AlignmentData.of(level);
         var all = store.all();
         if (all.isEmpty()) {
             source.sendSuccess(() -> Component.literal("no routes in "
@@ -443,7 +440,7 @@ public final class RailCommands {
                     + String.format(Locale.ROOT, "%.0f, %.0f", at.x, at.z)));
             return 0;
         }
-        Alignment alignment = AlignmentStore.of(level).get(route);
+        Alignment alignment = AlignmentData.of(level).get(route);
         double length = alignment.compile().centreline().length();
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "%s is now %s, %.0f%% built (%.0f of %.0f blocks)",
@@ -630,7 +627,7 @@ public final class RailCommands {
                     + outcome.name().toLowerCase(Locale.ROOT)));
             return 0;
         }
-        Alignment route = AlignmentStore.of(source.getLevel()).get(id);
+        Alignment route = AlignmentData.of(source.getLevel()).get(id);
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "surveyed %s: %.0f blocks, %s class", name,
                 route.compile().centreline().length(),
@@ -663,7 +660,7 @@ public final class RailCommands {
                     + outcome.name().toLowerCase(Locale.ROOT)));
             return 0;
         }
-        Alignment next = AlignmentStore.of(source.getLevel()).get(route.id());
+        Alignment next = AlignmentData.of(source.getLevel()).get(route.id());
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "%s is now %.0f blocks over %d point(s)", next.name(),
                 next.compile().centreline().length(), next.points().size())), true);
@@ -859,7 +856,7 @@ public final class RailCommands {
 
     private static final SuggestionProvider<CommandSourceStack> STATION_SUGGESTIONS =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
-                    Stations.of(ctx.getSource().getLevel()).names(), builder);
+                    RailStationData.of(ctx.getSource().getLevel()).names(), builder);
 
     /**
      * Name the place you are standing as a station.
@@ -873,15 +870,15 @@ public final class RailCommands {
     private static int stationAdd(CommandSourceStack source, String name) {
         ServerLevel level = source.getLevel();
         BlockPos at = BlockPos.containing(source.getPosition());
-        Stations stations = Stations.of(level);
+        RailStationData stations = RailStationData.of(level);
         if (!stations.put(name, at)) {
             source.sendFailure(Component.literal("that name will not do, or this world already has "
-                    + Stations.MAX + " stations"));
+                    + RailStationData.MAX + " stations"));
             return 0;
         }
         source.sendSuccess(() -> Component.literal("station " + name.trim() + " at "
                 + at.toShortString()), true);
-        RailGraph graph = RailGraph.of(AlignmentStore.of(level).all());
+        RailGraph graph = RailGraph.of(AlignmentData.of(level).all());
         RailGraph.Place place = graph.nearest(at.getX(), at.getZ(), STATION_REACH);
         if (place == null) {
             source.sendSuccess(() -> Component.literal("  no surveyed junction within " + STATION_REACH
@@ -897,7 +894,7 @@ public final class RailCommands {
     }
 
     private static int stationRemove(CommandSourceStack source, String name) {
-        if (!Stations.of(source.getLevel()).remove(name)) {
+        if (!RailStationData.of(source.getLevel()).remove(name)) {
             source.sendFailure(Component.literal("no station called '" + name + "'"));
             return 0;
         }
@@ -907,15 +904,15 @@ public final class RailCommands {
 
     private static int stations(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        Stations stations = Stations.of(level);
+        RailStationData stations = RailStationData.of(level);
         if (stations.size() == 0) {
             source.sendSuccess(() -> Component.literal(
                     "no stations here; /wfrail station add <name> names the place you are standing"),
                     false);
             return 0;
         }
-        RailGraph graph = RailGraph.of(AlignmentStore.of(level).all());
-        for (Stations.Station station : stations.all()) {
+        RailGraph graph = RailGraph.of(AlignmentData.of(level).all());
+        for (RailStationData.Station station : stations.all()) {
             RailGraph.Place place = graph.nearest(station.at().getX(), station.at().getZ(),
                     STATION_REACH);
             boolean depot = depotNear(level, station.at().getX(), station.at().getY(),
@@ -944,15 +941,15 @@ public final class RailCommands {
         if (profile == null) {
             return 0;
         }
-        Stations stations = Stations.of(level);
-        Stations.Station from = stations.get(fromName);
-        Stations.Station to = stations.get(toName);
+        RailStationData stations = RailStationData.of(level);
+        RailStationData.Station from = stations.get(fromName);
+        RailStationData.Station to = stations.get(toName);
         if (from == null || to == null) {
             source.sendFailure(Component.literal("no station called \'"
                     + (from == null ? fromName : toName) + "\'; /wfrail station list shows them"));
             return 0;
         }
-        var routes = AlignmentStore.of(level).all();
+        var routes = AlignmentData.of(level).all();
         RailGraph graph = RailGraph.of(routes);
         RailGraph.Place a = graph.nearest(from.at().getX(), from.at().getZ(), STATION_REACH);
         RailGraph.Place b = graph.nearest(to.at().getX(), to.at().getZ(), STATION_REACH);
@@ -1276,7 +1273,7 @@ public final class RailCommands {
      */
     public static int[] junctions(ServerLevel level, int floorY, java.util.function.Consumer<String> ok,
                                   java.util.function.Consumer<String> no) {
-        var store = AlignmentStore.of(level);
+        var store = AlignmentData.of(level);
         int built = 0;
         int skipped = 0;
         for (var meeting : com.wf.wflib.rail.align.RouteMeetings.find(level)) {

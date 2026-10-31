@@ -1,6 +1,5 @@
 package com.wf.wflib.backpack;
 
-import com.wf.wflib.WFLib;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -11,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import com.wf.wflib.backpack.api.Backpacks;
+import com.wf.wflib.core.api.WFLib;
 
 public final class BackpackPackets {
     private BackpackPackets() {
@@ -35,8 +36,8 @@ public final class BackpackPackets {
             ctx.enqueueWork(() -> {
                 if (ctx.player() instanceof ServerPlayer p) {
                     switch (kind) {
-                        case TOGGLE_WORN -> Backpacks.toggleWorn(p);
-                        case TOGGLE_LOCK -> Backpacks.toggleLock(p);
+                        case TOGGLE_WORN -> BackpackServer.toggleWorn(p);
+                        case TOGGLE_LOCK -> BackpackServer.toggleLock(p);
                     }
                 }
             });

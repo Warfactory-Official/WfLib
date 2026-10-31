@@ -1,4 +1,10 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "wflib:system",
+      "system": "anomaly"
+    }
+  ],
   "type": "wflib:anomaly_cave",
   "biomes": "#minecraft:is_overworld",
   "step": "top_layer_modification",

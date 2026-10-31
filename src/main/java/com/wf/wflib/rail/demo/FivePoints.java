@@ -1,8 +1,8 @@
 package com.wf.wflib.rail.demo;
 
-import com.wf.wflib.rail.align.AlignPoint;
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.DesignClass;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.DesignClass;
 import com.wf.wflib.rail.align.LineColour;
 import com.wf.wflib.rail.align.RouteMeeting;
 

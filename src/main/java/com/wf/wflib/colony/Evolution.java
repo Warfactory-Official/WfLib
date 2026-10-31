@@ -1,6 +1,5 @@
 package com.wf.wflib.colony;
 
-import com.wf.wflib.industry.IndustryApi;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 
@@ -14,10 +13,10 @@ public final class Evolution {
     }
 
     public static float of(ServerLevel level) {
-        return ColonyRegistry.get(level).evolution();
+        return ColonyData.get(level).evolution();
     }
 
-    public static void tick(ServerLevel level, ColonyRegistry registry) {
+    public static void tick(ServerLevel level, ColonyData registry) {
         if (level.getGameTime() % INTERVAL != 0L) {
             return;
         }
@@ -28,7 +27,7 @@ public final class Evolution {
         }
 
         double factor = ColonyConfig.evolutionTimeFactor()
-                + ColonyConfig.evolutionPressureFactor() * IndustryApi.totalPressure(level);
+                + ColonyConfig.evolutionPressureFactor() * ColonyIndustry.totalPressure(level);
         if (factor <= 0.0) {
             return;
         }

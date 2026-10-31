@@ -1,15 +1,16 @@
 package com.wf.wflib.hazard.transformer;
 
-import com.wf.wflib.hazard.HazardContent;
-import com.wf.wflib.hazard.HazardEntry;
-import com.wf.wflib.hazard.HazardRegistry;
-import com.wf.wflib.hazard.HazardSystem;
+import com.wf.wflib.hazard.api.HazardContent;
+import com.wf.wflib.hazard.api.HazardEntry;
+import com.wf.wflib.hazard.api.Hazards;
+import com.wf.wflib.hazard.api.HazardRules;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ItemContainerContents;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardTransformer;
 
 /**
  * Divergence: NTM box / bag / toolbox / crates -> any stack with {@code container} or {@code bundle_contents};
@@ -33,10 +34,10 @@ public class HazardTransformerRadiationContainer implements IHazardTransformer {
         BundleContents bundle = stack.get(DataComponents.BUNDLE_CONTENTS);
         if (bundle != null) for (ItemStack held : bundle.items()) radiation += rads(held);
         if (stack.is(HazardContent.RAD_CONTAINMENT)) radiation = (float) Math.sqrt(radiation);
-        if (radiation > 0) entries.add(new HazardEntry(HazardRegistry.RADIATION, radiation));
+        if (radiation > 0) entries.add(new HazardEntry(Hazards.RADIATION, radiation));
     }
 
     private static float rads(ItemStack held) {
-        return (float) HazardSystem.getHazardLevelFromStack(held, HazardRegistry.RADIATION) * held.getCount();
+        return (float) HazardRules.getHazardLevelFromStack(held, Hazards.RADIATION) * held.getCount();
     }
 }

@@ -1,20 +1,20 @@
 package com.wf.wflib.round.gametest;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.ProjectileStrikeEvent;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.DeferredImpact;
+import com.wf.wflib.round.RoundConfig;
+import com.wf.wflib.damage.api.event.ProjectileStrikeEvent;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.DeferredImpact;
 import com.wf.wflib.round.DeferredImpacts;
-import com.wf.wflib.round.RoundImpactEvent;
-import com.wf.wflib.round.RoundPierceEvent;
-import com.wf.wflib.round.Rounds;
+import com.wf.wflib.round.api.event.RoundImpactEvent;
+import com.wf.wflib.round.api.event.RoundPierceEvent;
+import com.wf.wflib.round.api.Rounds;
 import com.wf.wflib.round.pen.BlockDamage;
-import com.wf.wflib.round.pen.BlockPen;
+import com.wf.wflib.round.api.BlockPen;
 import com.wf.wflib.round.pen.PenMaterial;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -28,39 +28,38 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Non-destructive block penetration: rifle round (blockPen 10, 800 m/s) vs plank, stone, glass, loaded and on disk.
  * Loaded arenas fly straight up (no other arena above).
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class BlockPenGameTest {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String TEMPLATE = "empty";
-    private static final ResourceLocation RIFLE = KineticPresetRegistry.rl("test_pen_rifle");
+    private static final ResourceLocation RIFLE = KineticPresets.rl("test_pen_rifle");
     /** Same energy fractions at 1/10 the speed: a tracer a client can watch (`/wflib round`). */
-    private static final ResourceLocation SLOW = KineticPresetRegistry.rl("test_pen_slow");
+    private static final ResourceLocation SLOW = KineticPresets.rl("test_pen_slow");
     private static final double SPEED = 40.0;
     private static final float BLOCK_PEN = 10.0f;
     private static final List<RoundPierceEvent> PIERCES = new CopyOnWriteArrayList<>();
     private static final List<RoundImpactEvent> IMPACTS = new CopyOnWriteArrayList<>();
     private static final List<ProjectileStrikeEvent> STRIKES = new CopyOnWriteArrayList<>();
 
-    static {
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(RIFLE, null, WarheadRegistry.rl("inert")).speed(SPEED)
+    public static void register() {
+        KineticPresets.registerItemless(KineticPreset.builder(RIFLE, null, Warheads.rl("inert")).speed(SPEED)
                 .drag(0.0).gravity(0.0).life(100).mass(0.004).energyDamage(0.01).caliber(5.56).blockPen(BLOCK_PEN)
                 .tracer(0xFFAA00).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(SLOW, null, WarheadRegistry.rl("inert")).speed(SPEED / 10.0)
+        KineticPresets.registerItemless(KineticPreset.builder(SLOW, null, Warheads.rl("inert")).speed(SPEED / 10.0)
                 .drag(0.0).gravity(0.0).life(200).mass(0.004).energyDamage(0.01).caliber(5.56).blockPen(BLOCK_PEN)
                 .tracer(0xFF3300).noChunkLoading().build());
     }
@@ -85,7 +84,7 @@ public class BlockPenGameTest {
     }
 
     /** Through one plank: 6 of 10 spent => 40% energy out, block intact, exit on the far face, heading within 4.8 deg. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aRifleRoundExitsAPlankSlower(GameTestHelper helper) {
         Shot s = shoot(helper, Blocks.OAK_PLANKS);
         Vec3 v = s.velocity;
@@ -104,14 +103,14 @@ public class BlockPenGameTest {
     }
 
     /** 4 left after the first plank < 6: stops 2/3 into the second; KE, not a flat budget. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void theSecondPlankStopsIt(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos wall = BlockPos.containing(centre(helper, 10.0));
         level.setBlockAndUpdate(wall, Blocks.OAK_PLANKS.defaultBlockState());
         level.setBlockAndUpdate(wall.above(), Blocks.OAK_PLANKS.defaultBlockState());
         PIERCES.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(RIFLE), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(RIFLE), centre(helper, 5.0),
                 new Vec3(0.0, SPEED, 0.0), null, null);
         boolean flying = Rounds.step(level, key);
         List<RoundPierceEvent> mine = mine(key);
@@ -129,7 +128,7 @@ public class BlockPenGameTest {
     }
 
     /** 60 mm/m: stopped 1/6 into the first of two stone blocks; impact event, no block lost. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aRifleRoundStopsInTwoBlocksOfStone(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos wall = BlockPos.containing(centre(helper, 10.0));
@@ -137,7 +136,7 @@ public class BlockPenGameTest {
         level.setBlockAndUpdate(wall.above(), Blocks.STONE.defaultBlockState());
         PIERCES.clear();
         IMPACTS.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(RIFLE), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(RIFLE), centre(helper, 5.0),
                 new Vec3(0.0, SPEED, 0.0), null, null);
         boolean flying = Rounds.step(level, key);
         List<RoundPierceEvent> mine = mine(key);
@@ -156,7 +155,7 @@ public class BlockPenGameTest {
     }
 
     /** 0.3 mm/m: 97% of the energy through; toughness 0 => shattered. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void glassBarelySlowsIt(GameTestHelper helper) {
         Shot s = shoot(helper, Blocks.GLASS);
         helper.assertTrue(s.velocity != null && s.pierce != null && s.pierce.pass().exited(), "glass stopped it");
@@ -168,7 +167,7 @@ public class BlockPenGameTest {
     }
 
     /** A body behind the plank is struck at the exit speed. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void whatIsBehindThePlankTakesTheSlowerRound(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos wall = BlockPos.containing(centre(helper, 10.0));
@@ -181,7 +180,7 @@ public class BlockPenGameTest {
         husk.setNoGravity(true);
         level.addFreshEntity(husk);
         STRIKES.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(RIFLE), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(RIFLE), centre(helper, 5.0),
                 new Vec3(0.0, SPEED, 0.0), null, null);
         Rounds.step(level, key);
         Rounds.destroy(level, key);
@@ -199,7 +198,7 @@ public class BlockPenGameTest {
      * Plank over stone on disk in an unloaded chunk, then the same shot loaded (same chunk, coordinates, shot seed):
      * pierce points, exit velocity and stop bit-equal; unloaded stop => deferred impact at the stop point.
      */
-    @GameTest(template = TEMPLATE, batch = "wflib_virtual", timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = "wflib_virtual", timeoutTicks = 2000)
     public static void aPierceOverDiskTerrainIsTheLoadedOne(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -211,7 +210,7 @@ public class BlockPenGameTest {
         int stoneY = 146;
         Vec3 start = new Vec3(x + 0.37, 170.0, z + 0.61);
         Vec3 velocity = new Vec3(0.013, -SPEED, 0.021);
-        KineticPreset rifle = KineticPresetRegistry.get(RIFLE);
+        KineticPreset rifle = KineticPresets.get(RIFLE);
         List<Vec3[]> disk = new ArrayList<>();
         DeferredImpact[] owed = new DeferredImpact[1];
         helper.startSequence()
@@ -267,14 +266,14 @@ public class BlockPenGameTest {
      * Step cost, 500 rounds x 1 step each, 7 reps: through one plank vs the same segment clear vs stopped in stone.
      * Damage tracked, never breaks. Logs only.
      */
-    @GameTest(template = TEMPLATE, required = false, batch = "wflib_bench", timeoutTicks = 400)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, required = false, batch = "wflib_bench", timeoutTicks = 400)
     public static void pierceCost(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos wall = BlockPos.containing(centre(helper, 10.0));
-        KineticPreset rifle = KineticPresetRegistry.get(RIFLE);
+        KineticPreset rifle = KineticPresets.get(RIFLE);
         StringBuilder out = new StringBuilder();
-        float scale = BlockDamage.toughnessScale;
-        BlockDamage.toughnessScale = 1.0e9f;
+        RoundConfig.Snapshot saved = RoundConfig.snapshot();
+        RoundConfig.override(saved.withBlockToughnessScale(1.0e9f));
         for (Block block : new Block[]{Blocks.AIR, Blocks.OAK_PLANKS, Blocks.STONE, Blocks.AIR, Blocks.OAK_PLANKS,
                 Blocks.STONE}) {
             level.setBlockAndUpdate(wall, block.defaultBlockState());
@@ -291,7 +290,7 @@ public class BlockPenGameTest {
             }
             out.append(String.format(java.util.Locale.ROOT, " %s %.0f ns;", block.getDescriptionId(), best));
         }
-        BlockDamage.toughnessScale = scale;
+        RoundConfig.override(saved);
         level.setBlockAndUpdate(wall, Blocks.AIR.defaultBlockState());
         PIERCES.clear();
         IMPACTS.clear();
@@ -310,7 +309,7 @@ public class BlockPenGameTest {
         BlockPos wall = BlockPos.containing(centre(helper, 10.0));
         level.setBlockAndUpdate(wall, block.defaultBlockState());
         PIERCES.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(RIFLE), centre(helper, 5.0),
+        long key = Rounds.launch(level, KineticPresets.get(RIFLE), centre(helper, 5.0),
                 new Vec3(0.0, SPEED, 0.0), null, null);
         Rounds.step(level, key);
         Vec3 v = Rounds.velocity(level, key);

@@ -3,6 +3,8 @@ package com.wf.wflib.hazard;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
+import com.wf.wflib.hazard.api.ContaminationUtil;
+import com.wf.wflib.hazard.api.LivingHazardProps;
 
 /** NTM HbmPotion radiation subset: radiation, radaway, rad-x, stability. */
 final class HazardEffects {

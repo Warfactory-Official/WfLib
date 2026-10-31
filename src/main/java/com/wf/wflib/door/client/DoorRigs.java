@@ -10,9 +10,8 @@ import com.wf.gemrender.gltf.PoseDriver;
 import com.wf.gemrender.rig.RigBuilder;
 import com.wf.gemrender.rig.RigGeometry;
 import com.wf.gemrender.rig.WavefrontObj;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.door.DoorType;
-import com.wf.wflib.probe.ProbeElement;
+import com.wf.wflib.door.api.DoorType;
+import com.wf.wflib.probe.api.ProbeElement;
 import dev.engine_room.flywheel.api.material.Material;
 import dev.engine_room.flywheel.lib.material.CutoutShaders;
 import dev.engine_room.flywheel.lib.material.SimpleMaterial;
@@ -26,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Every door as a GemRender model: the meshes NTM ships, given a skeleton, and the motion its renderers did by hand

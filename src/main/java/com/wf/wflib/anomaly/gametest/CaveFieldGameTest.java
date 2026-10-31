@@ -1,22 +1,20 @@
 package com.wf.wflib.anomaly.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.anomaly.site.AnomalyCaves;
-import com.wf.wflib.artifact.detect.ZoneArtifact;
+import com.wf.wflib.anomaly.api.AnomalyCaves;
+import com.wf.wflib.artifact.api.ZoneArtifact;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import com.wf.wflib.core.api.WFLib;
 
 /** Cave fields built into the test world: chamber cut, anomalies set, exactly the budgeted artefacts spawned. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class CaveFieldGameTest {
 
-    @GameTest(template = "empty", batch = "anomaly_caves", timeoutTicks = 400)
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "anomaly_caves", timeoutTicks = 400)
     public static void fieldHoldsExactlyItsArtefactsInACutChamber(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         for (int tier = 1; tier <= 4; tier++) {

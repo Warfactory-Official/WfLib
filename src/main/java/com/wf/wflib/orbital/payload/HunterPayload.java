@@ -1,15 +1,15 @@
 package com.wf.wflib.orbital.payload;
 
-import com.wf.wflib.compat.WarforgeCompat;
-import com.wf.wflib.orbital.DeorbitReason;
-import com.wf.wflib.orbital.OrbitElements;
+import com.wf.wflib.compat.api.WarforgeCompat;
+import com.wf.wflib.orbital.api.DeorbitReason;
+import com.wf.wflib.orbital.api.OrbitElements;
 import com.wf.wflib.orbital.OrbitalConfig;
-import com.wf.wflib.orbital.OrbitalNet;
-import com.wf.wflib.orbital.OrbitalRegistry;
-import com.wf.wflib.orbital.SatPayload;
-import com.wf.wflib.orbital.SatVerb;
-import com.wf.wflib.orbital.Satellite;
-import com.wf.wflib.orbital.TrackedObject;
+import com.wf.wflib.orbital.api.OrbitalNet;
+import com.wf.wflib.orbital.OrbitalData;
+import com.wf.wflib.orbital.api.SatPayload;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
+import com.wf.wflib.orbital.api.TrackedObject;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -151,7 +151,7 @@ public final class HunterPayload implements SatPayload {
 
     /** The war gate. */
     private static boolean permitted(Satellite hunter, Satellite target) {
-        if (!OrbitalConfig.requireWarForOrbitalKills) {
+        if (!OrbitalConfig.requireWarForOrbitalKills()) {
             return true;
         }
         if (hunter.owner() == null || target.owner() == null) {
@@ -171,7 +171,7 @@ public final class HunterPayload implements SatPayload {
         Satellite best = null;
         double bestSq = ACQUIRE_TOLERANCE * ACQUIRE_TOLERANCE;
         long now = level.getGameTime();
-        for (Satellite other : OrbitalRegistry.get(level).all()) {
+        for (Satellite other : OrbitalData.get(level).all()) {
             if (other == self || other.netId() == self.netId()) {
                 continue;
             }

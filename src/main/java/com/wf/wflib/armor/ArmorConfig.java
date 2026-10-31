@@ -1,15 +1,14 @@
 package com.wf.wflib.armor;
 
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import com.wf.wflib.armor.api.ArmorProfiles;
 
-/** Armour tunables. Mirrors {@code WFConfig}: values copied to static fields on load so the hot path avoids spec reads and gametests can set fields directly. */
+/** Armour tunables; immutable snapshot swapped on load. */
 public final class ArmorConfig {
 
     public static final ModConfigSpec SPEC;
 
-    private static final ModConfigSpec.BooleanValue ENABLED_VALUE;
     private static final ModConfigSpec.BooleanValue MANAGE_VANILLA_VALUE;
     private static final ModConfigSpec.BooleanValue MOB_ARMOR_VALUE;
     private static final ModConfigSpec.IntValue EXPOSURE_INTERVAL_VALUE;
@@ -18,34 +17,25 @@ public final class ArmorConfig {
     private static final ModConfigSpec.DoubleValue LAVA_TIER_VALUE;
     private static final ModConfigSpec.DoubleValue ACUTE_FRACTION_VALUE;
 
-    /** Off => vanilla armour, untouched. */
-    public static boolean enabled = true;
+    /**
+     * @param manageVanillaArmor     derive a profile from vanilla defense/toughness for unregistered armour (e.g. GregTech, NTM); off restricts to authored pieces
+     * @param mobArmor               whole-entity resolution also covers mobs; off = players only
+     * @param exposureIntervalTicks  ticks between exposure charges; balance lever, hazard tier is points/interval, so doubling halves every environmental wear rate
+     * @param persistIntervalTicks   ticks between flushing accrued exposure to stacks; a component write on a worn stack is an equipment-sync packet, integer accrual means coarsening loses nothing
+     * @param fireTier               fire damage, condition points per exposure interval; same units as a suit's THERMAL tier
+     * @param lavaTier               lava, as {@code fireTier}
+     * @param acuteFraction          flat share of max condition lost on first contact with a hazard; percentage so cheap and powered armour pay the same proportion
+     */
+    public record Values(boolean manageVanillaArmor, boolean mobArmor, int exposureIntervalTicks,
+                         int persistIntervalTicks, double fireTier, double lavaTier, double acuteFraction) {
+    }
 
-    /** Derive a profile from vanilla defense/toughness for unregistered armour (e.g. GregTech, NTM); off restricts to authored pieces. */
-    public static boolean manageVanillaArmor = true;
-
-    /** Whole-entity resolution also covers mobs; off = players only. */
-    public static boolean mobArmor = true;
-
-    /** Ticks between exposure charges. Balance lever, not just perf: hazard tier is points/interval, so doubling this halves every environmental wear rate. */
-    public static int exposureIntervalTicks = 5;
-
-    /** Ticks between flushing accrued exposure to stacks. Coarser than accrual: a component write on a worn stack is an equipment-sync packet, the real cost; integer accrual means coarsening loses nothing. */
-    public static int persistIntervalTicks = 100;
-
-    /** Fire/lava damage, condition points per exposure interval; same units as a suit's THERMAL tier. */
-    public static double fireTier = 60.0D;
-    public static double lavaTier = 400.0D;
-
-    /** Flat share of max condition lost on first contact with a hazard, before sustained decay. Percentage, not points, so cheap and powered armour pay the same proportion; hazard severity is read via tier, not this. */
-    public static double acuteFraction = 0.04D;
+    private static volatile Values values = new Values(true, true, 5, 100, 60.0D, 400.0D, 0.04D);
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
-        builder.comment("Warfactory armour: one DT/DR resolver for every hit, per protection type.").push("armor");
-        ENABLED_VALUE = builder
-                .comment("Master switch. Off leaves vanilla armour entirely alone.")
-                .define("enabled", true);
+        builder.comment("Warfactory armour: one DT/DR resolver for every hit, per protection type.",
+                "On/off: wflib-systems.toml, key 'armor'.").push("armor");
         MANAGE_VANILLA_VALUE = builder
                 .comment("Give armour with no authored profile one derived from its own vanilla defense",
                         "and toughness, and strip those attributes so it is not counted twice.",
@@ -79,23 +69,28 @@ public final class ArmorConfig {
     private ArmorConfig() {
     }
 
-    @SubscribeEvent
+    public static Values get() {
+        return values;
+    }
+
+    /** Test seam. */
+    public static void override(Values next) {
+        set(next);
+    }
+
     public static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) {
             return;
         }
-        enabled = ENABLED_VALUE.get();
-        boolean manage = MANAGE_VANILLA_VALUE.get();
-        if (manage != manageVanillaArmor) {
-            // manage flips => cached derived specs and the negative cache are both stale.
+        set(new Values(MANAGE_VANILLA_VALUE.get(), MOB_ARMOR_VALUE.get(), EXPOSURE_INTERVAL_VALUE.get(),
+                PERSIST_INTERVAL_VALUE.get(), FIRE_TIER_VALUE.get(), LAVA_TIER_VALUE.get(),
+                ACUTE_FRACTION_VALUE.get()));
+    }
+
+    private static void set(Values next) {
+        if (next.manageVanillaArmor() != values.manageVanillaArmor()) {
             ArmorProfiles.clearDerived();
         }
-        manageVanillaArmor = manage;
-        mobArmor = MOB_ARMOR_VALUE.get();
-        exposureIntervalTicks = EXPOSURE_INTERVAL_VALUE.get();
-        persistIntervalTicks = PERSIST_INTERVAL_VALUE.get();
-        fireTier = FIRE_TIER_VALUE.get();
-        lavaTier = LAVA_TIER_VALUE.get();
-        acuteFraction = ACUTE_FRACTION_VALUE.get();
+        values = next;
     }
 }

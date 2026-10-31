@@ -2,16 +2,24 @@ package com.wf.wflib.ammo;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wf.wflib.api.ThreatKind;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.round.effect.ImpactTrigger;
-import com.wf.wflib.warhead.TearGasWarhead;
+import com.wf.wflib.damage.api.ThreatKind;
+import com.wf.wflib.round.api.ImpactTrigger;
+import com.wf.wflib.warhead.api.TearGasWarhead;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import com.wf.wflib.ammo.api.AmmoVariant;
+import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.CalibreKind;
+import com.wf.wflib.ammo.api.CaseMaterial;
+import com.wf.wflib.ammo.api.ProjectileLook;
+import com.wf.wflib.core.api.WFLib;
 
-import static com.wf.wflib.round.effect.ImpactEffects.IGNITE;
-import static com.wf.wflib.round.effect.ImpactEffects.MOB_EFFECT;
+import static com.wf.wflib.round.api.ImpactEffects.IGNITE;
+import static com.wf.wflib.round.api.ImpactEffects.MOB_EFFECT;
 
 /**
  * WFLib catalogue calibres + variants (nominal service loads; dims mm); live only once requested. Mass + muzzle velocity: published service loads
@@ -42,6 +50,9 @@ public final class AmmoCatalogue {
     }
     private static final ResourceLocation FRAG = rl("fragmentation");
     private static final ResourceLocation THERMOBARIC = rl("thermobaric");
+
+    private static final Map<ResourceLocation, Calibre> CALIBRES = new LinkedHashMap<>();
+    private static final Map<ResourceLocation, AmmoVariant> VARIANTS = new LinkedHashMap<>();
 
     private AmmoCatalogue() {
     }
@@ -84,7 +95,7 @@ public final class AmmoCatalogue {
                            float dpk) {
         Calibre c = new Calibre(rl(key), name, kind, bullet, caseLen, caseD, neck, rim, oal, projLen, mat,
                 Calibre.defaultCasing(kind, bullet, mat), cartGrams / 1000f, Calibre.defaultStack(kind));
-        Ammo.define(c);
+        CALIBRES.put(c.id(), c);
         return new Cal(c, key, dpk);
     }
 
@@ -97,7 +108,8 @@ public final class AmmoCatalogue {
     }
 
     private static void add(AmmoVariant.Builder b) {
-        Ammo.define(b.build());
+        AmmoVariant v = b.build();
+        VARIANTS.put(v.id(), v);
     }
 
     /** Small arms: ball first (calibre default), tracer, AP, subsonic where fielded. */
@@ -118,7 +130,23 @@ public final class AmmoCatalogue {
         }
     }
 
-    static void define() {
+    public static Collection<Calibre> calibres() {
+        return Collections.unmodifiableCollection(CALIBRES.values());
+    }
+
+    public static Collection<AmmoVariant> variants() {
+        return Collections.unmodifiableCollection(VARIANTS.values());
+    }
+
+    public static Calibre calibre(ResourceLocation id) {
+        return CALIBRES.get(id);
+    }
+
+    public static AmmoVariant variant(ResourceLocation id) {
+        return VARIANTS.get(id);
+    }
+
+    public static void define() {
         CaseMaterial br = CaseMaterial.BRASS, st = CaseMaterial.STEEL;
         CalibreKind p = CalibreKind.PISTOL, r = CalibreKind.RIFLE;
         smallArms(cal("9x19", "9x19mm Parabellum", p, 9.02f, 19.15f, 9.93f, 9.65f, 9.96f, 29.69f, 15.6f, br, 12f,
@@ -290,7 +318,7 @@ public final class AmmoCatalogue {
                 CaseMaterial.COMBUSTIBLE, 30000f, 0.3f), "3BM42 APFSDS", 4.85f, 1700, 650, "3BK29 HEAT", 19f, 905,
                 700, "3OF26 HE-FRAG", 23f, 850);
 
-        // Indirect fire: linear drag only (CA firing solver is exact for it).
+        // Indirect fire: linear drag only (an exact firing solver exists for it).
         Cal m81 = cal("81mm", "81mm mortar", CalibreKind.TANK, 81f, 1f, 81f, 81f, 81f, 500f, 500f,
                 CaseMaterial.NONE, 4100f, 5.4f);
         add(m81.variant("he", "M821 HE", 4100, 120, 0f).drag(0.01f).explosive(STANDARD, 5f).tip(TIP_YELLOW));

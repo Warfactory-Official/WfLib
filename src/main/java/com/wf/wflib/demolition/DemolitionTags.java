@@ -1,10 +1,10 @@
 package com.wf.wflib.demolition;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
+import com.wf.wflib.core.api.WFLib;
 
 /** What a mining charge is allowed to break, and what counts as a charge. */
 public final class DemolitionTags {

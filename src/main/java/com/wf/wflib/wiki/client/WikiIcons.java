@@ -2,8 +2,8 @@ package com.wf.wflib.wiki.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.wiki.Article;
-import com.wf.wflib.wiki.Wiki;
+import com.wf.wflib.wiki.api.Article;
+import com.wf.wflib.wiki.api.Wiki;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;

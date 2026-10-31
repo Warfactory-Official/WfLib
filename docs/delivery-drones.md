@@ -341,7 +341,7 @@ Passive engagers see only the recon picture => everything below defeats them.
 
 
 
-`DroneState`, each bound to a handler in `DroneStateRegistry`. Handlers are stateless strategies exactly like
+`DroneState`, each bound to a handler in `DroneStateHandlers`. Handlers are stateless strategies exactly like
 `FlightStage`: they read a snapshot, return a desired velocity, and decide when to hand over.
 
 | State | What it does |
@@ -392,7 +392,7 @@ per tick, so a faster drone covers more ground on the same charge. Cargo is what
 
 A mission with a `payloadId` is a strike instead of a delivery: that one field is the only difference. Each
 drone in the flight carries its own warhead (four drones, four bombs), pulled from the **same**
-`WarheadRegistry` the missiles use, so `standard`, `shaped_charge`, `mininuke` and anything you register
+`Warheads` the missiles use, so `standard`, `shaped_charge`, `mininuke` and anything you register
 later all work unchanged. The released payload is a `BombletEntity`, which is already a `WarheadCarrier`, so
 the warhead behaves exactly as it would on a missile.
 
@@ -521,7 +521,7 @@ a drone eighty blocks up is doing anything at all.
 Mines used to borrow the missile set, and borrowing it gave away the three things that make a mine a mine.
 `MineWarheads` registers `mine_blast`, `mine_frag`, `mine_directional`, `mine_heat`, `mine_naval` and the
 two dispenser detonations into the
-same `WarheadRegistry` (a mine warhead is a warhead, and this is not a second registry), but every one of
+same `Warheads` (a mine warhead is a warhead, and this is not a second registry), but every one of
 them is built for the job:
 
 - **Nothing is set alight.** `bomblet` and `fragmentation` both end in `ExplosionNukeGeneric.dealDamage`,
@@ -544,7 +544,7 @@ anything in the water with it takes the full figure with no cover check, and any
 water takes `NAVAL_IN_AIR` of it. A moored mine is a threat to what swims or sails over it and very little
 else, which is the point of mooring one.
 
-`WarheadRegistry.declarePeakDamage` exists for these: a warhead that resolves its own damage has no blast size
+`Warheads.declarePeakDamage` exists for these: a warhead that resolves its own damage has no blast size
 for the tooltip's estimate to work from, and would otherwise report zero, which reads as "harmless".
 
 ### Dispensers: a mine that sows mines
@@ -645,7 +645,7 @@ Two rules fall out of that and are both enforced:
   "no canisters on it" rather than letting it sit there looking live.
 - **A rack comes up carrying what was on it.** Crouch-click it, or take the panel's *Pack up* row, and the
   frame goes into your hands with its remaining load written on the item
-  (`ModDataComponents.MINE_CANISTERS`); laying it again puts that number back on the rack, and the model
+  (`MineContent.MINE_CANISTERS`); laying it again puts that number back on the rack, and the model
   draws it: three tubes still capped is three canisters. Only a part-loaded rack carries a count at all,
   so a recovered full one still stacks with a fresh one out of the creative tab.
 
@@ -800,7 +800,7 @@ without a detonator.
 Both exist for tests and map-making, and the first exists for a specific reason: `summon wflib:mine`
 makes a bare entity carrying the tags typed at it and **class defaults for everything else** (including a
 360° arc), so a summoned rack sows a full circle however the preset is written. A probe built on one would
-be asserting against its own NBT. `mine lay` builds what `MinePresetRegistry` builds, which is the only way
+be asserting against its own NBT. `mine lay` builds what `MinePresets` builds, which is the only way
 deleting the arc from a preset can make a test go red.
 
 **A dispenser is not an air-delivered weapon**, and the two paths stay separate on purpose. A drone rack

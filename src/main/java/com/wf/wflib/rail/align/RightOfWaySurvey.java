@@ -1,6 +1,6 @@
 package com.wf.wflib.rail.align;
 
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
@@ -13,6 +13,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import com.wf.wflib.rail.api.Centreline;
+import com.wf.wflib.rail.api.DesignClass;
+import com.wf.wflib.rail.api.RightOfWay;
 
 /**
  * Walks a route and asks who owns the ground under it.

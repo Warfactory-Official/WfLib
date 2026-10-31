@@ -1,6 +1,6 @@
 package com.wf.wflib.armor;
 
-import com.wf.wflib.damage.WFDamageTypes;
+import com.wf.wflib.damage.api.WFDamageTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.ItemTags;
@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
+import com.wf.wflib.armor.api.ProtectionType;
 
 /**
  * {@code DamageSource} -> {@link ProtectionType}, many-to-one. Kept outside the pure core (core stays

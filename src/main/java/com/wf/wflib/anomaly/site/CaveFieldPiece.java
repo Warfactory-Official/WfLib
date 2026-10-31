@@ -1,7 +1,7 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.anomaly.site.AnomalyMix.Kind;
-import com.wf.wflib.anomaly.site.AnomalyMix.Loot;
+import com.wf.wflib.anomaly.api.AnomalyMix.Kind;
+import com.wf.wflib.anomaly.api.AnomalyMix.Loot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -18,6 +18,8 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.anomaly.api.AnomalyCaves;
+import com.wf.wflib.anomaly.api.CavePlan;
 
 /** One cave field as a structure piece: plan and middle, saved; each chunk it crosses paints its own part. */
 public final class CaveFieldPiece extends StructurePiece {

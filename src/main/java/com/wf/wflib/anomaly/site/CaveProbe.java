@@ -1,6 +1,6 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.anomaly.site.AnomalyCaves.Slot;
+import com.wf.wflib.anomaly.api.AnomalyCaves.Slot;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.chunk.ChunkGenerator;
@@ -9,6 +9,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.anomaly.api.CavePlan;
 
 /**
  * Finds where a slot's field goes. The base noise column (cheese caves and caverns; carvers are not in it) is probed

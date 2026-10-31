@@ -1,13 +1,13 @@
 package com.wf.wflib.pda.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.wf.wflib.WFLib;
 import net.minecraft.client.KeyMapping;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
+import com.wf.wflib.core.api.WFLib;
 
 /** Unbound by default: choose bindings under Controls > WFLib without taking another action's key. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)

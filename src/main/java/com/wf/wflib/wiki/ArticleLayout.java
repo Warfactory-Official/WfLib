@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import com.wf.wflib.wiki.api.Article;
+import com.wf.wflib.wiki.api.Wiki;
 
 /**
  * Article body -> positioned draw lists for a {@code width}-unit column. Pure: text widths and image sizes come

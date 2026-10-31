@@ -1,7 +1,8 @@
 package com.wf.wflib.stream;
 
 import com.mojang.brigadier.Command;
-import com.wf.wflib.mixin.AccessorChunkMap;
+import com.wf.wflib.mixin.stream.AccessorChunkMap;
+import com.wf.wflib.stream.api.HostWakeupData;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -19,6 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.PlayerChunkSender;
 import net.minecraft.world.level.ChunkPos;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -34,7 +36,13 @@ public final class StreamCommands {
     private StreamCommands() {
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> get() {
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
+        event.getDispatcher().register(Commands.literal("wflib")
+                .requires(src -> src.hasPermission(2))
+                .then(get()));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> get() {
         return Commands.literal("stream")
                 .then(Commands.literal("audit").then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {

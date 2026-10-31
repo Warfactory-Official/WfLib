@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.ui.api.theme.PdaTheme;
 
 /** Installed themes by id, in menu order: the built-ins, then CUSTOM (Settings colours, rebuilt on each edit). */
 public final class PdaThemes {
@@ -19,15 +20,15 @@ public final class PdaThemes {
     }
 
     public static PdaTheme get(String id) {
-        if (com.wf.wflib.pda.client.PdaTheme.CUSTOM_ID.equals(id)) {
-            return com.wf.wflib.pda.client.PdaTheme.custom();
+        if (com.wf.wflib.pda.api.client.PdaTheme.CUSTOM_ID.equals(id)) {
+            return com.wf.wflib.pda.api.client.PdaTheme.custom();
         }
         return THEMES.getOrDefault("tactical".equals(id) ? "gamma" : id, PdaTheme.CLASSIC);
     }
 
     public static List<PdaTheme> all() {
         List<PdaTheme> all = new ArrayList<>(THEMES.values());
-        all.add(com.wf.wflib.pda.client.PdaTheme.custom());
+        all.add(com.wf.wflib.pda.api.client.PdaTheme.custom());
         return List.copyOf(all);
     }
 

@@ -1,6 +1,5 @@
 package com.wf.wflib.round.pen;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -14,6 +13,7 @@ import net.neoforged.neoforge.common.Tags;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Penetration class: {@link PenTable} fallback for blocks without a data map value. {@link #resistance} = mm

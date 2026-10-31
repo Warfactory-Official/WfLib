@@ -1,6 +1,6 @@
 package com.wf.wflib.recon.map;
 
-import com.wf.wflib.recon.Band;
+import com.wf.wflib.recon.api.Band;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.Nullable;
 

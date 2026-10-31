@@ -1,6 +1,5 @@
 package com.wf.wflib.pda.alerts;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
@@ -8,6 +7,8 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.pda.api.PdaAlert;
+import com.wf.wflib.core.api.WFLib;
 
 /** Server -> PDA carrier: one notification. */
 public record PdaAlertPacket(Component message, PdaAlert.Tier tier) implements CustomPacketPayload {

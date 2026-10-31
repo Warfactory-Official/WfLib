@@ -1,8 +1,7 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.hazard.HazardRegistry;
-import com.wf.wflib.hazard.HazardSystem;
+import com.wf.wflib.hazard.api.Hazards;
+import com.wf.wflib.hazard.api.HazardRules;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
@@ -15,7 +14,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.io.IOException;
@@ -33,9 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import com.wf.wflib.core.api.WFLib;
 
 /** NTM NEXT EmissionServerTests / UniformDecayServerTests / RadiationSettingsServerTests et al.: no world field. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class RadiationSimGameTest {
 
@@ -45,7 +43,7 @@ public class RadiationSimGameTest {
 
     // ------------------------------------------------------------------ emission
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void emissionSignLawGatesEverySourceToItsOwnSide(GameTestHelper helper) {
         assertClose(helper, Emission.single(0.0D, 1.0D, 100.0D), 1.0D, "an emitter at zero must emit its rate");
         assertClose(helper, Emission.single(200.0D, 1.0D, 100.0D), 200.0D,
@@ -66,7 +64,7 @@ public class RadiationSimGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void emissionSourcesComposeIntoTheirWeightedHarmonicMean(GameTestHelper helper) {
         double w = Emission.weight(1.0D, 100.0D) + Emission.weight(1.0D, 300.0D);
         double n = Emission.numeratorTerm(1.0D, 100.0D) + Emission.numeratorTerm(1.0D, 300.0D);
@@ -87,7 +85,7 @@ public class RadiationSimGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void emissionSourceSetGatesPerPocketAndPerTick(GameTestHelper helper) {
         RadiationSystemNT.SectionSources sources = new RadiationSystemNT.SectionSources();
         sources.add(0, 1.0D, 100.0D);
@@ -114,7 +112,7 @@ public class RadiationSimGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void emissionDensityScalesInverselyWithPocketVolume(GameTestHelper helper) {
         RadiationSystemNT.RadSource source = new RadiationSystemNT.RadSource(1.0D, 100.0D);
         int[] open = {4096};
@@ -146,7 +144,7 @@ public class RadiationSimGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void emissionSourceIsABoundaryConditionOfOneOfThreeKinds(GameTestHelper helper) {
         double sinkLow = Emission.relax(10.0D, 0.0D, 0.0D);
         helper.assertTrue(sinkLow == 10.0D, "no active source must leave the density alone; got " + sinkLow);
@@ -173,7 +171,7 @@ public class RadiationSimGameTest {
 
     // ------------------------------------------------------------------ uniform decay
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 60)
     public static void uniformDecayVectorMatchesScalar(GameTestHelper helper) {
         if (!VectorApi.AVAILABLE) {
             helper.fail("jdk.incubator.vector did not resolve, so no vector lane ran and this row proves nothing");
@@ -269,7 +267,7 @@ public class RadiationSimGameTest {
         }
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
     public static void uniformDecayAllocatesNothingPerColumn(GameTestHelper helper) {
         if (!VectorApi.AVAILABLE) {
             helper.fail("jdk.incubator.vector did not resolve, so there is no kernel to screen");
@@ -307,7 +305,7 @@ public class RadiationSimGameTest {
 
     // ------------------------------------------------------------------ settings
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void settingsResolveToTheirDeclaredPhysics(GameTestHelper helper) {
         double dT = 0.05D;
         double retention = settings(1, 10.0D).resolve(dT).retentionDt();
@@ -326,7 +324,7 @@ public class RadiationSimGameTest {
     }
 
     /** diffusivity_transport is outside Resolved: it selects the exchange arm, not a constant. */
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void settingsEveryDeclaredFieldReachesTheSolver(GameTestHelper helper) {
         double dT = 0.05D;
         RadiationSettings d = RadiationSettings.DEFAULT;
@@ -358,7 +356,7 @@ public class RadiationSimGameTest {
     }
 
     /** NTM ships a nether entry; wflib ships none. A stale build-output file would show up here. */
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void settingsRegistryHoldsOnlyTheEntriesWeShip(GameTestHelper helper) {
         List<String> loaded = helper.getLevel().registryAccess().registryOrThrow(RadiationSettings.REGISTRY)
                 .keySet().stream().map(ResourceLocation::toString).sorted().toList();
@@ -370,7 +368,7 @@ public class RadiationSimGameTest {
     }
 
     /** NTM ships four classes; wflib ships none => trivial table, transport resolves off. */
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void diffusivityRegistryHoldsOnlyTheClassesWeShip(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         List<String> loaded = level.registryAccess().registryOrThrow(RadiationDiffusivity.REGISTRY)
@@ -384,24 +382,24 @@ public class RadiationSimGameTest {
     }
 
     /** NTM constantSourceRatesMatchTheOracle, item_hazard arm on a code-registered stand-in. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
     public static void constantSourceItemHazardRateMatchesTheOracle(GameTestHelper helper) {
         Block block = Blocks.LODESTONE;
-        HazardSystem.register(block, HazardRegistry.makeData(HazardRegistry.RADIATION, 25.0D));
-        HazardSystem.clearCaches();
+        HazardRules.register(block, Hazards.makeData(Hazards.RADIATION, 25.0D));
+        HazardRules.clearCaches();
         helper.runAfterDelay(2, () -> {
             try {
-                float perSecond = (float) HazardSystem.getRawRadsFromBlock(block) * 0.1F;
+                float perSecond = (float) HazardRules.getRawRadsFromBlock(block) * 0.1F;
                 helper.assertTrue(perSecond > 0.0F, block + " must carry a radiation hazard for this row to mean anything");
                 RadSourceRule.Rate rate = new RadSourceRule.Rate.ItemHazard();
                 helper.assertTrue(rate.emission(block) == perSecond / 20.0D,
                         block + " must emit the oracle's rawRads*0.1 per second; it declares " + rate.emission(block)
                                 + " against " + perSecond / 20.0D);
-                helper.assertTrue(rate.saturation(block) == (float) HazardSystem.getRawRadsFromBlock(block),
+                helper.assertTrue(rate.saturation(block) == (float) HazardRules.getRawRadsFromBlock(block),
                         "and saturate at its own dose; it declares " + rate.saturation(block));
             } finally {
-                HazardSystem.itemMap.remove(block.asItem());
-                HazardSystem.clearCaches();
+                HazardRules.unregister(block.asItem());
+                HazardRules.clearCaches();
             }
             helper.succeed();
         });
@@ -409,7 +407,7 @@ public class RadiationSimGameTest {
 
     // ------------------------------------------------------------------ persistence
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void persistenceMaximumBoundAndAbsentDelete(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         int encoded = encodeMaximumPayload(level);

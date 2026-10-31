@@ -1,7 +1,7 @@
 package com.wf.wflib.drone.ai.state;
 
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.nav.DronePath;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.DronePath;
 import net.minecraft.world.phys.Vec3;
 
 /** Turns a drone's planned route into the point its handler should be flying at. */

@@ -1,10 +1,10 @@
 package com.wf.wflib.recon.example;
 
-import com.wf.wflib.recon.Band;
-import com.wf.wflib.recon.Countermeasure;
-import com.wf.wflib.recon.Signature;
-import com.wf.wflib.recon.snapshot.SensorSnapshot;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
+import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.recon.api.Countermeasure;
+import com.wf.wflib.recon.api.Signature;
+import com.wf.wflib.recon.api.SensorSnapshot;
+import com.wf.wflib.recon.api.TargetSnapshot;
 
 /**
  * Rubber tiles on a hull: the sonar half of {@link RadarAbsorbentCoating}, and the third leg of this band's

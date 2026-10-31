@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.Centreline;
 
 /**
  * Finds where a world's surveyed routes meet each other.
@@ -60,7 +63,7 @@ public final class RouteMeetings {
 
     /** Every meeting between the routes of one world. */
     public static List<RouteMeeting> find(ServerLevel level) {
-        return find(AlignmentStore.of(level).all());
+        return find(AlignmentData.of(level).all());
     }
 
     /**

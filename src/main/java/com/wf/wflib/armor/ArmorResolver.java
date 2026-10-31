@@ -2,9 +2,15 @@ package com.wf.wflib.armor;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.armor.api.ArmorLayer;
+import com.wf.wflib.armor.api.ArmorOutcome;
+import com.wf.wflib.armor.api.ArmorResult;
+import com.wf.wflib.armor.api.ArmorUnits;
+import com.wf.wflib.armor.api.ProtectionRow;
+import com.wf.wflib.armor.api.ProtectionType;
 
 /**
- * Pure DT-then-DR reduction (Factorio decrease/percent, HBM's naming), shared by WFMedical's per-limb
+ * Pure DT-then-DR reduction (Factorio decrease/percent, HBM's naming), shared by the per-limb
  * path and the whole-entity path. Wear is per absorbed damage, not per hit: a fully-stopped hit dumps
  * all its energy into the armour, so volume fire wears plate faster than a punch-through round.
  * {@code hardness} brakes that.

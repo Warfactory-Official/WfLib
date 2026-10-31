@@ -1,17 +1,13 @@
 package com.wf.wflib.artifact.detect.client;
 
 import com.wf.gemrender.light.Lights;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.WFSounds;
-import com.wf.wflib.artifact.Artifact;
-import com.wf.wflib.artifact.detect.ZoneArtifact;
-import com.wf.wflib.client.xray.XrParticles;
+import com.wf.wflib.artifact.api.Artifact;
+import com.wf.wflib.artifact.api.ZoneArtifact;
+import com.wf.wflib.particle.api.client.XrParticles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import com.wf.wflib.artifact.api.ArtifactSounds;
 
 /**
  * X-Ray's artefact look round a {@link ZoneArtifact}: shown by a detector, {@code det_show_particles} +
@@ -26,7 +23,6 @@ import java.util.concurrent.ThreadLocalRandom;
  * the camera, a {@code det_show_particles} blink every 2 game hours ({@code SArtefactDetectorsSupport::Blink}: X-Ray's
  * time factor 10 => 12 real minutes).
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ZoneArtifactClient {
     private static final double NEAR = 64.0D;
     private static final double BLINK_FROM = 40.0D;
@@ -70,7 +66,7 @@ public final class ZoneArtifactClient {
             Vec3 at = centre(a, 1.0F);
             if (shown && !s.shown && !a.isDropped()) {
                 XrParticles.play(art.showFx(), at, 1.0F, 1.0F, false);
-                mc.level.playLocalSound(at.x, at.y, at.z, WFSounds.ANOMALY_BFUZZ_BLOWOUT.get(), SoundSource.NEUTRAL,
+                mc.level.playLocalSound(at.x, at.y, at.z, ArtifactSounds.ANOMALY_BFUZZ_BLOWOUT.get(), SoundSource.NEUTRAL,
                         0.5F, 1.0F, false);
             }
             s.shown = shown;

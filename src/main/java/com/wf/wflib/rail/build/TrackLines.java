@@ -3,7 +3,7 @@ package com.wf.wflib.rail.build;
 import com.mojang.logging.LogUtils;
 import com.wf.wflib.rail.RailCompat;
 import com.wf.wflib.rail.RailConfig;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.excavate.CarveVolume;

@@ -1,10 +1,9 @@
 package com.wf.wflib.warhead.gametest;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.MissileEntity;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.item.MissilePresetRegistry;
-import com.wf.wflib.util.ForcedChunks;
+import com.wf.wflib.missile.api.MissileEntity;
+import com.wf.wflib.missile.api.MissilePresets;
+import com.wf.wflib.testkit.api.ForcedChunks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -16,7 +15,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
 
@@ -25,12 +23,12 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * `cluster` preset onto flat / sloped ground, spawned in a 45° dive or launched from a pad: every missilelet ends,
  * leaves land near the aim.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class ClusterSlopeGameTest {
 
@@ -53,40 +51,40 @@ public class ClusterSlopeGameTest {
     private static final int LEAVES = 16;
     private static final double MAX_LEAF_MISS = 45.0;
 
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void clusterOnFlatGround(GameTestHelper helper) {
         run(helper, 0, 0.0, 0.0);
     }
 
     /** Dive into the rising face. */
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void clusterIntoA45DegreeUpslope(GameTestHelper helper) {
         run(helper, 1, 45.0, 0.0);
     }
 
     /** Dive from over the crest down the falling face. */
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void clusterDownA30DegreeSlope(GameTestHelper helper) {
         run(helper, 2, 30.0, 180.0);
     }
 
     /** Dive along the contour of a 45° slope. */
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void clusterAcrossA45DegreeSlope(GameTestHelper helper) {
         run(helper, 3, 45.0, 90.0);
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void launchedClusterOnFlatGround(GameTestHelper helper) {
         run(helper, 4, 0.0, 0.0, true);
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void launchedClusterUpA45DegreeHill(GameTestHelper helper) {
         run(helper, 5, 45.0, 0.0, true);
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = TICKS + 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = TICKS + 60)
     public static void launchedClusterDownA45DegreeHill(GameTestHelper helper) {
         run(helper, 6, 45.0, 180.0, true);
     }
@@ -134,7 +132,7 @@ public class ClusterSlopeGameTest {
         double az = Math.toRadians(azimuthDeg);
         double c = Math.cos(Math.toRadians(45.0));
         Vec3 travel = new Vec3(Math.cos(az) * c, -Math.sin(Math.toRadians(45.0)), Math.sin(az) * c);
-        var preset = MissilePresetRegistry.get(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "cluster"));
+        var preset = MissilePresets.get(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "cluster"));
         MissileEntity missile;
         if (launched) {
             double px = -Math.cos(az) * LAUNCH_RANGE;

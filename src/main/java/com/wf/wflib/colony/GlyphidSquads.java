@@ -1,11 +1,9 @@
 package com.wf.wflib.colony;
 
-import com.wf.wflib.debug.SwarmProfiler;
-import com.wf.wflib.entity.glyphid.EntityGlyphid;
-import com.wf.wflib.entity.glyphid.GlyphidTasks;
-import com.wf.wflib.entity.glyphid.GlyphidTracker;
-import com.wf.wflib.industry.IndustryApi;
-import com.wf.wflib.industry.IndustryCluster;
+import com.wf.wflib.colony.debug.SwarmProfiler;
+import com.wf.wflib.colony.api.EntityGlyphid;
+import com.wf.wflib.colony.api.GlyphidTasks;
+import com.wf.wflib.colony.glyphid.GlyphidTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import com.wf.wflib.colony.api.GlyphidObjective;
 
 /**
  * Splits a swarm into squads of roughly equal strength and gives each one something different to do, so a swarm is
@@ -202,10 +201,10 @@ public final class GlyphidSquads {
      */
     private static void addMachines(ServerLevel level, List<GlyphidObjective> out,
                                     double centreX, double centreZ) {
-        BlockPos first = IndustryApi.pressingMachine(level, centreX, centreZ, OBJECTIVE_RANGE);
+        BlockPos first = ColonyIndustry.pressingMachine(level, centreX, centreZ, OBJECTIVE_RANGE, null, 0.0);
         if (first != null) {
             out.add(GlyphidObjective.machines(first.getX(), first.getY(), first.getZ()));
-            BlockPos second = IndustryApi.pressingMachine(level, centreX, centreZ, OBJECTIVE_RANGE,
+            BlockPos second = ColonyIndustry.pressingMachine(level, centreX, centreZ, OBJECTIVE_RANGE,
                     first, MACHINE_SEPARATION);
             if (second != null) {
                 out.add(GlyphidObjective.machines(second.getX(), second.getY(), second.getZ()));
@@ -213,8 +212,8 @@ public final class GlyphidSquads {
             return;
         }
 
-        IndustryCluster base = IndustryApi.nearestCluster(level, centreX, centreZ);
-        if (base == null || base.distanceSqTo(centreX, centreZ) > OBJECTIVE_RANGE * OBJECTIVE_RANGE) {
+        ColonyIndustry.Base base = ColonyIndustry.baseWithin(level, centreX, centreZ, OBJECTIVE_RANGE);
+        if (base == null) {
             return;
         }
         int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, base.centerX(), base.centerZ());

@@ -1,7 +1,7 @@
 package com.wf.wflib.audio.client;
 
-import com.wf.wflib.audio.AudioCategory;
-import com.wf.wflib.config.WFClientConfig;
+import com.wf.wflib.audio.api.AudioCategory;
+import com.wf.wflib.audio.AudioClientConfig;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
 import net.minecraft.network.chat.CommonComponents;
@@ -31,24 +31,24 @@ public final class AudioOptions {
     }
 
     /** Unbaked spec (before config load) => keeps last values. */
-    static void refresh() {
-        if (!WFClientConfig.SPEC.isLoaded()) {
+    public static void refresh() {
+        if (!AudioClientConfig.SPEC.isLoaded()) {
             return;
         }
         for (AudioCategory c : AudioCategory.values()) {
-            VOLUME[c.ordinal()] = WFClientConfig.AUDIO_VOLUME[c.ordinal()].get().floatValue();
+            VOLUME[c.ordinal()] = AudioClientConfig.VOLUME[c.ordinal()].get().floatValue();
         }
-        cabinMuffle = WFClientConfig.CABIN_MUFFLE.get().floatValue();
+        cabinMuffle = AudioClientConfig.CABIN_MUFFLE.get().floatValue();
     }
 
     public static OptionInstance<?>[] sliders() {
         AudioCategory[] cats = AudioCategory.values();
         OptionInstance<?>[] out = new OptionInstance<?>[cats.length + 1];
         for (AudioCategory c : cats) {
-            var value = WFClientConfig.AUDIO_VOLUME[c.ordinal()];
+            var value = AudioClientConfig.VOLUME[c.ordinal()];
             out[c.ordinal()] = slider("soundCategory.wflib." + c.getSerializedName(), value);
         }
-        out[cats.length] = slider("options.wflib.cabinMuffle", WFClientConfig.CABIN_MUFFLE);
+        out[cats.length] = slider("options.wflib.cabinMuffle", AudioClientConfig.CABIN_MUFFLE);
         return out;
     }
 
@@ -59,7 +59,7 @@ public final class AudioOptions {
                 OptionInstance.UnitDouble.INSTANCE, value.get(), v -> {
             value.set(v);
             value.save();
-            refresh();
+          refresh();
         });
     }
 }

@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "wflib:aps_grenade"
+    {
+      "id": "wflib:aps_grenade",
+      "required": false
+    }
   ]
 }

@@ -1,6 +1,6 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.unsafe.UnsafeHolder;
+import com.wf.wflib.core.api.UnsafeHolder;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandle;

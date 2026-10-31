@@ -1,12 +1,10 @@
 package com.wf.wflib.colony;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.ModEntities;
-import com.wf.wflib.config.WFConfig;
-import com.wf.wflib.entity.glyphid.EntityGlyphid;
-import com.wf.wflib.entity.glyphid.GlyphidCaste;
-import com.wf.wflib.entity.glyphid.GlyphidTasks;
-import com.wf.wflib.entity.glyphid.flight.GlyphidFlight;
+import com.wf.wflib.colony.api.EntityGlyphid;
+import com.wf.wflib.colony.api.GlyphidCaste;
+import com.wf.wflib.colony.api.GlyphidTasks;
+import com.wf.wflib.colony.glyphid.flight.GlyphidFlight;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import com.wf.wflib.colony.api.Colony;
 
 /** Warband record -> real glyphids once somebody is there to be attacked; T2 -> T0 step. */
 public final class WarbandMaterialiser {
@@ -33,7 +32,7 @@ public final class WarbandMaterialiser {
     }
 
     public static void tick(ServerLevel level) {
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         if (registry.warbands().isEmpty()) {
             return;
         }
@@ -74,7 +73,7 @@ public final class WarbandMaterialiser {
     }
 
     /** @return glyphids actually placed; also exactly what the record is debited. */
-    public static int materialise(ServerLevel level, ColonyRegistry registry, Warband warband, int budget) {
+    public static int materialise(ServerLevel level, ColonyData registry, Warband warband, int budget) {
         int wanted = Math.min(budget, warband.count);
         if (wanted <= 0) {
             registry.remove(warband);
@@ -157,7 +156,7 @@ public final class WarbandMaterialiser {
     private static void orient(EntityGlyphid glyphid, Warband warband, @Nullable Colony origin, int y) {
         glyphid.setCanFly(warband.flying);
         if (warband.flying) {
-            glyphid.setBombs(WFConfig.GLYPHID_BOMB_LOAD.get());
+            glyphid.setBombs(ColonyConfig.bombLoad());
         }
         glyphid.hasHome = true;
         glyphid.homeX = origin != null ? origin.x : (int) warband.x;

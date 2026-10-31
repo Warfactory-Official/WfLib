@@ -1,8 +1,5 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.radiation.TLPool;
-import com.wf.wflib.radiation.DecodeException;
-import com.wf.wflib.radiation.ObjectPool;
 import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleArrays;
@@ -25,6 +22,7 @@ import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveAction;
+import com.wf.wflib.radiation.api.RadiationConfig;
 
 import static com.wf.wflib.radiation.RadiationSystemNT.*;
 
@@ -1052,7 +1050,7 @@ final class WorldRadiationData {
 
     // RAD_POOL sweep; read after join barrier.
     void logProfilingMessage(long stepStartNs) {
-        if (!RadiationConfig.enableDebugMode) return;
+        if (!RadiationConfig.get().debug()) return;
         double ms = (System.nanoTime() - stepStartNs) * 1.0e-6;
         profSteps++;
         profTotalMs += ms;
@@ -1082,7 +1080,7 @@ final class WorldRadiationData {
     }
 
     void logLifetimeProfiling() {
-        if (!RadiationConfig.enableDebugMode) return;
+        if (!RadiationConfig.get().debug()) return;
         long steps = profSteps;
         if (steps <= 0) return;
         Object dimId = world.dimension().location();

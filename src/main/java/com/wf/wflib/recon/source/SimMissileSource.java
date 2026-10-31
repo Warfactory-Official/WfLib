@@ -1,17 +1,18 @@
 package com.wf.wflib.recon.source;
 
-import com.wf.wflib.sim.SimMissileManager;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.SourceIds;
-import com.wf.wflib.recon.TargetSink;
-import com.wf.wflib.recon.TargetSource;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
-import com.wf.wflib.sim.SimMissile;
+import com.wf.wflib.missile.api.SimMissileManager;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.SourceIds;
+import com.wf.wflib.recon.api.TargetSink;
+import com.wf.wflib.recon.api.TargetSource;
+import com.wf.wflib.recon.api.TargetSnapshot;
+import com.wf.wflib.missile.api.SimMissile;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import com.wf.wflib.recon.api.ReconSignatures;
 
 /** Missiles that are off the world, flying as records rather than entities. */
 public final class SimMissileSource implements TargetSource {

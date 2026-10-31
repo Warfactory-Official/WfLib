@@ -1,7 +1,7 @@
 package com.wf.wflib.rail;
 
-import com.wf.wflib.compat.TerritoryVerdict;
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.compat.api.TerritoryVerdict;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.rail.excavate.CarveVolume;
 import com.wf.wflib.rail.excavate.TunnelProfile;
 import net.minecraft.core.BlockPos;

@@ -1,7 +1,6 @@
 package com.wf.wflib.colony;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
 import net.minecraft.resources.ResourceKey;
@@ -11,7 +10,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import org.slf4j.Logger;
@@ -27,7 +25,6 @@ import java.util.Map;
  * FULL waits on this chunk (Sable's {@code LevelChunk#setBlockState} hook reads neighbour voxels) => server thread
  * parks forever. Settled on the level tick once all 8 neighbours are resident.
  */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class ColonyEvents {
 
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -70,7 +67,7 @@ public final class ColonyEvents {
             it.remove();
             try {
                 ColonyManager.onChunkLoaded(level, chunk);
-                PendingChunkEdits.get(level).drain(level, chunk);
+                PendingChunkEditData.get(level).drain(level, chunk);
             } catch (Exception | LinkageError t) {
                 if (!loggedFailure) {
                     loggedFailure = true;

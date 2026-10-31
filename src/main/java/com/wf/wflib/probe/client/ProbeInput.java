@@ -1,18 +1,14 @@
 package com.wf.wflib.probe.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.wf.wflib.WFLib;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import org.lwjgl.glfw.GLFW;
 
 /** Scrolling the action list, and running the chosen one. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ProbeInput {
 
     /** {@code -PprobeTrace} logs every scroll the probe sees and what it made of the modifier. */

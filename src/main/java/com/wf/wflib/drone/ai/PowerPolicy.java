@@ -1,10 +1,11 @@
 package com.wf.wflib.drone.ai;
 
-import com.wf.wflib.drone.DroneState;
-import com.wf.wflib.drone.PowerProfile;
-import com.wf.wflib.drone.flight.Airframe;
+import com.wf.wflib.drone.api.DroneState;
+import com.wf.wflib.drone.api.PowerProfile;
+import com.wf.wflib.geom.api.flight.Airframe;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.drone.api.DroneSnapshot;
 
 /** Turns remaining charge into a decision. */
 public final class PowerPolicy {

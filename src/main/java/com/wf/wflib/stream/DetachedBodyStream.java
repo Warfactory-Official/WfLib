@@ -1,9 +1,8 @@
 package com.wf.wflib.stream;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.DetachedBodyHost;
-import com.wf.wflib.config.WFConfig;
-import com.wf.wflib.mixin.AccessorChunkMap;
+import com.wf.wflib.stream.api.DetachedBodyHost;
+import com.wf.wflib.mixin.stream.AccessorChunkMap;
+import com.wf.wflib.stream.api.HostWakeup;
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -28,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import com.wf.wflib.stream.api.ChunkStreams;
+import com.wf.wflib.stream.api.StreamWindow;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Operator view on a {@link DetachedBodyHost}: client chunk cache centred on the host, terrain streamed around it,
@@ -118,8 +120,8 @@ public final class DetachedBodyStream {
         if (HOSTS.isEmpty() && SESSIONS.isEmpty()) {
             return;
         }
-        int radius = Math.min(WFConfig.DETACHED_STREAM_RADIUS.get(), server.getPlayerList().getViewDistance());
-        int budget = WFConfig.DETACHED_CHUNKS_PER_TICK.get();
+        int radius = Math.min(StreamConfig.get().streamRadius(), server.getPlayerList().getViewDistance());
+        int budget = StreamConfig.get().maxChunksPerTick();
         boolean heartbeat = ticks % StreamDebug.heartbeatTicks() == 0;
 
         Map<UUID, View> views = collect(radius);
@@ -241,7 +243,7 @@ public final class DetachedBodyStream {
 
     /** Pilot flags already published: {@code skipPlayer} and body view distance read the parked values. */
     private static void parkBody(ServerPlayer operator, ServerLevel level, ChunkPos body) {
-        int ticketRadius = WFConfig.DETACHED_BODY_TICKET_RADIUS.get();
+        int ticketRadius = StreamConfig.get().bodyTicketRadius();
         if (ticketRadius >= 0) {
             level.getChunkSource().addRegionTicket(BODY_TICKET, body, ticketRadius, Unit.INSTANCE);
         }

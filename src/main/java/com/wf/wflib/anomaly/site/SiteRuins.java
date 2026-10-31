@@ -21,6 +21,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.anomaly.api.SitePlan;
+import com.wf.wflib.anomaly.api.SiteStyle;
 
 /**
  * Ruins in a site: what people left before the anomalies came. Each claims level ground (a pad) away from the

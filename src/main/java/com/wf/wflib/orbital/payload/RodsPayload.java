@@ -1,10 +1,10 @@
 package com.wf.wflib.orbital.payload;
 
 import com.wf.wflib.orbital.OrbitalConfig;
-import com.wf.wflib.orbital.OrbitalNet;
-import com.wf.wflib.orbital.SatPayload;
-import com.wf.wflib.orbital.SatVerb;
-import com.wf.wflib.orbital.Satellite;
+import com.wf.wflib.orbital.api.OrbitalNet;
+import com.wf.wflib.orbital.api.SatPayload;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 

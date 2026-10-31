@@ -1,15 +1,14 @@
 package com.wf.wflib.orbital;
 
 import net.minecraft.core.SectionPos;
-import com.wf.wflib.sim.SimMissileManager;
-import com.wf.wflib.sim.SimTier;
-import com.wf.wflib.compat.WarforgeCompat;
-import com.wf.wflib.drone.WorldThread;
-import com.wf.wflib.recon.ReconBound;
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.ReconNetwork;
-import com.wf.wflib.recon.ReconOwners;
-import com.wf.wflib.sim.SimMissile;
+import com.wf.wflib.missile.api.SimMissileManager;
+import com.wf.wflib.sim.api.SimTier;
+import com.wf.wflib.core.api.WorldThread;
+import com.wf.wflib.recon.api.ReconBound;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.ReconNetwork;
+import com.wf.wflib.recon.api.ReconOwners;
+import com.wf.wflib.missile.api.SimMissile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -17,16 +16,18 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.orbital.api.SatPayloads;
+import com.wf.wflib.orbital.api.Satellite;
 
-final class OrbitalManager {
+public final class OrbitalManager {
 
     private OrbitalManager() {
     }
 
-    static void tick(ServerLevel level) {
+    public static void tick(ServerLevel level) {
         WorldThread.assertOn("orbital tick");
         long now = level.getGameTime();
-        OrbitalRegistry registry = OrbitalRegistry.get(level);
+        OrbitalData registry = OrbitalData.get(level);
         if (registry.isEmpty() && OrbitalCommandBus.pendingCount(level) == 0) {
             return;
         }
@@ -38,18 +39,18 @@ final class OrbitalManager {
     }
 
     private static void descend(ServerLevel level) {
-        OrbitalDescents descents = OrbitalDescents.get(level);
+        OrbitalDescentData descents = OrbitalDescentData.get(level);
         if (descents.isEmpty()) {
             return;
         }
         SimTier<SimMissile> missiles = SimMissileManager.tier(level);
-        for (java.util.Map.Entry<java.util.UUID, OrbitalDescents.Descent> entry : descents.entries()) {
+        for (java.util.Map.Entry<java.util.UUID, OrbitalDescentData.Descent> entry : descents.entries()) {
             SimMissile flying = SimMissileManager.find(level, entry.getKey());
             if (flying == null) {
                 descents.remove(entry.getKey());
                 continue;
             }
-            OrbitalDescents.Descent descent = entry.getValue();
+            OrbitalDescentData.Descent descent = entry.getValue();
             double dx = flying.pos.x - descent.aimX();
             double dz = flying.pos.z - descent.aimZ();
             if (dx * dx + dz * dz > OrbitalDrop.IMPACT_RANGE * OrbitalDrop.IMPACT_RANGE) {
@@ -62,7 +63,7 @@ final class OrbitalManager {
         }
     }
 
-    private static void housekeeping(ServerLevel level, OrbitalRegistry registry, long now) {
+    private static void housekeeping(ServerLevel level, OrbitalData registry, long now) {
         List<Satellite> birds = new ArrayList<>(registry.all());
         if (birds.isEmpty()) {
             return;
@@ -139,7 +140,7 @@ final class OrbitalManager {
         }
     }
 
-    private static void survey(ServerLevel level, OrbitalRegistry registry, List<Satellite> birds, long now) {
+    private static void survey(ServerLevel level, OrbitalData registry, List<Satellite> birds, long now) {
         List<ReconNetwork> nets = ReconNet.networks(level);
         if (nets.isEmpty()) {
             return;

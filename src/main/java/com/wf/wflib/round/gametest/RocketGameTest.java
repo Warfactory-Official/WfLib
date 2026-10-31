@@ -1,15 +1,14 @@
 package com.wf.wflib.round.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.ProjectileStrikeEvent;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.SourceIds;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
-import com.wf.wflib.recon.source.EntityTargetSource;
-import com.wf.wflib.round.RocketEntity;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.damage.api.event.ProjectileStrikeEvent;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.SourceIds;
+import com.wf.wflib.recon.api.TargetSnapshot;
+import com.wf.wflib.recon.api.EntityTargetSource;
+import com.wf.wflib.round.api.RocketEntity;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -22,35 +21,34 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.wf.wflib.core.api.WFLib;
 
 /** Rockets: motor then coast, contact fuze, air defence and the sensor net see them. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class RocketGameTest {
 
     private static final String TEMPLATE = "empty";
 
-    private static final ResourceLocation WARHEAD = WarheadRegistry.rl("test_rocket_warhead");
+    private static final ResourceLocation WARHEAD = Warheads.rl("test_rocket_warhead");
     private static final List<Vec3> DETONATIONS = new CopyOnWriteArrayList<>();
-    private static final ResourceLocation ROCKET = KineticPresetRegistry.rl("test_rocket");
+    private static final ResourceLocation ROCKET = KineticPresets.rl("test_rocket");
     /** No motor, no drag, 4 blocks/tick. */
-    private static final ResourceLocation FAST = KineticPresetRegistry.rl("test_fast_rocket");
+    private static final ResourceLocation FAST = KineticPresets.rl("test_fast_rocket");
     private static final int BURN = 10;
     private static final double ACCEL = 0.3;
     private static final String WAVED = "wflib_test_waved";
 
-    static {
-        WarheadRegistry.register(WARHEAD, (source, pos) -> DETONATIONS.add(pos));
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(ROCKET, null, WARHEAD)
+    public static void register() {
+        Warheads.register(WARHEAD, (source, pos) -> DETONATIONS.add(pos));
+        KineticPresets.registerItemless(KineticPreset.builder(ROCKET, null, WARHEAD)
                 .speed(1.0).motor(ACCEL, BURN).quadraticDrag(0.002).life(400).durability(6.0).build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(FAST, null, WARHEAD)
+        KineticPresets.registerItemless(KineticPreset.builder(FAST, null, WARHEAD)
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).build());
     }
 
@@ -70,12 +68,12 @@ public class RocketGameTest {
 
     private static RocketEntity fire(GameTestHelper helper, Vec3 from, Vec3 direction) {
         ServerLevel level = helper.getLevel();
-        return RocketEntity.fire(level, KineticPresetRegistry.get(ROCKET), from, direction, 0.0f, Vec3.ZERO, null,
+        return RocketEntity.fire(level, KineticPresets.get(ROCKET), from, direction, 0.0f, Vec3.ZERO, null,
                 null, null);
     }
 
     /** Faster than the muzzle after the burn; nose fixed while burning, then on the velocity. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aRocketBurnsThenCoasts(GameTestHelper helper) {
         Vec3 up = new Vec3(0.3, 1.0, 0.0).normalize();
         RocketEntity rocket = fire(helper, centre(helper, 10.0), up);
@@ -99,7 +97,7 @@ public class RocketGameTest {
     }
 
     /** Contact fuze on a block. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100)
     public static void aRocketDetonatesOnTheGround(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos target = BlockPos.containing(centre(helper, 8.0));
@@ -123,7 +121,7 @@ public class RocketGameTest {
     }
 
     /** A body passing the strike in the same tick's segment as a wall: the rocket still bursts on the wall. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aRocketPastABodyStillMeetsTheWall(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos wall = BlockPos.containing(centre(helper, 8.0));
@@ -136,7 +134,7 @@ public class RocketGameTest {
         husk.addTag(WAVED);
         level.addFreshEntity(husk);
         Vec3 start = new Vec3(wall.getX() + 0.5, wall.getY() + 4.5, wall.getZ() + 0.5);
-        RocketEntity rocket = RocketEntity.fire(level, KineticPresetRegistry.get(FAST), start, new Vec3(0.0, -1.0, 0.0),
+        RocketEntity rocket = RocketEntity.fire(level, KineticPresets.get(FAST), start, new Vec3(0.0, -1.0, 0.0),
                 0.0f, Vec3.ZERO, null, null, null);
         rocket.tick();
         boolean removed = rocket.isRemoved();
@@ -154,7 +152,7 @@ public class RocketGameTest {
     }
 
     /** Air defence: engageable, damage past durability sets the warhead off in the air; radar sees a missile. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void airDefenceSeesAndKillsARocket(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 at = centre(helper, 20.0);

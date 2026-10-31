@@ -7,8 +7,8 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.neoforge.client.settings.KeyModifier;
 
 /** Display name of a key mapping, rebuilt only when the binding changes. Render thread. */
-final class KeyName {
-    static final int MAX_LENGTH = 32;
+public final class KeyName {
+    public static final int MAX_LENGTH = 32;
 
     private final KeyMapping mapping;
     private InputConstants.Key key;
@@ -28,7 +28,7 @@ final class KeyName {
         throw new ExprException("unknown key mapping `" + name + "`");
     }
 
-    String get() {
+    public String get() {
         if (mapping.getKey() != key || mapping.getKeyModifier() != modifier) {
             key = mapping.getKey();
             modifier = mapping.getKeyModifier();

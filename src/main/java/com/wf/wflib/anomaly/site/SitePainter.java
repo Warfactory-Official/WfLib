@@ -1,6 +1,5 @@
 package com.wf.wflib.anomaly.site;
 
-import com.wf.wflib.WFLib;
 import com.wf.wflib.anomaly.site.SiteLayout.Column;
 import com.wf.wflib.anomaly.site.SiteLayout.LootSpot;
 import com.wf.wflib.anomaly.site.SiteLayout.Placed;
@@ -10,7 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.tags.BlockTags;
-import com.wf.wflib.artifact.detect.ZoneArtifact;
+import com.wf.wflib.artifact.api.ZoneArtifact;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
@@ -23,24 +22,26 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.BlockRotProce
 import net.minecraft.world.level.levelgen.structure.templatesystem.JigsawReplacementProcessor;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import com.wf.wflib.anomaly.api.AnomalyCaves;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Writes the part of a site that falls in {@code box} (one chunk): the reshaped ground, props, rotted ruins,
  * anomalies and artefacts. Shapes are applied as a change to the real ground under each column (the layout's
  * height less the terrain it was worked out from), so the site's edge meets the land without a step.
  */
-final class SitePainter {
+public final class SitePainter {
     /** Blocks cleared above a new surface: trees, the hill that was there. */
     private static final int CLEAR_UP = 28;
     /** Past the outline (in outlines) the fringe reaches: bare patches thinning into the land. */
-    static final double FRINGE = 1.12D;
+    public static final double FRINGE = 1.12D;
     /** No shape updates and no drops: in a live world (the command) plants beside an edit would pop off. */
     static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_SUPPRESS_DROPS;
 
     private SitePainter() {
     }
 
-    static void paint(SiteLayout l, WorldGenLevel level, BoundingBox box, StructureTemplateManager templates) {
+    public static void paint(SiteLayout l, WorldGenLevel level, BoundingBox box, StructureTemplateManager templates) {
         int reach = (int) Math.ceil(l.radius() * FRINGE) + 1;
         BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
         for (int x = Math.max(box.minX(), l.cx - reach); x <= Math.min(box.maxX(), l.cx + reach); x++) {
@@ -159,7 +160,7 @@ final class SitePainter {
     }
 
     /** Top of the solid ground at a column, under trees and plants (water counts as ground: a pond's surface). */
-    static int ground(WorldGenLevel level, int x, int z) {
+    public static int ground(WorldGenLevel level, int x, int z) {
         Heightmap.Types top = level instanceof WorldGenRegion ? Heightmap.Types.WORLD_SURFACE_WG
                 : Heightmap.Types.WORLD_SURFACE;
         BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos(x, level.getHeight(top, x, z), z);

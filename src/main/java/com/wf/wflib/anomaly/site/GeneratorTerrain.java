@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * interpolated over 4-block cells), cached for the site's life: a site costs a few hundred noise columns, not
  * thousands.
  */
-final class GeneratorTerrain implements SiteLayout.Terrain {
+public final class GeneratorTerrain implements SiteLayout.Terrain {
     static final int STEP = 4;
 
     private final ChunkGenerator generator;
@@ -23,7 +23,7 @@ final class GeneratorTerrain implements SiteLayout.Terrain {
     /** Grid point -> {solid floor, top including water}. */
     private final ConcurrentHashMap<Long, int[]> samples = new ConcurrentHashMap<>();
 
-    GeneratorTerrain(ChunkGenerator generator, LevelHeightAccessor heights, RandomState random) {
+    public GeneratorTerrain(ChunkGenerator generator, LevelHeightAccessor heights, RandomState random) {
         this.generator = generator;
         this.heights = heights;
         this.random = random;

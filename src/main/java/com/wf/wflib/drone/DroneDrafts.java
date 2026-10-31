@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
+import com.wf.wflib.drone.api.DroneProgram;
 
 /** The program each player is part-way through writing at the command line. */
 public final class DroneDrafts {

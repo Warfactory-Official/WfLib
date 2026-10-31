@@ -2,9 +2,9 @@ package com.wf.wflib.rail.demo;
 
 import cam72cam.immersiverailroading.util.VecUtil;
 import cam72cam.mod.math.Vec3d;
-import com.wf.wflib.rail.align.AlignElement;
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.build.ir.IrStock;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;

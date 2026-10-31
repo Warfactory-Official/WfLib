@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.common.NeoForge;
+import com.wf.wflib.anomaly.api.event.PsyExposureEvent;
 
 /** Telepatic hits: to a player, a {@link PsyExposureEvent}; unhandled, or to anything else, hurt. */
 public final class Psy {

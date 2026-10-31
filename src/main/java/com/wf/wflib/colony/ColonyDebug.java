@@ -1,10 +1,8 @@
 package com.wf.wflib.colony;
 
-import com.wf.wflib.entity.glyphid.EntityGlyphid;
-import com.wf.wflib.entity.glyphid.GlyphidCaste;
-import com.wf.wflib.entity.glyphid.GlyphidTracker;
-import com.wf.wflib.industry.IndustryApi;
-import com.wf.wflib.industry.IndustryRegistry;
+import com.wf.wflib.colony.api.EntityGlyphid;
+import com.wf.wflib.colony.api.GlyphidCaste;
+import com.wf.wflib.colony.glyphid.GlyphidTracker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -18,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import com.wf.wflib.colony.api.Colony;
 
 /** Inspection and control for the colony simulation. */
 public final class ColonyDebug {
@@ -30,8 +29,8 @@ public final class ColonyDebug {
 
     public static int status(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
-        PendingChunkEdits edits = PendingChunkEdits.get(level);
+        ColonyData registry = ColonyData.get(level);
+        PendingChunkEditData edits = PendingChunkEditData.get(level);
         BlockPos spawn = level.getSharedSpawnPos();
 
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
@@ -48,21 +47,21 @@ public final class ColonyDebug {
 
     /** Read the evolution scalar, and what it has unlocked. */
     public static int evolution(CommandSourceStack source) {
-        reportEvolution(source, ColonyRegistry.get(source.getLevel()));
+        reportEvolution(source, ColonyData.get(source.getLevel()));
         return 1;
     }
 
     /** Set it outright. Evolution takes tens of hours to move on its own, which is not a test. */
     public static int evolution(CommandSourceStack source, double value) {
-        ColonyRegistry registry = ColonyRegistry.get(source.getLevel());
+        ColonyData registry = ColonyData.get(source.getLevel());
         registry.setEvolution((float) value);
         reportEvolution(source, registry);
         return 1;
     }
 
-    private static void reportEvolution(CommandSourceStack source, ColonyRegistry registry) {
+    private static void reportEvolution(CommandSourceStack source, ColonyData registry) {
         float evolution = registry.evolution();
-        int pressure = IndustryApi.totalPressure(source.getLevel());
+        int pressure = ColonyIndustry.totalPressure(source.getLevel());
 
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "evolution %.4f; industry %d; colonies grow and muster at x%.2f",
@@ -89,7 +88,7 @@ public final class ColonyDebug {
     }
 
     public static int list(CommandSourceStack source) {
-        ColonyRegistry registry = ColonyRegistry.get(source.getLevel());
+        ColonyData registry = ColonyData.get(source.getLevel());
         if (registry.colonies().isEmpty()) {
             source.sendSuccess(() -> Component.literal("No colonies."), false);
             return 0;
@@ -103,7 +102,7 @@ public final class ColonyDebug {
     }
 
     public static int warbands(CommandSourceStack source) {
-        ColonyRegistry registry = ColonyRegistry.get(source.getLevel());
+        ColonyData registry = ColonyData.get(source.getLevel());
         if (registry.warbands().isEmpty()) {
             source.sendSuccess(() -> Component.literal("No warbands in flight."), false);
             return 0;
@@ -161,7 +160,7 @@ public final class ColonyDebug {
     public static int found(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
         Vec3 pos = source.getPosition();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Colony colony = ColonyManager.found(level, registry, (int) pos.x, (int) pos.z);
 
         if (colony == null) {
@@ -180,7 +179,7 @@ public final class ColonyDebug {
      */
     public static int nest(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Vec3 pos = source.getPosition();
 
         Colony colony = registry.nearest(pos.x, pos.z);
@@ -216,7 +215,7 @@ public final class ColonyDebug {
     /** Advance the simulation by whole update rounds, ignoring the stagger. */
     public static int fastForward(CommandSourceStack source, int rounds) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         int coloniesBefore = registry.colonies().size();
         int warbandsBefore = registry.warbands().size();
 
@@ -281,7 +280,7 @@ public final class ColonyDebug {
      */
     public static int dispatch(CommandSourceStack source, int count, boolean flying) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Vec3 pos = source.getPosition();
 
         Colony origin = registry.nearest(pos.x, pos.z);
@@ -302,7 +301,7 @@ public final class ColonyDebug {
     /** Materialise the nearest warband on the spot, ignoring the per-tick budget. */
     public static int materialise(CommandSourceStack source, int count) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Vec3 pos = source.getPosition();
 
         Warband nearest = null;
@@ -334,7 +333,7 @@ public final class ColonyDebug {
     /** Everything within a radius of the caller: nests, what each is doing, and warbands on their way in. */
     public static int nearby(CommandSourceStack source, int radius) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Vec3 pos = source.getPosition();
 
         List<Colony> found = new ArrayList<>();
@@ -400,7 +399,7 @@ public final class ColonyDebug {
     /** The nearest colony's whole state, and what it is about to do. */
     public static int inspect(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Vec3 pos = source.getPosition();
 
         Colony colony = registry.nearest(pos.x, pos.z);
@@ -411,8 +410,7 @@ public final class ColonyDebug {
         }
 
         double strength = Evolution.strength(registry.evolution());
-        int pressure = IndustryRegistry.get(level)
-                .pressureWithin(colony.x, colony.z, ColonyConfig.provocationRadius());
+        int pressure = ColonyIndustry.pressureWithin(level, colony.x, colony.z, ColonyConfig.provocationRadius());
         double aggroPerSecond = pressure * ColonyConfig.aggressionPerPressure();
         double growth = colony.growthPerSecond() * strength;
         int distance = (int) Colony.distanceFromSpawn(level.getSharedSpawnPos(), colony.x, colony.z);
@@ -524,14 +522,14 @@ public final class ColonyDebug {
 
     /** Make the nearest colony angry, without building the factory that would have done it. */
     public static int provoke(CommandSourceStack source, double amount) {
-        Colony colony = ColonyRegistry.get(source.getLevel()).nearest(
+        Colony colony = ColonyData.get(source.getLevel()).nearest(
                 source.getPosition().x, source.getPosition().z);
         if (colony == null) {
             source.sendSuccess(() -> Component.literal("No colonies."), false);
             return 0;
         }
         colony.aggression += amount;
-        ColonyRegistry.get(source.getLevel()).setDirty();
+        ColonyData.get(source.getLevel()).setDirty();
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "Aggression now %.0f of %.0f%s", colony.aggression, ColonyConfig.strikeThreshold(),
                 colony.canStrike() ? "; it will strike on its next update"
@@ -541,14 +539,14 @@ public final class ColonyDebug {
 
     /** Give the nearest colony numbers it has not grown yet. */
     public static int grow(CommandSourceStack source, double amount) {
-        Colony colony = ColonyRegistry.get(source.getLevel()).nearest(
+        Colony colony = ColonyData.get(source.getLevel()).nearest(
                 source.getPosition().x, source.getPosition().z);
         if (colony == null) {
             source.sendSuccess(() -> Component.literal("No colonies."), false);
             return 0;
         }
         colony.population = Math.max(0.0, colony.population + amount);
-        ColonyRegistry.get(source.getLevel()).setDirty();
+        ColonyData.get(source.getLevel()).setDirty();
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "Population now %.1f (room for %.0f)", colony.population, colony.room())), false);
         return 1;
@@ -557,7 +555,7 @@ public final class ColonyDebug {
     /** Run one expansion attempt on the nearest colony now, and say what it did or what stopped it. */
     public static int expand(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Colony colony = registry.nearest(source.getPosition().x, source.getPosition().z);
         if (colony == null) {
             source.sendSuccess(() -> Component.literal("No colonies."), false);
@@ -582,7 +580,7 @@ public final class ColonyDebug {
     /** Force the local half of expansion, skipping the roll that usually decides between the two. */
     public static int bud(CommandSourceStack source, int count) {
         ServerLevel level = source.getLevel();
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Colony colony = registry.nearest(source.getPosition().x, source.getPosition().z);
         if (colony == null) {
             source.sendSuccess(() -> Component.literal("No colonies."), false);
@@ -622,7 +620,7 @@ public final class ColonyDebug {
 
     /** Remove the nearest colony's record. Its mound is left standing: the blocks are not the colony. */
     public static int raze(CommandSourceStack source) {
-        ColonyRegistry registry = ColonyRegistry.get(source.getLevel());
+        ColonyData registry = ColonyData.get(source.getLevel());
         Colony colony = registry.nearest(source.getPosition().x, source.getPosition().z);
         if (colony == null) {
             source.sendSuccess(() -> Component.literal("No colonies."), false);
@@ -635,7 +633,7 @@ public final class ColonyDebug {
     }
 
     public static int clear(CommandSourceStack source) {
-        ColonyRegistry registry = ColonyRegistry.get(source.getLevel());
+        ColonyData registry = ColonyData.get(source.getLevel());
         int colonies = registry.colonies().size();
         int warbands = registry.warbands().size();
         registry.colonies().clear();

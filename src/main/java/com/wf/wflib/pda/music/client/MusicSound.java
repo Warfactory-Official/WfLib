@@ -1,6 +1,5 @@
 package com.wf.wflib.pda.music.client;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.Util;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.Sound;
@@ -14,6 +13,7 @@ import net.minecraft.util.RandomSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.concurrent.CompletableFuture;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Head-locked, unattenuated, local-only sound. {@code wflib:pda_music} (sounds.json, stream) only routes to

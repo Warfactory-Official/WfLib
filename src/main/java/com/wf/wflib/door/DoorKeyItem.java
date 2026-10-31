@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import com.wf.wflib.door.api.DoorBlockEntity;
 
 /** A key cut to one lock's pin pattern. */
 public class DoorKeyItem extends Item {

@@ -1,10 +1,10 @@
 package com.wf.wflib.radiation.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.hazard.ContaminationUtil;
-import com.wf.wflib.hazard.HazardContent;
-import com.wf.wflib.hazard.LivingHazardProps;
-import com.wf.wflib.radiation.RadiationConfig;
+import com.wf.wflib.hazard.HazardConfig;
+import com.wf.wflib.hazard.api.ContaminationUtil;
+import com.wf.wflib.hazard.api.HazardContent;
+import com.wf.wflib.hazard.api.LivingHazardProps;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
 import net.minecraft.gametest.framework.GameTest;
@@ -22,7 +22,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.common.ModConfigSpec;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.network.registration.ChannelAttributes;
 import org.jetbrains.annotations.Nullable;
@@ -32,12 +31,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * NTM NEXT NeutronActivationServerTests. Mock server players join the player list => own batches, away from
  * husk rows they would despawn; every one is removed again.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class NeutronActivationGameTest {
 
@@ -98,7 +97,7 @@ public class NeutronActivationGameTest {
         player.server.getPlayerList().remove(player);
     }
 
-    @GameTest(template = TEMPLATE, batch = HazardGameTest.BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HazardGameTest.BATCH)
     public static void neutronActivationAccumulatesOnASingleItem(GameTestHelper helper) {
         ItemStack stack = new ItemStack(Items.STICK);
         helper.assertTrue(ContaminationUtil.neutronActivateItem(stack, 1F, 1F),
@@ -113,7 +112,7 @@ public class NeutronActivationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = HazardGameTest.BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HazardGameTest.BATCH)
     public static void neutronActivationDecaysAndClears(GameTestHelper helper) {
         ItemStack stack = new ItemStack(Items.STICK);
         ContaminationUtil.neutronActivateItem(stack, 2F, 1F);
@@ -135,7 +134,7 @@ public class NeutronActivationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = HazardGameTest.BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HazardGameTest.BATCH)
     public static void neutronActivationDividesStacksAndRefusesRadioactiveItems(GameTestHelper helper) {
         // NTM NEXT row asserts refusal; its ContaminationUtil (and this port) divides per item instead.
         ItemStack pair = new ItemStack(Items.STICK, 2);
@@ -161,7 +160,7 @@ public class NeutronActivationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = HazardGameTest.BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HazardGameTest.BATCH)
     public static void neutronActivationSkipsTheHeldAndOffhandSlots(GameTestHelper helper) {
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         Inventory inv = player.getInventory();
@@ -178,7 +177,7 @@ public class NeutronActivationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = HazardGameTest.BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HazardGameTest.BATCH)
     public static void neutronActivationCarriedActivationDosesAndReportsARate(GameTestHelper helper) {
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.tickCount = 300;
@@ -191,7 +190,7 @@ public class NeutronActivationGameTest {
                 "an unarmoured player takes the whole neutron dose, got " + LivingHazardProps.getRadiation(player));
         helper.assertTrue(LivingHazardProps.getNeutron(player) == dose,
                 "the pass's dose must be banked for the readout, got " + LivingHazardProps.getNeutron(player));
-        double expected = dose * 20D / RadiationConfig.hazardRate;
+        double expected = dose * 20D / HazardConfig.get().hazardRate();
         helper.assertTrue(Math.abs(ContaminationUtil.getPlayerRads(player) - expected) < 1.0E-6D,
                 "the readout must fold the banked dose in as RAD/s, expected " + expected
                         + " got " + ContaminationUtil.getPlayerRads(player));
@@ -200,10 +199,10 @@ public class NeutronActivationGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100, batch = "wflib_neutron_hot")
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100, batch = "wflib_neutron_hot")
     public static void neutronActivationAmbientFieldActivatesCarriedItems(GameTestHelper helper) {
-        boolean was = RadiationConfig.neutronActivation;
-        RadiationConfig.neutronActivation = true;
+        boolean was = RadiationConfig.get().neutronActivation();
+        RadiationConfig.override(v -> v.withNeutronActivation(true));
         ServerPlayer player = mockServerPlayer(helper);
         player.getInventory().setItem(CARGO_SLOT, new ItemStack(Items.STICK));
         helper.onEachTick(() -> LivingHazardProps.setRadBuf(player, HOT_FIELD));
@@ -213,28 +212,28 @@ public class NeutronActivationGameTest {
                     "a carried item must pick up activation in a " + HOT_FIELD + " RAD/s field");
             helper.assertTrue(LivingHazardProps.getNeutron(player) > 0D,
                     "an activated inventory must report back as a neutron dose");
-            RadiationConfig.neutronActivation = was;
+            RadiationConfig.override(v -> v.withNeutronActivation(was));
             remove(player);
         });
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100, batch = "wflib_neutron_cold")
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100, batch = "wflib_neutron_cold")
     public static void neutronActivationBelowTheThresholdActivatesNothing(GameTestHelper helper) {
-        boolean was = RadiationConfig.neutronActivation;
-        RadiationConfig.neutronActivation = true;
+        boolean was = RadiationConfig.get().neutronActivation();
+        RadiationConfig.override(v -> v.withNeutronActivation(true));
         ServerPlayer player = mockServerPlayer(helper);
         player.getInventory().setItem(CARGO_SLOT, new ItemStack(Items.STICK));
         helper.onEachTick(() -> LivingHazardProps.setRadBuf(player, COLD_FIELD));
         helper.runAfterDelay(60, () -> {
-            RadiationConfig.neutronActivation = was;
+            RadiationConfig.override(v -> v.withNeutronActivation(was));
             remove(player);
             helper.assertTrue(activation(player.getInventory().getItem(CARGO_SLOT)) == null,
-                    "a field under the " + RadiationConfig.neutronActivationThreshold + " RAD/s threshold must activate nothing");
+                    "a field under the " + RadiationConfig.get().neutronActivationThreshold() + " RAD/s threshold must activate nothing");
             helper.succeed();
         });
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100, batch = "wflib_hazard_players")
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100, batch = "wflib_hazard_players")
     public static void neutronActivationMenuListenerFeedsTheHazardPass(GameTestHelper helper) {
         ServerPlayer player = mockServerPlayer(helper);
         ItemStack hot = new ItemStack(Items.STICK);
@@ -247,7 +246,7 @@ public class NeutronActivationGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100, batch = "wflib_hazard_players")
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100, batch = "wflib_hazard_players")
     public static void neutronActivationWornArmourReachesTheHazardPass(GameTestHelper helper) {
         ServerPlayer player = mockServerPlayer(helper);
         ItemStack helmet = new ItemStack(Items.IRON_HELMET);
@@ -260,7 +259,7 @@ public class NeutronActivationGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = HazardGameTest.BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HazardGameTest.BATCH)
     public static void neutronActivationShipsDisabled(GameTestHelper helper) {
         ModConfigSpec.ConfigValue<?> enabled = RadiationConfig.SPEC.getValues().get("radiation.neutronActivation");
         ModConfigSpec.ConfigValue<?> threshold = RadiationConfig.SPEC.getValues().get("radiation.neutronActivationThreshold");

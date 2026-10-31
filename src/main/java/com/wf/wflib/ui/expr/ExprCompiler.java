@@ -7,6 +7,10 @@ import org.objectweb.asm.Opcodes;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import com.wf.wflib.ui.api.expr.ExprType;
+import com.wf.wflib.ui.api.expr.Fn;
+import com.wf.wflib.ui.api.expr.Node;
+import com.wf.wflib.ui.api.expr.CompiledExpr;
 
 /**
  * {@link Node} => hidden class implementing {@link CompiledExpr}; one class per non-constant
@@ -17,7 +21,7 @@ public final class ExprCompiler implements Opcodes {
     public static final boolean INTERPRET = Boolean.getBoolean("wflib.ui.interpret");
 
     private static final String NAME = "com/wf/wflib/ui/expr/Compiled";
-    private static final String ITF = "com/wf/wflib/ui/expr/CompiledExpr";
+    private static final String ITF = org.objectweb.asm.Type.getInternalName(CompiledExpr.class);
     private static final int VALUES = 1;
     private static final int STATE = 2;
 

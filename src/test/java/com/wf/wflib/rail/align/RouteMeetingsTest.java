@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.DesignClass;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

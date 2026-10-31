@@ -4,8 +4,8 @@ import cam72cam.immersiverailroading.tile.TileRail;
 import cam72cam.mod.math.Vec3d;
 import cam72cam.mod.math.Vec3i;
 import cam72cam.mod.world.World;
-import com.wf.wflib.rail.align.AlignElement;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Centreline;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 

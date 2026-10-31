@@ -1,9 +1,9 @@
 package com.wf.wflib.skin.client;
 
+import com.wf.wflib.skin.SkinChoose;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.skin.Skinnable;
-import com.wf.wflib.skin.Skins;
+import com.wf.wflib.skin.api.Skinnable;
+import com.wf.wflib.skin.api.Skins;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -14,7 +14,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -27,7 +26,6 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 
 /** Skin key: held item in game, hovered slot in the inventory (armour slots too); tooltip count. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class SkinClient {
     // Every letter is taken by vanilla or a WF mod; the tooltip names whatever it is bound to.
     public static final KeyMapping CHOOSE = new KeyMapping("key.wflib.skin", KeyConflictContext.UNIVERSAL,
@@ -48,7 +46,7 @@ public final class SkinClient {
             while (CHOOSE.consumeClick()) {
                 if (mc.screen == null && mc.player != null
                         && choosable(mc.player.getItemInHand(InteractionHand.MAIN_HAND))) {
-                    mc.setScreen(new SkinScreen(null, Skins.Choose.MAIN_HAND));
+                    mc.setScreen(new SkinScreen(null, SkinChoose.MAIN_HAND));
                 }
             }
         });

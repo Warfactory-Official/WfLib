@@ -6,6 +6,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.BuildProgress;
+import com.wf.wflib.rail.api.DesignClass;
+import com.wf.wflib.rail.api.RouteStatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -29,8 +34,8 @@ class AlignmentStoreTest {
                         new AlignPoint(2048.0, -768.75, 0.0)));
     }
 
-    private static AlignmentStore roundTrip(AlignmentStore store) {
-        return AlignmentStore.load(store.save(new CompoundTag(), null));
+    private static AlignmentData roundTrip(AlignmentData store) {
+        return AlignmentData.load(store.save(new CompoundTag(), null));
     }
 
     @Test
@@ -38,7 +43,7 @@ class AlignmentStoreTest {
     void roundTrips() {
         UUID id = UUID.randomUUID();
         UUID owner = UUID.randomUUID();
-        AlignmentStore store = new AlignmentStore();
+        AlignmentData store = new AlignmentData();
         Alignment original = sample(id, owner);
         store.put(original);
 
@@ -56,7 +61,7 @@ class AlignmentStoreTest {
     @DisplayName("a line with no owning faction keeps having none, rather than gaining one")
     void unownedStaysUnowned() {
         UUID id = UUID.randomUUID();
-        AlignmentStore store = new AlignmentStore();
+        AlignmentData store = new AlignmentData();
         store.put(sample(id, null));
 
         Alignment back = roundTrip(store).get(id);
@@ -67,14 +72,14 @@ class AlignmentStoreTest {
     @Test
     @DisplayName("several lines all come back, and a removed one does not")
     void manyLinesAndRemoval() {
-        AlignmentStore store = new AlignmentStore();
+        AlignmentData store = new AlignmentData();
         UUID keep = UUID.randomUUID();
         UUID drop = UUID.randomUUID();
         store.put(sample(keep, UUID.randomUUID()));
         store.put(sample(drop, UUID.randomUUID()));
         assertTrue(store.remove(drop));
 
-        AlignmentStore back = roundTrip(store);
+        AlignmentData back = roundTrip(store);
         assertEquals(1, back.all().size());
         assertNotNull(back.get(keep));
         assertNull(back.get(drop));
@@ -84,12 +89,12 @@ class AlignmentStoreTest {
     @DisplayName("a design class removed between versions falls back rather than losing the line")
     void unknownDesignClassSurvives() {
         UUID id = UUID.randomUUID();
-        AlignmentStore store = new AlignmentStore();
+        AlignmentData store = new AlignmentData();
         store.put(sample(id, UUID.randomUUID()));
         CompoundTag tag = store.save(new CompoundTag(), null);
         tag.getList("alignments", 10).getCompound(0).putString("class", "MONORAIL");
 
-        Alignment back = AlignmentStore.load(tag).get(id);
+        Alignment back = AlignmentData.load(tag).get(id);
         assertNotNull(back, "the line is still there");
         assertEquals(DesignClass.BRANCH, back.designClass());
     }
@@ -97,7 +102,7 @@ class AlignmentStoreTest {
     @Test
     @DisplayName("an empty store round trips to an empty store rather than throwing")
     void emptyStore() {
-        assertEquals(0, roundTrip(new AlignmentStore()).all().size());
+        assertEquals(0, roundTrip(new AlignmentData()).all().size());
     }
 
     @Test
@@ -105,7 +110,7 @@ class AlignmentStoreTest {
     void lifecycleRoundTrips() {
         UUID id = UUID.randomUUID();
         UUID editor = UUID.randomUUID();
-        AlignmentStore store = new AlignmentStore();
+        AlignmentData store = new AlignmentData();
         Alignment route = new Alignment(id, "north main", UUID.randomUUID(), UUID.randomUUID(),
                 DesignClass.MAIN, 0x66E0FF,
                 List.of(new AlignPoint(0.0, 0.0, 200.0), new AlignPoint(2000.0, 0.0, 200.0)),
@@ -133,7 +138,7 @@ class AlignmentStoreTest {
         tag.putUUID("id", UUID.randomUUID());
         tag.putString("name", "old line");
         tag.putString("class", DesignClass.BRANCH.name());
-        Alignment back = AlignmentStore.load(listOf(tag)).all().iterator().next();
+        Alignment back = AlignmentData.load(listOf(tag)).all().iterator().next();
         assertEquals(RouteStatus.PLANNED, back.status());
         assertTrue(back.built().isEmpty());
     }
@@ -152,7 +157,7 @@ class AlignmentStoreTest {
     void indexedByFaction() {
         UUID ours = UUID.randomUUID();
         UUID theirs = UUID.randomUUID();
-        AlignmentStore store = new AlignmentStore();
+        AlignmentData store = new AlignmentData();
         store.put(sample(UUID.randomUUID(), ours));
         store.put(sample(UUID.randomUUID(), ours));
         store.put(sample(UUID.randomUUID(), theirs));

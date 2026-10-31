@@ -1,7 +1,7 @@
 package com.wf.wflib.recon.example;
 
-import com.wf.wflib.recon.Signature;
-import com.wf.wflib.recon.SignatureProvider;
+import com.wf.wflib.recon.api.Signature;
+import com.wf.wflib.recon.api.SignatureProvider;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,11 +18,6 @@ public final class ExampleSignatureProvider implements SignatureProvider {
     private static final float HUGE_RCS = 8.0f;
     /** A hull with its machinery running: well over a vehicle engine, a little under a torpedo's screws. */
     private static final float LOUD_ACOUSTIC = 4.0f;
-
-    @Override
-    public int priority() {
-        return 100;
-    }
 
     @Override
     @Nullable

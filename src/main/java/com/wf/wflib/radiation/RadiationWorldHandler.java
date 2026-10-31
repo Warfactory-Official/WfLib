@@ -14,8 +14,8 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 public final class RadiationWorldHandler {
 
     /** NTM waste_earth/waste_leaves absent here => dirt / null (= air); a pack with waste blocks overrides. */
-    public static volatile BlockState wasteEarth = Blocks.DIRT.defaultBlockState();
-    public static volatile @org.jetbrains.annotations.Nullable BlockState wasteLeaves;
+    private static final BlockState WASTE_EARTH = Blocks.DIRT.defaultBlockState();
+    private static volatile @org.jetbrains.annotations.Nullable BlockState wasteLeaves;
 
     private RadiationWorldHandler() {
     }
@@ -35,7 +35,7 @@ public final class RadiationWorldHandler {
             return;
         }
         if (block == Blocks.GRASS_BLOCK) {
-            world.setBlock(pos, wasteEarth, Block.UPDATE_CLIENTS);
+            world.setBlock(pos, WASTE_EARTH, Block.UPDATE_CLIENTS);
             return;
         }
         // 1.7: Blocks.tallgrass is ONE block, metas 0/1/2 - TallGrassBlock is exactly its 26.2 pair

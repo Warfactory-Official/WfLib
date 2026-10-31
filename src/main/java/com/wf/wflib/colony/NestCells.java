@@ -2,6 +2,7 @@ package com.wf.wflib.colony;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.colony.api.Colony;
 
 /**
  * Where the mounds of one colony sit relative to each other: a hex lattice of cells, rotated by an angle drawn from

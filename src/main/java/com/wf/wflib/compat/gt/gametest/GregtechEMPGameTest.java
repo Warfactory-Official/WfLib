@@ -10,10 +10,9 @@ import com.gregtechceu.gtceu.common.machine.electric.BatteryBufferMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.MaintenanceHatchPartMachine;
 import com.gregtechceu.gtceu.common.machine.trait.BatterySlotTrait;
 import com.gregtechceu.gtceu.common.machine.trait.ConverterTrait;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.compat.GregtechCompat;
-import com.wf.wflib.warhead.EMPWarhead;
-import com.wf.wflib.warhead.WarheadCarrier;
+import com.wf.wflib.compat.api.GregtechCompat;
+import com.wf.wflib.warhead.api.EMPWarhead;
+import com.wf.wflib.warhead.api.WarheadCarrier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -33,6 +32,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import com.wf.wflib.core.api.WFLib;
 
 /** Registered only with gtceu loaded: no {@code @GameTestHolder}, see {@link #register}. */
 @PrefixGameTestTemplate(false)

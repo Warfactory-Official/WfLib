@@ -1,51 +1,59 @@
 package com.wf.wflib.ui.json;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ui.input.UiAction;
-import com.wf.wflib.ui.input.UiActions;
-import com.wf.wflib.ui.input.UiDrag;
-import com.wf.wflib.ui.input.UiSetter;
-import com.wf.wflib.ui.widget.Align;
-import com.wf.wflib.ui.widget.Anchor;
-import com.wf.wflib.ui.widget.Arc;
-import com.wf.wflib.ui.widget.Bar;
-import com.wf.wflib.ui.widget.Box;
-import com.wf.wflib.ui.widget.Button;
-import com.wf.wflib.ui.widget.DragArea;
-import com.wf.wflib.ui.widget.Dial;
-import com.wf.wflib.ui.widget.Feed;
-import com.wf.wflib.ui.widget.Flow;
-import com.wf.wflib.ui.widget.Image;
-import com.wf.wflib.ui.widget.Ladder;
-import com.wf.wflib.ui.widget.Line;
-import com.wf.wflib.ui.widget.ListView;
-import com.wf.wflib.ui.widget.Place;
-import com.wf.wflib.ui.widget.Point;
-import com.wf.wflib.ui.widget.Poly;
-import com.wf.wflib.ui.widget.Rect;
-import com.wf.wflib.ui.widget.ScrollBox;
-import com.wf.wflib.ui.widget.Repeat;
-import com.wf.wflib.ui.widget.Sized;
-import com.wf.wflib.ui.widget.Slider;
-import com.wf.wflib.ui.widget.Stack;
-import com.wf.wflib.ui.widget.Tape;
-import com.wf.wflib.ui.widget.Text;
-import com.wf.wflib.ui.widget.Transform;
-import com.wf.wflib.ui.widget.When;
+import com.wf.wflib.ui.api.input.UiAction;
+import com.wf.wflib.ui.api.input.UiActions;
+import com.wf.wflib.ui.api.input.UiDrag;
+import com.wf.wflib.ui.api.input.UiSetter;
+import com.wf.wflib.ui.api.widget.Align;
+import com.wf.wflib.ui.api.widget.Anchor;
+import com.wf.wflib.ui.api.widget.Arc;
+import com.wf.wflib.ui.api.widget.Bar;
+import com.wf.wflib.ui.api.widget.Box;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.DragArea;
+import com.wf.wflib.ui.api.widget.Dial;
+import com.wf.wflib.ui.api.widget.Feed;
+import com.wf.wflib.ui.api.widget.Flow;
+import com.wf.wflib.ui.api.widget.Image;
+import com.wf.wflib.ui.api.widget.Ladder;
+import com.wf.wflib.ui.api.widget.Line;
+import com.wf.wflib.ui.api.widget.ListView;
+import com.wf.wflib.ui.api.widget.Place;
+import com.wf.wflib.ui.api.widget.Point;
+import com.wf.wflib.ui.api.widget.Poly;
+import com.wf.wflib.ui.api.widget.Rect;
+import com.wf.wflib.ui.api.widget.ScrollBox;
+import com.wf.wflib.ui.api.widget.Repeat;
+import com.wf.wflib.ui.api.widget.Sized;
+import com.wf.wflib.ui.api.widget.Slider;
+import com.wf.wflib.ui.api.widget.Stack;
+import com.wf.wflib.ui.api.widget.Tape;
+import com.wf.wflib.ui.api.widget.Text;
+import com.wf.wflib.ui.api.widget.Transform;
+import com.wf.wflib.ui.api.widget.When;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.ui.api.json.JsonProps;
+import com.wf.wflib.ui.api.json.UiWidgetTypes;
+import com.wf.wflib.ui.api.input.UiStack;
+import com.wf.wflib.ui.api.input.UiTooltip;
+import com.wf.wflib.ui.api.widget.Item;
+import com.wf.wflib.ui.api.widget.SkinPart;
+import com.wf.wflib.ui.api.widget.Tooltip;
+import com.wf.wflib.ui.api.json.WidgetReader;
+import com.wf.wflib.core.api.WFLib;
 
 /** JSON readers for wflib's widgets; property names = record components in snake_case. */
-final class BuiltinWidgets {
+public final class BuiltinWidgets {
     private static final String WHITE = "#ffffffff";
 
     private BuiltinWidgets() {
     }
 
-    static void register() {
+    public static void register() {
         add("stack", p -> new Stack(p.widgets("children")));
         add("row", p -> flow(p, false));
         add("column", p -> flow(p, true));
@@ -106,10 +114,13 @@ final class BuiltinWidgets {
             float pad = p.number("pad", 0);
             String background = p.expr("background", "0");
             String hover = p.expr("hover", background);
+            String border = p.expr("border", "0");
+            float borderWidth = p.number("border_width", 1);
             return new Button(handler(p, "action", UiAction.class), p.expr("enabled", "true"), background,
-                    hover, p.expr("pressed", hover), p.expr("border", "0"), p.number("border_width", 1),
+                    hover, p.expr("pressed", hover), border, borderWidth,
                     p.number("radius", 0), p.number("pad_x", pad), p.number("pad_y", pad), p.number("min_width", 0),
-                    p.number("min_height", 0), p.choice("align", Point.class, Point.TOP_LEFT), p.widgetOrNull("child"));
+                    p.number("min_height", 0), p.choice("align", Point.class, Point.TOP_LEFT), p.widgetOrNull("child"),
+                    p.expr("hover_border", border), p.number("hover_border_width", borderWidth));
         });
         add("list", p -> new ListView(p.expr("items"), p.number("row_height"), p.number("gap", 0), p.expr("w"),
                 p.expr("h"), p.expr("bar", "0"), p.widget("child")));
@@ -117,6 +128,10 @@ final class BuiltinWidgets {
                 p.widget("child")));
         add("slider", p -> new Slider(p.expr("w"), p.expr("h"), p.expr("value"), handler(p, "set", UiSetter.class),
                 p.number("step", 0), p.expr("track", "#ff303030"), p.expr("fill", WHITE), p.expr("knob", WHITE)));
+        add("tooltip", p -> new Tooltip(handler(p, "lines", UiTooltip.class), p.widget("child")));
+        add("item", p -> new Item(handler(p, "stack", UiStack.class), p.number("size", 16), p.flag("decorations", false)));
+        add("skin_part", p -> new SkinPart(p.choice("part", SkinPart.Part.class, SkinPart.Part.HEAD), p.expr("entity", "-1"),
+                p.expr("health", "1"), p.number("w"), p.number("h")));
         add("drag", p -> new DragArea(p.expr("w"), p.expr("h"), handler(p, "handler", UiDrag.class),
                 p.widgetOrNull("child")));
     }

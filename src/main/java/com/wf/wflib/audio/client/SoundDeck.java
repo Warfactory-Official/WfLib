@@ -1,6 +1,6 @@
 package com.wf.wflib.audio.client;
 
-import com.wf.wflib.mixin.AccessorWeighedSoundEvents;
+import com.wf.wflib.mixin.audio.AccessorWeighedSoundEvents;
 import net.minecraft.client.resources.sounds.Sound;
 import net.minecraft.client.sounds.WeighedSoundEvents;
 import net.minecraft.client.sounds.Weighted;

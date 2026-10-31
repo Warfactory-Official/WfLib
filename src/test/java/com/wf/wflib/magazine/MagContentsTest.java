@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.magazine.api.LoadPreset;
+import com.wf.wflib.magazine.api.MagContents;
+import com.wf.wflib.magazine.api.Run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

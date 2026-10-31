@@ -1,6 +1,5 @@
 package com.wf.wflib.stream;
 
-import com.wf.wflib.config.WFConfig;
 import net.minecraft.world.level.ChunkPos;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import com.wf.wflib.stream.api.ChunkStreams;
 
 /** Chunk streaming log, per category; both sides. */
 public final class StreamDebug {
@@ -49,15 +49,13 @@ public final class StreamDebug {
             return;
         }
         EnumSet<Category> fromConfig = EnumSet.noneOf(Category.class);
-        if (WFConfig.SPEC.isLoaded()) {
-            for (String raw : WFConfig.STREAM_DEBUG.get()) {
-                String name = raw.trim().toUpperCase(Locale.ROOT);
-                if (name.equals("ALL")) {
-                    fromConfig = EnumSet.allOf(Category.class);
-                    break;
-                }
-                fromConfig.add(Category.valueOf(name));
+        for (String raw : StreamConfig.get().debugCategories()) {
+            String name = raw.trim().toUpperCase(Locale.ROOT);
+            if (name.equals("ALL")) {
+                fromConfig = EnumSet.allOf(Category.class);
+                break;
             }
+            fromConfig.add(Category.valueOf(name));
         }
         resolved = fromConfig;
     }
@@ -96,7 +94,7 @@ public final class StreamDebug {
     }
 
     public static int heartbeatTicks() {
-        return WFConfig.SPEC.isLoaded() ? WFConfig.STREAM_DEBUG_HEARTBEAT.get() : 40;
+        return StreamConfig.get().heartbeatTicks();
     }
 
     public static Session session(UUID playerId, String playerName) {
@@ -120,8 +118,8 @@ public final class StreamDebug {
         EnumSet<Category> categories = active();
         lines.add("categories=" + (categories.isEmpty() ? "off" : categories.toString())
                 + (override != null ? " (command override)" : " (config)"));
-        lines.add("heartbeat=" + heartbeatTicks() + "t radius=" + WFConfig.DETACHED_STREAM_RADIUS.get()
-                + " budget=" + WFConfig.DETACHED_CHUNKS_PER_TICK.get() + "/tick");
+        lines.add("heartbeat=" + heartbeatTicks() + "t radius=" + StreamConfig.get().streamRadius()
+                + " budget=" + StreamConfig.get().maxChunksPerTick() + "/tick");
         if (SESSIONS.isEmpty()) {
             lines.add("no active detached sessions");
         }

@@ -1,13 +1,10 @@
 package com.wf.wflib.colony;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.entity.glyphid.EntityGlyphid;
-import com.wf.wflib.entity.glyphid.GlyphidTracker;
-import com.wf.wflib.entity.glyphid.sim.SimGlyphid;
-import com.wf.wflib.entity.glyphid.sim.SimGlyphidManager;
-import com.wf.wflib.industry.IndustryCluster;
-import com.wf.wflib.industry.IndustryClusters;
-import com.wf.wflib.industry.IndustryRegistry;
+import com.wf.wflib.colony.api.EntityGlyphid;
+import com.wf.wflib.colony.glyphid.GlyphidTracker;
+import com.wf.wflib.colony.api.SimGlyphid;
+import com.wf.wflib.colony.api.SimGlyphidManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -19,6 +16,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.colony.api.Colony;
 
 /** Runs the colonies: they grow, they take offence, they found new nests, and eventually they march. */
 public final class ColonyManager {
@@ -27,14 +25,6 @@ public final class ColonyManager {
 
     /** A warband that has not arrived in this long is written off, so an unreachable target cannot leak. */
     public static final int WARBAND_MAX_AGE = 72_000;
-
-    /** Builds a nest's blocks once its chunk is loaded and the ground height is known. */
-    public interface NestBuilder {
-        void build(ServerLevel level, Colony colony);
-
-        /** Stamp only the cells grown since the last build. */
-        void growCells(ServerLevel level, Colony colony);
-    }
 
     /**
      * What one expansion attempt did, including the reason for a refusal so the debug command can report it rather
@@ -54,19 +44,15 @@ public final class ColonyManager {
         }
     }
 
-    private static @Nullable NestBuilder nestBuilder;
+    private static final GlyphidNest NESTS = new GlyphidNest();
 
     private ColonyManager() {
-    }
-
-    public static void setNestBuilder(@Nullable NestBuilder builder) {
-        nestBuilder = builder;
     }
 
     // --- simulation ---
 
     public static void tick(ServerLevel level) {
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Evolution.tick(level, registry);
 
         if (registry.colonies().isEmpty() && registry.warbands().isEmpty()) {
@@ -77,10 +63,9 @@ public final class ColonyManager {
         WarbandMaterialiser.tick(level);
     }
 
-    private static void tickColonies(ServerLevel level, ColonyRegistry registry) {
+    private static void tickColonies(ServerLevel level, ColonyData registry) {
         int interval = ColonyConfig.colonyTickInterval();
         long now = level.getGameTime();
-        IndustryRegistry industry = IndustryRegistry.get(level);
 
         double strength = Evolution.strength(registry.evolution());
 
@@ -98,7 +83,7 @@ public final class ColonyManager {
                         colony.population + colony.growthPerSecond() * strength * seconds);
             }
 
-            int pressure = industry.pressureWithin(colony.x, colony.z, ColonyConfig.provocationRadius());
+            int pressure = ColonyIndustry.pressureWithin(level, colony.x, colony.z, ColonyConfig.provocationRadius());
             if (pressure > 0) {
                 colony.aggression += pressure * ColonyConfig.aggressionPerPressure() * seconds;
             }
@@ -119,13 +104,13 @@ public final class ColonyManager {
 
     /** Give a colony's newly budded cells their blocks, if anybody is there to see them. */
     static void materialiseCells(ServerLevel level, Colony colony) {
-        if (nestBuilder == null || !colony.built || colony.builtBuds() >= colony.buds) {
+        if (!colony.built || colony.builtBuds() >= colony.buds) {
             return;
         }
         if (level.getChunkSource().getChunkNow(colony.x >> 4, colony.z >> 4) == null) {
             return;
         }
-        nestBuilder.growCells(level, colony);
+        NESTS.growCells(level, colony);
     }
 
     /**
@@ -133,9 +118,8 @@ public final class ColonyManager {
      * so a strike cycle can be exercised in seconds rather than tens of minutes.
      */
     public static void fastForward(ServerLevel level, int rounds) {
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         int interval = ColonyConfig.colonyTickInterval();
-        IndustryRegistry industry = IndustryRegistry.get(level);
         double seconds = interval / 20.0;
         double strength = Evolution.strength(registry.evolution());
 
@@ -145,7 +129,7 @@ public final class ColonyManager {
                     colony.population = Math.min(colony.room(),
                             colony.population + colony.growthPerSecond() * strength * seconds);
                 }
-                int pressure = industry.pressureWithin(colony.x, colony.z, ColonyConfig.provocationRadius());
+                int pressure = ColonyIndustry.pressureWithin(level, colony.x, colony.z, ColonyConfig.provocationRadius());
                 if (pressure > 0) {
                     colony.aggression += pressure * ColonyConfig.aggressionPerPressure() * seconds;
                 }
@@ -186,8 +170,8 @@ public final class ColonyManager {
     }
 
     /** Send a warband at the loudest base this colony can be bothered with, spending the population to do it. */
-    private static void strike(ServerLevel level, ColonyRegistry registry, Colony colony) {
-        IndustryCluster target = IndustryClusters.nearest(level, colony.x, colony.z);
+    private static void strike(ServerLevel level, ColonyData registry, Colony colony) {
+        ColonyIndustry.Base target = ColonyIndustry.nearestBase(level, colony.x, colony.z);
         if (target == null) {
             // Nothing worth attacking yet. Hold the aggression rather than discarding it.
             return;
@@ -213,7 +197,7 @@ public final class ColonyManager {
      * same record), an <b>outpost</b> founds a separate colony {@link ColonyConfig#expansionRange()} blocks out
      * (expensive, and what moves the frontier).
      */
-    static Expansion expand(ServerLevel level, ColonyRegistry registry, Colony colony) {
+    static Expansion expand(ServerLevel level, ColonyData registry, Colony colony) {
         Expansion result = attempt(level, registry, colony);
         colony.expansionCooldown = result.kind() == Expansion.Kind.BUD
                 ? ColonyConfig.budCooldownTicks()
@@ -221,7 +205,7 @@ public final class ColonyManager {
         return result;
     }
 
-    private static Expansion attempt(ServerLevel level, ColonyRegistry registry, Colony colony) {
+    private static Expansion attempt(ServerLevel level, ColonyData registry, Colony colony) {
         boolean canBud = colony.canBud() && colony.population >= ColonyConfig.budPopulation();
         boolean canFound = colony.population >= ColonyConfig.expansionPopulation();
 
@@ -254,7 +238,7 @@ public final class ColonyManager {
     }
 
     /** Found a new colony further out. */
-    private static Expansion outpost(ServerLevel level, ColonyRegistry registry, Colony colony) {
+    private static Expansion outpost(ServerLevel level, ColonyData registry, Colony colony) {
         if (registry.colonies().size() >= ColonyConfig.maxColonies()) {
             return new Expansion(Expansion.Kind.NOTHING, null,
                     "the dimension is at its " + ColonyConfig.maxColonies() + "-colony ceiling");
@@ -302,7 +286,7 @@ public final class ColonyManager {
      *
      * @return the new colony, or null inside the safe radius
      */
-    public static @Nullable Colony found(ServerLevel level, ColonyRegistry registry, int x, int z) {
+    public static @Nullable Colony found(ServerLevel level, ColonyData registry, int x, int z) {
         BlockPos spawn = level.getSharedSpawnPos();
         double distance = Colony.distanceFromSpawn(spawn, x, z);
         int tier = Colony.tierAtDistance(distance);
@@ -324,23 +308,21 @@ public final class ColonyManager {
      * @return the new colony, or null if this position is not allowed one
      */
     public static @Nullable Colony settle(ServerLevel level, int x, int y, int z) {
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         Colony colony = found(level, registry, x, z);
         if (colony == null) {
             return null;
         }
 
         colony.y = y;
-        if (nestBuilder != null) {
-            nestBuilder.build(level, colony);
-            colony.built = true;
-        }
+        NESTS.build(level, colony);
+        colony.built = true;
         registry.setDirty();
         LOGGER.debug("[wflib] a scout settled {}", colony);
         return colony;
     }
 
-    private static void tickWarbands(ServerLevel level, ColonyRegistry registry) {
+    private static void tickWarbands(ServerLevel level, ColonyData registry) {
         if (registry.warbands().isEmpty()) {
             return;
         }
@@ -372,7 +354,7 @@ public final class ColonyManager {
 
     /** Resolve and build any colony whose chunk has just loaded. */
     public static void onChunkLoaded(ServerLevel level, ChunkAccess chunk) {
-        ColonyRegistry registry = ColonyRegistry.get(level);
+        ColonyData registry = ColonyData.get(level);
         // Ahead of the empty check: this is the step that creates the first colony.
         ColonySeeder.seed(level, registry, chunk);
         if (registry.colonies().isEmpty()) {
@@ -385,13 +367,13 @@ public final class ColonyManager {
                         colony.x & 15, colony.z & 15) + 1;
                 registry.setDirty();
             }
-            if (!colony.built && nestBuilder != null) {
-                nestBuilder.build(level, colony);
+            if (!colony.built) {
+                NESTS.build(level, colony);
                 colony.built = true;
                 registry.setDirty();
-            } else if (colony.built && colony.builtBuds() < colony.buds && nestBuilder != null) {
+            } else if (colony.built && colony.builtBuds() < colony.buds) {
                 // Cells budded while this chunk was unloaded, so a cluster is the size its record says.
-                nestBuilder.growCells(level, colony);
+                NESTS.growCells(level, colony);
                 registry.setDirty();
             }
         }

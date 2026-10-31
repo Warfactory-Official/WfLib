@@ -1,24 +1,22 @@
 package com.wf.wflib.ammo.gametest;
 
 import com.mojang.serialization.JsonOps;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ammo.Ammo;
-import com.wf.wflib.ammo.AmmoItems;
-import com.wf.wflib.ammo.AmmoVariant;
-import com.wf.wflib.ammo.Calibre;
-import com.wf.wflib.ammo.CartridgeItem;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.AmmoItems;
+import com.wf.wflib.ammo.api.AmmoVariant;
+import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.CartridgeItem;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import com.wf.wflib.core.api.WFLib;
 
 /** Registry frozen at item registration: items, presets, stack round trip, late registration refused. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class AmmoGameTest {
     private static final String TEMPLATE = "empty";
@@ -27,7 +25,7 @@ public class AmmoGameTest {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, p);
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void oneItemPerCalibreOnePresetPerVariant(GameTestHelper h) {
         h.assertTrue(Ammo.frozen(), "frozen");
         for (Calibre c : Ammo.calibres()) {
@@ -35,17 +33,17 @@ public class AmmoGameTest {
                     "item " + c.itemId());
         }
         for (AmmoVariant v : Ammo.variants()) {
-            KineticPreset p = KineticPresetRegistry.get(v.id());
+            KineticPreset p = KineticPresets.get(v.id());
             h.assertTrue(p != null && Math.abs(p.muzzleSpeed() - v.speed() / 20f) < 1e-6f
                     && p.damagePerKJ() == v.damagePerKJ() && p.blockPen() == v.blockPen()
                     && p.tracerColor() == (v.tracer() == AmmoVariant.NONE ? 0 : v.tracer())
-                    && p.loadsChunks() == (Ammo.calibre(v.calibre()).kind() == com.wf.wflib.ammo.CalibreKind.TANK),
+                    && p.loadsChunks() == (Ammo.calibre(v.calibre()).kind() == com.wf.wflib.ammo.api.CalibreKind.TANK),
                     "preset " + v.id());
         }
         h.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void variantsShareTheCalibreItem(GameTestHelper h) {
         ItemStack ball = AmmoItems.stack(rl("5.56x45/ball"), 30);
         ItemStack ap = AmmoItems.stack(rl("5.56x45/ap"), 30);
@@ -65,7 +63,7 @@ public class AmmoGameTest {
         h.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void registrationAfterFreezeRefused(GameTestHelper h) {
         AmmoVariant fresh = AmmoVariant.builder(ResourceLocation.fromNamespaceAndPath("late", "x"), rl("9x19"), "x")
                 .flight(300, 0.008f, 0).build();

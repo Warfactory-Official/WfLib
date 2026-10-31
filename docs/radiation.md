@@ -21,7 +21,7 @@ Port of NTM NEXT `handler/radiation`, `hazard`, `extprop/HbmLivingProps`, `util/
 | start hook | `serverStarting` | `ServerAboutToStartEvent`: 1.21.1 `ServerStartingEvent` fires after spawn chunks load |
 | sidecar | `<dim>/hbm/radiation`, type `hbm_radiation` | `<dim>/wflib/radiation`, `wflib_radiation` |
 | registries | `hbm:*` | `wflib:hazard` (synced), `wflib:radiation_settings`, `wflib:rad_diffusivity`, `wflib:rad_source` |
-| item rows | `HazardRegistry.registerItems` (NTM fuels/waste) | none; packs ship `wflib:hazard`, code calls `HazardSystem.register` |
+| item rows | `Hazards.registerItems` (NTM fuels/waste) | none; packs ship `wflib:hazard`, code calls `HazardRules.register` |
 | shield blocks | code `markRadResistant` | + block tag `#wflib:rad_resistant`, resolved at server start |
 | suits / masks / reacher | NTM armour classes, gas-mask filters | item tags `wflib:hazmat`, `hazmat_advanced`, `faraday`, `digamma_protection` (full set), `hazard_protection/<class>` (head), `reacher`, `geiger_counter` |
 | dose mult | `10^-sum(HazmatRegistry resistance)` | wflib armour `RADIATION` DR pass-through x `10^-0.2` under Rad-X; players only |
@@ -36,7 +36,7 @@ Port of NTM NEXT `handler/radiation`, `hazard`, `extprop/HbmLivingProps`, `util/
 | MK5 fallout | `EntityFalloutRain`: terrain -> fallout / waste blocks | `Fallout` per-chunk ground source: `falloutRad*(1-d/R)^2`, `R = 2.5r`, `falloutHalfLifeSeconds`; loaded chunk surface pocket driven to it each second; no blocks, no force-load |
 | artefacts | none | worn artefacts' `radiation_immunity` soak dose after armour (`Artifacts.shieldDose`), skipped by `RAD_BYPASS` |
 | command | `/hbmrad` | `/wfrad` + `get <pos>`, `geiger` |
-| config | `ConfigSchema` | `wflib-radiation.toml` |
+| config | `ConfigSchema` | `wflib-radiation.toml`, `wflib-hazard.toml` |
 
 ## Gaps
 

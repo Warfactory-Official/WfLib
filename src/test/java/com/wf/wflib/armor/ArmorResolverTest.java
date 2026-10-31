@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import com.wf.wflib.armor.api.ArmorLayer;
+import com.wf.wflib.armor.api.ArmorOutcome;
+import com.wf.wflib.armor.api.ArmorResult;
+import com.wf.wflib.armor.api.ArmorSpec;
+import com.wf.wflib.armor.api.ProtectionType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

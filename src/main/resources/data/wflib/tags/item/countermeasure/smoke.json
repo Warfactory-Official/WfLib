@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "wflib:smoke_grenade"
+    {
+      "id": "wflib:smoke_grenade",
+      "required": false
+    }
   ]
 }

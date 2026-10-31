@@ -2,11 +2,19 @@ package com.wf.wflib.pda.client.theme;
 
 import com.wf.wflib.pda.client.*;
 import com.wf.wflib.ui.*;
-import com.wf.wflib.ui.widget.Button;
-import com.wf.wflib.ui.widget.Point;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Point;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
-import static com.wf.wflib.ui.Ui.*;
+import com.wf.wflib.pda.api.client.PdaApp;
+import com.wf.wflib.pda.api.client.PdaApps;
+import com.wf.wflib.pda.api.client.PdaClient;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import static com.wf.wflib.ui.api.Ui.*;
 
 /** One global navigation row; app content below it retains its original coordinates. */
 public final class GammaHeader {
@@ -27,7 +35,7 @@ public final class GammaHeader {
                 tab(55, 44, "MAP", "wflib:map", "pda_theme.map"),
                 tab(101, 54, "ALERTS", "wflib:alerts", "pda_theme.alerts"),
                 tab(157, 65, "TERMINAL", "wflib:terminal", "pda_theme.terminal"),
-                at("230", "5", new com.wf.wflib.ui.widget.Text("{pda.title}", PdaShell.DIM, false, "1", "86")),
+                at("230", "5", new com.wf.wflib.ui.api.widget.Text("{pda.title}", PdaShell.DIM, false, "1", "86")),
                 at("341", "5", text("{world.hour|02}:{world.minute|02}", PdaShell.TEXT)),
                 new Battery());
     }

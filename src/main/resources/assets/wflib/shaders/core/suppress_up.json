@@ -1,0 +1,12 @@
+{
+    "vertex": "wflib:suppress_blit",
+    "fragment": "wflib:suppress_up",
+    "samplers": [
+        { "name": "DiffuseSampler" }
+    ],
+    "uniforms": [
+        { "name": "HalfPixel", "type": "float", "count": 2, "values": [ 0.0, 0.0 ] },
+        { "name": "Offset", "type": "float", "count": 1, "values": [ 1.0 ] },
+        { "name": "Alpha", "type": "float", "count": 1, "values": [ 1.0 ] }
+    ]
+}

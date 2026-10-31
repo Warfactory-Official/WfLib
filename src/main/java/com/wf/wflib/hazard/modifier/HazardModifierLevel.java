@@ -6,6 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BlockItemStateProperties;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.hazard.api.IHazardModifier;
 
 /**
  * Discards the incoming level: {@code levels[property]} off the stack's block state, 1.7's per-metadata rows.

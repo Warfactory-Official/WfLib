@@ -1,6 +1,6 @@
 package com.wf.wflib.rail.build;
 
-import com.wf.wflib.drone.WorldThread;
+import com.wf.wflib.core.api.WorldThread;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;

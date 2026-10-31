@@ -1,16 +1,13 @@
 package com.wf.wflib.probe.client;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import com.wf.wflib.core.api.WFLib;
 
 /** The probe's client footprint: panel, node and job layers above the crosshair, and the built-in providers. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ProbeClient {
 
     public static final ResourceLocation LAYER =

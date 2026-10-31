@@ -1,7 +1,7 @@
 package com.wf.wflib.magazine;
 
-import com.wf.wflib.ammo.AmmoItems;
-import com.wf.wflib.ammo.AmmoVariant;
+import com.wf.wflib.ammo.api.AmmoItems;
+import com.wf.wflib.ammo.api.AmmoVariant;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -9,6 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import com.wf.wflib.magazine.api.MagFill;
+import com.wf.wflib.magazine.api.RoundStore;
 
 /** Item handler (vehicle stores, crate); no room => {@code overflow}. */
 public record HandlerRounds(IItemHandler handler, Consumer<ItemStack> overflow) implements RoundStore {

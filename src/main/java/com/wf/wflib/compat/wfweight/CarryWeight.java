@@ -1,7 +1,7 @@
 package com.wf.wflib.compat.wfweight;
 
 import com.warfactory.ultimateweight.v1211.WeightViews1211;
-import com.wf.wflib.carry.Carry;
+import com.wf.wflib.carry.api.Carry;
 import net.minecraft.world.item.ItemStack;
 
 /** Carried stack counted as an inventory source. */

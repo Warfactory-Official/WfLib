@@ -1,5 +1,6 @@
 package com.wf.wflib.radiation;
 
+
 /**
  * Calls {@link RadiationSystemNT#sanitize} rather than re-deriving it, so it stays the reference the vector arm
  * is held to rather than a second transcription.

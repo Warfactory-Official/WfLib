@@ -5,11 +5,10 @@ import com.norwood.ahf.hit.AhfHitSource;
 import com.norwood.ahf.hit.HitCategory;
 import com.norwood.ahf.hit.HitboxApi;
 import com.norwood.ahf.part.HitboxPart;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.grenade.FragRays;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.WarheadCarrier;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.grenade.api.FragRays;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.WarheadCarrier;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -32,7 +31,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.util.ObfuscationReflectionHelper;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.ArrayList;
@@ -41,12 +39,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Blasts vs an AHF-rigged player, exploder = another player looking away. Vanilla explosion source (direct ==
  * attacker) = melee to AHF => gap-tested on the exploder's look => dropped by any {@code shouldRejectGap} caller.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class BlastAhfGameTest {
@@ -64,17 +62,17 @@ public class BlastAhfGameTest {
         SOURCES.putIfAbsent(event.getEntity().getUUID(), event.getSource());
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aJetAtTheHeadStrikesTheHead(GameTestHelper helper) {
         jet(helper, 0, 0.95, p -> p == HitboxPart.HEAD, "HEAD");
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aJetAtTheShinsStrikesALeg(GameTestHelper helper) {
         jet(helper, 1, 0.1, HitboxPart::isLeg, "a leg");
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void fragmentsCarryTheirPart(GameTestHelper helper) {
         Lane lane = new Lane(helper, 2);
         lane.whenTicking(() -> {
@@ -106,7 +104,7 @@ public class BlastAhfGameTest {
                 lane.release();
                 helper.fail("precondition: vanilla blast source from a player looking away is a gap");
             }
-            WarheadRegistry.SHAPED_CHARGE.detonate(carrier(lane.level, attacker), at);
+            Warheads.SHAPED_CHARGE.detonate(carrier(lane.level, attacker), at);
             helper.runAfterDelay(1, () -> {
                 lane.release();
                 assertNoGap(helper, victim, part, wanted);

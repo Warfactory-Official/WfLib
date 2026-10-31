@@ -1,7 +1,7 @@
 package com.wf.wflib.rail.build;
 
-import com.wf.wflib.rail.align.AlignElement;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.Centreline;
 
 import java.util.ArrayList;
 import java.util.List;

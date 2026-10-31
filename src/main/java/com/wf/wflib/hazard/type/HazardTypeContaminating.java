@@ -1,8 +1,8 @@
 package com.wf.wflib.hazard.type;
 
-import com.wf.wflib.radiation.RadiationConfig;
-import com.wf.wflib.radiation.RadiationSystemNT;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
+import com.wf.wflib.radiation.api.RadiationConfig;
+import com.wf.wflib.radiation.api.RadiationField;
+import com.wf.wflib.hazard.api.IHazardModifier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 // 1.12.2: CE-derived; no 1.7 type contaminates from a dropped item - HazardTypeRadiation.java:48's
 // updateEntity is empty, so this is not a split of RADIATION. Zero rows is deliberate where CE declares them
@@ -33,7 +34,7 @@ public class HazardTypeContaminating implements IHazardType {
 
     @Override
     public void updateEntity(ItemEntity item, double level) {
-        if (!RadiationConfig.enableContaminationOnGround) return;
+        if (!RadiationConfig.get().enableContaminationOnGround()) return;
         Level world = item.level();
         if (!(world instanceof ServerLevel server)) return;
         if (!item.onGround()) return;
@@ -41,7 +42,7 @@ public class HazardTypeContaminating implements IHazardType {
         int radius = computeRadius(level);
         if (radius > 1) {
             BlockPos pos = item.blockPosition();
-            RadiationSystemNT.incrementRad(server, pos, level, level * 1024D);
+            RadiationField.source(server, pos, level, level * 1024D);
         }
         item.discard();
     }
@@ -49,7 +50,7 @@ public class HazardTypeContaminating implements IHazardType {
     @Override
     public void addHazardInformation(Player player, List<Component> list, double level, ItemStack stack,
                                      List<IHazardModifier> modifiers) {
-        if (!RadiationConfig.enableContaminationOnGround) return;
+        if (!RadiationConfig.get().enableContaminationOnGround()) return;
         int radius = computeRadius(level);
         if (radius > 1) {
             list.add(Component.literal("[").append(Component.translatable("trait.contaminating")).append("]")

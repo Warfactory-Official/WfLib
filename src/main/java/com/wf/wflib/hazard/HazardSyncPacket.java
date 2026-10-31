@@ -1,11 +1,12 @@
 package com.wf.wflib.hazard;
 
-import com.wf.wflib.WFLib;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.hazard.api.LivingHazardProps;
+import com.wf.wflib.core.api.WFLib;
 
 /** Owner-only hazard state, once a second (NTM HbmPlayerSyncPayload, hazard fields only). */
 public record HazardSyncPacket(double radiation, double digamma, double radBuf, int asbestos, int blacklung)
@@ -21,7 +22,7 @@ public record HazardSyncPacket(double radiation, double digamma, double radBuf, 
             ByteBufCodecs.VAR_INT, HazardSyncPacket::blacklung,
             HazardSyncPacket::new);
 
-    static HazardSyncPacket of(LivingHazardProps p) {
+    public static HazardSyncPacket of(LivingHazardProps p) {
         return new HazardSyncPacket(p.radiation, p.digamma, p.radBuf, p.asbestos, p.blacklung);
     }
 

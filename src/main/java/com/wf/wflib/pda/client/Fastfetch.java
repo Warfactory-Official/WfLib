@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  * The Terminal's {@code fastfetch}: this machine, whatever server the game is on. Runs entirely on the client, nothing
  * is sent anywhere: the real {@code fastfetch} when it is installed, else a summary from the JVM and the game.
  */
-final class Fastfetch {
+public final class Fastfetch {
     private static final int MAX_LINES = 60;
     private static final int MAX_WIDTH = 160;
     private static final Pattern ANSI = Pattern.compile("\u001B\\[[0-9;?]*[ -/]*[@-~]|\u001B\\].*?(\u0007|\u001B\\\\)");
@@ -34,7 +34,7 @@ final class Fastfetch {
     }
 
     /** Lines to {@code out} on the render thread, a moment later (the real binary is asked off-thread). */
-    static void run(Consumer<List<String>> out) {
+    public static void run(Consumer<List<String>> out) {
         // GL is only valid here.
         List<String> game = game();
         Thread worker = new Thread(() -> {

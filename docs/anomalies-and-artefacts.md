@@ -5,8 +5,8 @@ as of 2026-10-29. Read this top to bottom before touching anything; the "Gotchas
 
 ## The goal (as the user put it)
 
-- STALKER (GAMMA) style anomalies in Warfactory. **Optional, off by default** (`wflib-anomalies-server.toml`
-  `anomalies.enabled=false`) until the user says otherwise.
+- STALKER (GAMMA) style anomalies in Warfactory. **Optional, off by default** (`wflib-systems.toml`
+  `anomaly = false`) until the user says otherwise.
 - **Anomaly sites**: STALKER-scale areas, not cluttered blobs. Few anomalies, lots of terrain and obstacles
   (craters, ravines, fissures, boulder mazes...), some with **ruins based on vanilla structures** (villages,
   jungle/desert temples), **biome-fitting variants** (badlands get terracotta, not dirt). **Tiered 1-4**: higher
@@ -79,12 +79,12 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
 - `AnomalyType` (26): VORTEX (`wflib:gravity_anomaly`), WHIRLIGIG, SPRINGBOARD, ELECTRO, BURNER, ACID, STEAM, FLASH,
   GHOST, NET, BALL_LIGHTNING, LIQUID_GOLD, GREEN_DRAGON, REBOUNDER, MEPHISTOPHELES, BURNT_FUZZ, GRABBER, COMET,
   RADIATION_FIELD, THERMAL_FIELD, ACID_FIELD, NO_GRAVITY, PSY_FIELD, RADAR, DARKNESS, STEAM_VENT. Each = behaviour (`MincerTuning` | `BlastTuning` |
-  `FieldTuning`) + `AnomalyLook` + damage type. One block per type (`ModBlocks`), one shared block entity.
+  `FieldTuning`) + `AnomalyLook` + damage type. One block per type (`AnomalyContent`), one shared block entity.
 - Ported from GAMMA zone sections + xray-monolith code. Look: GemRender lens refraction (`Lenses.submit`) for
   gravitational ones, X-Ray particles (`client/xray`, `devtools/xray-assets.py`) for the rest.
 - Client: effects only where the chunk section is compiled and in render distance; idle loops start within 24
   blocks, stop past 32; no anomaly sound may be `"stream": true` (only 8 streaming channels exist).
-- Commands: `/wflib anomalies [on|off]`, `/wflib anomalies site <tier> [motif|any [ruin|any|none]]` (builds a site
+- Commands: `/wflib anomalies site <tier> [motif|any [ruin|any|none]]` (builds a site
   near you, searches 128 blocks for ground that takes one), `/wfdebug anomaly status|measure|trace|walkaway`.
 - Psy (damage type `wflib:psy`): `Psy.expose` -> `PsyExposureEvent` (STALKER psy units, 1 = all psy health);
   WFMedical handles it (stress x `stressPsyGain` x (1 - `psyProtection`)); unhandled or non-player => hurt
@@ -108,7 +108,7 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
 - FISSURES vents = STEAM_VENT anomalies (Steam behaviour; idle `xray/particles/wflib/vent_steam`: ours, GAMMA's
   zone_steam_idle smoke blended at alpha 0.35, slower fade) over magma ringed with basalt (`SiteMotifs.vent`;
   `Kind.STEAM_VENT` cap 0: never rolled). GAMMA's own steam idle is near-invisible additive wisps.
-  `anomalies.enabled=false` => no smoke (user, 2026-10-29). Camp ruin campfire (`SiteRuins`) unlit on purpose.
+  anomaly system off => no smoke (user, 2026-10-29). Camp ruin campfire (`SiteRuins`) unlit on purpose.
 - `AnomalyMix`: which anomaly types per element/spot (FLOOR, CEILING, FIELD) and the loot table (`Loot`, built from
   `Artifact.ALL`; `pickLoot(r, tier, kinds)` filters by each artefact's `minTier` and element; `Artifact.UNIQUE` weight
   1/8: ~1.3% of tier-4 draws).
@@ -126,7 +126,7 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   `Slot.hosts` hashes to => <= 1 per world. Chunk deleted/regenerated => same artefacts again (no ledger).
 - Placement `wflib:cave_slot` (`AnomalyCaves.Placement`): start chunks == slots; structure set `anomaly_caves`, structure
   `anomaly_cave`, step `top_layer_modification` (after fluid springs; wall springs would flood the chamber), biomes
-  `#minecraft:is_overworld`. `anomalies.enabled=false` at gen time => no field, budget unspent for that chunk.
+  `#minecraft:is_overworld`. anomaly system off at gen time => no field, budget unspent for that chunk.
 - `CaveProbe`: `getBaseColumn` (cheese caves/caverns; carvers NOT in it) on a 9x9 grid, step 12, round the slot chunk;
   air run 8..28 blocks, top >= 24 under surface; score = grid points within 2 steps open at run floor+2 (>= 12 of 25);
   best score wins, tie nearest slot. None => chamber cut 38..58 under surface at the slot (`natural=false`).
@@ -163,7 +163,7 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   north>` (lowest; elemental split by `af_<fire|elec>_t*`); unlisted (drops, rusty, spring) by SoC origin, tier 1;
   perk ones `af_class_weak_low` 1 / `_high` 2, element by trail light colour (divergence: GAMMA ties them to none).
   Rank = DAO Svarog `items_devices.ltx` af_class lists (unlisted 1). Items registered from `ALL` in
-  `ModItems.ARTIFACTS`; masses in `ItemMasses`; Curios
+  `ArtifactContent.ARTIFACTS`; masses in `ItemMasses`; Curios
   tag `data/curios/tags/item/artifact.json`; lang `item.wflib.<id>`.
 - `Artifacts` (server): `LivingIncomingDamageEvent` at HIGH (before WFMedical turns hits into wounds) scales by
   `1 - immunity`, stacked per worn artefact; `hit(DamageSource)` maps damage types to `Hit`. Once a second: health
@@ -243,8 +243,8 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   dropped. Client config `screenEffects.strength` / `cameraShake`.
 - Files: `assets/wflib/xray/anims/*.ppe`, `camera_effects/*.anm` (GAMMA winners via `gamma_find.py`).
 - Triggers: WFLib `AnomalyScreen` (zone `postprocess` per type, `CZoneEffector` ramp, nearest per effect;
-  `anomalies.enabled` gates), `RadiationScreen` (dose > 0.3 / 0.45 units: alcohol / radiation); WFMedical
-  `compat/wflib/ScreenEffectsClient` (hits, bloody, low health, deimos, psy = stress, finished treatment).
+  the anomaly system gates), `RadiationScreen` (dose > 0.3 / 0.45 units: alcohol / radiation); WFMedical
+  `fx/ScreenEffects` (hits, bloody, low health, deimos, psy = stress, finished treatment).
 - Base Anomaly's `psi.ppe` and `electra_mine.ppe` are empty: psy fields / electro mines colour nothing (as GAMMA).
 - Not ported: monster attack effectors (no monsters), blowout / psi-storm, sleep / thirst / alcohol items, helmet
   mask + visor + gas mask fog, NVG (WFLib `nvg/` own), weapon switch / headlamp / inertia camera, colour map
@@ -289,7 +289,7 @@ inside. Our anomaly types per effect:
 
 Also: psi-storm and blowout field hits (`bind_anomaly_field.script`) play `psi_fade.ppe` (psy hit) and
 `electro_fade.ppe` (shock hit) scaled by the hit's power. Rule for the port: same ramp, client side, off when
-`anomalies.enabled=false`.
+anomaly system off.
 
 **Damage and low health** (`actor_effects.script`, `plugins/actor_effects.ltx` `[settings_health]`):
 - Hit size tiers: over 17 `amk_shoot.ppe`; over 44 also a random camera kick (`shell_shock`, `hit_front/back/left/

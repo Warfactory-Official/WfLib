@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Random;
+import com.wf.wflib.ui.api.expr.ExprType;
+import com.wf.wflib.ui.api.expr.Node;
+import com.wf.wflib.ui.api.expr.Symbols;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;

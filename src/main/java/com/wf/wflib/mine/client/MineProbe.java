@@ -1,32 +1,27 @@
 package com.wf.wflib.mine.client;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ModEntities;
-import com.wf.wflib.item.MinePreset;
-import com.wf.wflib.item.MinePresetRegistry;
-import com.wf.wflib.demolition.DetonatorItem;
-import com.wf.wflib.mine.DefuseMethod;
-import com.wf.wflib.mine.MineEntity;
+import com.wf.wflib.mine.api.MinePreset;
+import com.wf.wflib.mine.api.MinePresets;
+import com.wf.wflib.demolition.api.DetonatorItem;
+import com.wf.wflib.missile.api.DefuseMethod;
+import com.wf.wflib.mine.api.MineEntity;
 import com.wf.wflib.mine.MineProbeActions;
-import com.wf.wflib.probe.ProbeAction;
-import com.wf.wflib.probe.ProbeCapabilities;
-import com.wf.wflib.probe.ProbeElement;
-import com.wf.wflib.probe.ProbeInfo;
-import com.wf.wflib.probe.ProbeProvider;
+import com.wf.wflib.probe.api.ProbeAction;
+import com.wf.wflib.probe.api.ProbeCapabilities;
+import com.wf.wflib.probe.api.ProbeElement;
+import com.wf.wflib.probe.api.ProbeInfo;
+import com.wf.wflib.probe.api.ProbeProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import com.wf.wflib.mine.api.MineContent;
 
 /** What the probe says about a mine, and what you can do to it from where you are standing. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class MineProbe {
 
     private MineProbe() {
@@ -36,19 +31,18 @@ public final class MineProbe {
         if (!(entity instanceof MineEntity mine)) {
             return;
         }
-        MinePreset preset = MinePresetRegistry.get(mine.getPresetId());
+        MinePreset preset = MinePresets.get(mine.getPresetId());
         append(info, mine, preset);
         actions(info, ctx.player(), mine, preset);
     };
 
-    @SubscribeEvent
-    static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerEntity(ProbeCapabilities.ENTITY, ModEntities.MINE.get(),
+    public static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerEntity(ProbeCapabilities.ENTITY, MineContent.MINE.get(),
                 (entity, ctx) -> PANEL);
     }
 
     private static void append(ProbeInfo info, MineEntity mine, @Nullable MinePreset preset) {
-        ItemStack stack = MinePresetRegistry.stackFor(mine.getPresetId());
+        ItemStack stack = MinePresets.stackFor(mine.getPresetId());
         if (!stack.isEmpty()) {
             info.titleFallback(stack.getHoverName());
             info.titleIconFallback(new ProbeElement.Icon(stack, 12, false));
@@ -169,7 +163,7 @@ public final class MineProbe {
         ProbeAction defuse = ProbeAction.of(MineProbeActions.DEFUSE,
                 Component.translatable(mine.isRack() ? "probe.wflib.mine.action.pack_up"
                         : "probe.wflib.mine.action.defuse"));
-        Component refusal = MineEntity.defuseRefusal(player, preset.defuseMethod(), preset.defuseTool());
+        Component refusal = com.wf.wflib.missile.api.Defusal.refusal(player, preset.defuseMethod(), preset.defuseTool());
         info.action(refusal == null ? defuse : defuse.unavailable(refusal));
     }
 

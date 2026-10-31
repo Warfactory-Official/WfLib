@@ -1,29 +1,30 @@
 package com.wf.wflib.pda.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import com.wf.wflib.WFLib;
 import com.wf.wflib.pda.music.client.CoverArt;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.core.api.WFLib;
 
 /** PDA backdrop as the fixed texture {@link #TEXTURE}: centre-cropped to the screen aspect, box-shrunk. */
-final class PdaBackground {
-    static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_background");
+public final class PdaBackground {
+    public static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_background");
     private static final int MAX_WIDTH = 768;
     private static boolean present;
 
     private PdaBackground() {
     }
 
-    static boolean present() {
+    public static boolean present() {
         return present;
     }
 
     /** Any thread. */
     @Nullable
-    static NativeImage prepare(byte[] bytes) {
+    public static NativeImage prepare(byte[] bytes) {
         NativeImage src = CoverArt.raw(bytes);
         if (src == null) {
             return null;
@@ -68,7 +69,7 @@ final class PdaBackground {
     }
 
     /** Render thread. Takes ownership of {@code image}; null = no background. */
-    static void show(@Nullable NativeImage image) {
+    public static void show(@Nullable NativeImage image) {
         var textures = Minecraft.getInstance().getTextureManager();
         if (image == null) {
             if (present) {

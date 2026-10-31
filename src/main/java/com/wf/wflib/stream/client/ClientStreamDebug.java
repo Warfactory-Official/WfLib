@@ -1,6 +1,5 @@
 package com.wf.wflib.stream.client;
 
-import com.wf.wflib.WFLib;
 import com.wf.wflib.stream.StreamDebug;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -16,6 +15,10 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import com.wf.wflib.stream.api.client.OffViewChunks;
+import com.wf.wflib.stream.api.client.SodiumChunkProbe;
+import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.stream.api.client.DetachedView;
 
 /** CLIENT category state/heartbeat, and the {@code /wfstream map} dump. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)

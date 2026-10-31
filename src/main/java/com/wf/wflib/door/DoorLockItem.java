@@ -13,6 +13,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
+import com.wf.wflib.door.api.DoorBlockEntity;
+import com.wf.wflib.door.api.DoorSounds;
 
 /** A padlock. */
 public class DoorLockItem extends Item {
@@ -36,7 +38,7 @@ public class DoorLockItem extends Item {
         }
         int pins = 1 + level.random.nextInt(Integer.MAX_VALUE - 1);
         DoorKeyItem.setPins(stack, pins);
-        ItemStack key = new ItemStack(ModDoors.DOOR_KEY.get());
+        ItemStack key = new ItemStack(DoorContent.DOOR_KEY.get());
         DoorKeyItem.setPins(key, pins);
         if (!player.addItem(key)) {
             player.drop(key, false);
@@ -46,7 +48,7 @@ public class DoorLockItem extends Item {
         return InteractionResultHolder.consume(stack);
     }
 
-    ItemInteractionResult applyTo(DoorBlockEntity door, ItemStack stack, Player player, Level level) {
+    public ItemInteractionResult applyTo(DoorBlockEntity door, ItemStack stack, Player player, Level level) {
         int pins = DoorKeyItem.pinsOf(stack);
         if (pins == 0 || door.locked()) {
             return ItemInteractionResult.FAIL;

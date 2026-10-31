@@ -1,28 +1,26 @@
 package com.wf.wflib.magazine.gametest;
 
 import com.mojang.serialization.JsonOps;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ammo.AmmoItems;
+import com.wf.wflib.ammo.api.AmmoItems;
 import com.wf.wflib.magazine.HandlerRounds;
-import com.wf.wflib.magazine.LoadPreset;
-import com.wf.wflib.magazine.MagContents;
-import com.wf.wflib.magazine.MagFill;
-import com.wf.wflib.magazine.MagazineItems;
-import com.wf.wflib.magazine.PodItem;
-import com.wf.wflib.magazine.PodTubes;
+import com.wf.wflib.magazine.api.LoadPreset;
+import com.wf.wflib.magazine.api.MagContents;
+import com.wf.wflib.magazine.api.MagFill;
+import com.wf.wflib.magazine.api.MagazineItems;
+import com.wf.wflib.magazine.api.PodItem;
+import com.wf.wflib.magazine.api.PodTubes;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.core.api.WFLib;
 
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class MagazineGameTest {
     private static final String TEMPLATE = "empty";
@@ -33,7 +31,7 @@ public class MagazineGameTest {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, p);
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aCanFillsFromStoresByPresetAndUnloadsBack(GameTestHelper h) {
         ItemStackHandler stores = new ItemStackHandler(4);
         stores.setStackInSlot(0, AmmoItems.stack(BALL, 64));
@@ -53,7 +51,7 @@ public class MagazineGameTest {
         h.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aFullStoreDropsTheUnloadedOverflow(GameTestHelper h) {
         ItemStackHandler stores = new ItemStackHandler(1);
         stores.setStackInSlot(0, new ItemStack(Items.DIRT));
@@ -64,7 +62,7 @@ public class MagazineGameTest {
         h.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void podTubesRoundTripAndCompareByContent(GameTestHelper h) {
         PodItem item = MagazineItems.POD_GMLRS.get();
         ItemStack gmlrs = new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(rl("missile_gmlrs")));

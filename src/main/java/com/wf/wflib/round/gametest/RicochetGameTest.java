@@ -1,14 +1,13 @@
 package com.wf.wflib.round.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.ProjectileStrikeEvent;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.Rounds;
-import com.wf.wflib.round.pen.BlockPen;
+import com.wf.wflib.damage.api.event.ProjectileStrikeEvent;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.Rounds;
+import com.wf.wflib.round.api.BlockPen;
 import com.wf.wflib.round.pen.PenTable;
-import com.wf.wflib.round.pen.Ricochet;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.round.api.Ricochet;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -24,34 +23,33 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.function.Consumer;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Ball (4 g, 200 m/s, blockPen 10, no drag / gravity) at a 12-block floor 30 up, {@code a} deg below level, one step:
  * skipped iff {@link Ricochet#bounce} with the round's seed says so. Floor placed and removed in one call: no other
  * test sees it. Stone c = 20: 3 deg P = 0.925, 30 / 60 deg P = 0.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class RicochetGameTest {
 
     private static final String TEMPLATE = "empty";
-    private static final ResourceLocation BALL = KineticPresetRegistry.rl("test_ricochet_ball");
+    private static final ResourceLocation BALL = KineticPresets.rl("test_ricochet_ball");
     private static final double SPEED = 10.0;
     private static final int SHOTS = 24;
     private static final int FLOOR = 12;
     private static final int UP = 30;
 
-    static {
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(BALL, null, WarheadRegistry.rl("inert"))
+    public static void register() {
+        KineticPresets.registerItemless(KineticPreset.builder(BALL, null, Warheads.rl("inert"))
                 .speed(SPEED).drag(0.0).gravity(0.0).life(100).mass(0.004).energyDamage(0.01).caliber(5.56)
                 .blockPen(10.0).noChunkLoading().build());
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void grazingRoundsSkipOffStoneSteepOnesStop(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO).above(UP);
@@ -68,7 +66,7 @@ public class RicochetGameTest {
     }
 
     /** Water c = 7: 3 deg P = 0.79; 30 deg never. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void shallowRoundsSkimWaterSteepOnesDive(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO).above(UP);
@@ -84,7 +82,7 @@ public class RicochetGameTest {
     }
 
     /** Armour owner answers {@code RICOCHET}: no damage, flies on at the given velocity, tumbling. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void armourGlanceFliesOnUnhurt(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -104,7 +102,7 @@ public class RicochetGameTest {
         NeoForge.EVENT_BUS.addListener(ProjectileStrikeEvent.class, armour);
         try {
             float health = husk.getHealth();
-            long key = Rounds.launch(level, KineticPresetRegistry.get(BALL),
+            long key = Rounds.launch(level, KineticPresets.get(BALL),
                     new Vec3(o.getX() + 0.5, o.getY() + UP - 3.0, o.getZ() + 0.5), new Vec3(0.0, SPEED, 0.0), null,
                     null);
             helper.assertTrue(Rounds.step(level, key), "round ended on the glance");
@@ -138,7 +136,7 @@ public class RicochetGameTest {
             BlockHitResult hit = level.clip(clip);
             helper.assertTrue(hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().getY() == o.getY(),
                     deg + " deg shot " + k + " misses the floor: " + hit.getLocation());
-            long key = Rounds.launch(level, KineticPresetRegistry.get(BALL), from, v, null, null);
+            long key = Rounds.launch(level, KineticPresets.get(BALL), from, v, null, null);
             Vec3 want = Ricochet.bounce(v, Ricochet.UP, critical, water, BlockPen.seed(key, hit.getBlockPos()));
             boolean alive = Rounds.step(level, key);
             boolean skippedNow = alive && Rounds.ricochets(level, key) == 1;

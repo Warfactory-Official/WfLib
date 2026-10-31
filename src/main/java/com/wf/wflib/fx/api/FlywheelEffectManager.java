@@ -1,0 +1,82 @@
+package com.wf.wflib.fx.api;
+
+import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent;
+import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import dev.engine_room.flywheel.lib.visualization.VisualizationHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+
+import java.util.ArrayList;
+import java.util.List;
+import com.wf.wflib.core.api.WFLib;
+
+public final class FlywheelEffectManager {
+
+    private static final List<WFFlywheelEffect> ACTIVE = new ArrayList<>();
+
+    private static boolean reregisterPending = false;
+
+    private FlywheelEffectManager() {
+    }
+
+    public static boolean isAvailable(Level level) {
+        return VisualizationManager.supportsVisualization(level);
+    }
+
+    /** Caller must have checked {@link #isAvailable}; unenforced here. */
+    public static void spawn(WFFlywheelEffect effect) {
+        VisualizationHelper.queueAdd(effect);
+        ACTIVE.add(effect);
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent.Post event) {
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.isPaused() || mc.level == null) return;
+
+        if (reregisterPending) {
+            reregisterPending = false;
+            for (WFFlywheelEffect effect : ACTIVE) {
+                if (effect.level() == mc.level) {
+                    VisualizationHelper.queueAdd(effect);
+                }
+            }
+        }
+
+        if (ACTIVE.isEmpty()) return;
+
+        for (int i = ACTIVE.size() - 1; i >= 0; i--) {
+            WFFlywheelEffect effect = ACTIVE.get(i);
+            effect.tickEffect();
+            if (effect.isExpired()) {
+                VisualizationHelper.queueRemove(effect);
+                ACTIVE.remove(i);
+                effect.disposeEffect();
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRendererReload(ReloadLevelRendererEvent event) {
+        if (!ACTIVE.isEmpty()) {
+            reregisterPending = true;
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLevelUnload(LevelEvent.Unload event) {
+        LevelAccessor unloaded = event.getLevel();
+        if (!unloaded.isClientSide()) return;
+        ACTIVE.removeIf(effect -> {
+            if (effect.level() != unloaded) return false;
+            effect.disposeEffect();
+            return true;
+        });
+    }
+}

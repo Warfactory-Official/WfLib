@@ -2,8 +2,6 @@ package com.wf.wflib.anomaly.client;
 
 import com.wf.gemrender.lens.Lenses;
 import com.wf.gemrender.light.Lights;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.anomaly.AnomalyConfig;
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
 import com.wf.wflib.anomaly.AnomalyBlockEntity.Phase;
 import com.wf.wflib.anomaly.AnomalyBehaviour;
@@ -17,9 +15,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import java.util.ArrayList;
@@ -28,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Anomalies as seen, each by its {@link AnomalyLook}: a GemRender {@link Lenses lens} (idle shimmer, spinning up
@@ -35,7 +32,6 @@ import java.util.WeakHashMap;
  * orbiting debris, a flash ({@code blowout_light}) and vanilla sounds standing in for STALKER's. Also moves the local
  * player, whose motion only this side owns, and throws its view about while a mincer has it.
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class AnomalyClient {
     private static final int SHOCK_TICKS = 12;
     private static final double DRAW_DISTANCE = 96.0D;
@@ -48,7 +44,6 @@ public final class AnomalyClient {
     static final Map<AnomalyBlockEntity, Stamp> STAMPS = new WeakHashMap<>();
     /** {@code /wfdebug anomaly trace}: log the live set's comings and goings. */
     static boolean trace;
-    static int disabledFrames;
 
     static final class Stamp {
         final int identity;
@@ -70,9 +65,9 @@ public final class AnomalyClient {
     }
 
     /** STALKER particle groups playing for an anomaly: its looped idle look, its blowout. */
-    private static final Map<AnomalyBlockEntity, List<com.wf.wflib.client.xray.XrParticles.Playing>> IDLE_FX =
+    private static final Map<AnomalyBlockEntity, List<com.wf.wflib.particle.api.client.XrParticles.Playing>> IDLE_FX =
             new WeakHashMap<>();
-    private static final Map<AnomalyBlockEntity, com.wf.wflib.client.xray.XrParticles.Playing> BLOWOUT_FX =
+    private static final Map<AnomalyBlockEntity, com.wf.wflib.particle.api.client.XrParticles.Playing> BLOWOUT_FX =
             new WeakHashMap<>();
 
     private static final Map<AnomalyBlockEntity, AnomalyIdleSound> IDLE_SOUND = new WeakHashMap<>();
@@ -95,9 +90,6 @@ public final class AnomalyClient {
     /** Client setup. */
     public static void register() {
         Lights.register((sink, partialTick) -> {
-            if (!AnomalyConfig.enabled) {
-                return;
-            }
             for (AnomalyBlockEntity be : LIVE) {
                 if (!seen(be)) {
                     continue;
@@ -167,15 +159,15 @@ public final class AnomalyClient {
     }
 
     private static void stopIdleFx(AnomalyBlockEntity be) {
-        List<com.wf.wflib.client.xray.XrParticles.Playing> playing = IDLE_FX.remove(be);
+        List<com.wf.wflib.particle.api.client.XrParticles.Playing> playing = IDLE_FX.remove(be);
         if (playing != null) {
-            playing.forEach(com.wf.wflib.client.xray.XrParticles.Playing::stop);
+            playing.forEach(com.wf.wflib.particle.api.client.XrParticles.Playing::stop);
         }
     }
 
-    private static void stopFx(Map<AnomalyBlockEntity, com.wf.wflib.client.xray.XrParticles.Playing> fx,
+    private static void stopFx(Map<AnomalyBlockEntity, com.wf.wflib.particle.api.client.XrParticles.Playing> fx,
                                AnomalyBlockEntity be) {
-        com.wf.wflib.client.xray.XrParticles.Playing playing = fx.remove(be);
+        com.wf.wflib.particle.api.client.XrParticles.Playing playing = fx.remove(be);
         if (playing != null) {
             playing.stop();
         }
@@ -210,12 +202,12 @@ public final class AnomalyClient {
         if (look.idleParticles() != null) {
             boolean present = be.presence(0.0F) > 0.0F;
             if (present && !IDLE_FX.containsKey(be)) {
-                List<com.wf.wflib.client.xray.XrParticles.Playing> playing = new ArrayList<>();
+                List<com.wf.wflib.particle.api.client.XrParticles.Playing> playing = new ArrayList<>();
                 int copies = copies(look);
                 double ring = ring(be, copies);
                 for (int i = 0; i < copies; i++) {
                     double a = Mth.TWO_PI * i / copies;
-                    com.wf.wflib.client.xray.XrParticles.play(look.idleParticles(),
+                    com.wf.wflib.particle.api.client.XrParticles.play(look.idleParticles(),
                             c.add(Math.cos(a) * ring, 0.0D, Math.sin(a) * ring), look.particleScale() / copies * 1.5F,
                             look.particleHeight(), true).map(p -> p.glow(glow(look))).ifPresent(playing::add);
                 }
@@ -227,7 +219,7 @@ public final class AnomalyClient {
         if (look.blowoutParticles() != null) {
             if (be.exploding()) {
                 stopFx(BLOWOUT_FX, be);
-                com.wf.wflib.client.xray.XrParticles.play(look.blowoutParticles(), c, look.particleScale(),
+                com.wf.wflib.particle.api.client.XrParticles.play(look.blowoutParticles(), c, look.particleScale(),
                         look.particleHeight(), false)
                         .ifPresent(p -> BLOWOUT_FX.put(be, p.glow(glow(look))));
             } else if (be.phase() != Phase.BLOWOUT) {
@@ -330,16 +322,10 @@ public final class AnomalyClient {
     public static void onRenderStage(RenderLevelStageEvent event) {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES
                 || event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
-            if (AnomalyConfig.enabled) {
-                shapes(event, event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES);
-            }
+            shapes(event, event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES);
             return;
         }
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_WEATHER) {
-            return;
-        }
-        if (!AnomalyConfig.enabled) {
-            disabledFrames++;
             return;
         }
         Vec3 camera = event.getCamera().getPosition();
@@ -370,7 +356,7 @@ public final class AnomalyClient {
                 if (be.type().quirk().moves() && !be.isRemoved()) {
                     Vec3 c = emitter(be, be.center(partial));
                     IDLE_FX.getOrDefault(be, List.of()).forEach(p -> p.trailTo(c));
-                    com.wf.wflib.client.xray.XrParticles.Playing blowout = BLOWOUT_FX.get(be);
+                    com.wf.wflib.particle.api.client.XrParticles.Playing blowout = BLOWOUT_FX.get(be);
                     if (blowout != null) {
                         blowout.trailTo(c);
                     }
@@ -378,17 +364,17 @@ public final class AnomalyClient {
             }
         }
         shapes(event, solid, partial, solid ? net.minecraft.client.renderer.RenderType.entityCutoutNoCull(WHITE)
-                : com.wf.wflib.client.render.WFRenderTypes.xray(RING, com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD));
+                : com.wf.wflib.core.api.client.WFRenderTypes.xray(RING, com.wf.wflib.particle.api.XrBlend.ALPHA_ADD));
         if (!solid) {
-            shapes(event, false, partial, com.wf.wflib.client.render.WFRenderTypes.xray(GLOW,
-                    com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD));
+            shapes(event, false, partial, com.wf.wflib.core.api.client.WFRenderTypes.xray(GLOW,
+                    com.wf.wflib.particle.api.XrBlend.ALPHA_ADD));
         }
     }
 
     private static void shapes(RenderLevelStageEvent event, boolean fuzz, float partial,
                                net.minecraft.client.renderer.RenderType type) {
-        boolean glow = type == com.wf.wflib.client.render.WFRenderTypes.xray(GLOW,
-                com.wf.wflib.client.xray.XrDefs.Blend.ALPHA_ADD);
+        boolean glow = type == com.wf.wflib.core.api.client.WFRenderTypes.xray(GLOW,
+                com.wf.wflib.particle.api.XrBlend.ALPHA_ADD);
         Minecraft mc = Minecraft.getInstance();
         Vec3 cam = event.getCamera().getPosition();
         com.mojang.blaze3d.vertex.PoseStack pose = event.getPoseStack();

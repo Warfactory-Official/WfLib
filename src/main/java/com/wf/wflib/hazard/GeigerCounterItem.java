@@ -10,6 +10,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import com.wf.wflib.hazard.api.ContaminationUtil;
+import com.wf.wflib.hazard.api.HazardContent;
+import com.wf.wflib.hazard.api.LivingHazardProps;
 
 /** NTM {@code ItemGeigerCounter}. HUD: {@code client.GeigerHud}. */
 public class GeigerCounterItem extends Item {
@@ -40,7 +43,7 @@ public class GeigerCounterItem extends Item {
         double x = LivingHazardProps.getRadBuf(entity);
         int idx = x > 1e-5 ? pickGeiger(x, level.getRandom()) : (level.getRandom().nextInt(50) == 0 ? 1 : 0);
         if (idx > 0) {
-            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), HazardContent.GEIGER[idx - 1].get(),
+            level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), HazardContent.GEIGER.get(idx - 1).get(),
                     SoundSource.PLAYERS, 1.0F, 1.0F);
         }
     }

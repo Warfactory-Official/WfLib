@@ -1,6 +1,7 @@
 package com.wf.wflib.ammo;
 
 import net.minecraft.resources.ResourceLocation;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -8,6 +9,10 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.AmmoVariant;
+import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.CalibreKind;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,6 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AmmoCatalogueTest {
+
+    @BeforeAll
+    static void defineCatalogue() {
+        com.wf.wflib.ammo.AmmoCatalogue.define();
+    }
+
     private static ResourceLocation rl(String p) {
         return ResourceLocation.fromNamespaceAndPath("wflib", p);
     }
@@ -107,7 +118,7 @@ class AmmoCatalogueTest {
 
     @Test
     void quadDragIsConverterFormula() {
-        // convert_mineassault.quad_drag(5.70, 4.0, 0.30) = 0.001172214
+        // converted-pack reference quad_drag(5.70, 4.0, 0.30) = 0.001172214
         assertEquals(0.001172214, AmmoCatalogue.quadDrag(5.70f, 4.0f, 0.30f), 1e-8);
     }
 }

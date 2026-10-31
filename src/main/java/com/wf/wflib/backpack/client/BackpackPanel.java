@@ -1,8 +1,8 @@
 package com.wf.wflib.backpack.client;
 
-import com.wf.wflib.backpack.BackpackItem;
+import com.wf.wflib.backpack.api.BackpackItem;
 import com.wf.wflib.backpack.BackpackPackets;
-import com.wf.wflib.backpack.Backpacks;
+import com.wf.wflib.backpack.api.Backpacks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;

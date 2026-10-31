@@ -2,8 +2,8 @@ package com.wf.wflib.compat.wfweight;
 
 import com.warfactory.ultimateweight.api.CarryModifiers;
 import com.warfactory.ultimateweight.api.StaminaModifiers;
-import com.wf.wflib.artifact.Artifact;
-import com.wf.wflib.artifact.Artifacts;
+import com.wf.wflib.artifact.api.Artifact;
+import com.wf.wflib.artifact.api.Artifacts;
 import net.minecraft.world.entity.player.Player;
 
 /**

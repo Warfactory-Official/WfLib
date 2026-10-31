@@ -1,10 +1,10 @@
 package com.wf.wflib.grenade;
 
-import com.wf.wflib.WFLib;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.core.api.WFLib;
 
 /** S2C flashbang at a point; {@code flash}/{@code deaf} 0..1 already scaled for the receiving player. */
 public record FlashPacket(double x, double y, double z, float flash, float deaf) implements CustomPacketPayload {

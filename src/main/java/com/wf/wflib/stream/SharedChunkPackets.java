@@ -1,6 +1,6 @@
 package com.wf.wflib.stream;
 
-import com.wf.wflib.mixin.AccessorPacketEncoder;
+import com.wf.wflib.mixin.stream.AccessorPacketEncoder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -52,9 +52,13 @@ public final class SharedChunkPackets {
     private static long swept;
     public static final AtomicLong HITS = new AtomicLong(), MISSES = new AtomicLong(), COMPRESSIONS = new AtomicLong();
     /** Kill switch; harness A/B. */
-    public static volatile boolean enabled = true;
+    private static volatile boolean enabled = true;
 
     private SharedChunkPackets() {
+    }
+
+    public static void setEnabled(boolean on) {
+        enabled = on;
     }
 
     private static final class Entry {

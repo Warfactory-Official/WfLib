@@ -3,10 +3,10 @@ package com.wf.wflib.ui.json;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.UiLayout;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayDeque;
@@ -17,6 +17,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
+import com.wf.wflib.ui.api.json.JsonProps;
+import com.wf.wflib.ui.api.json.PropsHost;
+import com.wf.wflib.ui.api.json.UiJsonException;
+import com.wf.wflib.ui.api.json.UiWidgetTypes;
+import com.wf.wflib.ui.api.json.WidgetReader;
 
 /**
  * Turns layout JSON into a {@link WidgetDef} tree. Components expand in place (no runtime node); a
@@ -52,7 +57,7 @@ public final class UiExpander {
     private record Many(List<WidgetDef> defs) implements Value {
     }
 
-    static final class Scope {
+    public static final class Scope {
         private final Map<String, Value> values = new HashMap<>();
     }
 
@@ -209,7 +214,26 @@ public final class UiExpander {
 
     // ------------------------------------------------------------------ widgets
 
-    WidgetDef widget(JsonElement json, String path, Scope scope) {
+    private PropsHost host(Scope scope) {
+        return new PropsHost() {
+            @Override
+            public String substitute(String text, String path) {
+                return UiExpander.this.substitute(text, path, scope);
+            }
+
+            @Override
+            public WidgetDef widget(JsonElement json, String path) {
+                return UiExpander.this.widget(json, path, scope);
+            }
+
+            @Override
+            public List<WidgetDef> widgets(JsonElement json, String path) {
+                return UiExpander.this.widgets(json, path, scope);
+            }
+        };
+    }
+
+    public WidgetDef widget(JsonElement json, String path, Scope scope) {
         if (json.isJsonPrimitive()) {
             Value value = reference(json.getAsString(), path, scope);
             if (value instanceof One one) {
@@ -233,7 +257,7 @@ public final class UiExpander {
         }
         WidgetReader reader = UiWidgetTypes.get(type);
         if (reader != null) {
-            JsonProps props = new JsonProps(this, object, path, scope);
+            JsonProps props = new JsonProps(host(scope), object, path);
             WidgetDef def;
             try {
                 def = reader.read(props);
@@ -252,7 +276,7 @@ public final class UiExpander {
         return call(component, object, path, scope);
     }
 
-    List<WidgetDef> widgets(JsonElement json, String path, Scope scope) {
+    public List<WidgetDef> widgets(JsonElement json, String path, Scope scope) {
         if (json.isJsonPrimitive()) {
             Value value = reference(json.getAsString(), path, scope);
             if (value instanceof Many many) {
@@ -303,7 +327,7 @@ public final class UiExpander {
                     throw new UiJsonException(path, component.id + " needs `" + name + "`");
                 }
             }
-            return widget(component.root, component.file + "/root", scope);
+           return widget(component.root, component.file + "/root", scope);
         } catch (UiJsonException e) {
             throw new UiJsonException(path, "in " + component.id + ": " + e.getMessage(), e);
         } finally {
@@ -350,7 +374,7 @@ public final class UiExpander {
     }
 
     /** {@code $name} => text value; {@code $$} => {@code $}. */
-    String substitute(String text, String path, Scope scope) {
+    public String substitute(String text, String path, Scope scope) {
         int at = text.indexOf('$');
         if (at < 0) {
             return text;

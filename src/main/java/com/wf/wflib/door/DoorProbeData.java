@@ -1,16 +1,13 @@
 package com.wf.wflib.door;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.probe.ProbeCapabilities;
-import com.wf.wflib.probe.ProbeDataProvider;
+import com.wf.wflib.probe.api.ProbeCapabilities;
+import com.wf.wflib.probe.api.ProbeDataProvider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import com.wf.wflib.door.api.DoorBlockEntity;
 
 /** The one thing about a door the client is not told: how many of its blocks are being powered. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class DoorProbeData {
 
     public static final String POWERED = "PoweredBlocks";
@@ -25,10 +22,9 @@ public final class DoorProbeData {
         }
     };
 
-    @SubscribeEvent
-    static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
+    public static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlock(ProbeCapabilities.BLOCK_DATA, (level, pos, state, be, ctx) -> DATA,
-                ModDoors.DOORS.values().stream().map(holder -> (Block) holder.get()).toArray(Block[]::new));
+                DoorContent.DOORS.values().stream().map(holder -> (Block) holder.get()).toArray(Block[]::new));
     }
 
     public static int powered(CompoundTag data) {

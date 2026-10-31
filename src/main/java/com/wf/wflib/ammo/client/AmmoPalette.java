@@ -43,7 +43,7 @@ public final class AmmoPalette implements AmmoMeshes.Uv {
     }
 
     /** Render thread. */
-    void upload(ResourceLocation id) {
+    public void upload(ResourceLocation id) {
         NativeImage img = new NativeImage(COLUMNS * CELL, rows * CELL, false);
         index.forEach((rgb, i) -> {
             int abgr = 0xFF000000 | (rgb & 0xFF) << 16 | (rgb & 0xFF00) | (rgb >> 16 & 0xFF);

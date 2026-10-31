@@ -1,18 +1,17 @@
 package com.wf.wflib.mine;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.aef.ExplosionAEF;
-import com.wf.wflib.aef.standard.BlockAllocatorShapedCharge;
-import com.wf.wflib.aef.standard.BlockAllocatorStandard;
-import com.wf.wflib.aef.standard.BlockProcessorStandard;
-import com.wf.wflib.damage.DamageClass;
-import com.wf.wflib.damage.WFDamageSources;
-import com.wf.wflib.fx.ExplosionCreator;
-import com.wf.wflib.fx.ExplosionSmallCreator;
-import com.wf.wflib.item.MinePreset;
-import com.wf.wflib.item.MinePresetRegistry;
-import com.wf.wflib.warhead.WarheadCarrier;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.explosion.api.ExplosionAEF;
+import com.wf.wflib.explosion.api.BlockAllocatorShapedCharge;
+import com.wf.wflib.explosion.api.BlockAllocatorStandard;
+import com.wf.wflib.explosion.api.BlockProcessorStandard;
+import com.wf.wflib.damage.api.DamageClass;
+import com.wf.wflib.damage.api.WFDamageSources;
+import com.wf.wflib.explosion.api.ExplosionCreator;
+import com.wf.wflib.explosion.api.ExplosionSmallCreator;
+import com.wf.wflib.mine.api.MinePreset;
+import com.wf.wflib.mine.api.MinePresets;
+import com.wf.wflib.warhead.api.WarheadCarrier;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -28,6 +27,8 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import com.wf.wflib.mine.api.MineEntity;
+import com.wf.wflib.core.api.WFLib;
 
 /** The warheads a mine actually carries. */
 public final class MineWarheads {
@@ -112,26 +113,26 @@ public final class MineWarheads {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, path);
     }
 
-    /** Adds the mine warheads to {@link WarheadRegistry}. */
-    public static void bootstrap() {
-        WarheadRegistry.register(BLAST, MineWarheads::blastCharge);
-        WarheadRegistry.register(FRAG, MineWarheads::fragmentationSleeve);
-        WarheadRegistry.register(DIRECTIONAL, MineWarheads::directionalSleeve);
-        WarheadRegistry.register(HEAT, MineWarheads::shapedCharge);
-        WarheadRegistry.register(NAVAL, MineWarheads::navalCharge);
-        WarheadRegistry.register(DISPENSE_AP,
-                (source, pos) -> dispense(source, pos, MinePresetRegistry.rl("scatter_ap")));
-        WarheadRegistry.register(DISPENSE_AT,
-                (source, pos) -> dispense(source, pos, MinePresetRegistry.rl("scatter_at")));
+    /** Adds the mine warheads to {@link Warheads}. */
+    static void register() {
+        Warheads.register(BLAST, MineWarheads::blastCharge);
+        Warheads.register(FRAG, MineWarheads::fragmentationSleeve);
+        Warheads.register(DIRECTIONAL, MineWarheads::directionalSleeve);
+        Warheads.register(HEAT, MineWarheads::shapedCharge);
+        Warheads.register(NAVAL, MineWarheads::navalCharge);
+        Warheads.register(DISPENSE_AP,
+                (source, pos) -> dispense(source, pos, MinePresets.rl("scatter_ap")));
+        Warheads.register(DISPENSE_AT,
+                (source, pos) -> dispense(source, pos, MinePresets.rl("scatter_at")));
 
-        WarheadRegistry.declarePeakDamage(BLAST, Math.round(BLAST_PEAK));
-        WarheadRegistry.declarePeakDamage(DISPENSE_AP, 0);
-        WarheadRegistry.declarePeakDamage(DISPENSE_AT, 0);
-        WarheadRegistry.declarePeakDamage(HEAT, Math.round(HEAT_PEAK));
-        WarheadRegistry.declarePeakDamage(NAVAL, Math.round(NAVAL_PEAK));
-        WarheadRegistry.declarePeakDamage(FRAG, atOneBlock(FRAG_MINIMUM,
+        Warheads.declarePeakDamage(BLAST, Math.round(BLAST_PEAK));
+        Warheads.declarePeakDamage(DISPENSE_AP, 0);
+        Warheads.declarePeakDamage(DISPENSE_AT, 0);
+        Warheads.declarePeakDamage(HEAT, Math.round(HEAT_PEAK));
+        Warheads.declarePeakDamage(NAVAL, Math.round(NAVAL_PEAK));
+        Warheads.declarePeakDamage(FRAG, atOneBlock(FRAG_MINIMUM,
                 4.0 * Math.PI * Math.sin(Math.toRadians(FRAG_BAND_DEG)), FRAG_PER_FRAGMENT));
-        WarheadRegistry.declarePeakDamage(DIRECTIONAL, atOneBlock(DIRECTIONAL_MINIMUM,
+        Warheads.declarePeakDamage(DIRECTIONAL, atOneBlock(DIRECTIONAL_MINIMUM,
                 2.0 * Math.PI * (1.0 - Math.cos(Math.toRadians(MineEntity.DEFAULT_BLAST_HALF_ANGLE))),
                 DIRECTIONAL_PER_FRAGMENT));
     }
@@ -293,7 +294,7 @@ public final class MineWarheads {
         }
         ResourceLocation loaded = source instanceof MineEntity mine && mine.canisterMineId() != null
                 ? mine.canisterMineId() : mineId;
-        MinePreset preset = MinePresetRegistry.get(loaded);
+        MinePreset preset = MinePresets.get(loaded);
         if (preset == null) {
             return;
         }
@@ -329,7 +330,7 @@ public final class MineWarheads {
     }
 
     /** Expected number of a sleeve's fragments that actually meet a target of this size at this distance. */
-    static double expectedHits(int fragments, double solidAngle, double distanceSq, double silhouette) {
+    public static double expectedHits(int fragments, double solidAngle, double distanceSq, double silhouette) {
         if (solidAngle <= 1.0E-6 || fragments <= 0) {
             return 0.0;
         }

@@ -1,6 +1,6 @@
 package com.wf.wflib.build;
 
-import com.wf.wflib.build.BlueprintFormat.BlueprintException;
+import com.wf.wflib.build.api.BlueprintFormat.BlueprintException;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
+import com.wf.wflib.build.api.Blueprint;
+import com.wf.wflib.build.api.BlueprintFormat;
+import com.wf.wflib.build.api.BlueprintFormats;
 
 /** The blueprints a server has on disk, in {@code <world>/wflib/blueprints/}. */
 public final class BlueprintLibrary {

@@ -1,7 +1,7 @@
 package com.wf.wflib.grenade.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.wf.wflib.grenade.ThrownCharge;
+import com.wf.wflib.grenade.api.ThrownCharge;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;

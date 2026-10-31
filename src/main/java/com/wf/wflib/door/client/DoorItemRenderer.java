@@ -2,9 +2,9 @@ package com.wf.wflib.door.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import com.wf.wflib.client.render.ObjMeshes;
+import com.wf.wflib.probe.api.client.ObjMeshes;
 import com.wf.wflib.door.DoorItem;
-import com.wf.wflib.probe.ProbeElement;
+import com.wf.wflib.probe.api.ProbeElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;

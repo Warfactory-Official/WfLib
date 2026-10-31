@@ -1,21 +1,19 @@
 package com.wf.wflib.armor.gametest;
 
-import com.wf.wflib.WFLib;
 import com.wf.wflib.armor.ArmorConfig;
-import com.wf.wflib.armor.ArmorExposure;
-import com.wf.wflib.armor.ArmorOutcome;
-import com.wf.wflib.armor.ArmorPreset;
-import com.wf.wflib.armor.ArmorPresets;
-import com.wf.wflib.armor.ArmorProfiles;
-import com.wf.wflib.armor.ArmorResult;
-import com.wf.wflib.armor.ArmorSpec;
-import com.wf.wflib.armor.ArmorStacks;
-import com.wf.wflib.armor.ArmorSystem;
-import com.wf.wflib.armor.ArmorUnits;
-import com.wf.wflib.armor.ProtectionType;
-import com.wf.wflib.damage.WFDamage;
-import com.wf.wflib.damage.WFDamageTypes;
-import com.wf.wflib.item.ModItems;
+import com.wf.wflib.armor.api.ArmorExposure;
+import com.wf.wflib.armor.api.ArmorOutcome;
+import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.armor.api.ArmorPresets;
+import com.wf.wflib.armor.api.ArmorProfiles;
+import com.wf.wflib.armor.api.ArmorResult;
+import com.wf.wflib.armor.api.ArmorSpec;
+import com.wf.wflib.armor.api.ArmorStacks;
+import com.wf.wflib.armor.api.ArmorResolution;
+import com.wf.wflib.armor.api.ArmorUnits;
+import com.wf.wflib.armor.api.ProtectionType;
+import com.wf.wflib.damage.api.WFDamage;
+import com.wf.wflib.damage.api.WFDamageTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -36,15 +34,15 @@ import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import com.wf.wflib.armor.api.ArmorContent;
+import com.wf.wflib.core.api.WFLib;
 
 /** Armour system in the world; pure resolver math is {@code ArmorResolverTest} under plain JUnit. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class ArmorGameTest {
 
@@ -55,10 +53,10 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ wiring
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void everyPresetHasAnItemAndAProfile(GameTestHelper helper) {
-        for (ArmorPreset preset : ArmorPresets.all()) {
-            Item item = ModItems.armorItem(preset.id());
+        for (ArmorPreset preset : ArmorPresets.live()) {
+            Item item = ArmorContent.item(preset.id());
             if (item == null) {
                 helper.fail("no item for armour preset " + preset.id());
                 return;
@@ -91,7 +89,7 @@ public class ArmorGameTest {
     }
 
     /** GT electric armour: MAX_DAMAGE = Integer.MAX_VALUE; x POINTS_PER_DAMAGE wrapped to -100 => crash. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void maxIntDurabilitySaturatesCondition(GameTestHelper helper) {
         ItemStack stack = new ItemStack(Items.IRON_CHESTPLATE);
         stack.set(DataComponents.MAX_DAMAGE, Integer.MAX_VALUE);
@@ -104,7 +102,7 @@ public class ArmorGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100)
     public static void vanillaArmourIsDerivedAndThenStripped(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         victim.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
@@ -131,7 +129,7 @@ public class ArmorGameTest {
                 helper.fail("a chestplate is not a respirator, but it derived a chemical rating");
                 return;
             }
-            ArmorResult result = ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST,
+            ArmorResult result = ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST,
                     source(helper, WFDamageTypes.PHYSICAL), 10.0F, true);
             if (Math.abs(result.through() - 7.6D) > 1.0E-4D) {
                 helper.fail("expected 7.6 through an iron chestplate, got " + result.through());
@@ -148,14 +146,14 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ where the hit landed
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aHelmetDoesNotProtectAShin(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         victim.setItemSlot(EquipmentSlot.HEAD, stack("combat_helmet"));
         DamageSource rifle = source(helper, WFDamageTypes.PHYSICAL);
 
-        ArmorResult head = ArmorSystem.resolveSlot(victim, EquipmentSlot.HEAD, rifle, 10.0F, false);
-        ArmorResult foot = ArmorSystem.resolveSlot(victim, EquipmentSlot.FEET, rifle, 10.0F, false);
+        ArmorResult head = ArmorResolution.resolveSlot(victim, EquipmentSlot.HEAD, rifle, 10.0F, false);
+        ArmorResult foot = ArmorResolution.resolveSlot(victim, EquipmentSlot.FEET, rifle, 10.0F, false);
         // DT 6 then DR 25% of the remaining 4.
         if (Math.abs(head.through() - 3.0D) > 1.0E-4D) {
             helper.fail("helmet let " + head.through() + " through, expected 3");
@@ -168,14 +166,14 @@ public class ArmorGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void theWholeEntityDoorWeightsByCoverage(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         victim.setItemSlot(EquipmentSlot.HEAD, stack("combat_helmet"));
         DamageSource rifle = source(helper, WFDamageTypes.PHYSICAL);
 
-        ArmorResult whole = ArmorSystem.resolveWhole(victim, rifle, 10.0F, false);
-        ArmorResult perSlot = ArmorSystem.resolveSlot(victim, EquipmentSlot.HEAD, rifle, 10.0F, false);
+        ArmorResult whole = ArmorResolution.resolveWhole(victim, rifle, 10.0F, false);
+        ArmorResult perSlot = ArmorResolution.resolveSlot(victim, EquipmentSlot.HEAD, rifle, 10.0F, false);
         if (!(whole.through() > perSlot.through())) {
             helper.fail("a helmet weighted by coverage should stop less than a helmet that was hit: "
                     + whole.through() + " vs " + perSlot.through());
@@ -195,7 +193,7 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ suits
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aSuitProtectsTheSlotsItOccupies(GameTestHelper helper) {
         LivingEntity suited = victim(helper, 1);
         LivingEntity jacket = victim(helper, 3);
@@ -203,10 +201,10 @@ public class ArmorGameTest {
         jacket.setItemSlot(EquipmentSlot.CHEST, stack("mw_bearsuit"));
         DamageSource blunt = source(helper, net.minecraft.world.damagesource.DamageTypes.FALLING_BLOCK);
 
-        double legs = ArmorSystem.resolveSlot(suited, EquipmentSlot.LEGS, blunt, 10.0F, false).through();
-        double feet = ArmorSystem.resolveSlot(suited, EquipmentSlot.FEET, blunt, 10.0F, false).through();
-        double suitWhole = ArmorSystem.resolveWhole(suited, blunt, 10.0F, false).through();
-        double jacketWhole = ArmorSystem.resolveWhole(jacket, blunt, 10.0F, false).through();
+        double legs = ArmorResolution.resolveSlot(suited, EquipmentSlot.LEGS, blunt, 10.0F, false).through();
+        double feet = ArmorResolution.resolveSlot(suited, EquipmentSlot.FEET, blunt, 10.0F, false).through();
+        double suitWhole = ArmorResolution.resolveWhole(suited, blunt, 10.0F, false).through();
+        double jacketWhole = ArmorResolution.resolveWhole(jacket, blunt, 10.0F, false).through();
         if (!(legs < 10.0D) || feet != 10.0D) {
             helper.fail("suit occupying head + legs: legs " + legs + ", feet " + feet + " through of 10");
             return;
@@ -219,7 +217,7 @@ public class ArmorGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 60)
     public static void aSuitEjectsWhatSitsInItsSlots(GameTestHelper helper) {
         LivingEntity onSuit = victim(helper, 1);
         LivingEntity onPants = victim(helper, 3);
@@ -241,7 +239,7 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ inserts
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void theInsertWearsRatherThanTheCarrier(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         ItemStack carrier = stack("plate_carrier");
@@ -252,7 +250,7 @@ public class ArmorGameTest {
         ArmorStacks.setInserts(carrier, List.of(stack("steel_plate")));
         victim.setItemSlot(EquipmentSlot.CHEST, carrier);
 
-        ArmorResult result = ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST,
+        ArmorResult result = ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST,
                 source(helper, WFDamageTypes.PHYSICAL), 30.0F, true);
         // DT 22 then 60% of the remaining 8.
         if (Math.abs(result.through() - 3.2D) > 1.0E-4D) {
@@ -274,7 +272,7 @@ public class ArmorGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void hardnessStopsVolumeFireGrindingDownPlate(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         ItemStack carrier = stack("plate_carrier");
@@ -284,7 +282,7 @@ public class ArmorGameTest {
 
         // 8x4 = 32 incoming, all stopped (below hardness).
         for (int i = 0; i < 8; i++) {
-            ArmorResult pellet = ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 4.0F, true);
+            ArmorResult pellet = ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 4.0F, true);
             if (pellet.outcome() != ArmorOutcome.STOPPED) {
                 helper.fail("buckshot got through steel plate: " + pellet.through());
                 return;
@@ -296,7 +294,7 @@ public class ArmorGameTest {
         ItemStack fresh = stack("plate_carrier");
         ArmorStacks.setInserts(fresh, List.of(stack("steel_plate")));
         victim.setItemSlot(EquipmentSlot.CHEST, fresh);
-        ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 30.0F, true);
+        ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 30.0F, true);
         int plateFromRifle = STEEL_MAX - condition(ArmorStacks.inserts(fresh).get(0));
 
         if (plateFromBuckshot != 144) {
@@ -317,7 +315,7 @@ public class ArmorGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aDeadCeramicPlateStopsWorkingAndStaysIn(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         ItemStack carrier = stack("plate_carrier");
@@ -326,7 +324,7 @@ public class ArmorGameTest {
         ArmorStacks.setInserts(carrier, List.of(ceramic));
         victim.setItemSlot(EquipmentSlot.CHEST, carrier);
 
-        ArmorResult result = ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST,
+        ArmorResult result = ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST,
                 source(helper, WFDamageTypes.PHYSICAL), 30.0F, false);
         // The carrier alone: DT 2, then 10% off the remaining 28.
         if (Math.abs(result.through() - 25.2D) > 1.0E-4D) {
@@ -342,7 +340,7 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ storage
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void conditionSurvivesTheRoundTripThroughDurability(GameTestHelper helper) {
         ItemStack plate = stack("steel_plate");
         ArmorSpec spec = ArmorProfiles.specFor(plate);
@@ -371,7 +369,7 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ the damage pipeline
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100)
     public static void armourResolvesBeforeAnyoneReadsTheAmount(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         ItemStack carrier = stack("plate_carrier");
@@ -409,7 +407,7 @@ public class ArmorGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 100)
     public static void vanillaDoesNotAlsoChargeDurability(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         victim.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
@@ -419,7 +417,7 @@ public class ArmorGameTest {
             ArmorSpec spec = ArmorProfiles.specFor(chest);
             int before = ArmorStacks.condition(chest, spec);
 
-            ArmorResult dryRun = ArmorSystem.resolveWhole(victim,
+            ArmorResult dryRun = ArmorResolution.resolveWhole(victim,
                     source(helper, WFDamageTypes.PHYSICAL), 12.0F, false);
             int predicted = 0;
             for (ArmorResult.LayerWear wear : dryRun.wear()) {
@@ -441,7 +439,7 @@ public class ArmorGameTest {
         }).thenSucceed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aSpentPlateStopsStoppingThings(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         ItemStack carrier = stack("plate_carrier");
@@ -450,7 +448,7 @@ public class ArmorGameTest {
         victim.setItemSlot(EquipmentSlot.CHEST, carrier);
         DamageSource kinetic = source(helper, WFDamageTypes.PHYSICAL);
 
-        ArmorResult fresh = ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 15.0F, false);
+        ArmorResult fresh = ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 15.0F, false);
         if (fresh.outcome() != ArmorOutcome.STOPPED) {
             helper.fail("a fresh plate should stop 15: " + fresh.through());
             return;
@@ -463,7 +461,7 @@ public class ArmorGameTest {
         ArmorStacks.setInserts(spentCarrier, List.of(spentPlate));
         victim.setItemSlot(EquipmentSlot.CHEST, spentCarrier);
 
-        ArmorResult spent = ArmorSystem.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 15.0F, false);
+        ArmorResult spent = ArmorResolution.resolveSlot(victim, EquipmentSlot.CHEST, kinetic, 15.0F, false);
         if (spent.through() <= 0.0D) {
             helper.fail("a spent plate still stopped the same round outright");
             return;
@@ -478,7 +476,7 @@ public class ArmorGameTest {
 
     // ------------------------------------------------------------------ exposure
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 300)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 300)
     public static void aRatedSuitShrugsOffGasThatRuinsAVest(GameTestHelper helper) {
         LivingEntity inVest = victim(helper, 1);
         LivingEntity inSuit = victim(helper, 2);
@@ -500,13 +498,13 @@ public class ArmorGameTest {
                     int suitLost = suitMax - condition(suit);
 
                     // The splash: 4% of maximum, less the suit's own 85% chemical resistance.
-                    int expectedSuitSplash = (int) Math.round(suitMax * ArmorConfig.acuteFraction * 0.15D);
+                    int expectedSuitSplash = (int) Math.round(suitMax * ArmorConfig.get().acuteFraction() * 0.15D);
                     if (suitLost != expectedSuitSplash) {
                         helper.fail("the suit lost " + suitLost + " where only the splash ("
                                 + expectedSuitSplash + ") should have reached it");
                         return;
                     }
-                    int expectedVestSplash = (int) Math.round(CARRIER_MAX * ArmorConfig.acuteFraction);
+                    int expectedVestSplash = (int) Math.round(CARRIER_MAX * ArmorConfig.get().acuteFraction());
                     if (vestLost <= expectedVestSplash) {
                         helper.fail("the vest took the splash but no timed decay: " + vestLost);
                         return;
@@ -521,7 +519,7 @@ public class ArmorGameTest {
                 .thenSucceed();
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 300)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 300)
     public static void burningEatsArmourWithNobodyPushingIt(GameTestHelper helper) {
         LivingEntity victim = victim(helper, 1);
         ItemStack vest = stack("plate_carrier");
@@ -552,7 +550,7 @@ public class ArmorGameTest {
     }
 
     private static ItemStack stack(String preset) {
-        Item item = ModItems.armorItem(ArmorPreset.rl(preset));
+        Item item = ArmorContent.item(ArmorPreset.rl(preset));
         if (item == null) {
             throw new IllegalStateException("no armour item for " + preset);
         }

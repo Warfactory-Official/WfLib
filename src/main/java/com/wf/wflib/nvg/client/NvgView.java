@@ -6,21 +6,20 @@ import com.mojang.logging.LogUtils;
 import com.wf.gemrender.light.IrTarget;
 import com.wf.gemrender.render.GlPrograms;
 import com.wf.gemrender.render.PassState;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.nvg.NvgState;
-import com.wf.wflib.nvg.NvgWorn;
+import com.wf.wflib.nvg.api.NvgState;
+import com.wf.wflib.nvg.api.NvgWorn;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.nvg.api.client.NvgClient;
+import com.wf.wflib.core.api.WFLib;
 
 import static org.lwjgl.opengl.GL33C.*;
 
@@ -29,7 +28,6 @@ import static org.lwjgl.opengl.GL33C.*;
  * scene + {@link IrTarget} -> flux (tube resolution, mips) -> ABC adapt (1x1) -> tube image (noise, halo,
  * MCP, persistence; history ping-pong) -> composite over the naked-eye view.
  */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class NvgView {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String VERSION = "#version 330 core\n";
@@ -69,7 +67,7 @@ public final class NvgView {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
-    static void onRenderGui(RenderGuiEvent.Pre event) {
+    public static void onRenderGui(RenderGuiEvent.Pre event) {
         Minecraft mc = Minecraft.getInstance();
         if (!NvgClient.viewing()) {
             return;

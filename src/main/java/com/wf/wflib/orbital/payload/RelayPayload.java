@@ -1,13 +1,13 @@
 package com.wf.wflib.orbital.payload;
 
 import com.wf.wflib.orbital.OrbitalConfig;
-import com.wf.wflib.orbital.SatPayload;
-import com.wf.wflib.orbital.SatVerb;
-import com.wf.wflib.orbital.Satellite;
-import com.wf.wflib.recon.Band;
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.detect.Plot;
-import com.wf.wflib.recon.track.Track;
+import com.wf.wflib.orbital.api.SatPayload;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
+import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.Plot;
+import com.wf.wflib.recon.api.Track;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;

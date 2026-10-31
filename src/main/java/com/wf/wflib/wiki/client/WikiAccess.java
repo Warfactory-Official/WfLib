@@ -1,11 +1,10 @@
 package com.wf.wflib.wiki.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.pda.Pda;
-import com.wf.wflib.pda.client.PdaClient;
-import com.wf.wflib.wiki.Article;
-import com.wf.wflib.wiki.Wiki;
+import com.wf.wflib.pda.api.Pda;
+import com.wf.wflib.pda.api.client.PdaClient;
+import com.wf.wflib.wiki.api.Article;
+import com.wf.wflib.wiki.api.Wiki;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -22,16 +21,15 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import org.lwjgl.glfw.GLFW;
+import com.wf.wflib.core.api.WFLib;
 
 /** Tutorial key (F1): item under the cursor / in hand -> its article, PDA pulled out and opened on it. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class WikiAccess {
     public static final KeyMapping OPEN = new KeyMapping("key.wflib.wiki_open", KeyConflictContext.UNIVERSAL,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F1, "key.categories.wflib");
@@ -39,18 +37,17 @@ public final class WikiAccess {
     private WikiAccess() {
     }
 
-    @SubscribeEvent
     public static void register(RegisterKeyMappingsEvent event) {
         event.register(OPEN);
     }
 
     @SubscribeEvent
-    static void tags(TagsUpdatedEvent event) {
+    public static void tags(TagsUpdatedEvent event) {
         Wiki.invalidateBindings();
     }
 
     @SubscribeEvent
-    static void tooltip(ItemTooltipEvent event) {
+    public static void tooltip(ItemTooltipEvent event) {
         if (Wiki.forStack(event.getItemStack()) == null) {
             return;
         }
@@ -61,7 +58,7 @@ public final class WikiAccess {
     }
 
     @SubscribeEvent
-    static void screenKey(ScreenEvent.KeyPressed.Pre event) {
+    public static void screenKey(ScreenEvent.KeyPressed.Pre event) {
         if (!OPEN.matches(event.getKeyCode(), event.getScanCode()) || event.getScreen().getFocused() instanceof EditBox) {
             return;
         }

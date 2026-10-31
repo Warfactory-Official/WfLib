@@ -138,7 +138,7 @@ public final class IrStock {
      * there is track: asking the graph, point by point along the surveyed line, is the difference
      * between a railway and a picture of one.</p>
      */
-    public static Coverage check(ServerLevel level, com.wf.wflib.rail.align.Centreline line, int floorY,
+    public static Coverage check(ServerLevel level, com.wf.wflib.rail.api.Centreline line, int floorY,
                                  double step) {
         return check(level, line, floorY, step, 0.0, line.length());
     }
@@ -151,7 +151,7 @@ public final class IrStock {
      * lays no track there, so counting those blocks against it reports a hole in a railway that is
      * exactly as it was meant to be built. See {@code TrackLines.leftToTheJunction}.</p>
      */
-    public static Coverage check(ServerLevel level, com.wf.wflib.rail.align.Centreline line, int floorY,
+    public static Coverage check(ServerLevel level, com.wf.wflib.rail.api.Centreline line, int floorY,
                                  double step, double from, double to) {
         World world = World.get(level);
         double spacing = Math.max(0.5, step);

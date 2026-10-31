@@ -12,6 +12,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import com.wf.wflib.probe.api.ProbeProviders;
 
 /** The server half of the data channel. */
 public final class ProbeSync {
@@ -41,7 +42,7 @@ public final class ProbeSync {
             if (entity == null || entity.distanceToSqr(player) > MAX_RANGE_SQR) {
                 return;
             }
-            ProbeRegistry.collectData(data, player, entity);
+            ProbeProviders.collectData(data, player, entity);
         } else {
             BlockPos pos = packet.pos();
             if (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > MAX_RANGE_SQR
@@ -50,7 +51,7 @@ public final class ProbeSync {
             }
             BlockState state = level.getBlockState(pos);
             BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
-            ProbeRegistry.collectData(data, player, level, pos, state, blockEntity);
+            ProbeProviders.collectData(data, player, level, pos, state, blockEntity);
         }
 
         if (data.isEmpty()) {

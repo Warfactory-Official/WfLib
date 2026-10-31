@@ -2,21 +2,27 @@ package com.wf.wflib.ui.json;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wf.wflib.ui.UiLayout;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.UiAction;
-import com.wf.wflib.ui.input.UiActions;
-import com.wf.wflib.ui.widget.Button;
-import com.wf.wflib.ui.widget.Flow;
-import com.wf.wflib.ui.widget.Place;
-import com.wf.wflib.ui.widget.Stack;
-import com.wf.wflib.ui.widget.Text;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.UiAction;
+import com.wf.wflib.ui.api.input.UiActions;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Item;
+import com.wf.wflib.ui.api.widget.SkinPart;
+import com.wf.wflib.ui.api.widget.Tooltip;
+import com.wf.wflib.ui.api.input.UiStack;
+import com.wf.wflib.ui.api.input.UiTooltip;
+import com.wf.wflib.ui.api.widget.Flow;
+import com.wf.wflib.ui.api.widget.Place;
+import com.wf.wflib.ui.api.widget.Stack;
+import com.wf.wflib.ui.api.widget.Text;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.ui.api.json.UiJsonException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -140,5 +146,39 @@ class UiExpanderTest {
         UiJsonException missing = assertThrows(UiJsonException.class, () -> layout("""
                 {"root": {"type": "button", "action": "test:absent"}}"""));
         assertTrue(missing.getMessage().startsWith("layout/root/action: no UI handler"), missing.getMessage());
+    }
+
+    @Test
+    void buttonHoverBorderDefaultsToItsBorder() {
+        UiActions.register(id("hb"), (UiAction) item -> { });
+        Button plain = (Button) root(layout("""
+                {"root": {"type": "button", "action": "test:hb", "border": "#ff606060", "border_width": 1.5}}"""));
+        assertEquals("#ff606060", plain.hoverBorder());
+        assertEquals(1.5F, plain.hoverBorderWidth());
+        Button swapped = (Button) root(layout("""
+                {"root": {"type": "button", "action": "test:hb", "border": "#ff606060",
+                          "hover_border": "#ffffdd55", "hover_border_width": 2}}"""));
+        assertEquals("#ffffdd55", swapped.hoverBorder());
+        assertEquals(2, swapped.hoverBorderWidth());
+    }
+
+    @Test
+    void tooltipItemAndSkinPartResolveHandlers() {
+        UiTooltip lines = item -> List.of();
+        UiStack stack = item -> null;
+        UiActions.register(id("tip"), lines);
+        UiActions.register(id("stack"), stack);
+        Tooltip tip = (Tooltip) root(layout("""
+                {"root": {"type": "tooltip", "lines": "test:tip",
+                          "child": {"type": "item", "stack": "test:stack", "size": 24, "decorations": true}}}"""));
+        assertEquals(lines, tip.lines());
+        Item item = (Item) unwrap(tip.child());
+        assertEquals(stack, item.stack());
+        assertEquals(24, item.size());
+        assertTrue(item.decorations());
+        SkinPart part = (SkinPart) root(layout("""
+                {"root": {"type": "skin_part", "part": "left_arm", "health": "0.5", "w": 8, "h": 24}}"""));
+        assertEquals(SkinPart.Part.LEFT_ARM, part.part());
+        assertEquals("-1", part.entity());
     }
 }

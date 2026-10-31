@@ -4,16 +4,16 @@ import com.warfactory.ultimateweight.api.IWeightCompatProvider;
 import com.warfactory.ultimateweight.api.WeightCompatRegistry;
 import com.warfactory.ultimateweight.core.WeightResolutionContext;
 import com.warfactory.ultimateweight.v1211.WeightViews1211;
-import com.wf.wflib.backpack.BackpackItem;
-import com.wf.wflib.backpack.BackpackSpec;
-import com.wf.wflib.backpack.Backpacks;
+import com.wf.wflib.backpack.api.BackpackItem;
+import com.wf.wflib.backpack.api.BackpackSpec;
+import com.wf.wflib.backpack.api.Backpacks;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.OptionalDouble;
 
 /**
  * Backpack unit weight = {@code emptyKg + contentWeight * sum(contents)}; priority above wfweight's nested provider
- * (100) and item providers (MineAssault 200). Worn slot counted as an inventory source.
+ * (100) and item providers (200). Worn slot counted as an inventory source.
  */
 public final class BackpackWeight implements IWeightCompatProvider {
     static final int PRIORITY = 300;
@@ -29,7 +29,7 @@ public final class BackpackWeight implements IWeightCompatProvider {
                 out.add(worn);
             }
         });
-        Backpacks.weigher = WeightViews1211::weightOf;
+        Backpacks.WEIGHER.set(com.wf.wflib.core.api.WFLib.MODID, WeightViews1211::weightOf);
     }
 
     @Override

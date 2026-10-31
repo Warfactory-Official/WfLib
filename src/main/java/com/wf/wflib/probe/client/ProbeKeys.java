@@ -1,16 +1,12 @@
 package com.wf.wflib.probe.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.wf.wflib.WFLib;
 import net.minecraft.client.KeyMapping;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 
 /** Two bindings, and only two. */
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class ProbeKeys {
 
     private static final String CATEGORY = "key.categories.wflib";

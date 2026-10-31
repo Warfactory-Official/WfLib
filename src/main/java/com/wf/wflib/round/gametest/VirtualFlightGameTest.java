@@ -1,21 +1,23 @@
 package com.wf.wflib.round.gametest;
 
 import com.mojang.authlib.GameProfile;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.StrikeContext;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.DeferredImpact;
+import com.wf.wflib.round.RoundConfig;
+import com.wf.wflib.damage.api.StrikeContext;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.DeferredImpact;
 import com.wf.wflib.round.DeferredImpacts;
-import com.wf.wflib.round.RoundEnd;
-import com.wf.wflib.round.RoundImpactEvent;
-import com.wf.wflib.round.RoundNetwork;
-import com.wf.wflib.round.Rounds;
+import com.wf.wflib.round.api.RoundEnd;
+import com.wf.wflib.round.api.event.RoundImpactEvent;
+import com.wf.wflib.round.RoundPacket;
+import com.wf.wflib.round.api.RoundEnded;
+import com.wf.wflib.round.api.RoundSpawn;
+import com.wf.wflib.round.api.Rounds;
 import com.wf.wflib.round.terrain.AsyncTerrainSource;
 import com.wf.wflib.round.terrain.SectionSolidity;
 import com.wf.wflib.round.terrain.SolidityDecoder;
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -50,7 +52,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.level.ChunkDataEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,12 +61,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Non-chunk-loading rounds over unloaded ground: on-disk terrain, deferred impacts, re-entry, fast-forward. Lanes run
  * -X (arena grid grows +X/+Z) at distinct far offsets; own batches (no other arenas' chunks, no stray players).
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class VirtualFlightGameTest {
@@ -77,51 +78,51 @@ public class VirtualFlightGameTest {
     /** Built in a chunk this far (+Z, chunks) from where it is planted: another region. */
     static final int BUILD_OFFSET = 128;
 
-    private static final ResourceLocation RECORDING_WARHEAD = WarheadRegistry.rl("test_virtual_recording");
+    private static final ResourceLocation RECORDING_WARHEAD = Warheads.rl("test_virtual_recording");
     private static final List<Vec3> DETONATIONS = new CopyOnWriteArrayList<>();
     private static final List<StrikeContext> STRIKES = new CopyOnWriteArrayList<>();
     private static final List<BlockHitResult> IMPACTS = new CopyOnWriteArrayList<>();
 
-    /** Detonation position + {@link com.wf.wflib.fx.FxMute} state, per preload test (lanes run concurrently). */
-    private static final ResourceLocation RECORD_BIG = WarheadRegistry.rl("test_virtual_record_big");
-    private static final ResourceLocation RECORD_SMALL = WarheadRegistry.rl("test_virtual_record_small");
+    /** Detonation position + {@link com.wf.wflib.explosion.api.FxMute} state, per preload test (lanes run concurrently). */
+    private static final ResourceLocation RECORD_BIG = Warheads.rl("test_virtual_record_big");
+    private static final ResourceLocation RECORD_SMALL = Warheads.rl("test_virtual_record_small");
     private static final List<Boolean> BIG_MUTED = new CopyOnWriteArrayList<>();
     private static final List<Boolean> SMALL_MUTED = new CopyOnWriteArrayList<>();
-    private static final ResourceLocation SHELL_BIG = KineticPresetRegistry.rl("test_virtual_shell_big");
-    private static final ResourceLocation SHELL_SMALL = KineticPresetRegistry.rl("test_virtual_shell_small");
+    private static final ResourceLocation SHELL_BIG = KineticPresets.rl("test_virtual_shell_big");
+    private static final ResourceLocation SHELL_SMALL = KineticPresets.rl("test_virtual_shell_small");
 
-    private static final ResourceLocation CROSSING = KineticPresetRegistry.rl("test_virtual_crossing");
-    private static final ResourceLocation SHELL = KineticPresetRegistry.rl("test_virtual_shell");
+    private static final ResourceLocation CROSSING = KineticPresets.rl("test_virtual_crossing");
+    private static final ResourceLocation SHELL = KineticPresets.rl("test_virtual_shell");
     /** Drag, quadratic drag, gravity, water: every term of the recurrence. */
-    private static final ResourceLocation DIVER = KineticPresetRegistry.rl("test_virtual_diver");
-    private static final ResourceLocation WATCHED = KineticPresetRegistry.rl("test_virtual_watched");
-    private static final ResourceLocation WATCHED_PEN = KineticPresetRegistry.rl("test_virtual_watched_pen");
+    private static final ResourceLocation DIVER = KineticPresets.rl("test_virtual_diver");
+    private static final ResourceLocation WATCHED = KineticPresets.rl("test_virtual_watched");
+    private static final ResourceLocation WATCHED_PEN = KineticPresets.rl("test_virtual_watched_pen");
     /** Planted-chunk regions off every lane and build row (lanes +0, builds +{@link #BUILD_OFFSET}), blocks +Z. */
     private static final int SIDE_ROW = 1024;
     /** Preload tests' rows, blocks +Z: wall chunks shared with a lane 40 blocks over => one test loads the other's. */
     private static final int PRELOAD_ROW = 3072;
 
-    static {
-        WarheadRegistry.register(RECORDING_WARHEAD, (source, pos) -> DETONATIONS.add(pos));
-        WarheadRegistry.register(RECORD_BIG, (source, pos) -> BIG_MUTED.add(com.wf.wflib.fx.FxMute.active()));
-        WarheadRegistry.register(RECORD_SMALL, (source, pos) -> SMALL_MUTED.add(com.wf.wflib.fx.FxMute.active()));
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(SHELL_BIG, null, RECORD_BIG).speed(12.0)
-                .drag(0.0).gravity(0.0).life(200).caliber(120.0).blast(Rounds.preloadBlast + 2.0, false)
+    public static void register() {
+        Warheads.register(RECORDING_WARHEAD, (source, pos) -> DETONATIONS.add(pos));
+        Warheads.register(RECORD_BIG, (source, pos) -> BIG_MUTED.add(com.wf.wflib.explosion.api.FxMute.active()));
+        Warheads.register(RECORD_SMALL, (source, pos) -> SMALL_MUTED.add(com.wf.wflib.explosion.api.FxMute.active()));
+        KineticPresets.registerItemless(KineticPreset.builder(SHELL_BIG, null, RECORD_BIG).speed(12.0)
+                .drag(0.0).gravity(0.0).life(200).caliber(120.0).blast(RoundConfig.snapshot().preloadBlast() + 2.0, false)
                 .noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(SHELL_SMALL, null, RECORD_SMALL).speed(12.0)
-                .drag(0.0).gravity(0.0).life(200).caliber(40.0).blast(Math.max(0.5, Rounds.preloadBlast - 2.0), false)
+        KineticPresets.registerItemless(KineticPreset.builder(SHELL_SMALL, null, RECORD_SMALL).speed(12.0)
+                .drag(0.0).gravity(0.0).life(200).caliber(40.0).blast(Math.max(0.5, RoundConfig.snapshot().preloadBlast() - 2.0), false)
                 .noChunkLoading().build());
-        ResourceLocation inert = WarheadRegistry.rl("inert");
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(CROSSING, null, inert).speed(12.0).drag(0.0)
+        ResourceLocation inert = Warheads.rl("inert");
+        KineticPresets.registerItemless(KineticPreset.builder(CROSSING, null, inert).speed(12.0).drag(0.0)
                 .gravity(0.0).life(200).impactDamage(5.0).caliber(7.62).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(SHELL, null, RECORDING_WARHEAD).speed(12.0)
+        KineticPresets.registerItemless(KineticPreset.builder(SHELL, null, RECORDING_WARHEAD).speed(12.0)
                 .drag(0.0).gravity(0.0).life(200).caliber(30.0).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(DIVER, null, inert).speed(2.0).drag(0.02)
+        KineticPresets.registerItemless(KineticPreset.builder(DIVER, null, inert).speed(2.0).drag(0.02)
                 .quadraticDrag(0.001).gravity(0.0245).water(0.3, 0.6).life(400).impactDamage(1.0).caliber(5.56)
                 .noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(WATCHED, null, inert).speed(40.0).drag(0.0)
+        KineticPresets.registerItemless(KineticPreset.builder(WATCHED, null, inert).speed(40.0).drag(0.0)
                 .gravity(0.0).life(40).impactDamage(1.0).caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(WATCHED_PEN, null, inert).speed(40.0).drag(0.0)
+        KineticPresets.registerItemless(KineticPreset.builder(WATCHED_PEN, null, inert).speed(40.0).drag(0.0)
                 .gravity(0.0).life(140).mass(0.004).energyDamage(0.01).caliber(5.56).blockPen(10.0f)
                 .noChunkLoading().build());
     }
@@ -142,7 +143,7 @@ public class VirtualFlightGameTest {
     }
 
     /** Loaded -> unloaded gap -> loaded: the target past the gap is struck (was: lost at the first unloaded chunk). */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 400)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 400)
     public static void aRoundCrossesUnloadedGroundToATargetBeyond(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 start = lane(helper, 200.0);
@@ -163,7 +164,7 @@ public class VirtualFlightGameTest {
                     husk[0].setNoGravity(true);
                     level.addFreshEntity(husk[0]);
                     STRIKES.clear();
-                    key[0] = Rounds.launch(level, KineticPresetRegistry.get(CROSSING), start,
+                    key[0] = Rounds.launch(level, KineticPresets.get(CROSSING), start,
                             new Vec3(-12.0, 0.0, 0.0), null, null);
                 })
                 .thenWaitUntil(() -> helper.assertTrue(STRIKES.stream()
@@ -181,7 +182,7 @@ public class VirtualFlightGameTest {
      * Segment ending in an undecoded column (region file present => async read): the target short of it is struck on
      * the launch step (was: whole step waited for the far column).
      */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
     public static void aTargetShortOfUndecodedGroundIsStruckAtOnce(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -205,7 +206,7 @@ public class VirtualFlightGameTest {
                     husk.setNoGravity(true);
                     level.addFreshEntity(husk);
                     STRIKES.clear();
-                    long key = Rounds.launch(level, KineticPresetRegistry.get(CROSSING), start, velocity, null, null);
+                    long key = Rounds.launch(level, KineticPresets.get(CROSSING), start, velocity, null, null);
                     try {
                         Rounds.step(level, key);
                         helper.assertTrue(terrain.peek(far.x, far.z) == null, "setup: far column decoded");
@@ -224,7 +225,7 @@ public class VirtualFlightGameTest {
      * Wall on disk in an unloaded chunk: the round stops on it without loading it; the warhead goes off once the chunk
      * loads, not before.
      */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
     public static void anImpactOnUnloadedGroundWaitsForItsChunk(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 start = lane(helper, 180.0);
@@ -246,7 +247,7 @@ public class VirtualFlightGameTest {
                     plant(level, build, chunk);
                     ForcedChunks.set(level, build.x, build.z, false);
                     DETONATIONS.clear();
-                    key[0] = Rounds.launch(level, KineticPresetRegistry.get(SHELL), start,
+                    key[0] = Rounds.launch(level, KineticPresets.get(SHELL), start,
                             new Vec3(-12.0, 0.0, 0.0), null, null);
                 })
                 .thenWaitUntil(() -> helper.assertTrue(Rounds.position(level, key[0]) == null, "still flying at "
@@ -274,7 +275,7 @@ public class VirtualFlightGameTest {
     }
 
     /** Blast >= preload size on unloaded ground: its chunk is loaded for it and it goes off live, nothing owed. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
     public static void aLargeBlastOnUnloadedGroundLoadsItsChunk(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 start = lane(helper, 180.0).add(0.0, 0.0, PRELOAD_ROW);
@@ -285,7 +286,7 @@ public class VirtualFlightGameTest {
         plantWall(helper, level, wall, chunk)
                 .thenExecute(() -> {
                     BIG_MUTED.clear();
-                    key[0] = Rounds.launch(level, KineticPresetRegistry.get(SHELL_BIG), start,
+                    key[0] = Rounds.launch(level, KineticPresets.get(SHELL_BIG), start,
                             new Vec3(-12.0, 0.0, 0.0), null, null);
                 })
                 .thenWaitUntil(() -> helper.assertTrue(Rounds.position(level, key[0]) == null, "still flying at "
@@ -298,7 +299,7 @@ public class VirtualFlightGameTest {
     }
 
     /** Blast under preload size: owed to the chunk, announced (FX sent at impact), applied muted on load. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
     public static void aSmallBlastOnUnloadedGroundIsAnnouncedThenAppliedMuted(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 start = lane(helper, 180.0).add(0.0, 0.0, PRELOAD_ROW + 256);
@@ -309,7 +310,7 @@ public class VirtualFlightGameTest {
         plantWall(helper, level, wall, chunk)
                 .thenExecute(() -> {
                     SMALL_MUTED.clear();
-                    key[0] = Rounds.launch(level, KineticPresetRegistry.get(SHELL_SMALL), start,
+                    key[0] = Rounds.launch(level, KineticPresets.get(SHELL_SMALL), start,
                             new Vec3(-12.0, 0.0, 0.0), null, null);
                 })
                 .thenWaitUntil(() -> helper.assertTrue(Rounds.position(level, key[0]) == null, "still flying at "
@@ -353,7 +354,7 @@ public class VirtualFlightGameTest {
      * Same launch into a water pool on a slab floor, once from disk and once loaded (same chunk, same coordinates):
      * every step's state and the hit bit-for-bit equal.
      */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
     public static void theRecurrenceOverDiskTerrainIsTheLoadedOne(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -364,7 +365,7 @@ public class VirtualFlightGameTest {
         int floor = 150;
         Vec3 start = new Vec3(x0 + 4.3, floor + 25.7, z0 + 4.1);
         Vec3 velocity = new Vec3(0.21, -1.7, 0.13);
-        KineticPreset diver = KineticPresetRegistry.get(DIVER);
+        KineticPreset diver = KineticPresets.get(DIVER);
         List<double[]> diskRun = new ArrayList<>();
         DeferredImpact[] diskHit = new DeferredImpact[1];
         helper.startSequence()
@@ -419,17 +420,17 @@ public class VirtualFlightGameTest {
      * Two rounds over unloaded ground: one with a player near its launch point steps once a tick, one without runs
      * ahead; the watched round's end reaches that player from past the audience range.
      */
-    @GameTest(template = TEMPLATE, batch = WATCH_BATCH, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = WATCH_BATCH, timeoutTicks = 200)
     public static void aWatchedRoundIsNeverFastForwarded(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 spot = lane(helper, 200.0);
         Vec3 watchedStart = spot.add(-400.0, 0.0, 0.0);
         Vec3 aloneStart = spot.add(-400.0, 0.0, 3000.0);
         Vec3 v = new Vec3(-40.0, 0.0, 0.0);
-        KineticPreset preset = KineticPresetRegistry.get(WATCHED);
+        KineticPreset preset = KineticPresets.get(WATCHED);
         ServerPlayer watcher = new ServerPlayer(level.getServer(), level,
                 new GameProfile(UUID.randomUUID(), "wflib_watcher"), ClientInformation.createDefault());
-        List<RoundNetwork.RoundPacket> packets = capture(level, watcher);
+        List<RoundPacket> packets = capture(level, watcher);
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
         watcher.moveTo(o.getX() + 0.5, o.getY() + 2.0, o.getZ() + 0.5, 0.0F, 0.0F);
         long[] key = new long[2];
@@ -465,10 +466,10 @@ public class VirtualFlightGameTest {
                 .thenExecute(() -> {
                     watcher.discard();
                     boolean spawned = packets.stream().anyMatch(p -> p.spawns().stream().anyMatch(s -> s.key() == key[0]));
-                    RoundNetwork.End end = packets.stream().flatMap(p -> p.ends().stream())
+                    RoundEnded end = packets.stream().flatMap(p -> p.ends().stream())
                             .filter(e -> e.key() == key[0]).findFirst().orElse(null);
                     double gone = end == null ? Double.NaN : Math.abs(end.x() - watcher.getX());
-                    helper.assertTrue(spawned && end != null && end.reason() == RoundEnd.EXPIRED && gone > com.wf.wflib.config.ViewRange.blocks,
+                    helper.assertTrue(spawned && end != null && end.reason() == RoundEnd.EXPIRED && gone > com.wf.wflib.core.api.ViewRange.blocks(),
                             "watcher: spawn " + spawned + ", end " + end + " at " + gone + " blocks");
                 })
                 .thenSucceed();
@@ -478,7 +479,7 @@ public class VirtualFlightGameTest {
      * Column cached from the old save, then the chunk saved anew (event + IO worker write, as {@code ChunkMap.save}):
      * the round stops on the new wall.
      */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 2000)
     public static void aSaveReplacesTheCachedColumn(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -508,7 +509,7 @@ public class VirtualFlightGameTest {
                 })
                 .thenIdle(1)
                 .thenWaitUntil(() -> helper.assertTrue(Rounds.prefetch(level, start, wall.getCenter()), "decoding"))
-                .thenExecute(() -> key[0] = Rounds.launch(level, KineticPresetRegistry.get(CROSSING), start,
+                .thenExecute(() -> key[0] = Rounds.launch(level, KineticPresets.get(CROSSING), start,
                         new Vec3(-12.0, 0.0, 0.0), null, null))
                 .thenWaitUntil(() -> helper.assertTrue(Rounds.position(level, key[0]) == null, "still flying at "
                         + Rounds.position(level, key[0])))
@@ -528,7 +529,7 @@ public class VirtualFlightGameTest {
     }
 
     /** Slot holding another chunk's NBT (sector reuse): not cached as air; the retry reads the rewritten slot. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 600)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 600)
     public static void aFailedReadIsRetriedNotFlownAsAir(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -557,7 +558,7 @@ public class VirtualFlightGameTest {
     }
 
     /** Every column of a region with a file looked up 11 times in one tick (queue overflows): one stat. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 600)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 600)
     public static void aFullQueueDoesNotStatPerLookup(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -591,7 +592,7 @@ public class VirtualFlightGameTest {
      * Air columns (ungenerated chunks of a region with a file; no region file) kept apart: 2x the LRU of them never
      * evicts a decoded wall column.
      */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 1200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 1200)
     public static void airColumnsDoNotEvictTerrain(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -636,10 +637,10 @@ public class VirtualFlightGameTest {
     }
 
     /** Falling below the build range by {@link Rounds#VOID_DEPTH}: expired; rising or above that: flies on. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void aRoundFallenBelowTheWorldExpires(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
-        KineticPreset preset = KineticPresetRegistry.get(CROSSING);
+        KineticPreset preset = KineticPresets.get(CROSSING);
         double deep = level.getMinBuildHeight() - Rounds.VOID_DEPTH - 6.0;
         helper.startSequence()
                 .thenExecute(() -> {
@@ -662,7 +663,7 @@ public class VirtualFlightGameTest {
      * Section of partial blocks (farmland, slab, snow, path): every voxel's state kept, byte-per-voxel at most; 16
      * slabs in the next: sparse.
      */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 400)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 400)
     public static void aPartialSectionDecodesCompactly(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
@@ -722,7 +723,7 @@ public class VirtualFlightGameTest {
      * Watched round pierces a plank on disk past 1024 of its watcher: still 1 step/tick after the resync, and the
      * pierce, resync and end reach the watcher.
      */
-    @GameTest(template = TEMPLATE, batch = WATCH_BATCH, timeoutTicks = 300)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = WATCH_BATCH, timeoutTicks = 300)
     public static void aResyncFarFromTheWatcherKeepsIt(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 spot = lane(helper, 200.0);
@@ -731,10 +732,10 @@ public class VirtualFlightGameTest {
         ChunkPos chunk = new ChunkPos(plank);
         ChunkPos build = new ChunkPos(chunk.x, chunk.z + BUILD_OFFSET);
         Vec3 v = new Vec3(-40.0, 0.0, 0.0);
-        KineticPreset preset = KineticPresetRegistry.get(WATCHED_PEN);
+        KineticPreset preset = KineticPresets.get(WATCHED_PEN);
         ServerPlayer watcher = new ServerPlayer(level.getServer(), level,
                 new GameProfile(UUID.randomUUID(), "wflib_pen_watcher"), ClientInformation.createDefault());
-        List<RoundNetwork.RoundPacket> packets = capture(level, watcher);
+        List<RoundPacket> packets = capture(level, watcher);
         BlockPos o = helper.absolutePos(BlockPos.ZERO);
         watcher.moveTo(o.getX() + 0.5, o.getY() + 2.0, o.getZ() + 0.5, 0.0F, 0.0F);
         long[] key = new long[1];
@@ -886,21 +887,21 @@ public class VirtualFlightGameTest {
     }
 
     /** Listener with the rounds channel that keeps what is sent. */
-    private static List<RoundNetwork.RoundPacket> capture(ServerLevel level, ServerPlayer player) {
-        List<RoundNetwork.RoundPacket> out = new CopyOnWriteArrayList<>();
+    private static List<RoundPacket> capture(ServerLevel level, ServerPlayer player) {
+        List<RoundPacket> out = new CopyOnWriteArrayList<>();
         new ServerGamePacketListenerImpl(level.getServer(), new Connection(PacketFlow.SERVERBOUND), player,
                 CommonListenerCookie.createInitial(player.getGameProfile(), false)) {
             @Override
             public void send(Packet<?> packet, @Nullable PacketSendListener listener) {
                 if (packet instanceof ClientboundCustomPayloadPacket custom
-                        && custom.payload() instanceof RoundNetwork.RoundPacket rounds) {
+                        && custom.payload() instanceof RoundPacket rounds) {
                     out.add(rounds);
                 }
             }
 
             @Override
             public boolean hasChannel(ResourceLocation payloadId) {
-                return RoundNetwork.RoundPacket.TYPE.id().equals(payloadId);
+                return RoundPacket.TYPE.id().equals(payloadId);
             }
         };
         return out;

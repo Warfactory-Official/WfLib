@@ -1,27 +1,25 @@
 package com.wf.wflib.drone.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.drone.DroneEntity;
-import com.wf.wflib.drone.DroneSelfTest;
-import com.wf.wflib.drone.sim.SimDrone;
-import com.wf.wflib.drone.DroneState;
+import com.wf.wflib.drone.api.DroneEntity;
+import com.wf.wflib.drone.api.DroneSelfTest;
+import com.wf.wflib.drone.api.SimDrone;
+import com.wf.wflib.drone.api.DroneState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.core.api.WFLib;
 
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class DroneGameTest {
     private static final String TEMPLATE = "empty";
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void selfTestPasses(GameTestHelper helper) {
         List<String> failed = DroneSelfTest.runAll().stream().filter(r -> !r.passed())
                 .map(r -> r.name() + ": " + r.detail()).toList();
@@ -29,7 +27,7 @@ public class DroneGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void simRoundTripKeepsSide(GameTestHelper helper) {
         BlockPos at = helper.absolutePos(new BlockPos(1, 2, 1));
         DroneEntity drone = new DroneEntity(helper.getLevel(), Vec3.atCenterOf(at.above(3)));
@@ -47,7 +45,7 @@ public class DroneGameTest {
     }
 
     /** Remote ride: body parked at the anchor; W + jump fly the drone along the look and up; release => body back. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aPilotFliesTheDroneFromTheirAnchor(GameTestHelper helper) {
         DroneEntity drone = new DroneEntity(helper.getLevel(), helper.absoluteVec(new Vec3(1.5, 30, 1.5)));
         helper.getLevel().addFreshEntity(drone);

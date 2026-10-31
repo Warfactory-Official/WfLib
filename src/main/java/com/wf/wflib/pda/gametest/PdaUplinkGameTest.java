@@ -1,11 +1,11 @@
 package com.wf.wflib.pda.gametest;
 
 import com.mojang.authlib.GameProfile;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.pda.uplink.Uplink;
-import com.wf.wflib.recon.OwnerSource;
-import com.wf.wflib.recon.ReconNet;
-import com.wf.wflib.recon.ReconOwners;
+import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.pda.api.Uplink;
+import com.wf.wflib.recon.api.OwnerSource;
+import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.ReconOwners;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -13,32 +13,23 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import com.wf.wflib.core.api.WFLib;
 
 /** PDA uplink: own net's online node within its link range => ground link; other nets' nodes never. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class PdaUplinkGameTest {
     private static final String TEMPLATE = "empty";
     private static final double LINK_RANGE = 64;
     /** Player name `pda_<hex team>_<n>` => side = that team. Tests use their own team: arenas share a world. */
-    private static boolean sourced;
 
-    static synchronized void source() {
-        if (sourced) {
-            return;
-        }
-        sourced = true;
-        ReconOwners.register(new OwnerSource() {
-            @Override
-            public int priority() {
-                return 100;
-            }
-
+    /** Mod construction (R16): the registry is frozen by the time a test runs. */
+    public static void register() {
+        ReconOwners.SOURCES.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_gametest"), 100,
+                new OwnerSource() {
             @Override
             @Nullable
             public UUID owningAt(ServerLevel level, BlockPos pos) {
@@ -57,19 +48,18 @@ public class PdaUplinkGameTest {
         });
     }
 
-    static FakePlayer player(GameTestHelper helper, int team, int n, BlockPos at) {
-        source();
+    public static FakePlayer player(GameTestHelper helper, int team, int n, BlockPos at) {
         FakePlayer player = FakePlayerFactory.get(helper.getLevel(),
                 new GameProfile(new UUID(0x9DA1_0000L, team * 16L + n), "pda_" + Integer.toHexString(team) + "_" + n));
         player.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
-        return player;
+       return player;
     }
 
     private static long net(int team) {
         return ReconNet.netId(new UUID(0x9DA0_0000L, team));
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 60)
     public static void groundLinkOnlyWithinTheNodesRange(GameTestHelper helper) {
         int team = 1;
         BlockPos hub = helper.absolutePos(new BlockPos(1, 2, 1));
@@ -99,7 +89,7 @@ public class PdaUplinkGameTest {
                 .thenSucceed();
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 40)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 40)
     public static void anotherNetsNodeIsNoLink(GameTestHelper helper) {
         BlockPos hub = helper.absolutePos(new BlockPos(1, 2, 1));
         ServerLevel level = helper.getLevel();

@@ -1,53 +1,76 @@
 package com.wf.wflib.ui;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ui.widget.Align;
-import com.wf.wflib.ui.widget.Bar;
-import com.wf.wflib.ui.widget.Box;
-import com.wf.wflib.ui.widget.Image;
-import com.wf.wflib.ui.widget.Ladder;
-import com.wf.wflib.ui.widget.Point;
-import com.wf.wflib.ui.widget.Sized;
-import com.wf.wflib.ui.widget.Tape;
+import com.wf.wflib.ui.api.widget.Align;
+import com.wf.wflib.ui.api.widget.Bar;
+import com.wf.wflib.ui.api.widget.Box;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Item;
+import com.wf.wflib.ui.api.widget.SkinPart;
+import com.wf.wflib.ui.api.widget.Tooltip;
+import com.wf.wflib.ui.api.UiScreen;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import java.util.List;
+import com.wf.wflib.ui.api.widget.Image;
+import com.wf.wflib.ui.api.widget.Ladder;
+import com.wf.wflib.ui.api.widget.Point;
+import com.wf.wflib.ui.api.widget.Sized;
+import com.wf.wflib.ui.api.widget.Tape;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiContext;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.UiHud;
+import com.wf.wflib.ui.api.UiInstance;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.UiSurfaces;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.core.api.WFLib;
 
-import static com.wf.wflib.ui.Ui.*;
+import static com.wf.wflib.ui.api.Ui.*;
 
-/** {@code /wfui demo}: every built-in widget on the HUD; {@code /wfui stats}: {@link UiStats}. */
+/**
+ * {@code /wfui demo}: every built-in widget on the HUD; {@code /wfui screen}: screen-only widgets (tooltip, item,
+ * skin part, hover border) in a {@link UiScreen}; {@code /wfui stats}: {@link UiStats}.
+ */
 public final class UiDebug {
     private static UiInstance demo;
     private static UiInstance surfaceView;
     private static boolean surface;
     private static boolean shown;
-    private static boolean registered;
+    private static int screenClicks;
 
     private UiDebug() {
+    }
+
+    public static void register() {
+        UiHud.addSource(UiHud.Layer.MAIN, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "ui_debug"), 0,
+                UiDebug::collect);
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         return Commands.literal("wfui")
                 .then(Commands.literal("demo").executes(ctx -> {
                     shown = !shown;
-                    if (!registered) {
-                        registered = true;
-                        UiHud.addSource(UiHud.Layer.MAIN, UiDebug::collect);
-                    }
                     ctx.getSource().sendSuccess(() -> Component.literal("wfui demo " + (shown ? "on" : "off")), false);
                     return 1;
                 }))
                 .then(Commands.literal("surface").executes(ctx -> {
                     surface = !surface;
-                    if (!registered) {
-                        registered = true;
-                        UiHud.addSource(UiHud.Layer.MAIN, UiDebug::collect);
-                    }
                     ctx.getSource().sendSuccess(() -> Component.literal("wfui surface " + (surface ? "on" : "off")), false);
+                    return 1;
+                }))
+                .then(Commands.literal("screen").executes(ctx -> {
+                    openScreen();
                     return 1;
                 }))
                 .then(Commands.literal("stats").executes(ctx -> stats(ctx.getSource(), false))
@@ -95,6 +118,34 @@ public final class UiDebug {
                 }
             };
         }
+    }
+
+    private static final ItemStack SWORD = new ItemStack(Items.DIAMOND_SWORD);
+    private static final ItemStack APPLES = new ItemStack(Items.APPLE, 12);
+    private static final List<Component> TIP = List.of(Component.literal("Button"),
+            Component.literal("hover border #ffdd55, 2").withStyle(ChatFormatting.GRAY));
+
+    public static void openScreen() {
+        Minecraft.getInstance().tell(() -> UiScreen.open(screenLayout(), UiContext.EMPTY,
+                Component.literal("wfui screen"), UiScreen.Options.DEFAULT));
+    }
+
+    static UiLayout screenLayout() {
+        String w = "#ffffff";
+        return layout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "demo_screen"), stack(
+                rect(240, 120, "#e0101014"),
+                at("8", "6", text("wfui screen", w)),
+                at("8", "22", row(8, Align.CENTER,
+                        new Tooltip(item -> TIP, new Button(item -> screenClicks++, "true", "#ff303030", "#ff404040",
+                                "#ff202020", "#ff606060", 1, 6, 6, 4, 0, 0, Point.CENTER, text("Button", w),
+                                "#ffffdd55", 2)),
+                        new Item(item -> SWORD, 16, false),
+                        new Item(item -> APPLES, 24, true))),
+                at("8", "56", row(6, Align.END,
+                        new SkinPart(SkinPart.Part.HEAD, "-1", "1", 24, 24),
+                        new SkinPart(SkinPart.Part.TORSO, "-1", "0.5", 16, 24),
+                        new SkinPart(SkinPart.Part.RIGHT_ARM, "-1", "0.1", 8, 24),
+                        new SkinPart(SkinPart.Part.LEFT_LEG, "-1", "0", 8, 24))))).absolute().withDesignSize(240, 120);
     }
 
     static UiLayout demoLayout() {

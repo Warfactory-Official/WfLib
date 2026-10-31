@@ -2,13 +2,12 @@ package com.wf.wflib.grenade.client;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.audio.AudioCategory;
-import com.wf.wflib.audio.SoundSpec;
-import com.wf.wflib.audio.client.Cue;
-import com.wf.wflib.client.fx.WFLights;
+import com.wf.wflib.audio.api.AudioCategory;
+import com.wf.wflib.audio.api.SoundSpec;
+import com.wf.wflib.audio.api.client.Cue;
+import com.wf.wflib.fx.api.WFLights;
 import com.wf.wflib.grenade.FlashPacket;
-import com.wf.wflib.grenade.Grenades;
+import com.wf.wflib.grenade.api.Grenades;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.PostChain;
@@ -20,6 +19,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Flashbang on the receiving client. Post chain after the hand, before the GUI: veil + dazzle ({@code White}),

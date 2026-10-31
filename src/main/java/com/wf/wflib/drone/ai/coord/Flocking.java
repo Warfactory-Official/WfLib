@@ -1,13 +1,16 @@
 package com.wf.wflib.drone.ai.coord;
 
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.SquadView;
 import com.wf.wflib.drone.ai.Steering;
 import com.wf.wflib.drone.ai.state.Tuning;
-import com.wf.wflib.drone.squad.Formation;
+import com.wf.wflib.drone.api.Formation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.drone.api.CoordinationModel;
+import com.wf.wflib.drone.api.SquadAnchor;
+import com.wf.wflib.drone.api.SquadCommand;
 
 /** No slots at all: the squad is a flock, and its shape is whatever falls out of three rules. */
 public final class Flocking implements CoordinationModel {

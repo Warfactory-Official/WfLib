@@ -1,10 +1,9 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.hazard.ContaminationUtil;
-import com.wf.wflib.hazard.LivingHazardProps;
-import com.wf.wflib.aef.nuke.MiniNuke;
-import com.wf.wflib.entity.EntityNukeTorex;
+import com.wf.wflib.hazard.api.ContaminationUtil;
+import com.wf.wflib.hazard.api.LivingHazardProps;
+import com.wf.wflib.explosion.api.MiniNuke;
+import com.wf.wflib.explosion.api.EntityNukeTorex;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -24,7 +23,6 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.nio.ByteBuffer;
@@ -32,13 +30,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import com.wf.wflib.radiation.api.RadiationConfig;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * NTM NEXT ChunkRadiation / Emission / ConstantSource / RadShieldBlock / RadAbsorber / AreaRadiation server
  * tests, one {@link RadiationLane} each. NTM blocks -> vanilla stand-ins marked here and unmarked on release:
  * fallout (0.04, 100), schrabidium ore (0.005, 0), absorbers (-0.25 / -1000, 0), shield blocks -> resistant.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class RadiationFieldGameTest {
 
@@ -69,7 +68,7 @@ public class RadiationFieldGameTest {
 
     // ------------------------------------------------------------------ emission
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
     public static void emissionShippedPathEmitsAndAbsorbsOnTheSameRule(GameTestHelper helper) {
         double seed = 500.0D;
         double saturation = 100.0D;
@@ -110,7 +109,7 @@ public class RadiationFieldGameTest {
 
     // ------------------------------------------------------------------ nukes
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
     public static void falloutDrivesTheSurfacePocketAndDecays(GameTestHelper helper) {
         double peak = 200.0D;
         RadiationLane lane = new RadiationLane(helper, 16);
@@ -118,13 +117,13 @@ public class RadiationFieldGameTest {
             ServerLevel level = lane.level;
             BlockPos centre = lane.pos(8, 0, 8);
             long key = ChunkPos.asLong(centre);
-            Fallout.deposit(level, centre.getX(), centre.getZ(), 12.0D, peak);
-            Fallout fallout = Fallout.get(level);
+            FalloutData.deposit(level, centre.getX(), centre.getZ(), 12.0D, peak);
+            FalloutData fallout = FalloutData.get(level);
             long now = level.getGameTime();
             helper.assertTrue(Math.abs(fallout.strengthAt(key, now) - peak) < 1.0e-6D, "ground zero must take the peak");
             helper.assertTrue(fallout.strengthAt(ChunkPos.asLong((centre.getX() >> 4) + 1, centre.getZ() >> 4), now) == 0D,
                     "a chunk centre past the range must take nothing");
-            long halfLife = (long) (RadiationConfig.falloutHalfLifeSeconds * 20.0D);
+            long halfLife = (long) (RadiationConfig.get().falloutHalfLifeSeconds() * 20.0D);
             helper.assertTrue(Math.abs(fallout.strengthAt(key, now + halfLife) - peak / 2) < 1.0e-6D,
                     "one half-life must halve the source");
             BlockPos surface = new BlockPos(centre.getX(),
@@ -134,7 +133,7 @@ public class RadiationFieldGameTest {
                 try {
                     rad = RadiationSystemNT.getRadForCoord(level, surface);
                 } finally {
-                    Fallout.clear(level);
+                    FalloutData.clear(level);
                 }
                 helper.assertTrue(rad > peak / 4, "a loaded fallout chunk must charge its surface pocket; got " + rad);
                 lane.release();
@@ -143,7 +142,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 200)
     public static void miniNukeSeedsTheField(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 17);
         lane.run(() -> {
@@ -170,7 +169,7 @@ public class RadiationFieldGameTest {
 
     // ------------------------------------------------------------------ constant sources
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 260)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 260)
     public static void constantSourceFalloutEmitsWithoutBeingTicked(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 1);
         lane.run(() -> {
@@ -201,7 +200,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 760)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 760)
     public static void constantSourceRemovingTheBlockStopsTheEmission(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 2);
         lane.run(() -> {
@@ -235,7 +234,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 700)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 700)
     public static void constantSourceConstantAddClimbsWithoutATarget(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 3);
         lane.run(() -> {
@@ -267,7 +266,7 @@ public class RadiationFieldGameTest {
 
     // ------------------------------------------------------------------ chunk field
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationSetAndReadChunkRad(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 4);
         lane.run(() -> {
@@ -285,7 +284,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationDiffusesToAdjacentSection(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 5);
         lane.run(() -> {
@@ -306,7 +305,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationDiffusesAcrossChunkBoundary(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 6);
         lane.run(() -> {
@@ -332,7 +331,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationGlobalPaletteResistantPlaneSplitsSection(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 7);
         lane.run(() -> {
@@ -402,7 +401,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 1200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 1200)
     public static void chunkRadiationDecaysOverTime(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 10);
         lane.run(() -> {
@@ -427,7 +426,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationEntityAbsorbsChunkRad(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 11);
         lane.run(() -> {
@@ -456,7 +455,7 @@ public class RadiationFieldGameTest {
 
     // ------------------------------------------------------------------ persistence
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationPersistenceFmt8RoundTripAndStrictRejection(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 8);
         lane.run(() -> {
@@ -531,7 +530,7 @@ public class RadiationFieldGameTest {
         }
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void chunkRadiationPersistenceRemapsAcrossTopologyChange(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 9);
         lane.run(() -> {
@@ -625,7 +624,7 @@ public class RadiationFieldGameTest {
     // ------------------------------------------------------------------ shielding
 
     /** NTM ported shield roster -> one resistant block + a state-filtered "door" (closed seals, open does not). */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void radShieldBlocksRefuseTheField(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 12);
         lane.run(() -> {
@@ -667,7 +666,7 @@ public class RadiationFieldGameTest {
     }
 
     /** NTM reinforced_ducrete plane; set through the level, so the setBlockState hook must rebuild the section. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void radShieldPlaneSplitsASection(GameTestHelper helper) {
         RadiationLane lane = new RadiationLane(helper, 13);
         lane.run(() -> {
@@ -714,7 +713,7 @@ public class RadiationFieldGameTest {
     // ------------------------------------------------------------------ absorbers
 
     /** NTM rad_absorber = constant source -0.25/tick: 2.5 per 10-tick cycle. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 300)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 300)
     public static void radAbsorberBaseTierDrainsItsOwnRate(GameTestHelper helper) {
         double baseRate = 2.5D;
         int cycle = 10;
@@ -761,7 +760,7 @@ public class RadiationFieldGameTest {
     }
 
     /** NTM rad_absorber_pink = constant source -1000/tick. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 140)
     public static void radAbsorberEliteTierEmptiesWhatTheBaseTierCannot(GameTestHelper helper) {
         double seed = 500D;
         RadiationLane lane = new RadiationLane(helper, 15);
@@ -822,7 +821,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void areaRadiationCloseAccumulatesMoreThanFar(GameTestHelper helper) {
         areaRow(helper, 16, new BlockPos[]{new BlockPos(3, 2, 1), new BlockPos(8, 2, 1)}, pigs -> {
             Pig near = pigs[0];
@@ -836,7 +835,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void areaRadiationWallAttenuatesDose(GameTestHelper helper) {
         areaRow(helper, 17, new BlockPos[]{new BlockPos(1, 2, 1), new BlockPos(9, 2, 1)}, pigs -> {
             Pig unshielded = pigs[0];
@@ -860,7 +859,7 @@ public class RadiationFieldGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void areaRadiationOutOfRangeAccumulatesNothing(GameTestHelper helper) {
         areaRow(helper, 18, new BlockPos[]{new BlockPos(2, 2, 1), new BlockPos(2, 2, 8)}, pigs -> {
             Pig inRange = pigs[0];

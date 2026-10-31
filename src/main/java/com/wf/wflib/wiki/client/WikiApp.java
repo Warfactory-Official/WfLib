@@ -1,21 +1,20 @@
 package com.wf.wflib.wiki.client;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.pda.client.PdaApp;
-import com.wf.wflib.pda.client.PdaApps;
-import com.wf.wflib.pda.client.PdaShell;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.UiEval;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.Interactive;
-import com.wf.wflib.ui.input.TextLine;
-import com.wf.wflib.ui.input.UiInput;
-import com.wf.wflib.ui.widget.TextField;
-import com.wf.wflib.wiki.Article;
+import com.wf.wflib.pda.api.client.PdaApp;
+import com.wf.wflib.pda.api.client.PdaApps;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.Interactive;
+import com.wf.wflib.ui.api.input.TextLine;
+import com.wf.wflib.ui.api.input.UiInput;
+import com.wf.wflib.ui.api.widget.TextField;
+import com.wf.wflib.wiki.api.Article;
 import com.wf.wflib.wiki.ArticleLayout;
-import com.wf.wflib.wiki.Wiki;
+import com.wf.wflib.wiki.api.Wiki;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
@@ -24,6 +23,7 @@ import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Searchable article list and markdown reader over {@link Wiki}. State is static (one PDA screen): current article
@@ -81,7 +81,7 @@ public final class WikiApp implements PdaApp {
     }
 
     public static void register() {
-        PdaApps.register(instance);
+        PdaApps.register(instance, 880);
     }
 
     public static WikiApp instance() {
@@ -297,7 +297,7 @@ public final class WikiApp implements PdaApp {
                 canvas.text(row.summary, left + 24, ry + 12, DIM, false);
                 if ((!row.title.equals(a.title()) || !row.summary.equals(a.summary())) && input != null
                         && input.over(left + 24, ry, left + rowW, ry + ROW))
-                    com.wf.wflib.pda.client.theme.PdaPopup.show("ARTICLE", "", a.title() + "\n" + a.summary());
+                    com.wf.wflib.pda.api.client.PdaPopup.show("ARTICLE", "", a.title() + "\n" + a.summary());
                 if (input != null) {
                     input.hit(left, ry, left + rowW, ry + ROW, RESULT, a);
                 }
@@ -336,7 +336,7 @@ public final class WikiApp implements PdaApp {
             bx += button(ev, bx, top, 16, "<", BACK_BUTTON, canBack) + 3;
             bx += button(ev, bx, top, 44, "INDEX", INDEX_BUTTON, true) + 6;
             canvas.pushClip(bx, top, left + inner, top + FIELD);
-            com.wf.wflib.pda.client.PdaText.line(ev, current.title(), bx, top + 3, left + inner - bx, ACCENT);
+            com.wf.wflib.pda.api.client.PdaText.line(ev, current.title(), bx, top + 3, left + inner - bx, ACCENT);
             canvas.popClip();
 
             float by = top + FIELD + 4;

@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.door.api.DoorType;
 
 /** The box of blocks a door fills, and how any one of them finds the core. */
 public final class DoorFrame {

@@ -1,23 +1,29 @@
 package com.wf.wflib.pda.client;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.Signals;
-import com.wf.wflib.ui.Subject;
-import com.wf.wflib.ui.UiEval;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.pda.api.client.PdaAlerts;
+import com.wf.wflib.pda.api.client.PdaApp;
+import com.wf.wflib.pda.api.client.PdaApps;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.pda.api.client.PdaText;
+import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.client.PdaTheme;
 
-import static com.wf.wflib.ui.Ui.at;
-import static com.wf.wflib.ui.Ui.list;
-import static com.wf.wflib.ui.Ui.stack;
-import static com.wf.wflib.ui.Ui.text;
-import static com.wf.wflib.ui.Ui.when;
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.list;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
+import static com.wf.wflib.ui.api.Ui.when;
 
 /** {@link PdaAlerts} history, newest first; badge = unread. */
-final class AlertsApp implements PdaApp {
+public final class AlertsApp implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "alerts");
     static final Subject<AlertsApp> APP = Subject.register("pda_alerts", AlertsApp.class, () -> AlertsApp.instance);
     static final Subject<PdaAlerts.Entry> ENTRY = Subject.register("pda_alert", PdaAlerts.Entry.class);
@@ -26,11 +32,11 @@ final class AlertsApp implements PdaApp {
     private AlertsApp() {
     }
 
-    static void register() {
+    public static void register() {
         Signals.num(APP, "count", a -> PdaAlerts.entries().size());
         Signals.items(APP, "entries", a -> PdaAlerts.entries(), ENTRY);
         Signals.text(ENTRY, "clock", 5, PdaAlerts.Entry::clock);
-        PdaApps.register(instance);
+        PdaApps.register(instance, 910);
     }
 
     @Override

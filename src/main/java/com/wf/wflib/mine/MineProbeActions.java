@@ -1,13 +1,14 @@
 package com.wf.wflib.mine;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.demolition.DetonatorItem;
-import com.wf.wflib.probe.ProbeActions;
+import com.wf.wflib.demolition.api.DetonatorItem;
+import com.wf.wflib.probe.api.ProbeActions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
+import com.wf.wflib.mine.api.MineEntity;
+import com.wf.wflib.core.api.WFLib;
 
 /** What the probe's mine actions actually do. */
 public final class MineProbeActions {

@@ -1,8 +1,8 @@
 package com.wf.wflib.artifact.client;
 
-import com.wf.wflib.client.view.ArmViewPose;
-import com.wf.wflib.client.view.ForearmTwist;
-import com.wf.wflib.client.view.PlayerArms;
+import com.wf.wflib.view.api.ArmViewPose;
+import com.wf.wflib.view.api.ForearmTwist;
+import com.wf.wflib.view.api.PlayerArms;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;

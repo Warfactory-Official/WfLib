@@ -1,10 +1,10 @@
 package com.wf.wflib.drone.ai.state;
 
-import com.wf.wflib.drone.DroneState;
-import com.wf.wflib.drone.ai.DroneAction;
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.DroneStateHandler;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DroneState;
+import com.wf.wflib.drone.api.DroneAction;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.DroneStateHandler;
+import com.wf.wflib.drone.api.SquadView;
 import com.wf.wflib.drone.ai.Steering;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -49,7 +49,7 @@ public final class TransitHandler implements DroneStateHandler {
 
     /** How far short of the lay point a minelayer breaks off cruise. */
     private static double minelayRunIn(DroneSnapshot self) {
-        com.wf.wflib.drone.MineLoad rack = self.mines();
+        com.wf.wflib.drone.api.MineLoad rack = self.mines();
         double halfLane = rack == null ? 0.0 : rack.laneLength() * 0.5;
         return Math.max(Tuning.PAYLOAD_RUN_IN, halfLane + LANE_ENTRY_MARGIN);
     }

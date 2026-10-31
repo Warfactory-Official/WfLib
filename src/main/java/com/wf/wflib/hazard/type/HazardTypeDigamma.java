@@ -1,8 +1,9 @@
 package com.wf.wflib.hazard.type;
 
-import com.wf.wflib.radiation.RadiationConfig;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
-import com.wf.wflib.hazard.ContaminationUtil;
+import com.wf.wflib.hazard.HazardConfig;
+import com.wf.wflib.radiation.api.RadiationConfig;
+import com.wf.wflib.hazard.api.IHazardModifier;
+import com.wf.wflib.hazard.api.ContaminationUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,12 +12,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 public class HazardTypeDigamma implements IHazardType {
 
     @Override
     public void onUpdate(LivingEntity target, double level, ItemStack stack) {
-        ContaminationUtil.applyDigammaData(target, (level / 20D) * RadiationConfig.hazardRate);
+        ContaminationUtil.applyDigammaData(target, (level / 20D) * HazardConfig.get().hazardRate());
     }
 
     @Override

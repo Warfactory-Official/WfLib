@@ -1,8 +1,9 @@
 package com.wf.wflib.hazard.type;
 
-import com.wf.wflib.radiation.RadiationConfig;
+import com.wf.wflib.hazard.HazardConfig;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import com.wf.wflib.hazard.HazardProtection;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
+import com.wf.wflib.hazard.api.IHazardModifier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 // 1.12.2: no 1.7 counterpart; zero rows deliberate (CE: GroovyScript only). CE nerve-agent filter arm dropped:
 // 1.7 ArmorRegistry:108 comments out its HazardClass.
@@ -20,7 +22,7 @@ public class HazardTypeToxic implements IHazardType {
 
     @Override
     public void onUpdate(LivingEntity target, double level, ItemStack stack) {
-        if (RadiationConfig.disableToxic) return;
+        if (HazardConfig.get().disableToxic()) return;
 
         boolean reacher = HazardProtection.isHoldingReacher(target);
         boolean hasHazmat = target instanceof Player player && HazardProtection.checkForHazmat(player);

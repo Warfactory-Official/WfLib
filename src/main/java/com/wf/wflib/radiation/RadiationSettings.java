@@ -3,12 +3,13 @@ package com.wf.wflib.radiation;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Registry;
-import com.wf.wflib.WFLib;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.Optional;
+import com.wf.wflib.radiation.api.RadiationConfig;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Per-dimension overrides for the radiation field's physics constants, the entry id being the dimension id.
@@ -86,23 +87,23 @@ public record RadiationSettings(Optional<Double> diffusivity,
     }
 
     public double diffusivityOrDefault() {
-        return diffusivity.orElse(RadiationConfig.radDiffusivity);
+        return diffusivity.orElse(RadiationConfig.get().radDiffusivity());
     }
 
     public double halfLifeSecondsOrDefault() {
-        return halfLifeSeconds.orElse(RadiationConfig.radHalfLifeSeconds);
+        return halfLifeSeconds.orElse(RadiationConfig.get().radHalfLifeSeconds());
     }
 
     public double fogRadOrDefault() {
-        return fogRad.orElse(RadiationConfig.fogRad);
+        return fogRad.orElse(RadiationConfig.get().fogRad());
     }
 
     public double fogChanceOrDefault() {
-        return fogChance.orElse(RadiationConfig.fogCh);
+        return fogChance.orElse(RadiationConfig.get().fogChance());
     }
 
     public boolean worldRadEffectsOrDefault() {
-        return worldRadEffects.orElse(RadiationConfig.worldRadEffects);
+        return worldRadEffects.orElse(RadiationConfig.get().worldRadEffects());
     }
 
     // 1.7: RadiationConfig.hellRad, applied at EntityEffectHandler:284-285 as a FLOOR in rad/s on an entity's dose

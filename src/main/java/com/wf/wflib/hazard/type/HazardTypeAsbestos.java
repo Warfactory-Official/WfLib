@@ -1,11 +1,12 @@
 package com.wf.wflib.hazard.type;
 
+import com.wf.wflib.hazard.HazardConfig;
 import com.wf.wflib.hazard.HazardProtection;
 
-import com.wf.wflib.radiation.RadiationConfig;
-import com.wf.wflib.hazard.LivingHazardProps;
-import com.wf.wflib.hazard.HazardClass;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
+import com.wf.wflib.radiation.api.RadiationConfig;
+import com.wf.wflib.hazard.api.LivingHazardProps;
+import com.wf.wflib.hazard.api.HazardClass;
+import com.wf.wflib.hazard.api.IHazardModifier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -15,16 +16,17 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 public class HazardTypeAsbestos implements IHazardType {
 
     @Override
     public void onUpdate(LivingEntity target, double level, ItemStack stack) {
-        if (RadiationConfig.disableAsbestos) return;
+        if (HazardConfig.get().disableAsbestos()) return;
         if (HazardProtection.hasProtection(target, EquipmentSlot.HEAD, HazardClass.PARTICLE_FINE)) {
-            HazardProtection.damageGasMaskFilter(target, (int) level * RadiationConfig.hazardRate);
+            HazardProtection.damageGasMaskFilter(target, (int) level * HazardConfig.get().hazardRate());
         } else {
-            LivingHazardProps.incrementAsbestos(target, (int) Math.min(level, 10) * RadiationConfig.hazardRate);
+            LivingHazardProps.incrementAsbestos(target, (int) Math.min(level, 10) * HazardConfig.get().hazardRate());
         }
     }
 

@@ -4,6 +4,8 @@ import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
 import java.lang.management.ManagementFactory;
+import com.wf.wflib.ui.api.Signal;
+import com.wf.wflib.ui.api.UiHud;
 
 /**
  * HUD + {@link UiSurfaces} wall time and bytes allocated on the render thread per stage, averaged and logged every
@@ -14,17 +16,17 @@ public final class UiStats {
     private static final com.sun.management.ThreadMXBean THREADS =
             (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
     private static final int WINDOW = 600;
-    static final int COLLECT = 0;
-    static final int BEGIN = 1;
-    static final int EVAL = 2;
-    static final int MEASURE = 3;
-    static final int DRAW = 4;
+    public static final int COLLECT = 0;
+    public static final int BEGIN = 1;
+    public static final int EVAL = 2;
+    public static final int MEASURE = 3;
+    public static final int DRAW = 4;
     static final int END = 5;
     private static final String[] NAMES = {"collect", "begin", "eval", "measure", "draw", "end"};
 
     private static boolean enabled = Boolean.getBoolean("wflib.ui.stats");
     /** Per-signal allocation attribution ({@code /wfui stats detail}); its own bookkeeping allocates. */
-    static boolean detail;
+    private static boolean detail;
     private static final java.util.Map<Signal<?>, long[]> SIGNAL_BYTES = new java.util.IdentityHashMap<>();
     private static boolean active;
     private static long markNanos;
@@ -36,6 +38,10 @@ public final class UiStats {
     private static final double[] last = {Double.NaN, Double.NaN};
 
     private UiStats() {
+    }
+
+    public static boolean detail() {
+        return detail;
     }
 
     public static boolean toggle(boolean detailed) {
@@ -53,18 +59,18 @@ public final class UiStats {
         return last.clone();
     }
 
-    static long allocated() {
+    public static long allocated() {
         return THREADS.getCurrentThreadAllocatedBytes();
     }
 
-    static void signal(Signal<?> signal, long before) {
+    public static void signal(Signal<?> signal, long before) {
         long bytes = THREADS.getCurrentThreadAllocatedBytes() - before;
         if (bytes > 0) {
             SIGNAL_BYTES.computeIfAbsent(signal, k -> new long[1])[0] += bytes;
         }
     }
 
-    static void begin() {
+    public static void begin() {
         if (!enabled) {
             return;
         }
@@ -74,7 +80,7 @@ public final class UiStats {
     }
 
     /** Charges everything since the previous mark to {@code stage}. No-op outside a HUD layer / surface. */
-    static void mark(int stage) {
+    public static void mark(int stage) {
         if (!active) {
             return;
         }
@@ -86,11 +92,11 @@ public final class UiStats {
         markNanos = System.nanoTime();
     }
 
-    static void end() {
+    public static void end() {
         if (!active) {
             return;
         }
-        mark(END);
+      mark(END);
         active = false;
         long frame = UiHud.frame();
         if (frame != lastFrame) {

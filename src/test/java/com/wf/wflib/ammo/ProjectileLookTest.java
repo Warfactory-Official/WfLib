@@ -1,7 +1,11 @@
 package com.wf.wflib.ammo;
 
 import net.minecraft.resources.ResourceLocation;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.AmmoVariant;
+import com.wf.wflib.ammo.api.ProjectileLook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,6 +13,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProjectileLookTest {
+
+    @BeforeAll
+    static void defineCatalogue() {
+        com.wf.wflib.ammo.AmmoCatalogue.define();
+    }
+
     private static ProjectileLook look(String variant) {
         AmmoVariant v = Ammo.catalogueVariant(ResourceLocation.fromNamespaceAndPath("wflib", variant));
         return ProjectileLook.resolve(Ammo.catalogueCalibre(v.calibre()), v);

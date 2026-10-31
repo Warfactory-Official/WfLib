@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import com.wf.wflib.stream.api.ChunkStreams;
 
 /** What the server believes a client holds, dumped for diffing against the client's own dump. */
 public final class ChunkStreamAudit {

@@ -1,6 +1,5 @@
 package com.wf.wflib.armor;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -9,6 +8,7 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import com.wf.wflib.core.api.WFLib;
 
 /** Condition/inserts components. See {@link ArmorStacks} for the vanilla-durability encoding they back. */
 public final class ArmorComponents {

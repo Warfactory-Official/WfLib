@@ -1,16 +1,15 @@
 package com.wf.wflib.demolition;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import com.wf.wflib.demolition.api.DetonatorItem;
+import com.wf.wflib.demolition.api.IDetonatableEntity;
 
 /** Gives the detonator first claim on a right-click aimed at anything it can fire. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class DetonatorInteractions {
 
     private DetonatorInteractions() {

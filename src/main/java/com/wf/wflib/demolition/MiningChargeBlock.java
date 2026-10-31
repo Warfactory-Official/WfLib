@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import com.wf.wflib.demolition.api.IDetonatable;
 
 /** A demolition charge that mines a cube of natural blocks when set off by a detonator. */
 public class MiningChargeBlock extends Block implements IDetonatable, EntityBlock {

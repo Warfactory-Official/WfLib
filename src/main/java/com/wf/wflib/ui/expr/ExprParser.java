@@ -2,6 +2,10 @@ package com.wf.wflib.ui.expr;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.ui.api.expr.ExprType;
+import com.wf.wflib.ui.api.expr.Fn;
+import com.wf.wflib.ui.api.expr.Node;
+import com.wf.wflib.ui.api.expr.Symbols;
 
 /**
  * Recursive-descent parser with type checking and constant folding.

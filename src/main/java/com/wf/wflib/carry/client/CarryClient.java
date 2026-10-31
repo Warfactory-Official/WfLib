@@ -3,8 +3,7 @@ package com.wf.wflib.carry.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.carry.Carry;
+import com.wf.wflib.carry.api.Carry;
 import com.wf.wflib.carry.CarryPackets;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -30,9 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
@@ -47,7 +44,6 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
 
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class CarryClient {
     public static final KeyMapping CARRY = new KeyMapping("key.wflib.carry", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.wflib");
@@ -55,12 +51,10 @@ public final class CarryClient {
     private CarryClient() {
     }
 
-    @SubscribeEvent
     public static void keys(RegisterKeyMappingsEvent e) {
         e.register(CARRY);
     }
 
-    @SubscribeEvent
     public static void layers(EntityRenderersEvent.AddLayers e) {
         for (PlayerSkin.Model skin : e.getSkins()) {
             if (e.getSkin(skin) instanceof LivingEntityRenderer<?, ?> r) {

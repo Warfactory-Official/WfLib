@@ -1,27 +1,27 @@
 package com.wf.wflib.pda.client;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.ui.Binder;
-import com.wf.wflib.ui.UiEval;
-import com.wf.wflib.ui.Widget;
-import com.wf.wflib.ui.WidgetDef;
+import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
 
 /** The Terminal's {@code cmatrix}: covers the log while {@link #active}, nothing otherwise. */
-record MatrixRain(float w, float h) implements WidgetDef {
+public record MatrixRain(float w, float h) implements WidgetDef {
     private static final int BACKGROUND = 0xFF050805;
     private static final int HEAD = 0xFFE4FFE4;
     private static volatile boolean active;
 
-    static boolean active() {
-        return active;
+    public static boolean active() {
+       return active;
     }
 
-    static void start() {
-        active = true;
+    public static void start() {
+      active = true;
     }
 
-    static void stop() {
-        active = false;
+    public static void stop() {
+      active = false;
     }
 
     @Override

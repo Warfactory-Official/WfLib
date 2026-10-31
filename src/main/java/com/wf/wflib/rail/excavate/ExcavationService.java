@@ -1,7 +1,7 @@
 package com.wf.wflib.rail.excavate;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.drone.WorldThread;
+import com.wf.wflib.core.api.WorldThread;
 import com.wf.wflib.rail.RailConfig;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
@@ -71,7 +71,7 @@ public final class ExcavationService {
                             Throwable error) {
     }
 
-    private final ClaimRegistry claims = new ClaimRegistry();
+    private final ChunkClaims claims = new ChunkClaims();
     private final CarveStats stats = new CarveStats();
     private final Deque<Column> pending = new ArrayDeque<>();
     private final ConcurrentLinkedQueue<Finished> finished = new ConcurrentLinkedQueue<>();
@@ -300,7 +300,7 @@ public final class ExcavationService {
                 // Already being carved the attended way; leave it queued behind that.
                 break;
             }
-            if (!offThread || ClaimRegistry.isLoaded(level, column.pos())) {
+            if (!offThread || ChunkClaims.isLoaded(level, column.pos())) {
                 this.pending.pollFirst();
                 this.attended.put(key, new LoadedChunkCarver(column.plan(), column.pos(), level));
                 this.attendedColumns.put(key, column);

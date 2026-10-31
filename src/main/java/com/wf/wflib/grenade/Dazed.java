@@ -1,6 +1,5 @@
 package com.wf.wflib.grenade;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.world.entity.Mob;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -9,6 +8,7 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 import java.util.Map;
 import java.util.WeakHashMap;
+import com.wf.wflib.core.api.WFLib;
 
 /** Flashed mobs: no target, no navigation until the game time stored here. Server. */
 @EventBusSubscriber(modid = WFLib.MODID)

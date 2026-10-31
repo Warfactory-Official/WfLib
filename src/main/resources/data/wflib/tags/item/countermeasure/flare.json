@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "wflib:flare_cartridge"
+    {
+      "id": "wflib:flare_cartridge",
+      "required": false
+    }
   ]
 }

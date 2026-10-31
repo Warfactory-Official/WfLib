@@ -1,10 +1,11 @@
 package com.wf.wflib.hazard;
 
-import com.wf.wflib.armor.ArmorExposure;
-import com.wf.wflib.armor.ArmorResult;
 import com.wf.wflib.armor.ArmorSystem;
-import com.wf.wflib.armor.ProtectionType;
-import com.wf.wflib.radiation.RadiationConfig;
+import com.wf.wflib.armor.api.ArmorExposure;
+import com.wf.wflib.armor.api.ArmorResult;
+import com.wf.wflib.armor.api.ArmorResolution;
+import com.wf.wflib.armor.api.ProtectionType;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -12,6 +13,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import com.wf.wflib.hazard.api.HazardClass;
+import com.wf.wflib.hazard.api.HazardContent;
 
 /**
  * Divergence: NTM ArmorUtil/ArmorRegistry/HazmatRegistry -> item tags + wflib armour.
@@ -33,6 +36,7 @@ public final class HazardProtection {
 
     /** NTM gas mask filter wear -> CHEMICAL exposure on the worn armour. */
     public static void damageGasMaskFilter(LivingEntity entity, int amount) {
+        if (!ArmorSystem.active()) return;
         ArmorExposure.contact(entity, ProtectionType.CHEMICAL, amount);
     }
 
@@ -74,15 +78,19 @@ public final class HazardProtection {
     public static double radiationMod(LivingEntity entity) {
         if (!(entity instanceof Player)) return 1D;
         // Large probe => DT negligible; shielding is a DR fraction, not a per-hit threshold.
-        ArmorResult result = ArmorSystem.resolveWhole(entity, null, ProtectionType.RADIATION, PROBE, false);
-        double mod = result.through() / PROBE;
+        double mod = 1D;
+        if (ArmorSystem.active()) {
+            ArmorResult result = ArmorResolution.resolveWhole(entity, null, ProtectionType.RADIATION, PROBE, false);
+            mod = result.through() / PROBE;
+        }
         if (entity.hasEffect(HazardContent.radx())) mod *= RADX_FACTOR;
         return mod;
     }
 
     /** Armour wear for a received dose rate; RAD/s -> exposure tier. */
     public static void exposeArmor(LivingEntity entity, double radPerSecond) {
-        double tier = radPerSecond * RadiationConfig.armorWearPerRad;
+        if (!ArmorSystem.active()) return;
+        double tier = radPerSecond * RadiationConfig.get().armorWearPerRad();
         if (tier > 0D) ArmorExposure.contact(entity, ProtectionType.RADIATION, tier);
     }
 }

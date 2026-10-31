@@ -6,6 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
 import java.util.List;
+import com.wf.wflib.armor.api.ArmorPreset;
 
 /** Insert item (plate/liner/filter): wears on its own condition, independent of the carrier it's fitted to. */
 public class ArmorInsertItem extends Item {

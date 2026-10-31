@@ -1,0 +1,60 @@
+package com.wf.wflib.missile;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
+
+public class TurretInterceptorBlock extends BaseEntityBlock {
+
+    public static final MapCodec<TurretInterceptorBlock> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
+            propertiesCodec(),
+            Codec.BOOL.fieldOf("supersonic").forGetter(b -> b.supersonic)
+    ).apply(inst, TurretInterceptorBlock::new));
+
+    private final boolean supersonic;
+
+    public TurretInterceptorBlock(Properties props, boolean supersonic) {
+        super(props);
+        this.supersonic = supersonic;
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return this.supersonic
+                ? new TurretInterceptorSupersonicBlockEntity(pos, state)
+                : new TurretInterceptorNormalBlockEntity(pos, state);
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide) {
+            return null;
+        }
+        return this.supersonic
+                ? createTickerHelper(type, MissileSystem.TURRET_INTERCEPTOR_SUPERSONIC_BE.get(),
+                (lvl, pos, st, be) -> be.serverTick())
+                : createTickerHelper(type, MissileSystem.TURRET_INTERCEPTOR_BE.get(),
+                (lvl, pos, st, be) -> be.serverTick());
+    }
+}

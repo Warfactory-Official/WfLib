@@ -1,6 +1,6 @@
 package com.wf.wflib.radiation;
 
-import com.wf.wflib.util.ForcedChunks;
+import com.wf.wflib.testkit.api.ForcedChunks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;

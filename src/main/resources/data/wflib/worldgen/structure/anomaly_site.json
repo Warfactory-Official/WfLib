@@ -1,4 +1,10 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "wflib:system",
+      "system": "anomaly"
+    }
+  ],
   "type": "wflib:anomaly_site",
   "biomes": "#wflib:has_structure/anomaly_site",
   "step": "top_layer_modification",

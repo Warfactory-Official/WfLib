@@ -1,15 +1,18 @@
 package com.wf.wflib.recon.event;
 
-import com.wf.wflib.drone.WorldThread;
-import com.wf.wflib.recon.Band;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.detect.Plot;
+import com.wf.wflib.core.api.WorldThread;
+import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.Plot;
 import com.wf.wflib.recon.fuse.CrossFix;
 import com.wf.wflib.recon.propagate.SonarPropagator;
-import com.wf.wflib.recon.snapshot.SensorSnapshot;
+import com.wf.wflib.recon.api.SensorSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.recon.api.BlastEvent;
+import com.wf.wflib.recon.api.SeismicEvents;
+import com.wf.wflib.recon.api.SeismicFix;
 
 /**
  * Every hydrophone on a network reading its trace. The mirror of {@link SeismicEventPass}, and the reason a

@@ -1,9 +1,9 @@
 package com.wf.wflib.round.effect;
 
-import com.wf.wflib.api.Threat;
-import com.wf.wflib.damage.WFDamage;
-import com.wf.wflib.warhead.WarheadCarrier;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.damage.api.Threat;
+import com.wf.wflib.damage.api.WFDamage;
+import com.wf.wflib.warhead.api.WarheadCarrier;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.RegistryAccess;
@@ -22,6 +22,10 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import com.wf.wflib.round.api.ImpactContext;
+import com.wf.wflib.round.api.ImpactEffect;
+import com.wf.wflib.round.api.ImpactEffects;
+import com.wf.wflib.round.api.ImpactTrigger;
 
 /**
  * | id | params | triggers |
@@ -33,12 +37,12 @@ import java.util.UUID;
  * | {@code mob_effect} | {@code effect}, {@code seconds} (5), {@code amplifier} int (0) | HIT: living target gets it |
  * {@code type}, {@code warhead}, {@code effect}: existence checked at server start ({@link ImpactEffects#check}).
  */
-final class BuiltinEffects {
+public final class BuiltinEffects {
 
     private BuiltinEffects() {
     }
 
-    static void register() {
+    public static void register() {
         ImpactEffects.registerFactory(ImpactEffects.IGNITE, (on, p) -> {
             float seconds = (float) p.num("seconds", 5.0, 0.05, 3600.0);
             return ctx -> ignite(ctx, seconds);
@@ -78,7 +82,7 @@ final class BuiltinEffects {
 
                 @Override
                 public void check(RegistryAccess registries) {
-                    if (!WarheadRegistry.exists(warhead)) {
+                    if (!Warheads.exists(warhead)) {
                         throw new IllegalStateException("explode: warhead " + warhead + " not registered");
                     }
                 }
@@ -159,7 +163,7 @@ final class BuiltinEffects {
     private static void explode(ImpactContext ctx, ResourceLocation warhead, float size, boolean breaks) {
         Vec3 v = ctx.velocity();
         Vec3 angle = v.lengthSqr() < 1.0e-8 ? new Vec3(0.0, -1.0, 0.0) : v.normalize();
-        WarheadRegistry.get(warhead).detonate(new Carrier(ctx.level(), angle, ctx.shooter(), ctx.faction(), size,
+        Warheads.get(warhead).detonate(new Carrier(ctx.level(), angle, ctx.shooter(), ctx.faction(), size,
                 breaks, ctx.preset().fragmentCount(), ctx.preset().blastHalfAngleDeg()), ctx.at());
     }
 

@@ -1,6 +1,6 @@
 package com.wf.wflib.build;
 
-import com.wf.wflib.work.WorkOrder;
+import com.wf.wflib.work.api.WorkOrder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.state.BlockState;
@@ -8,6 +8,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.build.api.Blueprint;
+import com.wf.wflib.build.api.WorkPlan;
 
 /** Turns a {@link Blueprint} into work, ordered so nothing is asked for before whatever holds it up exists. */
 public final class ConstructionPlan {

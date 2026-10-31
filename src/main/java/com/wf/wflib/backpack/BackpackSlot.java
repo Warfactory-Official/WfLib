@@ -2,6 +2,8 @@ package com.wf.wflib.backpack;
 
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import com.wf.wflib.backpack.api.BackpackContainer;
+import com.wf.wflib.backpack.api.Backpacks;
 
 /** Index {@code i} of a backpack; x/y moved by the screen (scrolling). Rules: {@link BackpackContainer#canPlace}. */
 public class BackpackSlot extends Slot {
@@ -18,7 +20,7 @@ public class BackpackSlot extends Slot {
     @Override
     public boolean isActive() {
         return getContainerSlot() < backpack.slots() && (!panel || !backpack.owner().level().isClientSide
-                || Backpacks.panelShown.getAsBoolean());
+                || Backpacks.PANEL_SHOWN.get().getAsBoolean());
     }
 
     @Override

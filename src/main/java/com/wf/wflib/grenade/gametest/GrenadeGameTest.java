@@ -1,14 +1,13 @@
 package com.wf.wflib.grenade.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.ChargeSpec;
-import com.wf.wflib.entity.FireLingeringEntity;
-import com.wf.wflib.entity.MistEntity;
-import com.wf.wflib.fire.FireType;
+import com.wf.wflib.grenade.api.ChargeSpec;
+import com.wf.wflib.fire.api.FireLingeringEntity;
+import com.wf.wflib.mist.api.MistEntity;
+import com.wf.wflib.fire.api.FireType;
 import com.wf.wflib.grenade.Dazed;
-import com.wf.wflib.grenade.GrenadeWarheads;
-import com.wf.wflib.grenade.ThrownCharge;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.grenade.api.GrenadeWarheads;
+import com.wf.wflib.grenade.api.ThrownCharge;
+import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -22,26 +21,25 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Hand charges: flight, contact, warheads. Each test on its own floor 26 apart in height (template lid ~5): frag
  * (20) and flash (24) reach would cross arenas sharing a height.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class GrenadeGameTest {
 
     private static final String TEMPLATE = "empty";
-    private static final ResourceLocation PROBE = WarheadRegistry.rl("test_grenade_probe");
+    private static final ResourceLocation PROBE = Warheads.rl("test_grenade_probe");
     private static final List<Vec3> DETONATIONS = new CopyOnWriteArrayList<>();
 
-    static {
-        WarheadRegistry.register(PROBE, (source, pos) -> DETONATIONS.add(pos));
+    public static void register() {
+        Warheads.register(PROBE, (source, pos) -> DETONATIONS.add(pos));
     }
 
     private static ChargeSpec spec(ResourceLocation warhead, int fuse, float bounce, boolean sticky, boolean impact) {
@@ -89,7 +87,7 @@ public class GrenadeGameTest {
     }
 
     /** Dropped onto stone: bounces, then lies still on the floor, fuse still running. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aChargeBouncesThenSettles(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 8);
@@ -112,7 +110,7 @@ public class GrenadeGameTest {
     }
 
     /** Sticky: first contact with a wall pins it there. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aStickyChargeSticksToTheWall(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 34);
@@ -134,7 +132,7 @@ public class GrenadeGameTest {
     }
 
     /** Impact fuze: detonates on the first hard contact, long before its fuse. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void anImpactChargeGoesOffOnContact(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 60);
@@ -153,7 +151,7 @@ public class GrenadeGameTest {
     }
 
     /** Sticky onto a body: rides it when it moves. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aStickyChargeRidesItsHost(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 86);
@@ -176,7 +174,7 @@ public class GrenadeGameTest {
     }
 
     /** Frag rays: a husk in the open dies at 2.5 blocks; one behind a wall at the same range takes no fragment. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void fragKillsInTheOpenNotBehindCover(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 112);
@@ -204,7 +202,7 @@ public class GrenadeGameTest {
     }
 
     /** Cooked off in a hand: goes off where the holder stands. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aCookedChargeGoesOffInTheHand(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 138);
@@ -222,7 +220,7 @@ public class GrenadeGameTest {
     }
 
     /** Coloured smoke: cells carry the dye tint; a mob cannot see through 2+ blocks of it. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void smokeIsTintedAndHidesFromMobs(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 164);
@@ -249,7 +247,7 @@ public class GrenadeGameTest {
     }
 
     /** Thermite: thermite fire laid, a body in contact burns, no block broken, shell reacts then is spent. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 400)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 400)
     public static void thermiteBurnsBodiesNotBlocks(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 190);
@@ -277,7 +275,7 @@ public class GrenadeGameTest {
     }
 
     /** Flashbang: a mob in sight is blinded and dazed; one behind a wall is not. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void flashbangDazesMobsInSight(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Vec3 top = floor(helper, 216);

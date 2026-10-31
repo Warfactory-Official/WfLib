@@ -1,6 +1,6 @@
 package com.wf.wflib.hazard.transformer;
 
-import com.wf.wflib.hazard.HazardEntry;
+import com.wf.wflib.hazard.api.HazardEntry;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import com.wf.wflib.hazard.api.IHazardTransformer;
 
 public class HazardTransformerPostCustom implements IHazardTransformer {
 

@@ -1,13 +1,10 @@
 package com.wf.wflib.artifact.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.artifact.Artifact;
-import com.wf.wflib.artifact.Artifacts;
-import com.wf.wflib.artifact.detect.ArtifactEntities;
+import com.wf.wflib.artifact.api.Artifact;
+import com.wf.wflib.artifact.api.Artifacts;
 import com.wf.wflib.artifact.detect.Detection;
-import com.wf.wflib.artifact.detect.ZoneArtifact;
-import com.wf.wflib.damage.WFDamageTypes;
-import com.wf.wflib.item.ModItems;
+import com.wf.wflib.artifact.api.ZoneArtifact;
+import com.wf.wflib.damage.api.WFDamageTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -24,16 +21,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.Map;
+import com.wf.wflib.artifact.api.ArtifactContent;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Damage types -> STALKER hit kinds; a Zone artefact shows to, and is taken by, only a detector that finds it; drifts
  * about home unseen and settles once shown; a dropped one rolls as itself and is walked up. Arenas at their own heights.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class ArtifactGameTest {
     private static final Map<ResourceKey<DamageType>, Artifact.Hit> HITS = Map.ofEntries(
@@ -47,7 +44,7 @@ public class ArtifactGameTest {
             Map.entry(DamageTypes.FLY_INTO_WALL, Artifact.Hit.STRIKE),
             Map.entry(DamageTypes.MOB_ATTACK, Artifact.Hit.WOUND), Map.entry(DamageTypes.PLAYER_ATTACK, Artifact.Hit.WOUND));
 
-    @GameTest(template = "empty", batch = "artifacts")
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts")
     public static void damageTypesMapToStalkerHits(GameTestHelper helper) {
         var types = helper.getLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE);
         HITS.forEach((key, hit) -> {
@@ -59,22 +56,22 @@ public class ArtifactGameTest {
         helper.succeed();
     }
 
-    @GameTest(template = "empty", batch = "artifacts")
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts")
     public static void onlyADetectorThatFindsItRevealsAndTakesIt(GameTestHelper helper) {
         Vec3 at = helper.absoluteVec(new Vec3(0.5D, 2.0D, 0.5D));
-        ZoneArtifact hidden = new ZoneArtifact(helper.getLevel(), new ItemStack(ModItems.ARTIFACTS.get("fireball").get()),
+        ZoneArtifact hidden = new ZoneArtifact(helper.getLevel(), new ItemStack(ArtifactContent.ARTIFACTS.get("fireball").get()),
                 at.x, at.y, at.z, BlockPos.containing(at));
         helper.getLevel().addFreshEntity(hidden);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.setPos(at.x + 2.0D, at.y - 1.0D, at.z);
 
         helper.assertFalse(Detection.revealed(player, hidden), "shown with no detector");
-        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactEntities.DETECTOR_ECHO.get()));
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactContent.DETECTOR_ECHO.get()));
         helper.assertFalse(Detection.revealed(player, hidden), "the Echo found a rank-3 artefact");
         hidden.interact(player, InteractionHand.MAIN_HAND);
         helper.assertTrue(hidden.isAlive(), "taken without being found");
 
-        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactEntities.DETECTOR_VELES.get()));
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactContent.DETECTOR_VELES.get()));
         helper.assertTrue(Detection.revealed(player, hidden), "the Veles did not show it 2 blocks off");
         player.setPos(at.x + 8.0D, at.y - 1.0D, at.z);
         helper.assertFalse(Detection.revealed(player, hidden), "shown past the reveal radius");
@@ -83,7 +80,7 @@ public class ArtifactGameTest {
         player.setPos(at.x + 2.0D, at.y - 1.0D, at.z);
         hidden.interact(player, InteractionHand.MAIN_HAND);
         helper.assertFalse(hidden.isAlive(), "not taken");
-        helper.assertTrue(player.getInventory().contains(new ItemStack(ModItems.ARTIFACTS.get("fireball").get())),
+        helper.assertTrue(player.getInventory().contains(new ItemStack(ArtifactContent.ARTIFACTS.get("fireball").get())),
                 "not in the inventory");
         helper.succeed();
     }
@@ -100,12 +97,24 @@ public class ArtifactGameTest {
         return a.onGround() && a.getDeltaMovement().lengthSqr() == 0.0D;
     }
 
-    @GameTest(template = "empty", batch = "artifacts", timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts")
+    public static void collisionFollowsTheSolidBodyAsDrawn(GameTestHelper helper) {
+        helper.assertTrue(ZoneArtifact.size(Artifact.ITCHER) > 0.2F, "itcher " + ZoneArtifact.size(Artifact.ITCHER));
+        helper.assertTrue(ZoneArtifact.size(Artifact.BRACELET) > 0.2F, "bracelet");
+        helper.assertTrue(ZoneArtifact.size(Artifact.FIREFLY) < 0.3F, "firefly halo widened it");
+        for (Artifact a : Artifact.ALL) {
+            float s = ZoneArtifact.size(a);
+            helper.assertTrue(s >= 0.12F && s <= 0.6F, a.id() + " " + s);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts", timeoutTicks = 200)
     public static void aDroppedArtefactRollsAsItselfAndIsWalkedUp(GameTestHelper helper) {
         floor(helper, 130, 3);
         Vec3 at = helper.absoluteVec(new Vec3(0.5D, 132.0D, 0.5D));
         ItemEntity item = new ItemEntity(helper.getLevel(), at.x, at.y, at.z,
-                new ItemStack(ModItems.ARTIFACTS.get("battery").get()));
+                new ItemStack(ArtifactContent.ARTIFACTS.get("battery").get()));
         item.setDeltaMovement(0.15D, 0.0D, 0.0D);
         helper.getLevel().addFreshEntity(item);
         net.minecraft.world.phys.AABB around = new net.minecraft.world.phys.AABB(at, at).inflate(4.0D);
@@ -122,17 +131,17 @@ public class ArtifactGameTest {
             player.setPos(a.getX(), a.getY(), a.getZ());
             a.playerTouch(player);
             helper.assertFalse(a.isAlive(), "not walked up");
-            helper.assertTrue(player.getInventory().contains(new ItemStack(ModItems.ARTIFACTS.get("battery").get())),
+            helper.assertTrue(player.getInventory().contains(new ItemStack(ArtifactContent.ARTIFACTS.get("battery").get())),
                     "not in the inventory");
         });
     }
 
-    @GameTest(template = "empty", batch = "artifacts", timeoutTicks = 300)
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts", timeoutTicks = 300)
     public static void anUnseenZoneArtefactDriftsAboutHome(GameTestHelper helper) {
         int half = (int) ZoneArtifact.RANGE + 6;
         floor(helper, 140, half);
         Vec3 at = helper.absoluteVec(new Vec3(0.5D, 141.0D, 0.5D));
-        ZoneArtifact a = new ZoneArtifact(helper.getLevel(), new ItemStack(ModItems.ARTIFACTS.get("soul").get()),
+        ZoneArtifact a = new ZoneArtifact(helper.getLevel(), new ItemStack(ArtifactContent.ARTIFACTS.get("soul").get()),
                 at.x, at.y, at.z, BlockPos.containing(at));
         helper.getLevel().addFreshEntity(a);
         double[] path = {0.0D};
@@ -147,16 +156,16 @@ public class ArtifactGameTest {
         helper.succeedWhen(() -> helper.assertTrue(path[0] > 8.0D, "barely moved: " + path[0]));
     }
 
-    @GameTest(template = "empty", batch = "artifacts", timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts", timeoutTicks = 200)
     public static void aZoneArtefactShownByADetectorSettles(GameTestHelper helper) {
         floor(helper, 150, 8);
         Vec3 at = helper.absoluteVec(new Vec3(0.5D, 151.0D, 0.5D));
-        ZoneArtifact a = new ZoneArtifact(helper.getLevel(), new ItemStack(ModItems.ARTIFACTS.get("soul").get()),
+        ZoneArtifact a = new ZoneArtifact(helper.getLevel(), new ItemStack(ArtifactContent.ARTIFACTS.get("soul").get()),
                 at.x, at.y, at.z, BlockPos.containing(at));
         helper.getLevel().addFreshEntity(a);
         ServerPlayer player = com.wf.wflib.radiation.gametest.NeutronActivationGameTest.mockServerPlayer(helper);
         player.setPos(at.x + 2.0D, at.y, at.z);
-        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactEntities.DETECTOR_VELES.get()));
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactContent.DETECTOR_VELES.get()));
         helper.runAfterDelay(150, () -> {
             try {
                 helper.assertTrue(still(a), "still moving: " + a.getDeltaMovement());

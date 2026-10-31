@@ -1,9 +1,9 @@
 package com.wf.wflib.smoking;
 
 import com.norwood.ahf.hook.AhfHooks;
-import com.wf.wflib.WFLib;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerLevel;
@@ -14,45 +14,31 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;
 import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+import com.wf.wflib.smoking.api.event.CigaretteSmokedEvent;
+import com.wf.wflib.core.api.WFLib;
 
 /** One cigarette per tap: {@link Session} runs {@link SmokingTimeline#TICKS} unless the cigarette leaves its hand. */
 public final class Smoking {
     /** {@code start} = level game time of the tap. */
     public record Session(InteractionHand hand, long start) {
-        static final StreamCodec<FriendlyByteBuf, Session> STREAM_CODEC = StreamCodec.composite(
+        public static final StreamCodec<FriendlyByteBuf, Session> STREAM_CODEC = StreamCodec.composite(
                 NeoForgeStreamCodecs.enumCodec(InteractionHand.class), Session::hand,
                 ByteBufCodecs.VAR_LONG, Session::start, Session::new);
     }
 
-    private static final DeferredRegister<AttachmentType<?>> ATTACHMENTS =
-            DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, WFLib.MODID);
-    /** Absent => not smoking; never default-created. */
-    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Session>> SESSION = ATTACHMENTS.register(
-            "smoking", () -> AttachmentType.<Session>builder(() -> {
-                throw new IllegalStateException("smoking session read without hasData");
-            }).sync(Session.STREAM_CODEC).build());
+    /** Absent => not smoking; never default-created. Registered by {@code SmokingSystem}. */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Session>> SESSION = DeferredHolder.create(
+            NeoForgeRegistries.Keys.ATTACHMENT_TYPES, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "smoking"));
 
     private Smoking() {
-    }
-
-    public static void register(IEventBus modBus) {
-        ATTACHMENTS.register(modBus);
-        NeoForge.EVENT_BUS.addListener(Smoking::onTick);
-    }
-
-    /** Common setup, both sides. */
-    public static void bootstrap() {
-        AhfHooks.addHandTargets(Smoking::targets);
     }
 
     @Nullable
@@ -71,7 +57,7 @@ public final class Smoking {
         return s == null ? -1 : (int) Math.clamp(e.level().getGameTime() - s.start(), 0, SmokingTimeline.TICKS - 1);
     }
 
-    private static void onTick(PlayerTickEvent.Post event) {
+    static void onTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
@@ -86,7 +72,7 @@ public final class Smoking {
         }
         long tick = player.level().getGameTime() - s.start();
         if (tick >= SmokingTimeline.TICKS) {
-            NeoForge.EVENT_BUS.post(new CigaretteSmokedEvent(player, stack.copy()));
+            NeoForge.EVENT_BUS.post(new com.wf.wflib.smoking.api.event.CigaretteSmokedEvent(player, stack.copy()));
             if (!player.hasInfiniteMaterials()) {
                 stack.shrink(1);
             }
@@ -101,7 +87,7 @@ public final class Smoking {
         }
     }
 
-    private static int targets(LivingEntity e, AhfHooks.HandFrame frame, long tick, Vector3f right, Vector3f left) {
+    static int targets(LivingEntity e, AhfHooks.HandFrame frame, long tick, Vector3f right, Vector3f left) {
         Session s = session(e);
         if (!(e instanceof Player p) || s == null) {
             return 0;

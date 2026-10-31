@@ -2,12 +2,12 @@ package com.wf.wflib.round.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.client.render.DebugLines;
-import com.wf.wflib.round.RoundArc;
-import com.wf.wflib.round.RoundEnd;
-import com.wf.wflib.round.RoundNetwork;
-import com.wf.wflib.round.Rounds;
+import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.geom.api.client.DebugLines;
+import com.wf.wflib.round.api.RoundArc;
+import com.wf.wflib.round.api.RoundEnd;
+import com.wf.wflib.round.api.RoundPierce;
+import com.wf.wflib.round.api.Rounds;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -24,6 +24,9 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Locale;
+import com.wf.wflib.round.api.client.ClientRounds;
+import com.wf.wflib.round.api.client.RoundObserver;
+import com.wf.wflib.core.api.WFLib;
 
 /** {@code /wfdebug rounds}: every client round's flown path, predicted arc, resyncs, pierces and end. Client thread. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -49,7 +52,6 @@ public final class RoundDebug implements RoundObserver {
     private static final ArrayList<Track> ENDED_TRACKS = new ArrayList<>();
     private static final ArrayDeque<Track> POOL = new ArrayDeque<>();
     private static boolean enabled;
-    private static boolean observing;
 
     private RoundDebug() {
     }
@@ -78,9 +80,9 @@ public final class RoundDebug implements RoundObserver {
             this.head = this.count = this.arcCount = this.markHead = this.markCount = 0;
             this.ended = false;
             this.reason = null;
-            this.ox = r.ox;
-            this.oy = r.oy;
-            this.oz = r.oz;
+            this.ox = r.ox();
+            this.oy = r.oy();
+            this.oz = r.oz();
         }
 
         void push(double x, double y, double z) {
@@ -105,15 +107,15 @@ public final class RoundDebug implements RoundObserver {
         }
     }
 
+    public static void register() {
+        ClientRounds.OBSERVERS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "debug"), 0, INSTANCE);
+    }
+
     public static boolean enabled() {
         return enabled;
     }
 
     public static void setEnabled(boolean on) {
-        if (on && !observing) {
-            ClientRounds.addObserver(INSTANCE);
-            observing = true;
-        }
         enabled = on;
         if (!on) {
             POOL.addAll(LIVE_TRACKS);
@@ -130,9 +132,9 @@ public final class RoundDebug implements RoundObserver {
                 enabled, ClientRounds.live().size(), ENDED_TRACKS.size()));
         for (ClientRounds.Round r : ClientRounds.live()) {
             Track t = TRACKS.get(r);
-            sb.append(String.format(Locale.ROOT, "%n  %d %s tracer=#%06x local=%s v=%.2f pts=%d", r.key,
-                    r.preset.id(), r.preset.tracerColor(), r.local,
-                    Math.sqrt(r.vx * r.vx + r.vy * r.vy + r.vz * r.vz), t == null ? 0 : t.count));
+            sb.append(String.format(Locale.ROOT, "%n  %d %s tracer=#%06x local=%s v=%.2f pts=%d", r.key(),
+                    r.preset().id(), r.preset().tracerColor(), r.local(),
+                    Math.sqrt(r.vx() * r.vx() + r.vy() * r.vy() + r.vz() * r.vz()), t == null ? 0 : t.count));
         }
         return sb.toString();
     }
@@ -142,7 +144,7 @@ public final class RoundDebug implements RoundObserver {
         if (t == null) {
             t = POOL.isEmpty() ? new Track() : POOL.poll();
             t.reset(r);
-            t.push(r.ox, r.oy, r.oz);
+            t.push(r.ox(), r.oy(), r.oz());
             TRACKS.put(r, t);
             LIVE_TRACKS.add(t);
         }
@@ -155,14 +157,14 @@ public final class RoundDebug implements RoundObserver {
             return;
         }
         Track t = track(r);
-        t.push(r.x, r.y, r.z);
+        t.push(r.x(), r.y(), r.z());
         ClientLevel level = Minecraft.getInstance().level;
-        t.arcCount = r.resting || level == null ? 0 : RoundArc.predict(r.preset, r.x, r.y, r.z, r.vx, r.vy, r.vz,
-                r.life, level.getMinBuildHeight() - Rounds.VOID_DEPTH, r.ricochets > 0, ARC_TICKS, t.arc);
+        t.arcCount = r.resting() || level == null ? 0 : RoundArc.predict(r.preset(), r.x(), r.y(), r.z(), r.vx(), r.vy(), r.vz(),
+                r.life(), level.getMinBuildHeight() - Rounds.VOID_DEPTH, r.ricochets() > 0, ARC_TICKS, t.arc);
     }
 
     @Override
-    public void pierced(RoundNetwork.Pierce p) {
+    public void pierced(RoundPierce p) {
         ClientRounds.Round r = enabled ? ClientRounds.get(p.key()) : null;
         if (r != null) {
             track(r).mark(p.exited() ? PIERCE_EXIT : PIERCE_STOP, p.x(), p.y(), p.z(), p.px(), p.py(), p.pz());
@@ -172,7 +174,7 @@ public final class RoundDebug implements RoundObserver {
     @Override
     public void resynced(ClientRounds.Round r, Vec3 before) {
         if (enabled) {
-            track(r).mark(RESYNC, before.x, before.y, before.z, r.x, r.y, r.z);
+            track(r).mark(RESYNC, before.x, before.y, before.z, r.x(), r.y(), r.z());
         }
     }
 
@@ -187,7 +189,7 @@ public final class RoundDebug implements RoundObserver {
         } else {
             t = POOL.isEmpty() ? new Track() : POOL.poll();
             t.reset(r);
-            t.push(r.ox, r.oy, r.oz);
+            t.push(r.ox(), r.oy(), r.oz());
         }
         t.push(at.x, at.y, at.z);
         t.ended = true;
@@ -210,7 +212,7 @@ public final class RoundDebug implements RoundObserver {
         }
         // Rounds dropped without an end (none expected): recycled.
         LIVE_TRACKS.removeIf(t -> {
-            if (ClientRounds.get(t.round.key) == t.round) {
+            if (ClientRounds.get(t.round.key()) == t.round) {
                 return false;
             }
             TRACKS.remove(t.round);
@@ -251,7 +253,7 @@ public final class RoundDebug implements RoundObserver {
     private static void draw(PoseStack pose, VertexConsumer out, Track t, Vec3 cam, float pt, float fade) {
         ClientRounds.Round r = t.round;
         double cx = cam.x, cy = cam.y, cz = cam.z;
-        float pr = r.local ? 0.2f : 1.0f, pg = r.local ? 0.9f : 1.0f, pb = 1.0f;
+        float pr = r.local() ? 0.2f : 1.0f, pg = r.local() ? 0.9f : 1.0f, pb = 1.0f;
         int first = (t.head - t.count + PATH) % PATH;
         double lx = t.ox - cx, ly = t.oy - cy, lz = t.oz - cz;
         DebugLines.cross(pose, out, lx, ly, lz, 0.15, pr, pg, pb, fade);
@@ -268,13 +270,13 @@ public final class RoundDebug implements RoundObserver {
         if (!t.ended) {
             double hx = r.ix(pt) - cx, hy = r.iy(pt) - cy, hz = r.iz(pt) - cz;
             DebugLines.line(pose, out, lx, ly, lz, hx, hy, hz, pr, pg, pb, 0.9f);
-            int rgb = r.preset.tracerColor();
+            int rgb = r.preset().tracerColor();
             float tr = rgb == 0 ? 1.0f : ((rgb >> 16) & 0xFF) / 255f;
             float tg = rgb == 0 ? 0.0f : ((rgb >> 8) & 0xFF) / 255f;
             float tb = rgb == 0 ? 1.0f : (rgb & 0xFF) / 255f;
             DebugLines.cross(pose, out, hx, hy, hz, 0.3, tr, tg, tb, 1.0f);
             // Dashed: even steps only, alpha falling to 0 at the arc's end.
-            double ax = r.x - cx, ay = r.y - cy, az = r.z - cz;
+            double ax = r.x() - cx, ay = r.y() - cy, az = r.z() - cz;
             for (int k = 0; k < t.arcCount; k++) {
                 double x = t.arc[3 * k] - cx, y = t.arc[3 * k + 1] - cy, z = t.arc[3 * k + 2] - cz;
                 if ((k & 1) == 0) {

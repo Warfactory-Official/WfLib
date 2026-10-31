@@ -1,16 +1,23 @@
 package com.wf.wflib.ammo.client;
 
 import com.wf.gemrender.rig.RigGeometry;
-import com.wf.wflib.ammo.Ammo;
-import com.wf.wflib.ammo.AmmoVariant;
-import com.wf.wflib.ammo.Calibre;
-import com.wf.wflib.ammo.ProjectileLook;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.AmmoVariant;
+import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.ProjectileLook;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AmmoMeshesTest {
+
+    @BeforeAll
+    static void defineCatalogue() {
+        com.wf.wflib.ammo.AmmoCatalogue.define();
+    }
+
     private static final AmmoMeshes.Uv UV = new AmmoMeshes.Uv() {
         @Override
         public float u(int rgb) {

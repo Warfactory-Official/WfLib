@@ -1,17 +1,18 @@
 package com.wf.wflib.warhead;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.aef.ExplosionAEF;
-import com.wf.wflib.aef.standard.BlockAllocatorStandard;
-import com.wf.wflib.aef.standard.BlockProcessorStandard;
-import com.wf.wflib.aef.standard.EntityProcessorCross;
-import com.wf.wflib.aef.standard.PlayerProcessorStandard;
-import com.wf.wflib.fire.FireType;
-import com.wf.wflib.fire.FireUtil;
-import com.wf.wflib.fx.ExplosionCreator;
+import com.wf.wflib.explosion.api.ExplosionAEF;
+import com.wf.wflib.explosion.api.BlockAllocatorStandard;
+import com.wf.wflib.explosion.api.BlockProcessorStandard;
+import com.wf.wflib.explosion.api.EntityProcessorCross;
+import com.wf.wflib.explosion.api.PlayerProcessorStandard;
+import com.wf.wflib.fire.api.FireType;
+import com.wf.wflib.fire.api.FireUtil;
+import com.wf.wflib.explosion.api.ExplosionCreator;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.warhead.api.WarheadCarrier;
+import com.wf.wflib.core.api.WFLib;
 
 /** Fuel-air: blast as STANDARD at size, entity reach x{@link #OVERPRESSURE_REACH}, brief fireball. */
 public final class ThermobaricWarhead {

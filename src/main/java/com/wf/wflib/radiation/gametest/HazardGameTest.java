@@ -1,12 +1,11 @@
 package com.wf.wflib.radiation.gametest;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.hazard.ContaminationEffect;
-import com.wf.wflib.hazard.HazardContent;
-import com.wf.wflib.hazard.HazardEntry;
-import com.wf.wflib.hazard.HazardRegistry;
-import com.wf.wflib.hazard.HazardSystem;
-import com.wf.wflib.hazard.LivingHazardProps;
+import com.wf.wflib.hazard.api.ContaminationEffect;
+import com.wf.wflib.hazard.api.HazardContent;
+import com.wf.wflib.hazard.api.HazardEntry;
+import com.wf.wflib.hazard.api.Hazards;
+import com.wf.wflib.hazard.api.HazardRules;
+import com.wf.wflib.hazard.api.LivingHazardProps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTest;
@@ -26,17 +25,16 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.Blocks;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * NTM NEXT Radiation / HazardEffect / DigammaHealth / ContaminationDose / HazardResolution / MobHazard server
  * tests. No world field: arena-local; spawned mobs discarded. wflib ships no hazard rows => resolution rows
  * register their own and remove them. AreaRadiation rows: {@code RadiationFieldGameTest} lanes.
  */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class HazardGameTest {
 
@@ -59,7 +57,7 @@ public class HazardGameTest {
 
     // ------------------------------------------------------------------ radiation sickness
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
     public static void radiationKills(GameTestHelper helper) {
         Pig pig = pig(helper);
         LivingHazardProps.setRadiation(pig, 1000D);
@@ -70,7 +68,7 @@ public class HazardGameTest {
     }
 
     /** NTM also zeroes the field under the pig each tick; the arena grid carries no field here. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void radiationSublethalSpares(GameTestHelper helper) {
         Pig pig = pig(helper);
         helper.runAfterDelay(2, () -> {
@@ -83,7 +81,7 @@ public class HazardGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
     public static void radiationTransformsCow(GameTestHelper helper) {
         helper.setBlock(FLOOR, Blocks.STONE);
         Cow cow = helper.spawn(EntityType.COW, 1, 2, 1);
@@ -100,7 +98,7 @@ public class HazardGameTest {
     // ------------------------------------------------------------------ hazard effects
 
     /** Zombie: rad-immune, so the field pass rejects it before it could mint a record. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 40)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 40)
     public static void hazardEffectUntouchedEntityCarriesNoProps(GameTestHelper helper) {
         helper.setBlock(FLOOR, Blocks.STONE);
         Zombie clean = helper.spawn(EntityType.ZOMBIE, 1, 2, 1);
@@ -116,7 +114,7 @@ public class HazardGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void hazardEffectAsbestosKills(GameTestHelper helper) {
         Pig pig = pig(helper);
         LivingHazardProps.setAsbestos(pig, LivingHazardProps.maxAsbestos);
@@ -126,7 +124,7 @@ public class HazardGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void hazardEffectBlacklungKills(GameTestHelper helper) {
         Pig pig = pig(helper);
         LivingHazardProps.setBlackLung(pig, LivingHazardProps.maxBlacklung);
@@ -138,7 +136,7 @@ public class HazardGameTest {
 
     // ------------------------------------------------------------------ digamma
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void digammaHalvesMaxHealth(GameTestHelper helper) {
         Pig pig = pig(helper);
         float baseMax = pig.getMaxHealth();
@@ -151,7 +149,7 @@ public class HazardGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void digammaZeroRestoresMaxHealth(GameTestHelper helper) {
         Pig pig = pig(helper);
         float baseMax = pig.getMaxHealth();
@@ -165,7 +163,7 @@ public class HazardGameTest {
     }
 
     /** Also NTM hazard_effect_digamma_kills: same body. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void digammaTenKills(GameTestHelper helper) {
         Pig pig = pig(helper);
         LivingHazardProps.setDigamma(pig, 10D);
@@ -177,7 +175,7 @@ public class HazardGameTest {
 
     // ------------------------------------------------------------------ contamination
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void contaminationRaisesRadiation(GameTestHelper helper) {
         Pig pig = pig(helper);
         LivingHazardProps.addCont(pig, new ContaminationEffect(20D, 100, false));
@@ -188,7 +186,7 @@ public class HazardGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void contaminationEffectIsConsumedAfterMaxTime(GameTestHelper helper) {
         Pig pig = pig(helper);
         LivingHazardProps.addCont(pig, new ContaminationEffect(1D, 5, false));
@@ -199,7 +197,7 @@ public class HazardGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void contaminationGetRadScalesLinearlyWithRemainingTime(GameTestHelper helper) {
         ContaminationEffect e = new ContaminationEffect(10D, 100, false);
         helper.assertTrue(Math.abs(e.getRad() - 10D) < 0.001D, "getRad at full time must equal maxRad (10), got " + e.getRad());
@@ -220,79 +218,79 @@ public class HazardGameTest {
 
     /** Code registration + cache drop; the drop lands at the next server tick's scan dispatch. */
     private static void afterCacheDrop(GameTestHelper helper, Runnable body, Runnable cleanup) {
-        HazardSystem.clearCaches();
+        HazardRules.clearCaches();
         helper.runAfterDelay(2, () -> {
             try {
                 body.run();
             } finally {
                 cleanup.run();
-                HazardSystem.clearCaches();
+                HazardRules.clearCaches();
             }
             helper.succeed();
         });
     }
 
     /** NTM gunpowder/TNT rows -> one code-registered item row at TNT's EXPLOSIVE 4. */
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
     public static void hazardResolutionItemTierRegistrationResolves(GameTestHelper helper) {
-        HazardSystem.register(ITEM_ROW, HazardRegistry.makeData(HazardRegistry.EXPLOSIVE, 4D));
+        HazardRules.register(ITEM_ROW, Hazards.makeData(Hazards.EXPLOSIVE, 4D));
         afterCacheDrop(helper, () -> {
-            helper.assertTrue(HazardSystem.itemMap.containsKey(ITEM_ROW), "the row must be present in itemMap");
+            helper.assertTrue(HazardRules.itemData().containsKey(ITEM_ROW), "the row must be present in the item table");
             HazardEntry found = null;
-            for (HazardEntry e : HazardSystem.getHazardsFromStack(new ItemStack(ITEM_ROW))) {
-                if (e.type == HazardRegistry.EXPLOSIVE) found = e;
+            for (HazardEntry e : HazardRules.getHazardsFromStack(new ItemStack(ITEM_ROW))) {
+                if (e.type == Hazards.EXPLOSIVE) found = e;
             }
             helper.assertTrue(found != null, "item-tier registration must yield an EXPLOSIVE entry at resolution");
             helper.assertTrue(found.baseLevel == 4D, "EXPLOSIVE level must be 4, got " + found.baseLevel);
-        }, () -> HazardSystem.itemMap.remove(ITEM_ROW));
+        }, () -> HazardRules.unregister(ITEM_ROW));
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
     public static void hazardResolutionTagTierRegistrationResolves(GameTestHelper helper) {
-        HazardSystem.register(TAG_ROW, HazardRegistry.makeData(HazardRegistry.EXPLOSIVE, 2D));
+        HazardRules.register(TAG_ROW, Hazards.makeData(Hazards.EXPLOSIVE, 2D));
         afterCacheDrop(helper, () -> {
-            helper.assertTrue(HazardSystem.tagMap.containsKey(TAG_ROW), "tagMap must hold the tag-tier registration");
-            helper.assertTrue(HazardSystem.getHazardLevelFromStack(new ItemStack(TAG_MEMBER), HazardRegistry.EXPLOSIVE) == 2D,
+            helper.assertTrue(HazardRules.tagData().containsKey(TAG_ROW), "the tag table must hold the tag-tier registration");
+            helper.assertTrue(HazardRules.getHazardLevelFromStack(new ItemStack(TAG_MEMBER), Hazards.EXPLOSIVE) == 2D,
                     "a tag member must resolve the tag's row");
-        }, () -> HazardSystem.tagMap.remove(TAG_ROW));
+        }, () -> HazardRules.unregister(TAG_ROW));
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 20)
     public static void hazardResolutionBlacklistedItemResolvesToEmpty(GameTestHelper helper) {
-        HazardSystem.register(BLACKLIST_ROW, HazardRegistry.makeData(HazardRegistry.EXPLOSIVE, 1D));
-        HazardSystem.blacklist(BLACKLIST_ROW);
+        HazardRules.register(BLACKLIST_ROW, Hazards.makeData(Hazards.EXPLOSIVE, 1D));
+        HazardRules.blacklist(BLACKLIST_ROW);
         afterCacheDrop(helper, () -> {
-            List<HazardEntry> entries = HazardSystem.getHazardsFromStack(new ItemStack(BLACKLIST_ROW));
+            List<HazardEntry> entries = HazardRules.getHazardsFromStack(new ItemStack(BLACKLIST_ROW));
             helper.assertTrue(entries.isEmpty(), "a blacklisted item must resolve to empty, got " + entries.size() + " entries");
-            helper.assertTrue(!HazardSystem.isStackHazardous(new ItemStack(BLACKLIST_ROW)),
+            helper.assertTrue(!HazardRules.isStackHazardous(new ItemStack(BLACKLIST_ROW)),
                     "isStackHazardous must be false for a blacklisted item");
         }, () -> {
-            HazardSystem.itemBlacklist.remove(BLACKLIST_ROW);
-            HazardSystem.itemMap.remove(BLACKLIST_ROW);
+            HazardRules.unblacklist(BLACKLIST_ROW);
+            HazardRules.unregister(BLACKLIST_ROW);
         });
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void hazardResolutionHazRadiationComponentSurfaces(GameTestHelper helper) {
         ItemStack stack = new ItemStack(Items.STICK);
         stack.set(HazardContent.HAZ_RADIATION.get(), 42.5F);
-        double rads = HazardSystem.getRawRadsFromStack(stack);
+        double rads = HazardRules.getRawRadsFromStack(stack);
         helper.assertTrue(Math.abs(rads - 42.5D) < 0.001D, "wflib:haz_radiation must surface as ~42.5 rad/s, got " + rads);
         helper.succeed();
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void hazardResolutionNonHazardousItemIsClean(GameTestHelper helper) {
         ItemStack stack = new ItemStack(Items.STICK);
-        List<HazardEntry> entries = HazardSystem.getHazardsFromStack(stack);
+        List<HazardEntry> entries = HazardRules.getHazardsFromStack(stack);
         helper.assertTrue(entries.isEmpty(), "a plain stick must resolve to empty, got " + entries.size() + " entries");
-        helper.assertTrue(!HazardSystem.isStackHazardous(stack), "isStackHazardous must be false for a plain stick");
+        helper.assertTrue(!HazardRules.isStackHazardous(stack), "isStackHazardous must be false for a plain stick");
         helper.succeed();
     }
 
     // ------------------------------------------------------------------ mob equipment
 
-    @GameTest(template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH, timeoutTicks = 100)
     public static void mobHazardEquipmentRadiates(GameTestHelper helper) {
         Pig pig = pig(helper);
         ItemStack helmet = new ItemStack(Items.IRON_HELMET);
@@ -314,17 +312,17 @@ public class HazardGameTest {
         return stack;
     }
 
-    @GameTest(template = TEMPLATE, batch = BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = BATCH)
     public static void containerSumsHeldRadiation(GameTestHelper helper) {
         ItemStack box = new ItemStack(Items.SHULKER_BOX);
         box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(hot(3), ItemStack.EMPTY, hot(1))));
-        helper.assertTrue(Math.abs(HazardSystem.getHazardLevelFromStack(box, HazardRegistry.RADIATION) - 8D) < EPSILON,
+        helper.assertTrue(Math.abs(HazardRules.getHazardLevelFromStack(box, Hazards.RADIATION) - 8D) < EPSILON,
                 "shulker box must carry 2 RAD x 4 sticks");
         ItemStack bundle = new ItemStack(Items.BUNDLE);
         bundle.set(DataComponents.BUNDLE_CONTENTS, new BundleContents(List.of(box)));
-        helper.assertTrue(Math.abs(HazardSystem.getHazardLevelFromStack(bundle, HazardRegistry.RADIATION) - 8D) < EPSILON,
+        helper.assertTrue(Math.abs(HazardRules.getHazardLevelFromStack(bundle, Hazards.RADIATION) - 8D) < EPSILON,
                 "bundle must carry its nested box");
-        helper.assertTrue(!HazardSystem.isStackHazardous(new ItemStack(Items.SHULKER_BOX)),
+        helper.assertTrue(!HazardRules.isStackHazardous(new ItemStack(Items.SHULKER_BOX)),
                 "empty box must carry nothing");
         helper.succeed();
     }

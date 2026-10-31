@@ -2,13 +2,12 @@ package com.wf.wflib.round.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ammo.Ammo;
-import com.wf.wflib.ammo.ProjectileLook;
-import com.wf.wflib.ammo.client.LookLod;
-import com.wf.wflib.ammo.client.LookRockets;
-import com.wf.wflib.ammo.client.LookStats;
-import com.wf.wflib.round.RocketEntity;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.ProjectileLook;
+import com.wf.wflib.ammo.api.client.LookLod;
+import com.wf.wflib.ammo.api.client.LookRockets;
+import com.wf.wflib.ammo.api.client.LookStats;
+import com.wf.wflib.round.api.RocketEntity;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -22,6 +21,8 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import com.wf.wflib.round.api.client.ClientRounds;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Variant look sprites ({@link LookLod}; rounds + look rockets) + camera-facing streak behind each round with a tracer colour, plus a head dot of fixed angular size (a streak along the
@@ -86,7 +87,7 @@ public final class TracerRenderer {
         }
         float cr = (look.body() >> 16 & 0xFF) / 255f, cg = (look.body() >> 8 & 0xFF) / 255f,
                 cb = (look.body() & 0xFF) / 255f;
-        LookStats.sprites++;
+        LookStats.sprites.increment();
         out.addVertex(m, (float) (cx + ax + sx), (float) (cy + ay + sy), (float) (cz + az + sz)).setColor(cr, cg, cb, 1f);
         out.addVertex(m, (float) (cx - ax + sx), (float) (cy - ay + sy), (float) (cz - az + sz)).setColor(cr, cg, cb, 1f);
         out.addVertex(m, (float) (cx - ax - sx), (float) (cy - ay - sy), (float) (cz - az - sz)).setColor(cr, cg, cb, 1f);
@@ -117,16 +118,16 @@ public final class TracerRenderer {
                     nose.z, out, m, cam, up, left);
         }
         for (ClientRounds.Round r : ClientRounds.live()) {
-            double v = Math.sqrt(r.vx * r.vx + r.vy * r.vy + r.vz * r.vz);
+            double v = Math.sqrt(r.vx() * r.vx() + r.vy() * r.vy() + r.vz() * r.vz());
             if (v > 1.0e-9) {
-                sprite(Ammo.lookOrNull(r.preset.id()), r.ix(pt), r.iy(pt), r.iz(pt), r.vx / v, r.vy / v, r.vz / v,
+                sprite(Ammo.lookOrNull(r.preset().id()), r.ix(pt), r.iy(pt), r.iz(pt), r.vx() / v, r.vy() / v, r.vz() / v,
                         out, m, cam, up, left);
             }
-            int rgb = r.preset.tracerColor();
+            int rgb = r.preset().tracerColor();
             if (rgb == 0) {
                 continue;
             }
-            double speed = Math.sqrt(r.vx * r.vx + r.vy * r.vy + r.vz * r.vz);
+            double speed = Math.sqrt(r.vx() * r.vx() + r.vy() * r.vy() + r.vz() * r.vz());
             if (speed < 1.0e-4) {
                 continue;
             }
@@ -142,13 +143,13 @@ public final class TracerRenderer {
             out.addVertex(m, px + left.x() * dot, py + left.y() * dot, pz + left.z() * dot).setColor(cr, cg, cb, 1.0f);
             out.addVertex(m, px - up.x() * dot, py - up.y() * dot, pz - up.z() * dot).setColor(cr, cg, cb, 1.0f);
             out.addVertex(m, px - left.x() * dot, py - left.y() * dot, pz - left.z() * dot).setColor(cr, cg, cb, 1.0f);
-            double flown = Math.sqrt((hx - r.ox) * (hx - r.ox) + (hy - r.oy) * (hy - r.oy) + (hz - r.oz) * (hz - r.oz));
+            double flown = Math.sqrt((hx - r.ox()) * (hx - r.ox()) + (hy - r.oy()) * (hy - r.oy()) + (hz - r.oz()) * (hz - r.oz()));
             double len = Math.min(Math.min(MAX_STREAK, speed * STREAK_TICKS), flown) / speed;
             if (len <= 0) {
                 continue;
             }
             Vec3 head = new Vec3(ex, ey, ez);
-            Vec3 tail = head.subtract(r.vx * len, r.vy * len, r.vz * len);
+            Vec3 tail = head.subtract(r.vx() * len, r.vy() * len, r.vz() * len);
             Vec3 side = tail.subtract(head).cross(head).normalize();
             if (!Double.isFinite(side.x) || side.lengthSqr() < 0.5) {
                 continue;
@@ -166,6 +167,6 @@ public final class TracerRenderer {
         }
         stack.popPose();
         buffers.endBatch(RenderType.debugQuads());
-        LookStats.tracerNanos += System.nanoTime() - t0;
+        LookStats.tracerNanos.add(System.nanoTime() - t0);
     }
 }

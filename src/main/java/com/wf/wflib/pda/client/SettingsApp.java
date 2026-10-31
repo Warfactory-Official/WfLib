@@ -1,28 +1,32 @@
 package com.wf.wflib.pda.client;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ui.Signals;
-import com.wf.wflib.ui.Subject;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.TextLine;
-import com.wf.wflib.ui.input.UiAction;
-import com.wf.wflib.ui.widget.Button;
-import com.wf.wflib.ui.widget.Point;
-import com.wf.wflib.ui.widget.TextField;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.TextLine;
+import com.wf.wflib.ui.api.input.UiAction;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Point;
+import com.wf.wflib.ui.api.widget.TextField;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.pda.api.client.PdaApp;
+import com.wf.wflib.pda.api.client.PdaApps;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.client.PdaTheme;
 
-import static com.wf.wflib.ui.Ui.at;
-import static com.wf.wflib.ui.Ui.clip;
-import static com.wf.wflib.ui.Ui.list;
-import static com.wf.wflib.ui.Ui.rect;
-import static com.wf.wflib.ui.Ui.slider;
-import static com.wf.wflib.ui.Ui.stack;
-import static com.wf.wflib.ui.Ui.text;
-import static com.wf.wflib.ui.Ui.when;
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.clip;
+import static com.wf.wflib.ui.api.Ui.list;
+import static com.wf.wflib.ui.api.Ui.rect;
+import static com.wf.wflib.ui.api.Ui.slider;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
+import static com.wf.wflib.ui.api.Ui.when;
 
 /** PDA look: colours by hex code, panel opacity, background image from the server ({@link PdaTheme}). */
-final class SettingsApp implements PdaApp {
+public final class SettingsApp implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "settings");
     private static final SettingsApp INSTANCE = new SettingsApp();
     private static final Subject<SettingsApp> APP = Subject.register("pda_settings", SettingsApp.class,
@@ -32,7 +36,7 @@ final class SettingsApp implements PdaApp {
     private SettingsApp() {
     }
 
-    static void register() {
+    public static void register() {
         Signals.bool(APP, "bad_accent", a -> PdaTheme.badAccent());
         Signals.bool(APP, "bad_text", a -> PdaTheme.badText());
         Signals.bool(APP, "bad_panel", a -> PdaTheme.badPanel());
@@ -44,7 +48,7 @@ final class SettingsApp implements PdaApp {
                 : "NONE ON SERVER: <WORLD>/pda_backgrounds");
         Signals.text(CHOICE, "label", 40, PdaTheme.Choice::label);
         Signals.bool(CHOICE, "on", c -> c.name().equals(PdaTheme.background()));
-        PdaApps.register(INSTANCE);
+        PdaApps.register(INSTANCE, 870);
     }
 
     @Override

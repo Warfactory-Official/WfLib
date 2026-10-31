@@ -1,6 +1,6 @@
 package com.wf.wflib.recon.snapshot;
 
-import com.wf.wflib.drone.WorldThread;
+import com.wf.wflib.core.api.WorldThread;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.SectionPos;
@@ -16,6 +16,7 @@ import net.minecraft.world.level.material.MapColor;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.wf.wflib.recon.api.ReconTerrain;
 
 /** Per-dimension store of condensed terrain, and the only place a {@link ReconTerrain} is made. */
 public final class ReconTerrainCache {

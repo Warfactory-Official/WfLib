@@ -3,6 +3,8 @@ package com.wf.wflib.barrel;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.barrel.api.BarrelSpec;
+import com.wf.wflib.barrel.api.BarrelState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

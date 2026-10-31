@@ -1,8 +1,8 @@
 package com.wf.wflib.pda.client;
 
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.TextBox;
-import com.wf.wflib.ui.widget.TextBoxField;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.TextBox;
+import com.wf.wflib.ui.api.widget.TextBoxField;
 
 /**
  * PDA-styled input box for apps: click it and type (the keyboard goes to the box, not to walking or hotkeys; Esc or a

@@ -1,8 +1,8 @@
 package com.wf.wflib.recon.example;
 
-import com.wf.wflib.recon.Countermeasure;
-import com.wf.wflib.recon.CountermeasureProvider;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
+import com.wf.wflib.recon.api.Countermeasure;
+import com.wf.wflib.recon.api.CountermeasureProvider;
+import com.wf.wflib.recon.api.TargetSnapshot;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,14 +20,6 @@ public final class ExampleCountermeasureProvider implements CountermeasureProvid
     public static final String TAG_FACETED = "wf_faceted";
     public static final String TAG_REFLECTOR = "wf_reflector";
     public static final String TAG_ANECHOIC = "wf_anechoic";
-
-    /**
-     * Above the built-ins but below anything a pack adds, so a pack can still override this wholesale.
-     */
-    @Override
-    public int priority() {
-        return 100;
-    }
 
     @Override
     @Nullable

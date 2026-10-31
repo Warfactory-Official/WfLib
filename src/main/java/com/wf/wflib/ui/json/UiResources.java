@@ -4,9 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ui.UiLayout;
-import com.wf.wflib.ui.UiLayouts;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.UiLayouts;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -29,6 +28,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.ui.api.json.UiJsonException;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Loads {@code assets/<ns>/wf_ui/{palettes,components,layouts}/<path>.json} as {@code <ns>:<path>}.

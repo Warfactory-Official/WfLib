@@ -1,12 +1,14 @@
 package com.wf.wflib.drone.ai.coord;
 
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.SquadView;
 import com.wf.wflib.drone.ai.Steering;
 import com.wf.wflib.drone.ai.state.Tuning;
-import com.wf.wflib.drone.squad.Formation;
-import com.wf.wflib.drone.squad.Formations;
+import com.wf.wflib.drone.api.Formation;
+import com.wf.wflib.drone.api.Formations;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.drone.api.SquadAnchor;
+import com.wf.wflib.drone.api.SquadCommand;
 
 /** Where a formation slot is and how it is moving, differentiated straight off the {@link SquadAnchor}. */
 public final class Slots {

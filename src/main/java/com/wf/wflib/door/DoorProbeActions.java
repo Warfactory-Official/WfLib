@@ -1,18 +1,19 @@
 package com.wf.wflib.door;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.probe.ProbeActions;
-import com.wf.wflib.probe.ProbeInventory;
+import com.wf.wflib.probe.api.ProbeActions;
+import com.wf.wflib.probe.api.ProbeInventory;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.door.api.DoorBlockEntity;
+import com.wf.wflib.door.api.DoorSounds;
+import com.wf.wflib.core.api.WFLib;
 
 /** What the probe's door actions actually do. */
 public final class DoorProbeActions {
@@ -59,7 +60,7 @@ public final class DoorProbeActions {
             if (pins == 0) {
                 return false;
             }
-            ItemStack padlock = new ItemStack(ModDoors.DOOR_LOCK.get());
+            ItemStack padlock = new ItemStack(DoorContent.DOOR_LOCK.get());
             DoorKeyItem.setPins(padlock, pins);
             if (!player.addItem(padlock)) {
                 player.drop(padlock, false);

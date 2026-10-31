@@ -1,7 +1,6 @@
 package com.wf.wflib.rail;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.rail.align.AlignmentProgress;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -10,7 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.BlockEvent;
 
 /**
@@ -23,7 +21,6 @@ import net.neoforged.neoforge.event.level.BlockEvent;
  * <p>Only a player's own faction's routes are considered, and only within a route's own clearance width,
  * so laying a siding next to somebody else's main line does not credit theirs.</p>
  */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class TrackReporter {
 
     /**

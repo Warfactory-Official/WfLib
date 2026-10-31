@@ -12,6 +12,9 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Locale;
+import com.wf.wflib.industry.api.IndustryCluster;
+import com.wf.wflib.industry.api.IndustryClusters;
+import com.wf.wflib.industry.api.IndustryData;
 
 /** Inspection for the industry model. */
 public final class IndustryDebug {
@@ -21,7 +24,7 @@ public final class IndustryDebug {
 
     public static int status(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        IndustryRegistry registry = IndustryRegistry.get(level);
+        IndustryData registry = IndustryData.get(level);
         List<IndustryCluster> clusters = IndustryClusters.clusters(level);
         long age = IndustryClusters.ageTicks(level);
 
@@ -57,7 +60,7 @@ public final class IndustryDebug {
     public static int here(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
         Vec3 pos = source.getPosition();
-        int pressure = IndustryRegistry.get(level).pressureAt((int) pos.x, (int) pos.z);
+        int pressure = IndustryData.get(level).pressureAt((int) pos.x, (int) pos.z);
         IndustryCluster nearest = IndustryClusters.nearest(level, pos.x, pos.z);
 
         source.sendSuccess(() -> Component.literal(
@@ -81,7 +84,7 @@ public final class IndustryDebug {
             }
         }
 
-        IndustryRegistry registry = IndustryRegistry.get(level);
+        IndustryData registry = IndustryData.get(level);
         int forgotten = registry.forgetChunks(targets);
 
         int found = 0;
@@ -112,7 +115,7 @@ public final class IndustryDebug {
      * clustering are at fault.
      */
     public static int cells(CommandSourceStack source) {
-        IndustryRegistry registry = IndustryRegistry.get(source.getLevel());
+        IndustryData registry = IndustryData.get(source.getLevel());
         if (registry.cells().isEmpty()) {
             source.sendSuccess(() -> Component.literal("No occupied cells."), false);
             return 0;
@@ -121,7 +124,7 @@ public final class IndustryDebug {
             long cell = entry.getLongKey();
             source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                     "  cell (%d, %d) centre (%d, %d) value %d",
-                    IndustryRegistry.cellX(cell), IndustryRegistry.cellZ(cell),
+                    IndustryData.cellX(cell), IndustryData.cellZ(cell),
                     registry.cellCenterX(cell), registry.cellCenterZ(cell), entry.getIntValue())), false);
         }
         return registry.cells().size();

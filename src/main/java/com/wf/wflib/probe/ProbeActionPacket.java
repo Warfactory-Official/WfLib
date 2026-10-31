@@ -1,11 +1,11 @@
 package com.wf.wflib.probe;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.core.api.WFLib;
 
 /** "Do this to that." The only thing the probe ever asks the server to change. */
 public record ProbeActionPacket(BlockPos pos, int entityId, ResourceLocation action, int arg)

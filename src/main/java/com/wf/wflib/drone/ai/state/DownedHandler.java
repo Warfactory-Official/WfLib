@@ -1,10 +1,10 @@
 package com.wf.wflib.drone.ai.state;
 
-import com.wf.wflib.drone.DroneState;
-import com.wf.wflib.drone.RotorDamage;
-import com.wf.wflib.drone.ai.DroneSnapshot;
-import com.wf.wflib.drone.ai.DroneStateHandler;
-import com.wf.wflib.drone.ai.SquadView;
+import com.wf.wflib.drone.api.DroneState;
+import com.wf.wflib.drone.api.RotorDamage;
+import com.wf.wflib.drone.api.DroneSnapshot;
+import com.wf.wflib.drone.api.DroneStateHandler;
+import com.wf.wflib.drone.api.SquadView;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 

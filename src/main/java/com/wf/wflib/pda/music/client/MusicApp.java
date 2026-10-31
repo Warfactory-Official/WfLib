@@ -1,20 +1,19 @@
 package com.wf.wflib.pda.music.client;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.pda.client.PdaApp;
-import com.wf.wflib.pda.client.PdaApps;
-import com.wf.wflib.pda.client.PdaShell;
+import com.wf.wflib.pda.api.client.PdaApp;
+import com.wf.wflib.pda.api.client.PdaApps;
+import com.wf.wflib.pda.api.client.PdaShell;
 import com.wf.wflib.pda.music.MusicChunkPacket;
 import com.wf.wflib.pda.music.MusicListPacket;
-import com.wf.wflib.ui.Signals;
-import com.wf.wflib.ui.Subject;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.TextLine;
-import com.wf.wflib.ui.input.UiAction;
-import com.wf.wflib.ui.widget.Button;
-import com.wf.wflib.ui.widget.Image;
-import com.wf.wflib.ui.widget.Point;
-import com.wf.wflib.ui.widget.TextField;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.TextLine;
+import com.wf.wflib.ui.api.input.UiAction;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Image;
+import com.wf.wflib.ui.api.widget.Point;
+import com.wf.wflib.ui.api.widget.TextField;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -22,15 +21,16 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.core.api.WFLib;
 
-import static com.wf.wflib.ui.Ui.at;
-import static com.wf.wflib.ui.Ui.clip;
-import static com.wf.wflib.ui.Ui.list;
-import static com.wf.wflib.ui.Ui.rect;
-import static com.wf.wflib.ui.Ui.slider;
-import static com.wf.wflib.ui.Ui.stack;
-import static com.wf.wflib.ui.Ui.text;
-import static com.wf.wflib.ui.Ui.when;
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.clip;
+import static com.wf.wflib.ui.api.Ui.list;
+import static com.wf.wflib.ui.api.Ui.rect;
+import static com.wf.wflib.ui.api.Ui.slider;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
+import static com.wf.wflib.ui.api.Ui.when;
 
 /**
  * Music player: SERVER / LOCAL libraries and playlists on the left, now playing on the right. Playback is local to
@@ -155,7 +155,7 @@ public final class MusicApp implements PdaApp {
         Signals.bool(ROW, "can_act", r -> r.track != null && !r.track.missing()
                 && (opened != null && tab == TAB_LISTS || tab != TAB_LISTS && target != null));
         Signals.text(ROW, "act", 2, r -> opened != null && tab == TAB_LISTS ? "x" : "+");
-        PdaApps.register(INSTANCE);
+        PdaApps.register(INSTANCE, 940);
     }
 
     // ---- network entry points ---------------------------------------------------------------------------
@@ -336,7 +336,7 @@ public final class MusicApp implements PdaApp {
 
     @Override
     public boolean visible(LocalPlayer player) {
-        return com.wf.wflib.pda.client.PdaClient.held();
+        return com.wf.wflib.pda.api.client.PdaClient.held();
     }
 
     @Override
@@ -410,7 +410,7 @@ public final class MusicApp implements PdaApp {
                 at(Float.toString(x0), "96", slider(Float.toString(innerW), "8", "pda_music.progress",
                         (item, v) -> MusicPlayer.scrubTo((float) v), BAR, ACCENT, TEXT)),
                 at(Float.toString(x0), "108", text("{pda_music.time}", TEXT)),
-                com.wf.wflib.ui.Ui.place(Float.toString(x0 + innerW), "108", Point.TOP_RIGHT,
+                com.wf.wflib.ui.api.Ui.place(Float.toString(x0 + innerW), "108", Point.TOP_RIGHT,
                         text("{pda_music.total}", DIM)),
 
                 at(Float.toString(x0), "122", btn("|<", 30, 16, i -> MusicPlayer.previous())),

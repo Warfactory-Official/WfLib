@@ -1,7 +1,7 @@
 package com.wf.wflib.probe.client;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.probe.ProbeAction;
+import com.wf.wflib.probe.api.ProbeAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;

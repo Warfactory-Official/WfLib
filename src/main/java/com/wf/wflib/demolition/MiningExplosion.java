@@ -1,16 +1,14 @@
 package com.wf.wflib.demolition;
 
-import com.wf.wflib.audio.AudioCategory;
-import com.wf.wflib.audio.Blasts;
-import com.wf.wflib.audio.WfAudio;
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.audio.api.AudioCategory;
+import com.wf.wflib.audio.api.WfAudio;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
-import com.wf.wflib.network.AuxParticlePacket;
-import com.wf.wflib.network.WFNetwork;
+import com.wf.wflib.core.api.WFNetwork;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -34,6 +32,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import com.wf.wflib.demolition.api.IDetonatable;
+import com.wf.wflib.explosion.api.BlastParticles;
 
 /**
  * The blast a mining charge produces: an instant cube around the centre that breaks only natural blocks (see {@link
@@ -119,7 +119,7 @@ public final class MiningExplosion {
         // Smoke and the block-break burst always play; only the flying debris needs blocks to have broken.
         spawnBlastEffect(level, center, radius, broken > 0 ? debris : List.of());
         spawnCrackParticles(level, center, radius, nearby);
-        WfAudio.at(level, Vec3.atCenterOf(center), AudioCategory.EXPLOSIONS, Blasts.miningCharge());
+        WfAudio.at(level, Vec3.atCenterOf(center), AudioCategory.EXPLOSIONS, DemolitionSounds.blast());
         damageEntities(level, center, radius, player);
 
         for (BlockPos p : chain) {
@@ -296,8 +296,8 @@ public final class MiningExplosion {
         double cx = center.getX() + 0.5;
         double cy = center.getY() + 0.5;
         double cz = center.getZ() + 0.5;
-        WFNetwork.sendToAllAround(level, cx, cy, cz, com.wf.wflib.config.ViewRange.blocks,
-                new AuxParticlePacket("mining_blast", cx, cy, cz, data));
+        WFNetwork.sendToAllAround(level, cx, cy, cz, com.wf.wflib.core.api.ViewRange.blocks(),
+                com.wf.wflib.explosion.api.AuxParticles.packet("mining_blast", cx, cy, cz, data));
     }
 
     /** A heavy burst of vanilla block-break crack particles, fanning out from the centre. Always plays. */

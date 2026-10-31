@@ -1,7 +1,7 @@
 package com.wf.wflib.rail.excavate;
 
 import com.wf.wflib.rail.TunnelBuilder;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.Centreline;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;

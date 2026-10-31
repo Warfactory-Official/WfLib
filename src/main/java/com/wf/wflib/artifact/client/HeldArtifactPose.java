@@ -1,7 +1,7 @@
 package com.wf.wflib.artifact.client;
 
-import com.wf.wflib.client.view.ArmViewPose;
-import com.wf.wflib.client.view.PlayerArms;
+import com.wf.wflib.view.api.ArmViewPose;
+import com.wf.wflib.view.api.PlayerArms;
 import net.minecraft.util.Mth;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -31,14 +31,14 @@ public final class HeldArtifactPose {
     static final float HALF_HEIGHT = 0.056F;
     /** Air between the hand and the artefact's underside when held, m; it bobs this much either way too. */
     static final float GAP = 0.04F;
-    static final float BOB = 0.012F;
+    public static final float BOB = 0.012F;
     /**
      * Forearm corkscrew allowed, rad: none. Palm up is a half turn from the arm's rest; spread down the forearm's
      * twist joints that warps the skin box, so the whole straight arm turns instead.
      */
-    static final float TWIST_LIMIT = 0.0F;
+    public static final float TWIST_LIMIT = 0.0F;
     /** Drawn size over the model's metres. */
-    static final float SCALE = 0.4F;
+    public static final float SCALE = 0.4F;
 
     /** Outputs. */
     public final Vector3f shoulder = new Vector3f();

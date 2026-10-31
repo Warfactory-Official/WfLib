@@ -1,12 +1,17 @@
 package com.wf.wflib.rail.align;
 
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.api.BuildProgress;
+import com.wf.wflib.rail.api.DesignClass;
+import com.wf.wflib.rail.api.RouteStatus;
 
 /**
  * What a player is allowed to do to a route, and every write that reaches the store.
@@ -65,7 +70,7 @@ public final class AlignmentEdits {
         if (points.size() < 2) {
             return SaveOutcome.INVALID;
         }
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment existing = store.get(id);
 
         if (existing == null) {
@@ -77,8 +82,8 @@ public final class AlignmentEdits {
             int held = faction != null
                     ? store.countFor(faction)
                     : store.countForAuthor(player.getUUID());
-            if (held >= AlignmentStore.MAX_PER_FACTION) {
-                tell(player, "You already have " + AlignmentStore.MAX_PER_FACTION
+            if (held >= AlignmentData.MAX_PER_FACTION) {
+                tell(player, "You already have " + AlignmentData.MAX_PER_FACTION
                         + " routes in this world. Delete one before surveying another.");
                 return SaveOutcome.FULL;
             }
@@ -120,7 +125,7 @@ public final class AlignmentEdits {
      */
     public static SaveOutcome setStatus(ServerPlayer player, ServerLevel level, UUID id,
                                         RouteStatus status) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment existing = store.get(id);
         if (existing == null) {
             return SaveOutcome.GONE;
@@ -147,7 +152,7 @@ public final class AlignmentEdits {
      */
     public static SaveOutcome setBuilt(ServerPlayer player, ServerLevel level, UUID id, double from,
                                        double to, boolean laid) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment existing = store.get(id);
         if (existing == null) {
             return SaveOutcome.GONE;
@@ -202,7 +207,7 @@ public final class AlignmentEdits {
 
     /** @return whether the route was removed. */
     public static boolean delete(ServerPlayer player, ServerLevel level, UUID id) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         Alignment existing = store.get(id);
         if (existing == null) {
             return false;

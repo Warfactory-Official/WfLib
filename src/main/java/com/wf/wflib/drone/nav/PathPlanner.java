@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.PriorityQueue;
+import com.wf.wflib.drone.api.DronePath;
+import com.wf.wflib.drone.api.TerrainField;
 
 /** Finds a route over terrain: an A* across a {@link TerrainField}, run on a planner worker. */
 public final class PathPlanner {

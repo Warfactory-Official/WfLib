@@ -1,11 +1,11 @@
 package com.wf.wflib.probe;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * "What else do you know about this?": sent only while the player is actually looking at something a

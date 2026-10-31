@@ -4,20 +4,21 @@ import com.mojang.authlib.GameProfile;
 import com.norwood.ahf.hit.AhfHitSource;
 import com.norwood.ahf.lagcomp.EntityHistory;
 import com.norwood.ahf.part.HitboxPart;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.api.ProjectileStrikeEvent;
-import com.wf.wflib.api.StrikeContext;
-import com.wf.wflib.armor.ArmorPreset;
-import com.wf.wflib.armor.ArmorSystem;
-import com.wf.wflib.damage.DamageResistanceHandler;
-import com.wf.wflib.item.ModItems;
-import com.wf.wflib.kinetic.KineticPreset;
-import com.wf.wflib.kinetic.KineticPresetRegistry;
-import com.wf.wflib.round.RoundDamageSource;
-import com.wf.wflib.round.RoundEnd;
-import com.wf.wflib.round.RoundNetwork;
-import com.wf.wflib.round.Rounds;
-import com.wf.wflib.warhead.WarheadRegistry;
+import com.wf.wflib.round.RoundConfig;
+import com.wf.wflib.damage.api.event.ProjectileStrikeEvent;
+import com.wf.wflib.damage.api.StrikeContext;
+import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.armor.api.ArmorResolution;
+import com.wf.wflib.damage.api.DamageResistanceHandler;
+import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.KineticPresets;
+import com.wf.wflib.round.api.RoundDamageSource;
+import com.wf.wflib.round.api.RoundEnd;
+import com.wf.wflib.round.RoundPacket;
+import com.wf.wflib.round.api.RoundEnded;
+import com.wf.wflib.round.api.RoundSpawn;
+import com.wf.wflib.round.api.Rounds;
+import com.wf.wflib.warhead.api.Warheads;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
@@ -32,6 +33,7 @@ import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -55,41 +57,42 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.util.ObfuscationReflectionHelper;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import com.wf.wflib.armor.api.ArmorContent;
+import com.wf.wflib.core.api.WFLib;
 
 /** Round hits through AHF: rewind, parts, headshot rules, pass-through, pierce, energy damage, wire fields. */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = WFLib.MODID)
 public class RoundHitGameTest {
 
     private static final String TEMPLATE = "empty";
     private static final String CLAIMED = "wflib_test_claimed";
+    private static volatile boolean playersClaimed;
     /** Bodies stand this high: above the arena's barrier lid. */
     private static final double HEIGHT = 10.0;
     /** Shots start {@code LANE / 2} in front of a body and stop as far behind: inside the arena footprint. */
     private static final double LANE = 2.4;
     private static final double MOVE = 2.5;
 
-    private static final ResourceLocation RECORDING = WarheadRegistry.rl("test_hit_recording_warhead");
+    private static final ResourceLocation RECORDING = Warheads.rl("test_hit_recording_warhead");
     /** Straight, no drag or gravity, one point of damage, passes through bodies. */
-    private static final ResourceLocation LINE = KineticPresetRegistry.rl("test_line_round");
+    private static final ResourceLocation LINE = KineticPresets.rl("test_line_round");
     /** {@link #LINE} that stops on bodies, headshot x2. */
-    private static final ResourceLocation HEAD = KineticPresetRegistry.rl("test_head_round");
-    private static final ResourceLocation PIERCING = KineticPresetRegistry.rl("test_piercing_round");
-    private static final ResourceLocation ENERGY = KineticPresetRegistry.rl("test_energy_round");
+    private static final ResourceLocation HEAD = KineticPresets.rl("test_head_round");
+    private static final ResourceLocation PIERCING = KineticPresets.rl("test_piercing_round");
+    private static final ResourceLocation ENERGY = KineticPresets.rl("test_energy_round");
     /** Ten points, no headshot factor. */
-    private static final ResourceLocation TEN = KineticPresetRegistry.rl("test_ten_round");
+    private static final ResourceLocation TEN = KineticPresets.rl("test_ten_round");
     /** {@link #LINE} that stops on bodies and detonates the recording warhead there. */
-    private static final ResourceLocation STOP = KineticPresetRegistry.rl("test_stop_round");
+    private static final ResourceLocation STOP = KineticPresets.rl("test_stop_round");
     private static final double ENERGY_MASS = 0.004;
     private static final double ENERGY_PER_KJ = 4.0;
     private static final float PIERCE_DT = 3.0f;
@@ -117,27 +120,28 @@ public class RoundHitGameTest {
                         @Nullable List<HitboxPart> parts, long when) {
     }
 
-    static {
-        WarheadRegistry.register(RECORDING, (source, pos) -> DETONATIONS.add(pos));
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(LINE, null, RECORDING)
+    public static void register() {
+        Warheads.register(RECORDING, (source, pos) -> DETONATIONS.add(pos));
+        KineticPresets.registerItemless(KineticPreset.builder(LINE, null, RECORDING)
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(1.0).caliber(5.56).noChunkLoading()
                 .passesThroughEntities().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(HEAD, null, WarheadRegistry.rl("inert"))
+        KineticPresets.registerItemless(KineticPreset.builder(HEAD, null, Warheads.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(2.0).headshot(2.0).caliber(5.56)
                 .noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(PIERCING, null, WarheadRegistry.rl("inert"))
+        KineticPresets.registerItemless(KineticPreset.builder(PIERCING, null, Warheads.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(2.0).pierce(PIERCE_DT, PIERCE_DR)
                 .caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(ENERGY, null, WarheadRegistry.rl("inert"))
+        KineticPresets.registerItemless(KineticPreset.builder(ENERGY, null, Warheads.rl("inert"))
                 .speed(40.0).drag(0.0).gravity(0.0).life(40).mass(ENERGY_MASS).energyDamage(ENERGY_PER_KJ)
                 .caliber(5.56).noChunkLoading().build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(TEN, null, WarheadRegistry.rl("inert"))
+        KineticPresets.registerItemless(KineticPreset.builder(TEN, null, Warheads.rl("inert"))
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(10.0).caliber(5.56).noChunkLoading()
                 .build());
-        KineticPresetRegistry.registerItemless(KineticPreset.builder(STOP, null, RECORDING)
+        KineticPresets.registerItemless(KineticPreset.builder(STOP, null, RECORDING)
                 .speed(4.0).drag(0.0).gravity(0.0).life(40).impactDamage(1.0).caliber(5.56).noChunkLoading()
                 .build());
-        ArmorSystem.claimResolution(e -> e.getTags().contains(CLAIMED));
+        ArmorResolution.BODY_CLAIMS.register(ArmorPreset.rl("round_hit_test"), 0,
+                e -> e.getTags().contains(CLAIMED) || e instanceof Player && playersClaimed);
     }
 
     /** One step of round {@code key} with the recorders on. */
@@ -169,8 +173,8 @@ public class RoundHitGameTest {
         StrikeContext strike = StrikeContext.of(event.getSource());
         if (strike != null && recorded(strike.key())) {
             DamageSource source = event.getSource();
-            HURTS.add(new Hurt(event.getEntity(), event.getAmount(), ArmorSystem.pierceDT(source),
-                    ArmorSystem.pierceDR(source), strike.parts(), ((AhfHitSource) source).hitGameTime()));
+            HURTS.add(new Hurt(event.getEntity(), event.getAmount(), ArmorResolution.pierceDT(source),
+                    ArmorResolution.pierceDR(source), strike.parts(), ((AhfHitSource) source).hitGameTime()));
             if (duringHit != null) {
                 duringHit.run();
             }
@@ -188,7 +192,7 @@ public class RoundHitGameTest {
     // --- lag compensation ---------------------------------------------------------------------
 
     /** Target moved {@link #MOVE}: the rewound round hits the old spot with its part, and only there. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aRewoundRoundHitsWhereTheTargetWas(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         FakePlayer v = player(helper, new FakePlayer(level, profile()));
@@ -238,7 +242,7 @@ public class RoundHitGameTest {
      * Target moves {@link #MOVE} in x after tick {@code a}. A round launched with rewind {@code X - a} misses on its
      * first step and crosses only the new spot on its second, one tick later: that step sweeps tick {@code a + 1}.
      */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aLaterStepRewindsFromItsOwnTick(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         FakePlayer v = player(helper, new FakePlayer(level, profile()));
@@ -254,7 +258,7 @@ public class RoundHitGameTest {
                 .thenIdle(2)
                 .thenExecute(() -> {
                     int rewind = (int) (EntityHistory.broadcastTick(level) - a[0]);
-                    long key = Rounds.launch(level, KineticPresetRegistry.get(LINE),
+                    long key = Rounds.launch(level, KineticPresets.get(LINE),
                             v.position().add(0.0, 1.0, LANE * 1.5), new Vec3(0.0, 0.0, -LANE), null, null, 1.0f,
                             rewind, Rounds.NO_SEQ);
                     WATCHED.add(key);
@@ -276,31 +280,31 @@ public class RoundHitGameTest {
     private static final String FIRE_TICK_BATCH = "wflib_rewind_fire_tick";
 
     /** Hold: step 2 sweeps tick {@code a + 1} (target at {@code +MOVE}), not live ({@code -MOVE}). */
-    @GameTest(template = TEMPLATE, batch = HOLD_BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = HOLD_BATCH)
     public static void aHeldRewindSweepsTheLaterStepAsSeen(GameTestHelper helper) {
         rewindPolicy(helper, true);
     }
 
     /** Fire-tick only: step 2 sweeps live ({@code -MOVE}), not tick {@code a + 1} ({@code +MOVE}). */
-    @GameTest(template = TEMPLATE, batch = FIRE_TICK_BATCH)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, batch = FIRE_TICK_BATCH)
     public static void aSpentRewindSweepsTheLaterStepLive(GameTestHelper helper) {
         rewindPolicy(helper, false);
     }
 
     @AfterBatch(batch = HOLD_BATCH)
     public static void restoreHold(ServerLevel level) {
-        Rounds.rewindWholeFlight = true;
+        RoundConfig.override(RoundConfig.snapshot().withRewindWholeFlight(true));
     }
 
     @AfterBatch(batch = FIRE_TICK_BATCH)
     public static void restoreFireTick(ServerLevel level) {
-        Rounds.rewindWholeFlight = true;
+        RoundConfig.override(RoundConfig.snapshot().withRewindWholeFlight(true));
     }
 
-    /** Own batch: {@link Rounds#rewindWholeFlight} is global. Two rounds, lanes {@code +MOVE} and {@code -MOVE}. */
+    /** Own batch: {@link RoundConfig#snapshot()}'s rewind policy is global. Two rounds, lanes {@code +MOVE} and {@code -MOVE}. */
     private static void rewindPolicy(GameTestHelper helper, boolean wholeFlight) {
         ServerLevel level = helper.getLevel();
-        Rounds.rewindWholeFlight = wholeFlight;
+        RoundConfig.override(RoundConfig.snapshot().withRewindWholeFlight(wholeFlight));
         FakePlayer v = player(helper, new FakePlayer(level, profile()));
         Vec3 p0 = v.position();
         long[] a = new long[1];
@@ -342,14 +346,14 @@ public class RoundHitGameTest {
     }
 
     private static long launchWatched(ServerLevel level, Vec3 at, int rewind) {
-        long key = Rounds.launch(level, KineticPresetRegistry.get(LINE), at, new Vec3(0.0, 0.0, -LANE), null, null,
+        long key = Rounds.launch(level, KineticPresets.get(LINE), at, new Vec3(0.0, 0.0, -LANE), null, null,
                 1.0f, rewind, Rounds.NO_SEQ);
         WATCHED.add(key);
         return key;
     }
 
     /** Seated in a moving cart: struck where it sits now, stamped live, whatever the rewind. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aPassengerIsStruckLive(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         FakePlayer watcher = player(helper, new FakePlayer(level, profile()));
@@ -381,7 +385,7 @@ public class RoundHitGameTest {
                                 "setup: rider moved with the cart to " + rider.position());
                         HURTS.clear();
                         rider.invulnerableTime = 0;
-                        long key = Rounds.launch(level, KineticPresetRegistry.get(LINE),
+                        long key = Rounds.launch(level, KineticPresets.get(LINE),
                                 new Vec3(rider.getX() + LANE / 2, rider.getEyeY(), rider.getZ()),
                                 new Vec3(-LANE, 0.0, 0.0), null, null, 1.0f, rewind, Rounds.NO_SEQ);
                         record(level, key);
@@ -404,7 +408,7 @@ public class RoundHitGameTest {
     }
 
     /** Static husk grazed 0.2 outside its box (inside the 0.3 pick slack): hit rewound as live. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aGrazeWithinThePickSlackHitsRewound(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         FakePlayer watcher = player(helper, new FakePlayer(level, profile()));
@@ -431,11 +435,11 @@ public class RoundHitGameTest {
     }
 
     /** A strike listener destroying the round: the round swapped into its slot is neither struck on nor burst. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aRoundDestroyedByItsStrikeLeavesItsNeighbourAlone(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinned(helper, new Husk(EntityType.HUSK, level));
-        KineticPreset stop = KineticPresetRegistry.get(STOP);
+        KineticPreset stop = KineticPresets.get(STOP);
         long first = Rounds.launch(level, stop, husk.position().add(0.0, 1.0, LANE / 2), new Vec3(0.0, 0.0, -LANE),
                 null, null);
         long other = Rounds.launch(level, stop, husk.position().add(0.0, 30.0, 0.0), new Vec3(0.0, 0.0, -LANE),
@@ -473,7 +477,7 @@ public class RoundHitGameTest {
     private static List<ProjectileStrikeEvent> shoot(ServerLevel level, ResourceLocation preset, Vec3 at, int rewind,
                                                      Entity target) {
         STRIKES.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(preset), at, new Vec3(0.0, 0.0, -LANE), null, null,
+        long key = Rounds.launch(level, KineticPresets.get(preset), at, new Vec3(0.0, 0.0, -LANE), null, null,
                 1.0f, rewind, Rounds.NO_SEQ);
         record(level, key);
         Rounds.destroy(level, key);
@@ -491,7 +495,7 @@ public class RoundHitGameTest {
     // --- headshot rules -----------------------------------------------------------------------
 
     /** Player: rig HEAD doubles, torso does not; parts ride the damage; claimed players take factor 1. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aPlayerHeadshotIsTheRigHeadUnlessClaimed(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         FakePlayer v = player(helper, hurtable(level));
@@ -522,7 +526,7 @@ public class RoundHitGameTest {
     }
 
     /** No part model (spider: wider than tall) => the eye band decides; a predicate claim => factor 1. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aWideMobFallsBackToTheEyeBandAndClaimsWin(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Spider spider = pinned(helper, new Spider(EntityType.SPIDER, level));
@@ -558,11 +562,11 @@ public class RoundHitGameTest {
     }
 
     /** WFLib armour on a mob: the struck part's slot, not coverage-weighted. Helmet: DT 6, DR 25%. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aStruckPartResolvesItsOwnSlot(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinned(helper, new Husk(EntityType.HUSK, level));
-        husk.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModItems.armorItem(ArmorPreset.rl("combat_helmet"))));
+        husk.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ArmorContent.item(ArmorPreset.rl("combat_helmet"))));
         try {
             hurt(level, TEN, husk.position().add(0.0, 1.0, LANE / 2), husk);
             Hurt torso = landed(husk);
@@ -591,7 +595,7 @@ public class RoundHitGameTest {
         HURTS.clear();
         LANDED.clear();
         victim.invulnerableTime = 0;
-        long key = Rounds.launch(level, KineticPresetRegistry.get(preset), at, new Vec3(0.0, 0.0, -LANE), null, null);
+        long key = Rounds.launch(level, KineticPresets.get(preset), at, new Vec3(0.0, 0.0, -LANE), null, null);
         record(level, key);
         Rounds.destroy(level, key);
         for (Hurt h : HURTS) {
@@ -603,19 +607,13 @@ public class RoundHitGameTest {
     }
 
     private static void setPlayerClaim(boolean claimed) {
-        try {
-            Field f = ArmorSystem.class.getDeclaredField("externalPlayerResolution");
-            f.setAccessible(true);
-            f.setBoolean(null, claimed);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(e);
-        }
+        playersClaimed = claimed;
     }
 
     // --- pass-through, multi-target -----------------------------------------------------------
 
     /** One tick's segment: both bodies struck in order, then the wall behind them stops the round. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aPassThroughRoundStillMeetsTheWallBehind(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk upper = pinned(helper, new Husk(EntityType.HUSK, level));
@@ -627,7 +625,7 @@ public class RoundHitGameTest {
         level.setBlockAndUpdate(wall, Blocks.STONE.defaultBlockState());
         STRIKES.clear();
         DETONATIONS.clear();
-        long key = Rounds.launch(level, KineticPresetRegistry.get(LINE), new Vec3(c.x, c.y + 12.0, c.z),
+        long key = Rounds.launch(level, KineticPresets.get(LINE), new Vec3(c.x, c.y + 12.0, c.z),
                 new Vec3(0.0, -16.0, 0.0), null, null);
         record(level, key);
         Vec3 still = Rounds.position(level, key);
@@ -655,7 +653,7 @@ public class RoundHitGameTest {
      * Preset pierce rides on the round's source; the thread context is untouched: damage resolved inside the hit reads
      * the outer context, and it stands after.
      */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void pierceRidesOnTheSourceOnly(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinned(helper, new Husk(EntityType.HUSK, level));
@@ -664,8 +662,8 @@ public class RoundHitGameTest {
         try {
             DamageResistanceHandler.setup(9.0f, 0.9f);
             duringHit = () -> {
-                nested[0] = ArmorSystem.pierceDT(generic);
-                nested[1] = ArmorSystem.pierceDR(generic);
+                nested[0] = ArmorResolution.pierceDT(generic);
+                nested[1] = ArmorResolution.pierceDR(generic);
             };
             Hurt h = hurt(level, PIERCING, husk.position().add(0.0, 1.0, LANE / 2), husk);
             duringHit = null;
@@ -689,12 +687,12 @@ public class RoundHitGameTest {
     }
 
     /** Opted-in preset: 0.5 m (20 v)^2 / 1000 per kJ, times the launch's scale. */
-    @GameTest(template = TEMPLATE)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void energyDamageScalesWithTheLaunch(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         Husk husk = pinned(helper, new Husk(EntityType.HUSK, level));
         try {
-            KineticPreset preset = KineticPresetRegistry.get(ENERGY);
+            KineticPreset preset = KineticPresets.get(ENERGY);
             Vec3 v = new Vec3(0.0, -preset.muzzleSpeed(), 0.0);
             float full = energyHit(level, husk, v, 1.0f);
             float half = energyHit(level, husk, v, 0.5f);
@@ -712,7 +710,7 @@ public class RoundHitGameTest {
         HURTS.clear();
         husk.invulnerableTime = 0;
         Vec3 at = husk.position().add(0.0, 1.0 - v.y * 0.5, 0.0);
-        long key = Rounds.launch(level, KineticPresetRegistry.get(ENERGY), at, v, null, null, scale, 0,
+        long key = Rounds.launch(level, KineticPresets.get(ENERGY), at, v, null, null, scale, 0,
                 Rounds.NO_SEQ);
         record(level, key);
         Rounds.destroy(level, key);
@@ -727,11 +725,11 @@ public class RoundHitGameTest {
     // --- wire ---------------------------------------------------------------------------------
 
     /** Spawn carries shooter + seq; end carries position + reason; a first-step end shares its spawn's packet. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 60)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 60)
     public static void theWireCarriesShooterSeqAndEnd(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         ServerPlayer watcher = new ServerPlayer(level.getServer(), level, profile(), ClientInformation.createDefault());
-        List<RoundNetwork.RoundPacket> packets = capture(level, watcher);
+        List<RoundPacket> packets = capture(level, watcher);
         Vec3 c = spot(helper);
         watcher.moveTo(c.x, c.y, c.z, 0.0F, 0.0F);
         level.addFreshEntity(watcher);
@@ -739,7 +737,7 @@ public class RoundHitGameTest {
         shooter.moveTo(shooter.getX() + MOVE, shooter.getY(), shooter.getZ());
         BlockPos floor = BlockPos.containing(c.x + 1.0, c.y - 1.0, c.z);
         level.setBlockAndUpdate(floor, Blocks.STONE.defaultBlockState());
-        KineticPreset line = KineticPresetRegistry.get(LINE);
+        KineticPreset line = KineticPresets.get(LINE);
         long slow = Rounds.launch(level, line, new Vec3(c.x + 1.0, c.y + 2.5, c.z), new Vec3(0.0, -1.0, 0.0),
                 shooter, null, 1.0f, 0, 42);
         long fast = Rounds.launch(level, line, new Vec3(c.x + 1.0, c.y + 2.5, c.z), new Vec3(0.0, -4.0, 0.0),
@@ -748,21 +746,21 @@ public class RoundHitGameTest {
             level.setBlockAndUpdate(floor, Blocks.AIR.defaultBlockState());
             shooter.discard();
             watcher.discard();
-            List<RoundNetwork.RoundPacket> wire = new ArrayList<>();
-            for (RoundNetwork.RoundPacket p : packets) {
+            List<RoundPacket> wire = new ArrayList<>();
+            for (RoundPacket p : packets) {
                 ByteBuf buf = Unpooled.buffer();
-                RoundNetwork.RoundPacket.STREAM_CODEC.encode(buf, p);
-                wire.add(RoundNetwork.RoundPacket.STREAM_CODEC.decode(buf));
+                RoundPacket.STREAM_CODEC.encode(buf, p);
+                wire.add(RoundPacket.STREAM_CODEC.decode(buf));
             }
-            RoundNetwork.Spawn slowSpawn = spawn(wire, slow);
-            RoundNetwork.End slowEnd = end(wire, slow);
+            RoundSpawn slowSpawn = spawn(wire, slow);
+            RoundEnded slowEnd = end(wire, slow);
             helper.assertTrue(slowSpawn != null && slowSpawn.shooter() == shooter.getId() && slowSpawn.seq() == 42,
                     "spawn " + slowSpawn + ", shooter id " + shooter.getId());
             helper.assertTrue(slowEnd != null && slowEnd.reason() == RoundEnd.BLOCK
                             && Math.abs(slowEnd.y() - (floor.getY() + 1)) < 1.0e-9,
                     "end " + slowEnd + ", floor top " + (floor.getY() + 1));
             boolean shared = false;
-            for (RoundNetwork.RoundPacket p : wire) {
+            for (RoundPacket p : wire) {
                 shared |= p.spawns().stream().anyMatch(s -> s.key() == fast && s.seq() == 43)
                         && p.ends().stream().anyMatch(e -> e.key() == fast);
             }
@@ -772,9 +770,9 @@ public class RoundHitGameTest {
     }
 
     @Nullable
-    private static RoundNetwork.Spawn spawn(List<RoundNetwork.RoundPacket> wire, long key) {
-        for (RoundNetwork.RoundPacket p : wire) {
-            for (RoundNetwork.Spawn s : p.spawns()) {
+    private static RoundSpawn spawn(List<RoundPacket> wire, long key) {
+        for (RoundPacket p : wire) {
+            for (RoundSpawn s : p.spawns()) {
                 if (s.key() == key) {
                     return s;
                 }
@@ -784,9 +782,9 @@ public class RoundHitGameTest {
     }
 
     @Nullable
-    private static RoundNetwork.End end(List<RoundNetwork.RoundPacket> wire, long key) {
-        for (RoundNetwork.RoundPacket p : wire) {
-            for (RoundNetwork.End e : p.ends()) {
+    private static RoundEnded end(List<RoundPacket> wire, long key) {
+        for (RoundPacket p : wire) {
+            for (RoundEnded e : p.ends()) {
                 if (e.key() == key) {
                     return e;
                 }
@@ -796,21 +794,21 @@ public class RoundHitGameTest {
     }
 
     /** Swaps in a listener that has the rounds channel and keeps what is sent (a FakePlayer is never sent rounds). */
-    private static List<RoundNetwork.RoundPacket> capture(ServerLevel level, ServerPlayer player) {
-        List<RoundNetwork.RoundPacket> out = new CopyOnWriteArrayList<>();
+    private static List<RoundPacket> capture(ServerLevel level, ServerPlayer player) {
+        List<RoundPacket> out = new CopyOnWriteArrayList<>();
         new ServerGamePacketListenerImpl(level.getServer(), new Connection(PacketFlow.SERVERBOUND), player,
                 CommonListenerCookie.createInitial(player.getGameProfile(), false)) {
             @Override
             public void send(Packet<?> packet, @Nullable PacketSendListener listener) {
                 if (packet instanceof ClientboundCustomPayloadPacket custom
-                        && custom.payload() instanceof RoundNetwork.RoundPacket rounds) {
+                        && custom.payload() instanceof RoundPacket rounds) {
                     out.add(rounds);
                 }
             }
 
             @Override
             public boolean hasChannel(ResourceLocation payloadId) {
-                return RoundNetwork.RoundPacket.TYPE.id().equals(payloadId);
+                return RoundPacket.TYPE.id().equals(payloadId);
             }
         };
         return out;

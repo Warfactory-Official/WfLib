@@ -1,7 +1,7 @@
 package com.wf.wflib.probe.client;
 
 import com.wf.gemrender.ui.Canvas;
-import com.wf.wflib.probe.ProbeAction;
+import com.wf.wflib.probe.api.ProbeAction;
 import com.wf.wflib.probe.ProbeJobPacket;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -20,7 +20,7 @@ public final class ProbeJobOverlay implements LayeredDraw.Layer {
     private static final int BELOW_CROSSHAIR = 14;
     private static final int NOTICE_TICKS = 40;
     static final net.minecraft.resources.ResourceLocation STOP =
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.WFLib.MODID, "stop");
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "stop");
 
     @Nullable
     private static ProbeAction pending;

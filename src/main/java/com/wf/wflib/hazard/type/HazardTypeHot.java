@@ -1,8 +1,9 @@
 package com.wf.wflib.hazard.type;
 
-import com.wf.wflib.radiation.RadiationConfig;
+import com.wf.wflib.hazard.HazardConfig;
+import com.wf.wflib.radiation.api.RadiationConfig;
 import com.wf.wflib.hazard.HazardProtection;
-import com.wf.wflib.hazard.modifier.IHazardModifier;
+import com.wf.wflib.hazard.api.IHazardModifier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,14 +12,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import com.wf.wflib.hazard.api.IHazardType;
 
 public class HazardTypeHot implements IHazardType {
 
     @Override
     public void onUpdate(LivingEntity target, double level, ItemStack stack) {
         boolean wetOrReacher = HazardProtection.isHoldingReacher(target) || target.isInWaterOrRain();
-        if (RadiationConfig.disableHot || wetOrReacher || level <= 0) return;
-        target.setRemainingFireTicks((int) Math.ceil(level) * RadiationConfig.hazardRate);
+        if (HazardConfig.get().disableHot() || wetOrReacher || level <= 0) return;
+        target.setRemainingFireTicks((int) Math.ceil(level) * HazardConfig.get().hazardRate());
     }
 
     @Override

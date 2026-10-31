@@ -1,20 +1,17 @@
 package com.wf.wflib.mine;
 
-import com.wf.wflib.WFLib;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.LevelEvent;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** A revision counter for the subchunks that something is resting on. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class MineSectionWatch {
 
     /** The revision of a section nothing is watching. Never equal to a live revision. */

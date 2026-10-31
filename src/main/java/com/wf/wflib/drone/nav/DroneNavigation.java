@@ -1,10 +1,12 @@
 package com.wf.wflib.drone.nav;
 
-import com.wf.wflib.drone.DroneState;
+import com.wf.wflib.drone.api.DroneState;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.drone.api.DronePath;
+import com.wf.wflib.drone.api.TerrainField;
 
 /**
  * The seam between the drone and the terrain: which point a drone is currently routing to, when its route needs

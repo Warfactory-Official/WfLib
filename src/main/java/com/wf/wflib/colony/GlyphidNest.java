@@ -1,7 +1,6 @@
 package com.wf.wflib.colony;
 
 import com.mojang.logging.LogUtils;
-import com.wf.wflib.block.ModBlocks;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -13,12 +12,11 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.colony.api.Colony;
+import com.wf.wflib.colony.api.ColonyContent;
 
-/**
- * The blocks a colony is, once somebody is close enough for it to need any: the {@link ColonyManager.NestBuilder}
- * that ships.
- */
-public final class GlyphidNest implements ColonyManager.NestBuilder {
+/** The blocks a colony is, once somebody is close enough for it to need any. */
+public final class GlyphidNest {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -38,21 +36,14 @@ public final class GlyphidNest implements ColonyManager.NestBuilder {
     public record Result(int blocks, int written, int reinforced, List<BlockPos> chambers) {
     }
 
-    /** Hand this builder to the colony simulation. Called once at setup. */
-    public static void install() {
-        ColonyManager.setNestBuilder(new GlyphidNest());
-    }
-
-    @Override
-    public void build(ServerLevel level, Colony colony) {
+    void build(ServerLevel level, Colony colony) {
         Result result = place(level, colony);
         LOGGER.debug("[wflib] built {}: {} cells, {} blocks ({} owed, {} reinforced), {} chambers",
                 colony, colony.buds + 1, result.blocks(), result.blocks() - result.written(),
                 result.reinforced(), result.chambers().size());
     }
 
-    @Override
-    public void growCells(ServerLevel level, Colony colony) {
+    void growCells(ServerLevel level, Colony colony) {
         int from = colony.builtBuds() + 1;
         Result result = stamp(level, colony, true, from, colony.buds);
         LOGGER.debug("[wflib] {} grew cells {}..{}: {} blocks ({} reinforced), {} chambers",
@@ -76,16 +67,16 @@ public final class GlyphidNest implements ColonyManager.NestBuilder {
         if (!colony.hasResolvedY() || to < from) {
             return new Result(0, 0, 0, List.of());
         }
-        PendingChunkEdits edits = PendingChunkEdits.get(level);
-        Block flesh = ModBlocks.GLYPHID_NEST.get();
-        Block hardened = ModBlocks.GLYPHID_NEST_REINFORCED.get();
-        Block chamber = ModBlocks.GLYPHID_SPAWNER.get();
+        PendingChunkEditData edits = PendingChunkEditData.get(level);
+        Block flesh = ColonyContent.GLYPHID_NEST.get();
+        Block hardened = ColonyContent.GLYPHID_NEST_REINFORCED.get();
+        Block chamber = ColonyContent.GLYPHID_SPAWNER.get();
 
         int radius = colony.nestRadius();
         int height = Math.max(2, radius - 1);
         int floor = level.getMinBuildHeight() + FLOOR_MARGIN;
         // Read once for the whole pass, and this is the moment a mound's hardness is fixed; see crustDepth.
-        int crust = crustDepth(ColonyRegistry.get(level).evolution(), radius);
+        int crust = crustDepth(ColonyData.get(level).evolution(), radius);
 
         List<BlockPos> placedChambers = new ArrayList<>();
         LongOpenHashSet chamberKeys = new LongOpenHashSet();
@@ -142,7 +133,7 @@ public final class GlyphidNest implements ColonyManager.NestBuilder {
 
         if (write) {
             colony.spawners = (from == 0 ? 0 : colony.spawners) + placedChambers.size();
-            ColonyRegistry.get(level).setDirty();
+            ColonyData.get(level).setDirty();
         }
         return new Result(blocks, written, reinforced, placedChambers);
     }
@@ -234,6 +225,6 @@ public final class GlyphidNest implements ColonyManager.NestBuilder {
         return (int) Math.round(height * Math.sqrt(Math.max(0.0, share)));
     }
 
-    private GlyphidNest() {
+    GlyphidNest() {
     }
 }

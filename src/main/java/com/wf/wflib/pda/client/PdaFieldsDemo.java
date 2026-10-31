@@ -1,25 +1,28 @@
 package com.wf.wflib.pda.client;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.ui.Signals;
-import com.wf.wflib.ui.Subject;
-import com.wf.wflib.ui.WidgetDef;
-import com.wf.wflib.ui.input.TextBox;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.TextBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.loading.FMLEnvironment;
+import com.wf.wflib.pda.api.client.PdaApp;
+import com.wf.wflib.pda.api.client.PdaApps;
+import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.core.api.WFLib;
 
-import static com.wf.wflib.ui.Ui.at;
-import static com.wf.wflib.ui.Ui.stack;
-import static com.wf.wflib.ui.Ui.text;
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
 
 /**
- * Dev-only demo of {@link PdaTextBox}: a count (1..100), a price (2 decimals, 0..999.99) and a name. Only registered with
- * {@code -Dwflib.pda.fieldsDemo=true}, so the PDA test harness can type into real fields.
+ * Dev-only demo of {@link PdaTextBox}: a count (1..100), a price (2 decimals, 0..999.99) and a name. Only registered outside
+ * production with {@code -Dwflib.pda.fieldsDemo=true}, so the PDA test harness can type into real fields.
  */
-final class PdaFieldsDemo implements PdaApp {
+public final class PdaFieldsDemo implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "fields_demo");
     private static final PdaFieldsDemo INSTANCE = new PdaFieldsDemo();
-    private static final Subject<PdaFieldsDemo> DEMO = Subject.register("pda_fields_demo", PdaFieldsDemo.class, () -> INSTANCE);
     private static String submitted = "NOTHING SUBMITTED";
     private static final TextBox COUNT = TextBox.integer(5, 1, 100).onSubmit(s -> submitted = "COUNT " + s);
     private static final TextBox PRICE = TextBox.decimal(8, 2, 0, 999.99).onSubmit(s -> submitted = "PRICE " + s);
@@ -28,13 +31,14 @@ final class PdaFieldsDemo implements PdaApp {
     private PdaFieldsDemo() {
     }
 
-    static void register() {
-        if (!Boolean.getBoolean("wflib.pda.fieldsDemo")) {
+    public static void register() {
+        if (FMLEnvironment.production || !Boolean.getBoolean("wflib.pda.fieldsDemo")) {
             return;
         }
-        Signals.text(DEMO, "submitted", 40, d -> submitted);
-        Signals.text(DEMO, "live", 60, d -> "COUNT " + COUNT.text() + "  PRICE " + PRICE.text() + "  NAME " + NAME.text());
-        PdaApps.register(INSTANCE);
+        Subject<PdaFieldsDemo> demo = Subject.register("pda_fields_demo", PdaFieldsDemo.class, () -> INSTANCE);
+        Signals.text(demo, "submitted", 40, d -> submitted);
+        Signals.text(demo, "live", 60, d -> "COUNT " + COUNT.text() + "  PRICE " + PRICE.text() + "  NAME " + NAME.text());
+        PdaApps.register(INSTANCE, 890);
     }
 
     @Override

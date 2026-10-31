@@ -7,14 +7,13 @@ import com.wf.gemrender.asset.ModelCache;
 import com.wf.gemrender.direct.ArmorAppearance;
 import com.wf.gemrender.direct.GemRenderArmorModel;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.backpack.BackpackItem;
+import com.wf.wflib.backpack.api.BackpackItem;
 import com.wf.wflib.backpack.BackpackPackets;
-import com.wf.wflib.backpack.Backpacks;
-import com.wf.wflib.probe.ProbeAction;
-import com.wf.wflib.probe.ProbeContext;
-import com.wf.wflib.probe.ProbeNode;
-import com.wf.wflib.probe.ProbeRegistry;
+import com.wf.wflib.backpack.api.Backpacks;
+import com.wf.wflib.probe.api.ProbeAction;
+import com.wf.wflib.probe.api.ProbeContext;
+import com.wf.wflib.probe.api.ProbeNode;
+import com.wf.wflib.probe.api.ProbeProviders;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
@@ -34,9 +33,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
@@ -53,8 +50,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import com.wf.wflib.core.api.WFLib;
 
-@EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class BackpackClient {
     private static final int NODE = 0xFF9ACD60;
     private static final int LOCKED = 0xFFE0B040;
@@ -94,7 +91,7 @@ public final class BackpackClient {
 
     @SubscribeEvent
     public static void setup(FMLClientSetupEvent e) {
-        Backpacks.panelShown = BackpackPanel::shown;
+        Backpacks.PANEL_SHOWN.set(WFLib.MODID, BackpackPanel::shown);
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post t) -> {
             while (WEAR.consumeClick()) {
                 PacketDistributor.sendToServer(new BackpackPackets.Action(BackpackPackets.Action.Kind.TOGGLE_WORN));
@@ -106,8 +103,11 @@ public final class BackpackClient {
         NeoForge.EVENT_BUS.addListener(BackpackPanel::pressed);
         NeoForge.EVENT_BUS.addListener(BackpackPanel::dragged);
         NeoForge.EVENT_BUS.addListener(BackpackPanel::released);
-        ProbeRegistry.addEntityNodes(entity -> entity instanceof Player p && !Backpacks.worn(p).isEmpty(),
-                BackpackClient::node, ProbeRegistry.CAPABILITY_PRIORITY);
+        if (com.wf.wflib.core.api.WFSystems.enabled("probe")) {
+            ProbeProviders.addEntityNodes(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "backpack"),
+                    entity -> entity instanceof Player p && !Backpacks.worn(p).isEmpty(),
+                    BackpackClient::node, ProbeProviders.CAPABILITY_PRIORITY);
+        }
     }
 
     /** Node on the drawn pack (last {@link Layer} draw); not drawn lately => none. */

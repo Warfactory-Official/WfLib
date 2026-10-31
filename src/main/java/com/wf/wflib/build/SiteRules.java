@@ -1,7 +1,7 @@
 package com.wf.wflib.build;
 
-import com.wf.wflib.compat.TerritoryVerdict;
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.compat.api.TerritoryVerdict;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
@@ -42,7 +42,7 @@ public final class SiteRules {
      *
      * @param where set to the first refused position, if given.
      */
-    static TerritoryVerdict walk(BoundingBox box, @Nullable BlockPos.MutableBlockPos where,
+    public static TerritoryVerdict walk(BoundingBox box, @Nullable BlockPos.MutableBlockPos where,
                                  java.util.function.Function<BlockPos, TerritoryVerdict> probe) {
         int minChunkX = SectionPos.blockToSectionCoord(box.minX());
         int maxChunkX = SectionPos.blockToSectionCoord(box.maxX());

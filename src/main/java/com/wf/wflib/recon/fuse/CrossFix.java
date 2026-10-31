@@ -1,9 +1,9 @@
 package com.wf.wflib.recon.fuse;
 
-import com.wf.wflib.drone.WorldThread;
-import com.wf.wflib.recon.Band;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.detect.Plot;
+import com.wf.wflib.core.api.WorldThread;
+import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.Plot;
 
 import java.util.ArrayList;
 import java.util.Comparator;

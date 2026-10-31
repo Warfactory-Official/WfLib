@@ -14,8 +14,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import com.wf.wflib.orbital.api.DeorbitReason;
+import com.wf.wflib.orbital.api.OrbitalNet;
+import com.wf.wflib.orbital.api.SatId;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
 
-final class OrbitalCommandBus {
+public final class OrbitalCommandBus {
 
     static final int EXPIRY_TICKS = 6000;
 
@@ -38,7 +43,7 @@ final class OrbitalCommandBus {
     private OrbitalCommandBus() {
     }
 
-    static List<SatVerb> verbs(Satellite sat) {
+    public static List<SatVerb> verbs(Satellite sat) {
         List<SatVerb> out = new ArrayList<>(CORE);
         out.addAll(sat.payload().verbs());
         return out;
@@ -60,7 +65,7 @@ final class OrbitalCommandBus {
         return null;
     }
 
-    static String submit(ServerLevel level, OrbitalRegistry registry, Satellite sat,
+    public static String submit(ServerLevel level, OrbitalData registry, Satellite sat,
                          String verb, String[] args, String issuer) {
         SatVerb spec = find(sat, verb);
         if (spec == null) {
@@ -80,7 +85,7 @@ final class OrbitalCommandBus {
         return sat.inContact() ? "queued" : "queued (out of contact - held for the next pass)";
     }
 
-    static void deliver(ServerLevel level, OrbitalRegistry registry, long now) {
+    static void deliver(ServerLevel level, OrbitalData registry, long now) {
         List<Pending> queue = QUEUES.get(level.dimension());
         if (queue == null || queue.isEmpty()) {
             return;
@@ -128,11 +133,11 @@ final class OrbitalCommandBus {
         return queue == null ? 0 : queue.size();
     }
 
-    static void shutdown() {
+    public static void shutdown() {
         QUEUES.clear();
     }
 
-    private static String execute(ServerLevel level, OrbitalRegistry registry, Satellite sat,
+    private static String execute(ServerLevel level, OrbitalData registry, Satellite sat,
                                   String verb, String[] args, long now) {
         switch (verb) {
             case "park" -> {

@@ -1,37 +1,25 @@
 package com.wf.wflib.rail;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.network.RailAlignmentPacket;
-import com.wf.wflib.network.RailBuildPacket;
-import com.wf.wflib.network.RailDeletePacket;
-import com.wf.wflib.network.RailSavePacket;
-import com.wf.wflib.network.RailSaveResultPacket;
-import com.wf.wflib.network.RailStatusPacket;
-import com.wf.wflib.network.RailRightOfWayPacket;
-import com.wf.wflib.network.RailRightOfWayRequestPacket;
-import com.wf.wflib.network.WFNetwork;
+import com.wf.wflib.core.api.WFNetwork;
 import com.wf.wflib.rail.align.AlignCompiler;
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.AlignmentStore;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.align.AlignmentData;
 import com.wf.wflib.rail.align.RightOfWaySurvey;
 import com.wf.wflib.rail.align.AlignmentEdits;
 import com.wf.wflib.rail.align.AlignmentService;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** The rail package's own payloads, registered here so the feature stays in one piece. */
-@EventBusSubscriber(modid = WFLib.MODID)
 public final class RailNetwork {
 
     private RailNetwork() {
     }
 
-    @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("rail-2").optional();
 
@@ -80,18 +68,18 @@ public final class RailNetwork {
                 }));
         registrar.playToClient(RailRightOfWayPacket.TYPE, RailRightOfWayPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.client.rail.RouteOwnership.accept(pkt)));
+                        () -> com.wf.wflib.rail.client.RouteOwnership.accept(pkt)));
         registrar.playToClient(RailAlignmentPacket.TYPE, RailAlignmentPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.client.rail.PublishedAlignments.accept(pkt)));
+                        () -> com.wf.wflib.rail.client.PublishedAlignments.accept(pkt)));
         registrar.playToClient(RailSaveResultPacket.TYPE, RailSaveResultPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.client.rail.PublishedAlignments.acceptResult(pkt)));
+                        () -> com.wf.wflib.rail.client.PublishedAlignments.acceptResult(pkt)));
     }
 
     /** The version a route is at now, which is what the client must save against next. */
     private static int revisionOf(ServerLevel level, java.util.UUID id) {
-        Alignment alignment = AlignmentStore.of(level).get(id);
+        Alignment alignment = AlignmentData.of(level).get(id);
         return alignment == null ? 0 : alignment.revision().number();
     }
 

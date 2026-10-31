@@ -1,9 +1,9 @@
 package com.wf.wflib.anomaly;
 
 import com.wf.wflib.anomaly.AnomalyType.Quirk;
-import com.wf.wflib.block.ModBlockEntities;
-import com.wf.wflib.damage.WFDamageTypes;
-import com.wf.wflib.hazard.ContaminationUtil;
+import com.wf.wflib.damage.api.WFDamageTypes;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.hazard.api.ContaminationUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ItemParticleOption;
@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.anomaly.api.AnomalyContent;
 
 /**
  * An anomaly's state, its {@link AnomalyType} from its block. The server starts each blowout with a block event; both
@@ -74,7 +75,7 @@ public class AnomalyBlockEntity extends BlockEntity {
     private double clock = -1.0D;
 
     public AnomalyBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.ANOMALY.get(), pos, state);
+        super(AnomalyContent.ANOMALY_BE.get(), pos, state);
         type = ((AnomalyBlock) state.getBlock()).type();
     }
 
@@ -208,9 +209,6 @@ public class AnomalyBlockEntity extends BlockEntity {
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, AnomalyBlockEntity be) {
-        if (!AnomalyConfig.enabled) {
-            return;
-        }
         be.step();
         if (be.type.quirk() == Quirk.REBOUNDS) {
             SHIELDS.add(be);
@@ -262,7 +260,7 @@ public class AnomalyBlockEntity extends BlockEntity {
             }
             // The living set it off, and thrown bolts (STALKER's way of finding them); not items or arrows. While one
             // stays inside it fires again as soon as it has recharged (CCustomZone::AccumulateState).
-            boolean bolt = e instanceof com.wf.wflib.artifact.detect.BoltEntity;
+            boolean bolt = e instanceof com.wf.wflib.artifact.api.BoltEntity;
             tripped |= (alive && (big || behaviour.smallTrips()) || bolt) && behaviour.trips(dist) && moving;
             if (alive && level instanceof ServerLevel server) {
                 be.dwell(server, (LivingEntity) e, dist);
@@ -302,8 +300,12 @@ public class AnomalyBlockEntity extends BlockEntity {
         if (behaviour() instanceof FieldTuning field) {
             boolean pulse = (age + living.getId()) % FieldTuning.PULSE_TICKS == 0 && field.perSecond() > 0.0D;
             switch (field.kind()) {
-                case RADIATION -> ContaminationUtil.contaminate(living, ContaminationUtil.HazardType.RADIATION,
-                        ContaminationUtil.ContaminationType.CREATIVE, field.dose(dist));
+                case RADIATION -> {
+                    if (WFSystems.enabled("hazard")) {
+                        ContaminationUtil.contaminate(living, ContaminationUtil.HazardType.RADIATION,
+                                ContaminationUtil.ContaminationType.CREATIVE, field.dose(dist));
+                    }
+                }
                 case PSY -> {
                     if (pulse) {
                         Psy.expose(living, field.psy(dist), source(level));
@@ -441,9 +443,6 @@ public class AnomalyBlockEntity extends BlockEntity {
     }
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, AnomalyBlockEntity be) {
-        if (!AnomalyConfig.enabled) {
-            return;
-        }
         be.step();
         long now = level.getGameTime();
         be.clock = be.clock < 0.0D || Math.abs(now - be.clock) > 20.0D ? now : be.clock + 1.0D + 0.05D * (now - be.clock - 1.0D);
@@ -457,7 +456,7 @@ public class AnomalyBlockEntity extends BlockEntity {
         }
         return e instanceof LivingEntity || e instanceof ItemEntity || e instanceof ExperienceOrb
                 || e instanceof Projectile || e instanceof VehicleEntity
-                || e instanceof com.wf.wflib.artifact.detect.BoltEntity;
+                || e instanceof com.wf.wflib.artifact.api.BoltEntity;
     }
 
     /** One tick of this anomaly on {@code e} (caller checks {@link #affected} and range). */
@@ -538,9 +537,9 @@ public class AnomalyBlockEntity extends BlockEntity {
      */
     private void rebound(ServerLevel level, Vec3 c) {
         double r = behaviour().radius();
-        for (long key : com.wf.wflib.round.Rounds.within(level, new AABB(c, c).inflate(r + ROUND_REACH))) {
-            Vec3 p = com.wf.wflib.round.Rounds.position(level, key);
-            Vec3 v = com.wf.wflib.round.Rounds.velocity(level, key);
+        for (long key : com.wf.wflib.round.api.Rounds.within(level, new AABB(c, c).inflate(r + ROUND_REACH))) {
+            Vec3 p = com.wf.wflib.round.api.Rounds.position(level, key);
+            Vec3 v = com.wf.wflib.round.api.Rounds.velocity(level, key);
             Vec3 at = p == null || v == null ? null : entry(p, v, c, r);
             if (at == null || level.clip(new net.minecraft.world.level.ClipContext(p, at,
                     net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE,
@@ -549,7 +548,7 @@ public class AnomalyBlockEntity extends BlockEntity {
                 continue;
             }
             Vec3 n = at.subtract(c).normalize();
-            com.wf.wflib.round.Rounds.deflect(level, key, at, v.subtract(n.scale(2.0D * v.dot(n))).scale(0.5D));
+            com.wf.wflib.round.api.Rounds.deflect(level, key, at, v.subtract(n.scale(2.0D * v.dot(n))).scale(0.5D));
             if (type.sounds().hit() != null) {
                 level.playSound(null, at.x, at.y, at.z, type.sounds().hit().get(), SoundSource.HOSTILE, 0.8F,
                         0.9F + 0.2F * level.random.nextFloat());

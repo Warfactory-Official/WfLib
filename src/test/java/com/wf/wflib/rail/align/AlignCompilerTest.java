@@ -4,6 +4,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import com.wf.wflib.rail.api.AlignElement;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.AlignProblem;
+import com.wf.wflib.rail.api.AlignResult;
+import com.wf.wflib.rail.api.Centreline;
+import com.wf.wflib.rail.api.DesignClass;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

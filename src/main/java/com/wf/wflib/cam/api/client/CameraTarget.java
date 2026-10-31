@@ -1,0 +1,277 @@
+package com.wf.wflib.cam.api.client;
+
+import com.wf.wflib.cam.client.CamClientConfig;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.logging.LogUtils;
+import com.wf.wflib.missile.api.MissileEntity;
+import com.wf.wflib.cam.api.CameraFeed;
+import com.wf.wflib.cam.api.CameraMode;
+import com.wf.wflib.cam.api.CameraSource;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.PostChain;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import com.wf.wflib.cam.client.CameraHeatMask;
+import com.wf.wflib.cam.client.CameraOsd;
+import com.wf.wflib.cam.client.FeedGimbal;
+import com.wf.wflib.cam.client.FeedMotion;
+import com.wf.wflib.cam.client.GlMarkers;
+import com.wf.wflib.core.api.WFLib;
+
+/** One camera feed's picture: a framebuffer, the post chain that ages it, and the pass that fills it. */
+public final class CameraTarget implements AutoCloseable {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    /** Fixed aspect. A feed is video; letterboxing it into whatever quad it lands on is the display's job. */
+    public static final double ASPECT = 16.0 / 9.0;
+    /** The resolutions a feed is allowed to be. */
+    private static final int[] STEPS = {320, 480, 640, 854, 1280, 1920};
+    /** How far ahead of the drone's centre the lens sits, in blocks. */
+    private static final double GIMBAL_BOOM = 1.5;
+    /** TV seeker lens ahead of the nose; behind it the round's own mesh fills the picture. */
+    private static final double SEEKER_CLEAR = 0.3;
+
+    /** Link quality at which the picture starts to visibly suffer. */
+    private static final float DEGRADE_ONSET = 0.75f;
+
+    private final int feedId;
+    /** Feed OSD instance; smoothing and blink state per feed. */
+    public com.wf.wflib.ui.api.UiInstance osd;
+    private final FeedTexture texture = new FeedTexture();
+    private final ResourceLocation location;
+    @Nullable
+    private OffscreenView view;
+    private int viewDistance;
+
+    private TextureTarget target;
+    private PostChain chain;
+    private CameraMode chainMode;
+    private int width;
+    private int height;
+    /** Set once if the offscreen pass ever throws; the feed then shows a card instead of taking the game down. */
+    private boolean broken;
+
+    private long renderedAtTick = Long.MIN_VALUE;
+    private long renderedAtNanos;
+
+    CameraTarget(int feedId, int width) {
+        this.feedId = feedId;
+        this.location = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "camera_feed/" + feedId);
+        resize(width);
+        Minecraft.getInstance().getTextureManager().register(this.location, this.texture);
+    }
+
+    // --- geometry -------------------------------------------------------------------------------------
+
+    /**
+     * @return the nearest allowed width at or above {@code requested}, capped by the client's configured
+     *      maximum. Snapping up rather than down: a feed slightly softer than the quad it is on is invisible,
+     *      whereas one slightly sharper is free.
+     */
+    static int stepFor(int requested) {
+        int cap = CamClientConfig.get().maxWidth();
+        for (int step : STEPS) {
+            if (step >= requested) {
+                return Math.min(step, cap);
+            }
+        }
+        return Math.min(STEPS[STEPS.length - 1], cap);
+    }
+
+    int width() {
+        return this.width;
+    }
+
+    void resize(int newWidth) {
+        int w = Math.max(STEPS[0], newWidth);
+        int h = (int) Math.round(w / ASPECT);
+        if (this.target != null && w == this.width && h == this.height) {
+            return;
+        }
+        this.width = w;
+        this.height = h;
+        if (this.target != null) {
+            this.target.destroyBuffers();
+        }
+        this.target = new TextureTarget(w, h, true, Minecraft.ON_OSX);
+        this.target.setClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        // The colour attachment is a fresh GL id after every resize; a stale one draws garbage or nothing.
+        this.texture.adopt(this.target.getColorTextureId());
+        closeChain();
+    }
+
+    // --- post chain -----------------------------------------------------------------------------------
+
+    private void ensureChain(CameraMode mode) {
+        if (!CamClientConfig.get().videoEffects()) {
+            closeChain();
+            return;
+        }
+        if (this.chain != null && this.chainMode == mode) {
+            return;
+        }
+        closeChain();
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            this.chain = new PostChain(mc.getTextureManager(), mc.getResourceManager(), this.target,
+                    mode.chain());
+            this.chain.resize(this.width, this.height);
+            this.chainMode = mode;
+        } catch (Exception e) {
+            // A missing or malformed chain must not stop the feed. Log once per mode and show clean video.
+            LOGGER.error("drone camera: no usable post chain for {} ({})", mode.id(), e.toString());
+            this.chain = null;
+            this.chainMode = mode;
+        }
+    }
+
+    private void closeChain() {
+        if (this.chain != null) {
+            this.chain.close();
+            this.chain = null;
+        }
+        this.chainMode = null;
+    }
+
+    /** @return the chain's {@code Degrade} for a link quality: 0 above {@link #DEGRADE_ONSET}, 1 near the drop. */
+    /**
+     * Intensifier / IR gain scale: 1 at night, down to the mode's day factor in full daylight (auto-gating /
+     * exposure). Sky brightness at the client, not at the camera.
+     */
+    public static float exposure(CameraMode mode, float partial) {
+        Minecraft mc = Minecraft.getInstance();
+        float day = mc.level == null ? 0.0f : net.minecraft.util.Mth.clamp((mc.level.getSkyDarken(partial) - 0.2f) / 0.8f, 0.0f, 1.0f);
+        float dayFactor = mode == CameraMode.INTENSIFIER ? 0.02f : mode == CameraMode.IR ? 0.12f : 1.0f;
+        return net.minecraft.util.Mth.lerp(day, 1.0f, dayFactor);
+    }
+
+    static float degrade(float link, CameraMode mode) {
+        float loss = Math.max(0.0f, (DEGRADE_ONSET - link) / DEGRADE_ONSET);
+        return Math.min(1.0f, loss * loss * mode.noiseMultiplier());
+    }
+
+    // --- the pass -------------------------------------------------------------------------------------
+
+    /** Draw the world from this feed's camera into this feed's framebuffer. */
+    void render(CameraFeed feed, DeltaTracker delta) {
+        Minecraft mc = Minecraft.getInstance();
+        if (this.broken || mc.level == null || mc.player == null) {
+            return;
+        }
+        float partial = delta.getGameTimeDeltaPartialTick(true);
+        ensureChain(feed.modeValue());
+        int distance = CamClientConfig.get().feedViewDistance();
+        if (this.view == null || this.viewDistance != distance) {
+            if (this.view != null) {
+                this.view.close();
+            }
+            this.view = OffscreenView.ownGrid(distance);
+            this.viewDistance = distance;
+        }
+
+        RenderTarget main = mc.getMainRenderTarget();
+        GlMarkers.push("wf feed " + this.feedId + " render");
+        try {
+            Entity anchor = mc.level.getEntity(feed.feedId());
+            float yaw = FeedGimbal.yaw(feed);
+            float pitch = FeedGimbal.pitch(feed);
+            Vec3 forward = new Vec3(
+                    -Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)),
+                    -Math.sin(Math.toRadians(pitch)),
+                    Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+            Vec3 lens;
+            if (anchor instanceof MissileEntity missile) {
+                // Tracked (streamed terrain tracks it at any range): per-frame pose, not the 5 Hz feed walk.
+                lens = missile.getPosition(partial)
+                        .add(CameraSource.Guided.heading(missile).scale(missile.noseForward()))
+                        .add(forward.scale(SEEKER_CLEAR));
+            } else if (feed.kind() == CameraFeed.MOUNTED) {
+                lens = FeedMotion.position(feed);
+            } else {
+                double boom = anchor == null ? GIMBAL_BOOM : Math.max(GIMBAL_BOOM, anchor.getBbWidth());
+                lens = FeedMotion.position(feed).add(forward.scale(boom));
+            }
+            CameraMode mode = feed.modeValue();
+            boolean thermal = mode == CameraMode.THERMAL;
+            this.view.ortho(feed.kind() == CameraFeed.ORBITAL ? FeedGimbal.fov(feed) : 0.0f, feed.altitude());
+            if (!this.view.render(anchor != null ? anchor : mc.player, lens, yaw, pitch, 0.0f,
+                    FeedGimbal.fov(feed), this.target, delta, mode)) {
+                return;
+            }
+
+            if (thermal && this.chain != null) {
+                CameraHeatMask.render(this.chain, this.target, this.view.camera(), this.view.frustum(),
+                        this.view.projection(), partial);
+            }
+
+            if (this.chain != null) {
+                this.chain.setUniform("Degrade", degrade(feed.link(), feed.modeValue()));
+                this.chain.setUniform("Exposure", exposure(feed.modeValue(), delta.getGameTimeDeltaPartialTick(true)));
+                this.chain.setUniform("Link", feed.link());
+                this.chain.setUniform("FeedTime", (feed.gameTime() % 24000L) + partial);
+                this.chain.process(partial);
+            }
+
+            if (!DroneCamHud.covers(feed)) {
+                CameraOsd.draw(this, feed);
+            }
+        } catch (Exception e) {
+            this.broken = true;
+            LOGGER.error("drone camera: offscreen pass failed for feed {}; showing a card instead",
+                    this.feedId, e);
+        } finally {
+            main.bindWrite(true);
+            GlMarkers.pop();
+        }
+
+        this.renderedAtTick = feed.gameTime();
+        this.renderedAtNanos = System.nanoTime();
+    }
+
+    // --- accessors ------------------------------------------------------------------------------------
+
+    /**
+     * @return the texture to sample, or null if this feed has never produced a picture. Callers draw their
+     *      own signal-loss card rather than being handed a black texture, so "no video" and "video of a dark
+     *      room" stay distinguishable.
+     */
+    public ResourceLocation textureOrNull() {
+        return this.renderedAtTick == Long.MIN_VALUE || this.broken ? null : this.location;
+    }
+
+    public RenderTarget target() {
+        return this.target;
+    }
+
+    int height() {
+        return this.height;
+    }
+
+    long renderedAtNanos() {
+        return this.renderedAtNanos;
+    }
+
+    boolean broken() {
+        return this.broken;
+    }
+
+    @Override
+    public void close() {
+        closeChain();
+        if (this.view != null) {
+            this.view.close();
+            this.view = null;
+        }
+        Minecraft.getInstance().getTextureManager().release(this.location);
+        if (this.target != null) {
+            this.target.destroyBuffers();
+            this.target = null;
+        }
+    }
+}

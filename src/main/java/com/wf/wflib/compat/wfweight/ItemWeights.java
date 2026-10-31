@@ -1,18 +1,19 @@
 package com.wf.wflib.compat.wfweight;
 
+import com.wf.wflib.core.api.WFSystems;
 import com.warfactory.ultimateweight.api.IWeightCompatProvider;
 import com.warfactory.ultimateweight.api.WeightCompatRegistry;
 import com.warfactory.ultimateweight.core.WeightResolutionContext;
 import com.warfactory.ultimateweight.v1211.WeightViews1211;
-import com.wf.wflib.ammo.Ammo;
-import com.wf.wflib.armor.ArmorPieceItem;
-import com.wf.wflib.armor.ArmorStacks;
-import com.wf.wflib.item.ItemMasses;
-import com.wf.wflib.magazine.MagFill;
-import com.wf.wflib.magazine.MagazineItem;
-import com.wf.wflib.magazine.MagazineItems;
-import com.wf.wflib.magazine.PodItem;
-import com.wf.wflib.magazine.PodTubes;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.armor.api.ArmorPieceItem;
+import com.wf.wflib.armor.api.ArmorStacks;
+import com.wf.wflib.compat.ItemMasses;
+import com.wf.wflib.magazine.api.MagFill;
+import com.wf.wflib.magazine.api.MagazineItem;
+import com.wf.wflib.magazine.api.MagazineItems;
+import com.wf.wflib.magazine.api.PodItem;
+import com.wf.wflib.magazine.api.PodTubes;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.OptionalDouble;
@@ -37,9 +38,9 @@ public final class ItemWeights implements IWeightCompatProvider {
         double kg = ItemMasses.unit(s.getItem());
         if (kg > 0) {
             kg += switch (s.getItem()) {
-                case MagazineItem m -> rounds(m, s);
+                case MagazineItem m when WFSystems.enabled("magazine") -> rounds(m, s);
                 case PodItem p -> tubes(s, depth);
-                case ArmorPieceItem a -> inserts(s, depth);
+                case ArmorPieceItem a when WFSystems.enabled("armor") -> inserts(s, depth);
                 default -> 0;
             };
         }

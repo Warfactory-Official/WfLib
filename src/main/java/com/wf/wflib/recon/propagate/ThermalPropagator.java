@@ -1,14 +1,15 @@
 package com.wf.wflib.recon.propagate;
 
-import com.wf.wflib.recon.Band;
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.SensorSpec;
-import com.wf.wflib.recon.detect.Plot;
-import com.wf.wflib.recon.env.Atmosphere;
-import com.wf.wflib.recon.snapshot.ReconTerrain;
-import com.wf.wflib.recon.snapshot.SensorSnapshot;
-import com.wf.wflib.recon.snapshot.TargetSnapshot;
+import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.SensorSpec;
+import com.wf.wflib.recon.api.Plot;
+import com.wf.wflib.recon.api.Atmosphere;
+import com.wf.wflib.recon.api.ReconTerrain;
+import com.wf.wflib.recon.api.SensorSnapshot;
+import com.wf.wflib.recon.api.TargetSnapshot;
 import org.jetbrains.annotations.Nullable;
+import com.wf.wflib.recon.api.Propagator;
 
 /** The thermal model: a very good bearing, a very bad range, and nothing to jam. */
 public final class ThermalPropagator implements Propagator {

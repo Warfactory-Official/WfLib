@@ -1,10 +1,10 @@
 package com.wf.wflib.recon.scope;
 
-import com.wf.wflib.recon.ContactClass;
-import com.wf.wflib.recon.track.IffState;
-import com.wf.wflib.recon.track.Track;
-import com.wf.wflib.recon.track.TrackPicture;
-import com.wf.wflib.recon.track.TrackQuality;
+import com.wf.wflib.recon.api.ContactClass;
+import com.wf.wflib.recon.api.IffState;
+import com.wf.wflib.recon.api.Track;
+import com.wf.wflib.recon.api.TrackPicture;
+import com.wf.wflib.recon.api.TrackQuality;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +65,7 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
          */
         public String bandTag() {
             StringBuilder out = new StringBuilder(3);
-            com.wf.wflib.recon.Band[] all = com.wf.wflib.recon.Band.VALUES;
+            com.wf.wflib.recon.api.Band[] all = com.wf.wflib.recon.api.Band.VALUES;
             for (int i = 0; i < all.length; i++) {
                 if ((bands & (1 << i)) != 0) {
                     out.append(all[i].tag());
@@ -125,7 +125,7 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
      */
     public static ScopeFrame of(long netId, double originX, double originY, double originZ,
                                 double range, TrackPicture picture,
-                                List<com.wf.wflib.recon.event.SeismicFix> logged, long now) {
+                                List<com.wf.wflib.recon.api.SeismicFix> logged, long now) {
         List<Track> tracks = picture.tracks();
         List<Blip> blips = new ArrayList<>(Math.min(tracks.size(), MAX_BLIPS));
         for (int i = 0; i < tracks.size() && blips.size() < MAX_BLIPS; i++) {
@@ -142,7 +142,7 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
 
         List<Event> events = new ArrayList<>(Math.min(logged.size(), MAX_EVENTS));
         for (int i = 0; i < logged.size() && events.size() < MAX_EVENTS; i++) {
-            com.wf.wflib.recon.event.SeismicFix fix = logged.get(i);
+            com.wf.wflib.recon.api.SeismicFix fix = logged.get(i);
             events.add(new Event((float) fix.x(), (float) fix.y(), (float) fix.z(),
                     (float) fix.positionError(), (float) fix.power(),
                     (int) Math.max(0L, (now - fix.gameTime()) / 20L),

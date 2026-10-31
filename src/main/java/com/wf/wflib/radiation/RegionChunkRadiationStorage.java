@@ -72,7 +72,7 @@ final class RegionChunkRadiationStorage implements ChunkRadiationStorage {
 
     private static Path dimensionRoot(ServerLevel level) {
         Path root = level.getServer().getWorldPath(LevelResource.ROOT);
-        return DimensionType.getStorageFolder(level.dimension(), root).resolve(com.wf.wflib.WFLib.MODID).resolve("radiation");
+        return DimensionType.getStorageFolder(level.dimension(), root).resolve(com.wf.wflib.core.api.WFLib.MODID).resolve("radiation");
     }
 
     private static Path regionPath(Path root, ChunkPos pos) {

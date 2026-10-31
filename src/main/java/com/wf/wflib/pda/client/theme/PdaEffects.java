@@ -1,5 +1,7 @@
 package com.wf.wflib.pda.client.theme;
 
+import com.wf.wflib.ui.api.theme.PdaTheme;
+
 /** Independent, bounded screen effects. Preferences and palette are separate. */
 public final class PdaEffects {
     private PdaEffects() { }

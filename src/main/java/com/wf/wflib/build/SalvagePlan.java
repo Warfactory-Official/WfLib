@@ -1,6 +1,6 @@
 package com.wf.wflib.build;
 
-import com.wf.wflib.work.WorkOrder;
+import com.wf.wflib.work.api.WorkOrder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.LevelReader;
@@ -9,6 +9,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.build.api.Blueprint;
+import com.wf.wflib.build.api.WorkPlan;
 
 /** Turns a volume of world into work, ordered top-down so nothing is stood on when it goes. */
 public final class SalvagePlan {

@@ -2,6 +2,7 @@ package com.wf.wflib.rail.align;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.rail.api.RightOfWay;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

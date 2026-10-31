@@ -1,6 +1,5 @@
 package com.wf.wflib.round;
 
-import com.wf.wflib.WFLib;
 import com.wf.wflib.round.terrain.AsyncTerrainSource;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -13,6 +12,7 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Chunk load/unload/save, queued from any thread (C2ME fires off the server thread); {@link #drain} on the server
@@ -66,7 +66,7 @@ public final class VirtualGroundEvents {
     }
 
     /** Server thread, before the level's rounds step. */
-    static void drain(ServerLevel level) {
+    public static void drain(ServerLevel level) {
         Queues q = LEVELS.get(level);
         if (q == null) {
             return;

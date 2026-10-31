@@ -1,13 +1,14 @@
 package com.wf.wflib.build;
 
-import com.wf.wflib.chunk.DetonationChunkGuard;
-import com.wf.wflib.compat.TerritoryVerdict;
-import com.wf.wflib.work.WorkJob;
-import com.wf.wflib.work.WorkQueue;
-import com.wf.wflib.work.WorkRegistry;
+import com.wf.wflib.missile.api.DetonationChunkGuard;
+import com.wf.wflib.compat.api.TerritoryVerdict;
+import com.wf.wflib.work.api.WorkJob;
+import com.wf.wflib.work.api.WorkQueue;
+import com.wf.wflib.work.api.WorkData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.build.api.BuildJobs;
 
 /** Territory + chunk-load housekeeping the generic {@code work} package must not know about. */
 public final class BuildManager {
@@ -20,7 +21,7 @@ public final class BuildManager {
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
         boolean survey = now % SiteRules.RECHECK_TICKS == 0;
-        for (WorkJob job : WorkRegistry.get(level).all()) {
+        for (WorkJob job : WorkData.get(level).all()) {
             if (!job.dimension().equals(level.dimension()) || job.over()) {
                 continue;
             }
@@ -37,7 +38,7 @@ public final class BuildManager {
         TerritoryVerdict verdict = SiteRules.survey(level, BuildJobs.factionOf(job), job.bounds());
         String reason = verdict.allowed() ? null : verdict.reason();
         if (job.suspend(reason)) {
-            WorkRegistry.get(level).setDirty();
+            WorkData.get(level).setDirty();
         }
     }
 

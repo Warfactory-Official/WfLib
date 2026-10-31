@@ -1,7 +1,27 @@
 package com.wf.wflib.orbital;
 
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.neoforge.common.ModConfigSpec;
+
 /** The economy, as durations rather than rates. */
 public final class OrbitalConfig {
+
+    public static final ModConfigSpec SPEC;
+
+    private static final ModConfigSpec.BooleanValue REQUIRE_WAR;
+    private static volatile boolean requireWar = false;
+
+    static {
+        ModConfigSpec.Builder b = new ModConfigSpec.Builder();
+        b.comment("On/off: wflib-systems.toml, key 'orbital'.");
+        REQUIRE_WAR = b
+                .comment("Whether destroying another faction's satellite needs a declared war.",
+                        "Off by default: anything overhead is fair game, which is the harsher setting and what",
+                        "gives parking over somebody's base its edge. Deliberately narrow - it gates the kill",
+                        "and never the tracking or the jamming, so turning it on makes nobody invisible.")
+                .define("requireWarForOrbitalKills", false);
+        SPEC = b.build();
+    }
 
     /** Ticks between a satellite's housekeeping ticks. */
     public static final int SLOW_TICK = 20;
@@ -105,7 +125,9 @@ public final class OrbitalConfig {
     /** Blocks a jammer denies the downlink over. */
     public static final double JAMMER_RANGE = 2200.0;
     /** Whether an irreversible orbital kill needs a declared war. */
-    public static boolean requireWarForOrbitalKills = false;
+    public static boolean requireWarForOrbitalKills() {
+        return requireWar;
+    }
 
     // --- imagery ------------------------------------------------------------------------------------
 
@@ -172,8 +194,14 @@ public final class OrbitalConfig {
      * Links a contact is charged for crossing a relay, and the thing that makes the loop impossible rather than
      * merely bounded.
      */
-    public static final int RELAY_HOP_COST = com.wf.wflib.recon.grid.ReconGrid.MAX_HOPS + 1;
+    public static final int RELAY_HOP_COST = com.wf.wflib.recon.api.ReconGrid.MAX_HOPS + 1;
 
     private OrbitalConfig() {
+    }
+
+    public static void onLoad(ModConfigEvent event) {
+        if (event.getConfig().getSpec() == SPEC) {
+            requireWar = REQUIRE_WAR.get();
+        }
     }
 }

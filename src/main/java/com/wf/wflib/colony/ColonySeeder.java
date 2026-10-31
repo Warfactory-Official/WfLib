@@ -5,6 +5,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.levelgen.Heightmap;
+import com.wf.wflib.colony.api.Colony;
 
 /** First nests; a colony is something a player finds, not something commanded into existence. */
 public final class ColonySeeder {
@@ -15,7 +16,7 @@ public final class ColonySeeder {
     private ColonySeeder() {
     }
 
-    public static void seed(ServerLevel level, ColonyRegistry registry, ChunkAccess chunk) {
+    public static void seed(ServerLevel level, ColonyData registry, ChunkAccess chunk) {
         int spacing = ColonyConfig.naturalSpacing();
         if (spacing <= 0) {
             return;
@@ -31,7 +32,7 @@ public final class ColonySeeder {
         }
     }
 
-    private static void candidate(ServerLevel level, ColonyRegistry registry, ChunkAccess chunk,
+    private static void candidate(ServerLevel level, ColonyData registry, ChunkAccess chunk,
                                   int cx, int cz, int spacing) {
         long cell = key(cx, cz);
         long hash = mix(level.getSeed() ^ key(cx, cz));

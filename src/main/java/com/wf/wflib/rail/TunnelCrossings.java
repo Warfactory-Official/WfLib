@@ -1,9 +1,9 @@
 package com.wf.wflib.rail;
 
-import com.wf.wflib.rail.align.Alignment;
-import com.wf.wflib.rail.align.AlignmentStore;
-import com.wf.wflib.rail.align.BuildProgress;
-import com.wf.wflib.rail.align.Centreline;
+import com.wf.wflib.rail.api.Alignment;
+import com.wf.wflib.rail.align.AlignmentData;
+import com.wf.wflib.rail.api.BuildProgress;
+import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.excavate.CarveVolume;
 import com.wf.wflib.rail.excavate.ProfileVolume;
@@ -98,7 +98,7 @@ public final class TunnelCrossings {
     public static CarveVolume shared(ServerLevel level, UUID routeId, List<RouteMeeting> meetings,
                                      TunnelProfile profile, int floorY, double from, double to,
                                      Function<UUID, BuildProgress.Span> digging) {
-        AlignmentStore store = AlignmentStore.of(level);
+        AlignmentData store = AlignmentData.of(level);
         return volume(stretches(routeId, meetings, store::get, from, to, digging), profile, floorY);
     }
 

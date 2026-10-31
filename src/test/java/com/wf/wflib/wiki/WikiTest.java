@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wf.wflib.wiki.api.Article;
+import com.wf.wflib.wiki.api.Wiki;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

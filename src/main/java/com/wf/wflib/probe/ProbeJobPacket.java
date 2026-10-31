@@ -1,12 +1,13 @@
 package com.wf.wflib.probe;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.probe.api.ProbeJobs;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Server -> client: a channelled action started ({@code ticks > 0}), finished ({@code ticks == 0}) or was
@@ -30,15 +31,15 @@ public record ProbeJobPacket(ResourceLocation action, int arg, int ticks, Compon
             buf -> new ProbeJobPacket(buf.readResourceLocation(), buf.readVarInt(), buf.readVarInt(),
                     ComponentSerialization.TRUSTED_STREAM_CODEC.decode(buf)));
 
-    static ProbeJobPacket started(ResourceLocation action, int arg, int ticks) {
+    public static ProbeJobPacket started(ResourceLocation action, int arg, int ticks) {
         return new ProbeJobPacket(action, arg, ticks, Component.empty());
     }
 
-    static ProbeJobPacket finished() {
+    public static ProbeJobPacket finished() {
         return new ProbeJobPacket(NONE, 0, 0, Component.empty());
     }
 
-    static ProbeJobPacket cancelled(ProbeJobs.Reason reason) {
+    public static ProbeJobPacket cancelled(ProbeJobs.Reason reason) {
         return new ProbeJobPacket(NONE, 0, -1, reason.message());
     }
 

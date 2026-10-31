@@ -1,6 +1,6 @@
 package com.wf.wflib.probe.client;
 
-import com.wf.wflib.network.WFNetwork;
+import com.wf.wflib.core.api.WFNetwork;
 import com.wf.wflib.probe.ProbeDataPacket;
 import com.wf.wflib.probe.ProbeRequestPacket;
 import net.minecraft.core.BlockPos;

@@ -67,9 +67,9 @@ class BlastTuningTest {
 
     @Test
     void eachHitsWithTheDamageItsArmourResolves() {
-        assertEquals(com.wf.wflib.damage.WFDamageTypes.ELECTRIC, AnomalyType.ELECTRO.damage());
-        assertEquals(com.wf.wflib.damage.WFDamageTypes.FIRE, AnomalyType.BURNER.damage());
-        assertEquals(com.wf.wflib.damage.WFDamageTypes.ACID, AnomalyType.ACID.damage());
-        assertEquals(com.wf.wflib.damage.WFDamageTypes.GRAVITY_ANOMALY, AnomalyType.SPRINGBOARD.damage());
+        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.ELECTRIC, AnomalyType.ELECTRO.damage());
+        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.FIRE, AnomalyType.BURNER.damage());
+        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.ACID, AnomalyType.ACID.damage());
+        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.GRAVITY_ANOMALY, AnomalyType.SPRINGBOARD.damage());
     }
 }

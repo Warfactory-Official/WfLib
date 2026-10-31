@@ -5,16 +5,16 @@ import com.wf.gemrender.gltf.GltfAnimation;
 import com.wf.gemrender.render.GemRenderInstance;
 import com.wf.gemrender.render.GemRenderInstanceTypes;
 import com.wf.gemrender.render.PoseCache;
-import com.wf.wflib.MissileModels;
-import com.wf.wflib.ammo.Ammo;
-import com.wf.wflib.ammo.ProjectileLook;
-import com.wf.wflib.ammo.client.AmmoModels;
-import com.wf.wflib.ammo.client.LookLod;
-import com.wf.wflib.ammo.client.LookRockets;
-import com.wf.wflib.ammo.client.LookStats;
-import com.wf.wflib.attitude.MissileAttitudeRegistry;
-import com.wf.wflib.client.model.PartRigs;
-import com.wf.wflib.round.RocketEntity;
+import com.wf.wflib.missile.api.MissileModels;
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.ProjectileLook;
+import com.wf.wflib.ammo.api.client.AmmoModels;
+import com.wf.wflib.ammo.api.client.LookLod;
+import com.wf.wflib.ammo.api.client.LookRockets;
+import com.wf.wflib.ammo.api.client.LookStats;
+import com.wf.wflib.missile.api.MissileAttitudes;
+import com.wf.wflib.missile.api.client.MissileRigs;
+import com.wf.wflib.round.api.RocketEntity;
 import dev.engine_room.flywheel.api.task.Plan;
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
 import dev.engine_room.flywheel.api.visual.EffectVisual;
@@ -35,6 +35,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import com.wf.wflib.round.api.client.ClientRounds;
+import com.wf.wflib.round.api.client.RoundRenderers;
 
 /**
  * One GemRender instance per modelled round, posed nose-to-velocity every frame: preset glTF (missile attitude), or
@@ -74,33 +76,33 @@ final class RoundsVisual extends AbstractVisual implements EffectVisual<RoundsEf
         Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         this.seen.clear();
         for (ClientRounds.Round r : ClientRounds.live()) {
-            if (RoundRenderers.get(r.preset.id()) != null) {
+            if (RoundRenderers.get(r.preset().id()) != null) {
                 continue;
             }
             double x = r.ix(pt), y = r.iy(pt), z = r.iz(pt);
-            this.heading.set((float) r.vx, (float) r.vy, (float) r.vz);
-            ProjectileLook look = Ammo.lookOrNull(r.preset.id());
+            this.heading.set((float) r.vx(), (float) r.vy(), (float) r.vz());
+            ProjectileLook look = Ammo.lookOrNull(r.preset().id());
             if (look != null) {
-                if (look.visible() && this.lookPose(look, r.preset.id(), x, y, z, cam, r.age + pt, origin)) {
-                    this.place(r.key, AmmoModels.projectile(r.preset.id()), r.x, r.y, r.z, -1);
+                if (look.visible() && this.lookPose(look, r.preset().id(), x, y, z, cam, r.age() + pt, origin)) {
+                    this.place(r.key(), AmmoModels.projectile(r.preset().id()), r.x(), r.y(), r.z(), -1);
                 }
                 continue;
             }
-            if (r.preset.modelId() == null) {
+            if (r.preset().modelId() == null) {
                 continue;
             }
-            PartRigs.Rig rig = PartRigs.missile(r.preset.modelId());
+            com.wf.wflib.view.api.client.Rig rig = MissileRigs.missile(r.preset().modelId());
             if (rig == null) {
                 continue;
             }
             if (this.heading.lengthSquared() > 1.0e-8f) {
                 this.heading.normalize();
-                MissileAttitudeRegistry.get(MissileModels.attitudeId(r.preset.modelId()))
+                MissileAttitudes.get(MissileModels.attitudeId(r.preset().modelId()))
                         .orientation(this.heading, this.orientation);
             }
             this.pose.translation((float) (x - origin.getX()), (float) (y - origin.getY()),
                     (float) (z - origin.getZ())).rotate(this.orientation);
-            this.place(r.key, rig.model(), r.x, r.y, r.z, -1);
+            this.place(r.key(), rig.model(), r.x(), r.y(), r.z(), -1);
         }
         for (RocketEntity rocket : LookRockets.live()) {
             ProjectileLook look = Ammo.look(rocket.preset().id());
@@ -126,9 +128,9 @@ final class RoundsVisual extends AbstractVisual implements EffectVisual<RoundsEf
             e.getValue().instance().delete();
             return true;
         });
-        LookStats.frames++;
-        LookStats.nanos += System.nanoTime() - t0;
-        LookStats.placed += this.seen.size();
+        LookStats.frames.increment();
+        LookStats.nanos.add(System.nanoTime() - t0);
+        LookStats.placed.add(this.seen.size());
     }
 
     /** {@link #pose} for a look; false => outside the model LOD band. {@link #heading} = velocity in. */

@@ -9,6 +9,12 @@ import net.minecraft.world.item.TooltipFlag;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import com.wf.wflib.armor.api.ArmorPieceItem;
+import com.wf.wflib.armor.api.ArmorProfiles;
+import com.wf.wflib.armor.api.ArmorSpec;
+import com.wf.wflib.armor.api.ArmorStacks;
+import com.wf.wflib.armor.api.ProtectionRow;
+import com.wf.wflib.armor.api.ProtectionType;
 
 /**
  * What the piece actually does, on the piece.

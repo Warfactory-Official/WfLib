@@ -2,15 +2,18 @@ package com.wf.wflib.round.effect;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wf.wflib.api.Threat;
-import com.wf.wflib.api.ThreatKind;
-import com.wf.wflib.kinetic.KineticPreset;
+import com.wf.wflib.damage.api.Threat;
+import com.wf.wflib.damage.api.ThreatKind;
+import com.wf.wflib.round.api.KineticPreset;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.wf.wflib.round.api.ImpactEffects;
+import com.wf.wflib.round.api.ImpactTrigger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,6 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ImpactEffectsTest {
+
+    @BeforeAll
+    static void defineCatalogue() {
+        com.wf.wflib.round.effect.BuiltinEffects.register();
+    }
+
 
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath("wflib", "test_preset");
 

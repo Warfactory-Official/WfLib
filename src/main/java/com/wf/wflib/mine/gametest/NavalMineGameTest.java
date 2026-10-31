@@ -1,10 +1,9 @@
 package com.wf.wflib.mine.gametest;
 
-import com.wf.wflib.util.ForcedChunks;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.item.MinePreset;
-import com.wf.wflib.item.MinePresetRegistry;
-import com.wf.wflib.mine.MineEntity;
+import com.wf.wflib.testkit.api.ForcedChunks;
+import com.wf.wflib.mine.api.MinePreset;
+import com.wf.wflib.mine.api.MinePresets;
+import com.wf.wflib.mine.api.MineEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -13,11 +12,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import com.wf.wflib.core.api.WFLib;
 
 /** Does a naval mine come to rest moored, whichever way it arrived in the water? */
-@GameTestHolder(WFLib.MODID)
 @PrefixGameTestTemplate(false)
 public class NavalMineGameTest {
 
@@ -31,7 +29,7 @@ public class NavalMineGameTest {
     private static final int LANE_SPACING = 32;
     private static final int SETTLE_TICKS = 120;
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aDroppedNavalMineMoors(GameTestHelper helper) {
         run(helper, 0, 10.0, mine -> {
             if (!mine.isMoored()) {
@@ -44,7 +42,7 @@ public class NavalMineGameTest {
         });
     }
 
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aPlacedNavalMineMoors(GameTestHelper helper) {
         run(helper, 1, 0.0, mine -> {
             if (!mine.isMoored()) {
@@ -58,7 +56,7 @@ public class NavalMineGameTest {
     }
 
     /** A drone drops from a height and adds the run's own speed to it, so its mines arrive fast. */
-    @GameTest(template = TEMPLATE, timeoutTicks = 200)
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE, timeoutTicks = 200)
     public static void aMineThrownIntoShallowWaterStillMoors(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos tank = helper.absolutePos(BlockPos.ZERO)
@@ -66,7 +64,7 @@ public class NavalMineGameTest {
         force(level, tank, true);
         int bed = buildTank(level, tank, SHALLOW_DEPTH);
 
-        MinePreset preset = MinePresetRegistry.get(MinePresetRegistry.rl("naval"));
+        MinePreset preset = MinePresets.get(MinePresets.rl("naval"));
         MineEntity mine = preset.build(level, 0.0f);
         mine.moveTo(tank.getX() + 0.5, bed + SHALLOW_DEPTH + 1.0, tank.getZ() + 0.5, 0.0f, 0.0f);
         level.addFreshEntity(mine);
@@ -101,7 +99,7 @@ public class NavalMineGameTest {
         int bed = buildTank(level, tank, TANK_DEPTH);
         double surface = bed + TANK_DEPTH;
 
-        MinePreset preset = MinePresetRegistry.get(MinePresetRegistry.rl("naval"));
+        MinePreset preset = MinePresets.get(MinePresets.rl("naval"));
         MineEntity mine = preset.build(level, 0.0f);
         mine.moveTo(tank.getX() + 0.5, surface + dropHeight, tank.getZ() + 0.5, 0.0f, 0.0f);
         level.addFreshEntity(mine);

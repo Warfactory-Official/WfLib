@@ -1,0 +1,168 @@
+package com.wf.wflib.colony.client;
+
+import com.mojang.logging.LogUtils;
+import com.wf.gemrender.asset.GemRenderModels;
+import com.wf.gemrender.asset.ModelCache;
+import com.wf.gemrender.gltf.AnimationDrive;
+import com.wf.gemrender.gltf.GemRenderGltfModel;
+import com.wf.gemrender.gltf.GltfAnimation;
+import com.wf.gemrender.texture.VariantUv;
+import com.wf.wflib.colony.api.EntityGlyphid;
+import com.wf.wflib.colony.api.GlyphidCaste;
+import dev.engine_room.flywheel.api.material.DepthTest;
+import dev.engine_room.flywheel.api.material.Material;
+import dev.engine_room.flywheel.api.material.WriteMask;
+import dev.engine_room.flywheel.lib.material.CutoutShaders;
+import dev.engine_room.flywheel.lib.material.SimpleMaterial;
+import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
+import com.wf.wflib.core.api.WFLib;
+
+/** The one glyphid rig, wearing every caste at once. */
+public final class GlyphidModel {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    private static final ResourceLocation INFESTATION = texture("glyphid_infestation");
+
+    /** Id only, not a resource path; nothing reads it as a file. */
+    private static final ResourceLocation ATLAS =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "atlas/glyphid");
+
+    /**
+     * Depth-equal, no depth write: vanilla's mob-decal trick. Same rig/pose => fragments land at the
+     * body's exact depth; no blend/sort decision needed.
+     */
+    private static final Material INFESTED_MATERIAL = SimpleMaterial.builder()
+            .texture(INFESTATION)
+            .cutout(CutoutShaders.ONE_TENTH)
+            .depthTest(DepthTest.EQUAL)
+            .writeMask(WriteMask.COLOR)
+            .mipmap(false)
+            .build();
+
+    /** Ordinal order = sheet tile order. */
+    private static final List<ResourceLocation> CASTES = castes();
+
+    private static final Entry BODY = new Entry("body", CASTES, skinMaterial(CASTES.get(0)));
+
+    private static final Entry INFESTED = new Entry("infested", List.of(INFESTATION), INFESTED_MATERIAL);
+
+    private GlyphidModel() {
+    }
+
+    /** Eager init: lazy build would run as an obj parse on a flywheel task thread, mid-frame. */
+    public static void init() {
+        body();
+        infested();
+    }
+
+    /** @param armor indexed by armour-bit combo; null at {@link EntityGlyphid#FULL_ARMOR} (no layer needed). */
+    public record Skin(GemRenderGltfModel model, AnimationDrive walk, AnimationDrive bite,
+                       GltfAnimation[] armor) {
+
+        /** @return null: all plates attached, no layer. */
+        @Nullable
+        public GltfAnimation armor(byte bits) {
+            int index = bits & EntityGlyphid.FULL_ARMOR;
+            return index >= armor.length ? null : armor[index];
+        }
+
+        /** Tile index for {@code instance.variant(...)}. */
+        public VariantUv variant(GlyphidCaste caste) {
+            return model.variant(caste.ordinal());
+        }
+    }
+
+    /** @return null: mesh not yet loaded, or failed. */
+    @Nullable
+    public static Skin body() {
+        return BODY.get();
+    }
+
+    /**
+     * @return null if it could not be built. Posed from the body's palette rather than its own, so
+     *      nothing here needs to know how a glyphid moves.
+     */
+    @Nullable
+    public static Skin infested() {
+        return INFESTED.get();
+    }
+
+    private static List<ResourceLocation> castes() {
+        List<ResourceLocation> skins = new ArrayList<>(GlyphidCaste.VALUES.length);
+        for (GlyphidCaste caste : GlyphidCaste.VALUES) {
+            skins.add(caste.skin());
+        }
+        return List.copyOf(skins);
+    }
+
+    private static ResourceLocation texture(String name) {
+        return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/entity/" + name + ".png");
+    }
+
+    private static Material skinMaterial(ResourceLocation texture) {
+        return SimpleMaterial.builder()
+                .texture(texture)
+                .mipmap(false)
+                .build();
+    }
+
+    private static final class Entry {
+
+        private final ModelCache.Handle<GemRenderGltfModel> handle;
+
+        /** Volatile not synchronised: flywheel reads from several visual threads; a lost race just rebuilds once. */
+        private volatile Skin skin;
+
+        private Entry(String name, List<ResourceLocation> skins, Material material) {
+            String rig = "glyphid/" + name;
+            this.handle = GemRenderModels.built(
+                    ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "rig/" + rig),
+                    id -> build(rig, skins, material));
+        }
+
+        /** Falls back to the first skin alone (material already bound to it) if the sheet will not stitch. */
+        private static GemRenderGltfModel build(String rig, List<ResourceLocation> skins,
+                                                Material material) throws Exception {
+            try {
+                return GlyphidRig.build(rig, material, ATLAS, skins);
+            } catch (IllegalArgumentException e) {
+                LOGGER.error("Could not stitch the {} glyphid skins into one sheet, so every "
+                        + "caste will wear {}. All of them have to be the same size.", skins.size(),
+                        skins.get(0), e);
+                return GlyphidRig.build(rig, material, null, List.of());
+            }
+        }
+
+        @Nullable
+        private Skin get() {
+            GemRenderGltfModel model = handle.get();
+            if (model == null) {
+                return null;
+            }
+
+            Skin current = skin;
+            if (current != null && current.model() == model) {
+                return current;
+            }
+
+            GltfAnimation[] armor = new GltfAnimation[EntityGlyphid.FULL_ARMOR + 1];
+            for (int bits = 0; bits < EntityGlyphid.FULL_ARMOR; bits++) {
+                armor[bits] = model.animation(GlyphidRig.armour(bits));
+            }
+
+            current = new Skin(model,
+                    AnimationDrive.cyclic(model.animation(GlyphidRig.WALK), (float) (Math.PI * 2.0)),
+                    // BITE clip already spans 0..1.
+                    AnimationDrive.ranged(model.animation(GlyphidRig.BITE), 0.0f, 1.0f),
+                    armor);
+            skin = current;
+            return current;
+        }
+    }
+}

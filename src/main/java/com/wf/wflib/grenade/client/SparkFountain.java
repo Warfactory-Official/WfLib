@@ -7,8 +7,7 @@ import com.wf.gemrender.particle.ParticleEmitter;
 import com.wf.gemrender.particle.ParticleModels;
 import com.wf.gemrender.particle.ParticlePool;
 import com.wf.gemrender.particle.ParticleStyle;
-import com.wf.wflib.WFLib;
-import com.wf.wflib.client.flywheel.WFFlywheelEffect;
+import com.wf.wflib.fx.api.WFFlywheelEffect;
 import com.wf.gemrender.particle.LevelContactProbe;
 import dev.engine_room.flywheel.api.model.Model;
 import dev.engine_room.flywheel.api.visual.EffectVisual;
@@ -20,6 +19,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.core.api.WFLib;
 
 /** Streak sparks from a burning source while it lives; expires once its last spark is out. Units/s. */
 public final class SparkFountain implements WFFlywheelEffect {

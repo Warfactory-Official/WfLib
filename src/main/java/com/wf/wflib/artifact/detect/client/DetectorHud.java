@@ -1,24 +1,25 @@
 package com.wf.wflib.artifact.detect.client;
 
-import com.wf.wflib.artifact.detect.DetectorTier;
+import com.wf.wflib.artifact.api.DetectorTier;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import com.wf.wflib.artifact.api.client.DetectorClient;
 
 /**
  * The detector's face, bottom left above the hotbar while one is out: the Echo's LED blinking with its beeps, the
  * Bear's ring of LEDs lit toward the nearest artefact, the Veles' screen of blips. shortcut: a HUD stand-in for the
- * device's own face; moves onto the model when the MineAssault viewmodel draws the detector in hand.
+ * device's own face; moves onto the model when a viewmodel draws the detector in hand.
  */
-final class DetectorHud implements LayeredDraw.Layer {
+public final class DetectorHud implements LayeredDraw.Layer {
     private static final int SIZE = 56;
 
     @Override
     public void render(GuiGraphics g, DeltaTracker delta) {
-        DetectorTier tier = DetectorClient.held;
+        DetectorTier tier = DetectorClient.held();
         Minecraft mc = Minecraft.getInstance();
         if (tier == null || mc.player == null || mc.options.hideGui || DetectorClient.faceOnDevice()) {
             return;
@@ -30,7 +31,7 @@ final class DetectorHud implements LayeredDraw.Layer {
         int cy = y0 + SIZE / 2;
         g.fill(x0 - 2, y0 - 2, x0 + SIZE + 2, y0 + SIZE + 2, 0xC0101010);
         g.fill(x0, y0, x0 + SIZE, y0 + SIZE, 0xC0202422);
-        float flash = DetectorClient.flash;
+        float flash = DetectorClient.flash();
         switch (tier.display) {
             case LED -> {
                 int on = 0xFF000000 | ((int) (80 + 175 * flash) << 16) | (int) (20 + 30 * flash) << 8;
@@ -39,8 +40,8 @@ final class DetectorHud implements LayeredDraw.Layer {
             case DIRECTION -> {
                 // Eight LEDs round the face; the one toward the nearest artefact lit, brighter on the beep.
                 int lit = -1;
-                if (!DetectorClient.heard.isEmpty()) {
-                    Vec3 to = DetectorClient.heard.get(0).subtract(mc.player.position());
+                if (!DetectorClient.heard().isEmpty()) {
+                    Vec3 to = DetectorClient.heard().get(0).subtract(mc.player.position());
                     double bearing = Math.toDegrees(Math.atan2(-to.x, to.z)) - mc.player.getYRot();
                     lit = Math.floorMod(Math.round((float) (bearing / 45.0D)), 8);
                 }
@@ -57,7 +58,7 @@ final class DetectorHud implements LayeredDraw.Layer {
                 // Up the screen is ahead; every artefact heard a blip, scaled to the detector's reach.
                 g.fill(cx - 1, cy - 1, cx + 1, cy + 1, 0xFFB0FFB0);
                 double yaw = Math.toRadians(mc.player.getYRot());
-                for (Vec3 p : DetectorClient.heard) {
+                for (Vec3 p : DetectorClient.heard()) {
                     Vec3 to = p.subtract(mc.player.position());
                     double right = -to.x * Math.cos(yaw) - to.z * Math.sin(yaw);
                     double ahead = -to.x * Math.sin(yaw) + to.z * Math.cos(yaw);

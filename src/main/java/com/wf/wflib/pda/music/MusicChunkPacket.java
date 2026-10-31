@@ -1,11 +1,11 @@
 package com.wf.wflib.pda.music;
 
-import com.wf.wflib.WFLib;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import com.wf.wflib.core.api.WFLib;
 
 /** Chunk {@code index} of {@code total} (in order); {@code total == 0} = refused (missing / invalid / busy). */
 public record MusicChunkPacket(int transfer, int index, int total, byte[] data) implements CustomPacketPayload {

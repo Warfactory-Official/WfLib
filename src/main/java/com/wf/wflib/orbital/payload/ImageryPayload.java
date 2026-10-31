@@ -1,12 +1,12 @@
 package com.wf.wflib.orbital.payload;
 
-import com.wf.wflib.chunk.DetonationChunkGuard;
+import com.wf.wflib.missile.api.DetonationChunkGuard;
 import com.wf.wflib.orbital.OrbitalConfig;
-import com.wf.wflib.orbital.SatPayload;
-import com.wf.wflib.orbital.SatVerb;
-import com.wf.wflib.orbital.Satellite;
-import com.wf.wflib.orbital.survey.SurveyRaster;
-import com.wf.wflib.orbital.survey.SurveyTile;
+import com.wf.wflib.orbital.api.SatPayload;
+import com.wf.wflib.orbital.api.SatVerb;
+import com.wf.wflib.orbital.api.Satellite;
+import com.wf.wflib.orbital.survey.SurveyRasterData;
+import com.wf.wflib.orbital.api.SurveyTile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
@@ -54,7 +54,7 @@ public final class ImageryPayload implements SatPayload {
             }
             case "survey" -> {
                 Vec3 at = self.position(level.getGameTime());
-                SurveyTile tile = SurveyRaster.get(level).existing(self.netId(),
+                SurveyTile tile = SurveyRasterData.get(level).existing(self.netId(),
                         SurveyTile.tileOf(at.x), SurveyTile.tileOf(at.z));
                 int done = tile == null ? 0 : tile.imaged();
                 return String.format(Locale.ROOT,
@@ -63,7 +63,7 @@ public final class ImageryPayload implements SatPayload {
                         active ? "imaging" : "stowed", columns, misses,
                         Math.min(self.swath(), OrbitalConfig.IMAGERY_PRELOAD_CHUNKS * 16.0) * 2.0,
                         done * 100 / (SurveyTile.PIXELS * SurveyTile.PIXELS),
-                        SurveyRaster.get(level).tileCount(self.netId()));
+                        SurveyRasterData.get(level).tileCount(self.netId()));
             }
             default -> {
                 return null;
@@ -83,7 +83,7 @@ public final class ImageryPayload implements SatPayload {
         long now = level.getGameTime();
         Vec3 at = self.position(now);
         double swath = Math.min(self.swath(), OrbitalConfig.IMAGERY_PRELOAD_CHUNKS * 16.0);
-        SurveyRaster raster = SurveyRaster.get(level);
+        SurveyRasterData raster = SurveyRasterData.get(level);
 
         for (int i = 0; i < OrbitalConfig.IMAGERY_COLUMNS_PER_SLOW_TICK; i++) {
             cursor = (cursor + 1) & 0x3FFFFFFF;
@@ -110,7 +110,7 @@ public final class ImageryPayload implements SatPayload {
         raster.setDirty();
     }
 
-    private boolean sample(ServerLevel level, SurveyRaster raster, long netId, int wx, int wz, long now) {
+    private boolean sample(ServerLevel level, SurveyRasterData raster, long netId, int wx, int wz, long now) {
         LevelChunk chunk = level.getChunkSource().getChunkNow(
                 SectionPos.blockToSectionCoord(wx), SectionPos.blockToSectionCoord(wz));
         if (chunk == null) {

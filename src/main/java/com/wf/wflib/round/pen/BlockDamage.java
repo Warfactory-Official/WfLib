@@ -1,7 +1,7 @@
 package com.wf.wflib.round.pen;
 
-import com.wf.wflib.WFLib;
-import com.wf.wflib.compat.WarforgeCompat;
+import com.wf.wflib.round.RoundConfig;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.UUID;
+import com.wf.wflib.core.api.WFLib;
 
 /**
  * Round impulse per block: {@code D += m (|v| - |v'|)}, kg m/s; {@code D >= }{@link PenTable#toughness} => destroyed,
@@ -30,9 +31,6 @@ import java.util.UUID;
 @EventBusSubscriber(modid = WFLib.MODID)
 public final class BlockDamage {
 
-    public static boolean enabled = true;
-    /** x every toughness. */
-    public static float toughnessScale = 1.0f;
     static final int HOLD_TICKS = 600;
     static final int FADE_TICKS = 200;
     static final int SWEEP_TICKS = 20;
@@ -71,10 +69,10 @@ public final class BlockDamage {
      */
     public static boolean hit(ServerLevel level, BlockPos pos, BlockState state, double impulse,
                               @Nullable Entity shooter) {
-        if (!enabled || impulse <= 0.0 || state.isAir()) {
+        if (!RoundConfig.snapshot().blockDamage() || impulse <= 0.0 || state.isAir()) {
             return false;
         }
-        float toughness = PenTable.toughness(state) * toughnessScale;
+        float toughness = PenTable.toughness(state) * RoundConfig.snapshot().blockToughnessScale();
         if (toughness == Float.POSITIVE_INFINITY || isProtected(level, pos, shooter)) {
             return false;
         }

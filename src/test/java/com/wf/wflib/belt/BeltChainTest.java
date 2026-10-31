@@ -5,6 +5,7 @@ import org.joml.Vector3f;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import com.wf.wflib.belt.api.BeltChain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

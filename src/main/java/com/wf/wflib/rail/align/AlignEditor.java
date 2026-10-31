@@ -3,6 +3,11 @@ package com.wf.wflib.rail.align;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.wf.wflib.rail.api.AlignPoint;
+import com.wf.wflib.rail.api.AlignResult;
+import com.wf.wflib.rail.api.BuildProgress;
+import com.wf.wflib.rail.api.DesignClass;
+import com.wf.wflib.rail.api.RouteStatus;
 
 /**
  * A line being edited: the PIs, what is selected, and the compiled geometry.

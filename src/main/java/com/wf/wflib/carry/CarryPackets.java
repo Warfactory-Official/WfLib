@@ -1,6 +1,5 @@
 package com.wf.wflib.carry;
 
-import com.wf.wflib.WFLib;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -11,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import com.wf.wflib.carry.api.Carry;
+import com.wf.wflib.core.api.WFLib;
 
 public final class CarryPackets {
     private CarryPackets() {

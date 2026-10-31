@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.wf.wflib.round.api.Rounds;
+import com.wf.wflib.round.api.DeferredImpact;
 
 /**
  * {@link DeferredImpact}s by chunk, saved with the level (a chunk may stay unloaded across restarts). Chunk load
@@ -32,7 +34,7 @@ public final class DeferredImpacts extends SavedData {
     private int count;
     private int dropped;
 
-    static DeferredImpacts get(ServerLevel level) {
+    public static DeferredImpacts get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
                 new SavedData.Factory<>(DeferredImpacts::new, DeferredImpacts::load), NAME);
     }
@@ -43,7 +45,7 @@ public final class DeferredImpacts extends SavedData {
         return list == null ? List.of() : List.copyOf(list);
     }
 
-    void add(long chunk, DeferredImpact impact) {
+    public void add(long chunk, DeferredImpact impact) {
         if (count >= MAX) {
             if (dropped++ % 1000 == 0) {
                 LOGGER.warn("Deferred impacts full ({}): {} dropped", MAX, dropped);
@@ -55,7 +57,7 @@ public final class DeferredImpacts extends SavedData {
         setDirty();
     }
 
-    void chunkLoaded(long chunk) {
+    public void chunkLoaded(long chunk) {
         if (byChunk.containsKey(chunk)) {
             loaded.add(chunk);
         }
@@ -65,7 +67,7 @@ public final class DeferredImpacts extends SavedData {
      * Buckets of chunks loaded since the last call and still loaded. Every {@link #SWEEP} ticks all owed chunks are
      * checked too: a holder back at FULL before its unload was processed fires no {@code ChunkEvent.Load}.
      */
-    void apply(ServerLevel level) {
+    public void apply(ServerLevel level) {
         if (!byChunk.isEmpty() && level.getGameTime() % SWEEP == 0L) {
             for (long chunk : byChunk.keySet()) {
                 if (level.getChunkSource().getChunkNow(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) != null) {
