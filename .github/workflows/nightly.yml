@@ -65,7 +65,7 @@ jobs:
         env:
           WARFACTORY_MAVEN_USER: ${{ secrets.WARFACTORY_MAVEN_USER }}
           WARFACTORY_MAVEN_TOKEN: ${{ secrets.WARFACTORY_MAVEN_TOKEN }}
-        run: ./gradlew publish --no-daemon --stacktrace
+        run: ./gradlew publish --no-daemon --stacktrace -Dorg.gradle.internal.http.socketTimeout=600000 -Dorg.gradle.internal.http.connectionTimeout=600000
 
       - name: Rebuild dependents
         if: github.event_name != 'pull_request'
