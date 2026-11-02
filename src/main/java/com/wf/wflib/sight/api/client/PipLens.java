@@ -443,6 +443,84 @@ public final class PipLens {
         lens(o, r);
     }
 
+    /**
+     * Screen mode in place of {@link #draw}: picture rectangle of half-size {@code rx, ry <= rx} window px centred
+     * {@code (cx, cy)} (y down), field stop {@code fieldTan} across {@code rx}; last pass's picture drawn there,
+     * reticle over it. Window px projection.
+     */
+    public void screen(float cx, float cy, float rx, float ry, float fieldTan, float[] flexDeg) {
+        lensValid = false;
+        Optic o = optic;
+        if (o == null) {
+            return;
+        }
+        long now = System.nanoTime();
+        float dt = lastNanos == 0 ? 0 : Math.min((now - lastNanos) / 1e9F, 0.1F);
+        lastNanos = now;
+        magnification += (wanted - magnification) * Math.min(1, dt * LEVEL_RATE);
+        this.fieldTan = fieldTan;
+        fieldScale = 1;
+        driftX = (float) Math.tan(Math.toRadians(flexDeg[0])) / fieldTan;
+        driftY = (float) Math.tan(Math.toRadians(flexDeg[1])) / fieldTan;
+        lensPx[0] = cx;
+        lensPx[1] = cy;
+        lensPx[2] = rx;
+        hole[0] = hole[1] = 0;
+        hole[2] = 4;
+        lensValid = true;
+        if (!rendered || target == null) {
+            return;
+        }
+        var win = Minecraft.getInstance().getWindow();
+        Matrix4f savedProjection = RenderSystem.getProjectionMatrix();
+        VertexSorting savedSorting = RenderSystem.getVertexSorting();
+        RenderSystem.setProjectionMatrix(ortho.setOrtho(0, win.getWidth(), win.getHeight(), 0, -1, 1),
+                VertexSorting.ORTHOGRAPHIC_Z);
+        var mv = RenderSystem.getModelViewStack();
+        mv.pushMatrix();
+        mv.identity();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.disableDepthTest();
+        RenderSystem.disableCull();
+        RenderSystem.disableBlend();
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderTexture(0, target.getColorTextureId());
+        screenQuad(cx, cy, rx, ry, crop, crop, 0, 0);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        if (o.reticle() != null) {
+            RenderSystem.setShaderTexture(0, ReticleTextures.id(o.reticle()));
+        } else {
+            RenderSystem.setShaderTexture(0, duplex());
+        }
+        float k = o.reticleSize() <= 0 ? 1 : Math.min(1, pictureTan
+                * (o.reticleZoom() > 0 ? magnification / o.reticleZoom() : 1)
+                / (float) Math.tan(o.reticleSize() * ReticleMath.MOA_RAD / 2));
+        screenQuad(cx, cy, rx, ry, k, -k, driftX, driftY);
+        if (o.mask() != null) {
+            RenderSystem.setShaderTexture(0, o.mask());
+            screenQuad(cx, cy, rx, ry, 1, -1, 0, 0);
+        }
+        RenderSystem.disableBlend();
+        RenderSystem.enableCull();
+        RenderSystem.enableDepthTest();
+        mv.popMatrix();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.setProjectionMatrix(savedProjection, savedSorting);
+    }
+
+    /** Rectangle {@code (cx +- rx, cy +- ry)}, uv as {@link #lensPass} with lens coords = corners in {@code rx} radii. */
+    private static void screenQuad(float cx, float cy, float rx, float ry, float sx, float sy, float ox, float oy) {
+        float q = ry / rx;
+        BufferBuilder b = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        for (int i = 0; i < 4; i++) {
+            float lx = i == 0 || i == 3 ? -1 : 1, ly = i < 2 ? 1 : -1;
+            b.addVertex(cx + lx * rx, cy - ly * ry, 0).setUv(0.5F + 0.5F * sx * (lx - ox),
+                    0.5F + 0.5F * sy * (ly * q - oy));
+        }
+        BufferUploader.drawWithShader(b.buildOrThrow());
+    }
+
     /** No lens this frame (model not loaded): no pass next frame. */
     public void miss() {
         lensValid = false;

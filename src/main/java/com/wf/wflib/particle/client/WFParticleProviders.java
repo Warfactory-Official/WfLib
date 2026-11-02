@@ -7,6 +7,7 @@ import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import com.wf.wflib.particle.api.WFParticles;
 import com.wf.wflib.particle.api.client.AshParticle;
 import com.wf.wflib.particle.api.client.ExplosionSmallParticle;
+import com.wf.wflib.particle.api.client.FlameParticle;
 import com.wf.wflib.particle.api.client.MistParticle;
 import com.wf.wflib.particle.api.client.RocketFlameParticle;
 import com.wf.wflib.core.api.WFLib;
@@ -22,6 +23,7 @@ public final class WFParticleProviders {
     public static void registerProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(WFParticles.EXPLOSION_SMALL.get(), ExplosionSmallParticle.Provider::new);
         event.registerSpriteSet(WFParticles.ROCKET_FLAME.get(), RocketFlameParticle.Provider::new);
+        event.registerSpriteSet(WFParticles.FLAME.get(), FlameParticle.Provider::new);
         event.registerSpriteSet(WFParticles.ASH.get(), AshParticle.Provider::new);
         event.registerSpriteSet(WFParticles.MIST.get(), MistParticle.Provider::new);
         event.registerSpriteSet(WFParticles.SMOKE_PLUME.get(), SmokePlumeParticle.Provider::new);

@@ -116,7 +116,7 @@ public final class RoundDebug implements RoundObserver {
     }
 
     public static void setEnabled(boolean on) {
-        enabled = on;
+        enabled = on && com.wf.wflib.core.client.DebugGate.allowed();
         if (!on) {
             POOL.addAll(LIVE_TRACKS);
             LIVE_TRACKS.clear();
@@ -227,7 +227,7 @@ public final class RoundDebug implements RoundObserver {
 
     @SubscribeEvent
     public static void onRender(RenderLevelStageEvent event) {
-        if (!enabled || event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
+        if (!enabled || !com.wf.wflib.core.client.DebugGate.allowed() || event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
                 || LIVE_TRACKS.isEmpty() && ENDED_TRACKS.isEmpty()) {
             return;
         }

@@ -40,7 +40,7 @@ import com.wf.wflib.artifact.detect.Detection;
  * ({@link Detection#revealed}), then shown to them and theirs to take with a use. Unseen by everyone, it drifts about
  * its anomaly ({@code SArtefactDetectorsSupport::UpdateOnFrame} on GAMMA's {@code artefact_ways}): pushed towards a
  * point near home while slow or off course, hopping off the ground.</li>
- * <li>Dropped (a player's: {@link ArtifactItem#createEntity}): seen by all, still; taken by walking over or a use.</li>
+ * <li>Dropped (a player's: {@link ArtifactItem#createEntity}): seen by all, still; taken by a use only.</li>
  * </ul>
  * Never despawns, can't be hurt. Orientation synced as a quaternion, slerped on the client.
  */
@@ -77,7 +77,6 @@ public class ZoneArtifact extends Entity {
     static final double HOP_GROUND = 0.75D;
     /** Players this close are asked whether their detector shows it. */
     private static final double SEEN_CHECK = 8.0D;
-    static final int PICKUP_DELAY = 40;
 
     /** Client: shown to the local player (set by the client side, which knows what it holds); server: always. */
     private static volatile Predicate<ZoneArtifact> shownHere = a -> true;
@@ -100,7 +99,6 @@ public class ZoneArtifact extends Entity {
     private Vec3 dest;
     private boolean seen;
     private boolean resting;
-    private int pickupDelay;
 
     private final Quaternionf prevOrientation = new Quaternionf();
     private final Quaternionf orientation = new Quaternionf();
@@ -129,7 +127,6 @@ public class ZoneArtifact extends Entity {
         a.entityData.set(DROPPED, true);
         a.setPos(from.getX(), from.getY(), from.getZ());
         a.setDeltaMovement(from.getDeltaMovement());
-        a.pickupDelay = PICKUP_DELAY;
         a.entityData.set(ORIENTATION, new Quaternionf().rotateY(a.random.nextFloat() * Mth.TWO_PI));
         return a;
     }
@@ -211,9 +208,6 @@ public class ZoneArtifact extends Entity {
         if (item().isEmpty()) {
             discard();
             return;
-        }
-        if (pickupDelay > 0) {
-            pickupDelay--;
         }
         if (home == null) {
             home = blockPosition();
@@ -321,16 +315,13 @@ public class ZoneArtifact extends Entity {
                 spin.z / angle).mul(entityData.get(ORIENTATION)).normalize());
     }
 
-    /** Walked into: dropped and landed, picked up; else nudged along (X-Ray bodies roll off a boot). */
+    /** Walked into: dropped, ignored; else nudged along (X-Ray bodies roll off a boot). */
     @Override
     public void playerTouch(Player player) {
         if (level().isClientSide) {
             return;
         }
         if (isDropped()) {
-            if (pickupDelay == 0 && onGround()) {
-                take(player);
-            }
             return;
         }
         Vec3 away = position().subtract(player.position()).multiply(1.0D, 0.0D, 1.0D);
@@ -407,7 +398,6 @@ public class ZoneArtifact extends Entity {
         if (q.size() == 4) {
             entityData.set(ORIENTATION, new Quaternionf(q.getFloat(0), q.getFloat(1), q.getFloat(2), q.getFloat(3)));
         }
-        pickupDelay = tag.getInt("pickupDelay");
     }
 
     @Override
@@ -425,6 +415,5 @@ public class ZoneArtifact extends Entity {
             ql.add(FloatTag.valueOf(f));
         }
         tag.put("orientation", ql);
-        tag.putInt("pickupDelay", pickupDelay);
     }
 }

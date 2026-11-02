@@ -646,9 +646,6 @@ U1	class	com.wf.wflib.client.xray.XrParticles	com.wf.wflib.particle.api.client.X
 U1	class	com.wf.wflib.client.xray.XrDefs	com.wf.wflib.particle.xr.XrDefs
 U1	manual	com.wf.wflib.explosion.client.EMPBeams#spawnBurst	deleted; EMP burst = XrParticles.play(XrGroups.ELECTRA2_BLAST) in WFEffects
 U1	manual	com.wf.wflib.explosion.client.EMPBeams#spawnStun	deleted; XrGroups.ELECTRA_ENTRANCE_SMALL
-U1	manual	com.wf.wflib.fire.FlameCreator#compose	deleted; fire.client.FireXrEffects plays XrGroups.ARTEFACT_ZHARKA on burning entities
-U1	manual	com.wf.wflib.fire.FlameCreator#composeClient	deleted; fire.client.FireXrEffects plays XrGroups.ZHARKA_STATIC per cell
-U1	manual	com.wf.wflib.particle.api.WFParticles#FLAME	deleted; particle type wflib:flame removed
 A6	class	com.wf.wflib.api.DetachedAnchors	com.wf.wflib.stream.api.DetachedAnchors
 A6	class	com.wf.wflib.api.DetachedBodyHost	com.wf.wflib.stream.api.DetachedBodyHost
 A6	class	com.wf.wflib.stream.ChunkStreams	com.wf.wflib.stream.api.ChunkStreams

@@ -12,6 +12,7 @@ import com.wf.wflib.fire.api.WFFire;
 import com.wf.wflib.fire.api.WFFireData;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.fire.api.AshHandler;
+import com.wf.wflib.fire.api.FlameCreator;
 
 /**
  * Drives the custom-fire lifecycle: burns living entities each tick and routes fire deaths to the cremation effect.
@@ -41,6 +42,12 @@ public final class FireHandler {
             DamageSource source = WFDamageSources.create(entity.level(), DamageClass.FIRE, null);
             entity.hurt(source, fire.getType().damage);
         }
+
+        float width = entity.getBbWidth();
+        double px = entity.getX() + (entity.getRandom().nextDouble() - 0.5) * width;
+        double py = entity.getY() + entity.getRandom().nextDouble() * entity.getBbHeight();
+        double pz = entity.getZ() + (entity.getRandom().nextDouble() - 0.5) * width;
+        FlameCreator.compose(entity.level(), px, py, pz, fire.getType());
 
         fire.tick();
     }

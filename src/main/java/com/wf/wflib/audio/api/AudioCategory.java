@@ -15,7 +15,9 @@ public enum AudioCategory implements StringRepresentable {
     /** Head-locked cockpit cues: never muffled. */
     ALERTS("alerts", 0),
     /** Own vehicle's set unmuffled ({@code RadioEmitter}). */
-    RADIO("radio", 1);
+    RADIO("radio", 1),
+    /** Worn-armour cues: steps, jump, land, hit. */
+    ARMOR("armor", 1);
 
     public static final Codec<AudioCategory> CODEC = StringRepresentable.fromEnum(AudioCategory::values);
 

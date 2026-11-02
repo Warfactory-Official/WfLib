@@ -21,10 +21,12 @@ import com.wf.wflib.core.api.WFLib;
  * @param occupies other armour slots a suit fills: kept empty while worn, protected by this piece
  * @param exo      exoskeleton capabilities; garments only
  * @param selfDress the wearer may equip and remove it unaided; false => {@link Dress}
+ * @param sounds   per-piece walk/jump/land/hit cues
  */
 public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, int durability,
                           ArmorSpec spec, @Nullable ResourceLocation model, boolean nvgMount,
-                          Set<EquipmentSlot> occupies, @Nullable ExoSpec exo, boolean selfDress) {
+                          Set<EquipmentSlot> occupies, @Nullable ExoSpec exo, boolean selfDress,
+                          ArmorSounds sounds) {
 
     public ArmorPreset {
         if (durability <= 0) {
@@ -70,6 +72,7 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
         private final Set<EquipmentSlot> occupies = EnumSet.noneOf(EquipmentSlot.class);
         private ExoSpec exo;
         private boolean selfDress = true;
+        private ArmorSounds sounds = ArmorSounds.NONE;
 
         private Builder(String path, @Nullable ArmorItem.Type type, int durability) {
             this.id = rl(path);
@@ -114,13 +117,18 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
             return this;
         }
 
+        public Builder sounds(ArmorSounds sounds) {
+            this.sounds = sounds;
+            return this;
+        }
+
         public Builder occupies(EquipmentSlot... slots) {
             occupies.addAll(java.util.List.of(slots));
             return this;
         }
 
         public ArmorPreset build() {
-            return new ArmorPreset(id, type, durability, spec.build(), model, nvgMount, occupies, exo, selfDress);
+            return new ArmorPreset(id, type, durability, spec.build(), model, nvgMount, occupies, exo, selfDress, sounds);
         }
     }
 }

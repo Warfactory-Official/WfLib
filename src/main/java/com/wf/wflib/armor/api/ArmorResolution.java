@@ -193,6 +193,7 @@ public final class ArmorResolution {
         }
         if (applyWear) {
             com.wf.wflib.armor.api.exo.ExoParts.hit(entity, worn, limb, result);
+            ArmorSounds.playHit(entity, worn, result);
         }
         return result;
     }

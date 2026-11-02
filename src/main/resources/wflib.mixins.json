@@ -6,6 +6,8 @@
   "plugin": "com.wf.wflib.mixin.core.WFMixinPlugin",
   "mixins": [
     "armor.MixinArmorSlot",
+    "armor.MixinEntityArmorStep",
+    "armor.MixinLivingEntityArmorSounds",
     "carry.MixinPlayerShoulder",
     "colony.MixinEntity",
     "core.MixinInventoryMenuSlots",

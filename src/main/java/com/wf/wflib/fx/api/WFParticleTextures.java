@@ -22,6 +22,16 @@ public final class WFParticleTextures {
     public static final ResourceLocation SMOKE =
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/particle/smoke.png");
 
+    /** 2x2 atlas of flame tongues; cell per particle in {@link #FLAME_VERTEX}. */
+    public static final ResourceLocation FLAME =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/particle/flame.png");
+
+    public static final ResourceLocation FLAME_VERTEX =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "instance/flame.vert");
+
+    public static final ResourceLocation FLAME_CULL =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "instance/cull/flame.glsl");
+
     static final ResourceLocation SMOKE_VERTEX =
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "instance/smoke.vert");
 

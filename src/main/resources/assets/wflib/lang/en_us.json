@@ -354,6 +354,7 @@
   "soundCategory.wflib.vehicles": "Vehicles",
   "soundCategory.wflib.weapons": "Weapons",
   "soundCategory.wflib.explosions": "Explosions",
+  "soundCategory.wflib.armor": "Armour",
   "soundCategory.wflib.alerts": "Cockpit Alerts",
   "soundCategory.wflib.radio": "Radio",
   "wflib.radio.off": "Off",

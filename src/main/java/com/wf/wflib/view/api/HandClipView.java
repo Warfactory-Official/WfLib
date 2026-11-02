@@ -6,7 +6,9 @@ import com.wf.gemrender.direct.DirectPass;
 import com.wf.gemrender.direct.DirectRenderer;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
 import com.wf.gemrender.texture.VariantUv;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
@@ -56,6 +58,9 @@ public final class HandClipView {
         }
         int light = event.getPackedLight();
         VIEW.set(event.getPoseStack().last().pose());
+        if (Minecraft.getInstance().options.bobView().get()) {
+            unbob(player, event.getPartialTick());
+        }
         for (int side = 0; side < 2; side++) {
             clip.sample(side == 0 ? clip.right : clip.left, seconds, WRIST, HAND);
             ArmViewPose.shoulder(side == 1, SHOULDER);
@@ -79,6 +84,18 @@ public final class HandClipView {
             DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF, DirectPass.HAND,
                     VariantUv.NONE, slot -> null);
         }
+    }
+
+    /** Right-multiplies {@code VIEW} by the inverse of vanilla {@code bobView}: clip tracks are view-space, walking sway would stack on them. */
+    private static void unbob(LocalPlayer player, float partial) {
+        float walk = -(player.walkDist + (player.walkDist - player.walkDistO) * partial);
+        float bob = Mth.lerp(partial, player.oBob, player.bob);
+        float s = Mth.sin(walk * Mth.PI);
+        float c = Mth.cos(walk * Mth.PI);
+        POSE.identity().translate(s * bob * 0.5f, -Math.abs(c * bob), 0.0f)
+                .rotateZ(s * bob * 3.0f * Mth.DEG_TO_RAD)
+                .rotateX(Math.abs(Mth.cos(walk * Mth.PI - 0.2f) * bob) * 5.0f * Mth.DEG_TO_RAD);
+        VIEW.mul(POSE.invert());
     }
 
     /** Adds the clip's camera effector to {@code event}. */

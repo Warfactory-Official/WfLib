@@ -64,15 +64,14 @@ class SmokingClipTest {
     }
 
     @Test
-    void theButtFacesTheMouthUntilTheFlick() throws IOException {
+    void theCigaretteStaysInTheRightFistFromPackToFlick() throws IOException {
         HandClip c = clip();
-        Vector3f cig = new Vector3f(), butt = new Vector3f(), face = new Vector3f();
+        Vector3f hand = new Vector3f(), cig = new Vector3f();
         Quaternionf q = new Quaternionf();
-        for (float t = 0.5F; t < 8.0F; t += 0.25F) {
+        for (float t = 0.4F; t < 7.8F; t += 0.2F) {
+            c.sample(c.right, t, hand, q);
             c.sample(c.prop("cig"), t, cig, q);
-            q.transform(butt.set(0.0F, 1.0F, 0.0F));
-            face.set(0.0F, -0.08F, 0.0F).sub(cig).normalize();
-            assertTrue(butt.dot(face) > Math.cos(Math.toRadians(10.0)), t + " s: butt " + butt + " face " + face);
+            assertTrue(hand.distance(cig) < 0.07F, t + " s: hand " + hand + " cigarette " + cig);
         }
     }
 

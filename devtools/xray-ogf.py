@@ -19,7 +19,7 @@ import json
 import struct
 import sys
 
-HEADER, TEXTURE, VERTICES, INDICES, CHILDREN = 0x1, 0x2, 0x3, 0x4, 0x9
+HEADER, TEXTURE, VERTICES, INDICES, SWIDATA, CHILDREN = 0x1, 0x2, 0x3, 0x4, 0x6, 0x9
 # Skinned (compressed) vertex: bone ids, P N T B, weights, uv.
 SKINNED = {1: (60, 1, 0), 2: (64, 2, 1), 3: (70, 3, 2), 4: (76, 4, 3)}
 # OGF_VERTEXFORMAT_FVF_<n>L = n * 0x12071980: same layouts.
@@ -75,8 +75,13 @@ def mesh(child):
     idx = child[INDICES]
     n = struct.unpack_from('<I', idx)[0]
     tris = list(struct.unpack_from(f'<{n}H', idx, 4))
-    # X-Ray's front faces are clockwise (Direct3D); negating z mirrors them to counter-clockwise, glTF's front: the
-    # index order stands as is (swapping it as well culled every outward face).
+    if SWIDATA in child:
+        # Sliding window: indices hold every LOD; record 0 = full detail (index offset, triangles).
+        first, count = struct.unpack_from('<iH', child[SWIDATA], 20)
+        tris = tris[first:first + 3 * count]
+        n = len(tris)
+    # z negated: index order must be reversed (outward faces wind CW vs vertex normals otherwise).
+    tris = [t for i in range(0, n, 3) for t in (tris[i], tris[i + 2], tris[i + 1])]
     return positions, normals, uvs, tris
 
 

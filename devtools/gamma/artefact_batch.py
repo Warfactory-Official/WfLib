@@ -9,6 +9,7 @@ Usage (from the repo root): python3 -I devtools/gamma/artefact_batch.py <base> s
   xdistort -> left out. Hand fixes after conversion (Ring scale, MASK shells) are not redone by this script.
 """
 import os, sys, subprocess, json
+import numpy as np
 from PIL import Image, ImageFilter
 BASE, R = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -102,6 +103,16 @@ if ONLY:
 os.makedirs(f'{R}/textures/artifact', exist_ok=True)
 # A texture both body (alpha forced opaque) and blended elsewhere: the body copy is <name>_solid.
 BLENDED = {t for _, parts in BATCH.values() for _, _, t, k in parts if k in ('glow', 'veil')}
+def light_card(im):
+    # lightplanes add the texture (black = nothing); blending needs that as alpha. Real alpha stays.
+    if im.getchannel('A').getextrema()[0] < 200:
+        return im
+    px = np.array(im, dtype=np.int32)
+    a = px[..., :3].max(axis=2)
+    px[..., :3] = np.minimum(255, px[..., :3] * 255 // np.maximum(1, a)[..., None])  # colour / alpha: blend ~ add
+    px[..., 3] = a
+    return Image.fromarray(px.astype(np.uint8), 'RGBA')
+SOLID = {t for _, parts in BATCH.values() for _, _, t, k in parts if k == 'glowsolid'}  # same file drawn opaque: colour kept
 def png(tex, kind):
     return tex.split('/')[-1] + ('_solid' if kind == 'body' and tex in BLENDED else '')
 done = {}
@@ -116,6 +127,8 @@ for key, (mesh, parts) in BATCH.items():
                 k = 512 / max(im.size); im = im.resize((max(1, int(im.size[0]*k)), max(1, int(im.size[1]*k))), Image.LANCZOS)
             if kind == 'body':
                 im.putalpha(255)  # STALKER's body alpha is gloss, not cut-out
+            elif kind == 'glow' and tex not in SOLID:
+                im = light_card(im)
             im.save(dst, optimize=True); done[name] = im.size
         if kind.startswith('glow') and not os.path.exists(dst.replace('.png', '_bloom.png')):
             im = Image.open(dst)

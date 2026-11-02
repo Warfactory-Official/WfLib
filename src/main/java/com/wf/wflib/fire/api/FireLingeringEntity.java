@@ -7,6 +7,7 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,6 +24,8 @@ public class FireLingeringEntity extends Entity {
     private static final EntityDataAccessor<Float> BOX_Z = SynchedEntityData.defineId(FireLingeringEntity.class, EntityDataSerializers.FLOAT);
 
     private int maxAge = 150;
+    private final double[] drift = new double[3], wind = new double[2];
+    private boolean landed;
 
     public FireLingeringEntity(EntityType<? extends FireLingeringEntity> type, Level level) {
         super(type, level);
@@ -108,6 +111,9 @@ public class FireLingeringEntity extends Entity {
     @Override
     public void tick() {
         super.tick();
+        if (!isBox() && !landed) {
+            drift();
+        }
 
         if (!level().isClientSide) {
             if (!getFireType().survivesWater && this.isInWater()) {
@@ -129,6 +135,20 @@ public class FireLingeringEntity extends Entity {
         } else {
             // isClientSide is already true here; call directly (DistExecutor is gone in NeoForge).
             FireClientFX.tick(this);
+        }
+    }
+
+    /** Airborne area fire sinks and drifts ({@link FireDrift}) until it rests on something; both sides step alike, no packets. */
+    private void drift() {
+        noPhysics = false;
+        FireDrift.step(level().getGameTime(), getX(), getZ(), drift, wind);
+        move(MoverType.SELF, new Vec3(drift[0], drift[1], drift[2]));
+        if (horizontalCollision) {
+            drift[0] = drift[2] = 0.0;
+        }
+        if (onGround()) {
+            landed = true;
+            noPhysics = true;
         }
     }
 

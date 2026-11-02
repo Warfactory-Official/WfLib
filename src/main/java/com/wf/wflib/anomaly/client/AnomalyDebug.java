@@ -68,7 +68,7 @@ public final class AnomalyDebug {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
-        return Commands.literal("wfdebug").then(Commands.literal("anomaly")
+        return Commands.literal("wfdebug").requires(s -> com.wf.wflib.core.client.DebugGate.allowed()).then(Commands.literal("anomaly")
                 .then(Commands.literal("status").executes(c -> {
                     status().forEach(line -> c.getSource().sendSuccess(() -> Component.literal(line), false));
                     status().forEach(line -> LOGGER.info("[anomaly-test] {}", line));

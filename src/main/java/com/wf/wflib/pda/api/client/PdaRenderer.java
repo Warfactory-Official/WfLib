@@ -13,6 +13,7 @@ import com.wf.gemrender.gltf.GemRenderGltfModel;
 import com.wf.gemrender.gltf.NodeTable;
 import com.wf.gemrender.texture.VariantUv;
 import com.wf.wflib.view.api.ArmViewPose;
+import com.wf.wflib.view.api.HandClip;
 import com.wf.wflib.view.api.PlayerArms;
 import com.wf.wflib.ui.api.UiContext;
 import com.wf.wflib.ui.api.UiSurfaces;
@@ -80,6 +81,12 @@ public final class PdaRenderer {
     private static final Matrix4f UPPER = new Matrix4f();
     private static final Matrix4f LOWER = new Matrix4f();
     private static final Vector3f AT = new Vector3f();
+    private static final Vector3f FIST = new Vector3f();
+    private static final Vector3f OFFSET = new Vector3f();
+    private static final Vector3f FIST2 = new Vector3f();
+    private static final Quaternionf Q = new Quaternionf();
+    private static final ResourceLocation DRAW_ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda/draw.json");
+    private static HandClip DRAW;
     private static final Vector3f WRIST = new Vector3f();
     private static final Vector3f SHOULDER = new Vector3f();
     private static final Vector3f ELBOW = new Vector3f();
@@ -171,6 +178,10 @@ public final class PdaRenderer {
         float t = PdaClient.raise(event.getPartialTick());
         t = t * t * (3 - 2 * t);
         REST.lerp(RAISED, t, AT);
+        float e = PdaClient.equip(event.getPartialTick());
+        if (e < 1) {
+            offset(e, draw());
+        }
         float tilt = REST_TILT + (RAISED_TILT - REST_TILT) * t;
         LOCAL.translation(AT).rotateX((float) Math.toRadians(tilt)).scale(VIEW_SCALE);
         VIEW.set(event.getPoseStack().last().pose());
@@ -184,6 +195,23 @@ public final class PdaRenderer {
         DirectRenderer.submit(model, null, 0, POSE, light, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF, DirectPass.HAND,
                 VariantUv.NONE, SLOTS);
         arms(player, light);
+    }
+
+    /** Fist midpoint offset from the clip's idle hold, added to {@link #AT}; {@code e} 0 = away, 1 = drawn. */
+    private static void offset(float e, HandClip clip) {
+        mid(clip, clip.duration * e, OFFSET);
+        mid(clip, clip.duration, FIST);
+        AT.add(OFFSET.sub(FIST));
+    }
+
+    private static void mid(HandClip clip, float seconds, Vector3f out) {
+        clip.sample(clip.right, seconds, out, Q);
+        clip.sample(clip.left, seconds, FIST2, Q);
+        out.add(FIST2).mul(0.5f);
+    }
+
+    private static HandClip draw() {
+        return DRAW = DRAW != null ? DRAW : HandClip.load(Minecraft.getInstance().getResourceManager(), DRAW_ID);
     }
 
     /** Surface px per {@link PdaShell} unit, last frame. */

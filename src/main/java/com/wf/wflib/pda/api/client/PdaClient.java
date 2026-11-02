@@ -34,6 +34,8 @@ import com.wf.wflib.core.api.WFLib;
 public final class PdaClient {
     /** Raise / lower per tick, 0..1. */
     private static final float RAISE_STEP = 0.25f;
+    /** 1 / (GAMMA pda_draw 0.70 s) in ticks. */
+    private static final float DRAW_STEP = 1 / 14f;
     /** Surface units per {@code LocalPlayer.turn} unit (~1 mouse count at default sensitivity). */
     private static final float CURSOR_GAIN = 0.55f;
 
@@ -49,6 +51,8 @@ public final class PdaClient {
     private static boolean useLatch;
     private static float raise;
     private static float raiseO;
+    private static float equip;
+    private static float equipO;
     private static float cursorX = PdaShell.WIDTH / 2;
     private static float cursorY = PdaShell.HEIGHT / 2;
     private static boolean pressed;
@@ -133,6 +137,11 @@ public final class PdaClient {
 
     public static boolean focused() {
         return focused;
+    }
+
+    /** 0 = away, 1 = drawn (held in the main-hand view). */
+    public static float equip(float partialTick) {
+        return equipO + (equip - equipO) * partialTick;
     }
 
     /** 0 = rest, 1 = raised. */
@@ -251,6 +260,7 @@ public final class PdaClient {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         raiseO = raise;
+        equipO = equip;
         PdaTheme.restore();
         if (player == null) {
             carried = false;
@@ -258,6 +268,7 @@ public final class PdaClient {
             lower();
             open(null);
             raise = raiseO = 0;
+            equip = equipO = 0;
             pendingRaise = null;
             useLatch = false;
             return;
@@ -288,6 +299,7 @@ public final class PdaClient {
         if (!carried) {
             open(null);
         }
+        equip = held ? Math.min(1, equip + DRAW_STEP) : 0;
         raise = focused ? Math.min(1, raise + RAISE_STEP) : Math.max(0, raise - RAISE_STEP);
         PdaApps.refresh(player);
         // Drain clicks even when a screen/text field owns input: never replay a typing key later.

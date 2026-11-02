@@ -3,6 +3,7 @@ package com.wf.wflib.smoking.client;
 import com.wf.wflib.view.api.HandClip;
 import com.wf.wflib.view.api.HandClipView;
 import com.wf.wflib.smoking.Smoking;
+import com.wf.wflib.smoking.SmokingTimeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
@@ -32,7 +33,7 @@ public final class SmokingClient {
     }
 
     private static float seconds(LocalPlayer p, float partial) {
-        return (Smoking.tick(p) + partial) / 20.0f;
+        return (Smoking.tick(p) + partial) / 20.0f * clip().duration / (SmokingTimeline.TICKS / 20.0f);
     }
 
     private static HandClip clip() {

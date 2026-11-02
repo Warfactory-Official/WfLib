@@ -199,7 +199,7 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
     (`Detection.revealed`), then taken with use. Unseen by every player => drifts: way point within 4 m of home,
     kick `F x 0.02 s` (one ODE step, `applyGravityAccel`) when < 0.7 m/s or < 0.707 m/s along the way, F = GAMMA's
     commonest field forces xz 200 / y 10 (y only with ground within 0.75 m). Shown => no drift. Players nudge it.
-  - Dropped (item entity swapped on join: fresh => inline `Artifacts.onJoin`; disk load => `createEntity`, a task later): seen by all, no drift, walked up (40-tick delay).
+  - Dropped (item entity swapped on join: fresh => inline `Artifacts.onJoin`; disk load => `createEntity`, a task later): seen by all, no drift, taken by use only (walk-over ignored).
   - Client (`ZoneArtifactClient`): shown => `det_show_particles` + `det_show_snd` once, `particles` looped, trail
     light; unseen > 40 m => show-particles blink per 12 real min. Groups per artefact `Artifact.idleFx/showFx`
     (GAMMA's `particles` / `det_show_particles`; files from "Particles Cinematic VFX").
@@ -212,7 +212,7 @@ older docs, e.g. `tools/rpg_rockets.py`, live there and are not in git).
   12-tick cooldown per player. `BoltEntity` (plain `Entity`, carries the stack): gravity 0.04, drag 0.99, water sink,
   per-axis bounce (restitution 0.3, Coulomb friction -> spin), tumble on knocks > 0.06, rolling on ground, rest ->
   flat, wakes when moved; glances off bodies; no damage; anomalies take it as a body (`AnomalyBlockEntity.affected`).
-  Picked up by walking over (landed) or use: same stack back. Despawn 6000 ticks. Drawn as its item's sprite
+  Picked up by use only: same stack back. Despawn 6000 ticks. Drawn as its item's sprite
   (`BoltRenderer`, `FIXED`), synced quaternion slerped. Impact sounds by surface (Oleh's). `wflib:bolt`: 1 iron nugget
   -> 2, sprite from GAMMA's icon atlas.
 - Detectors draw `models/detector/lowpoly/<id>.glb` (old static glbs still in place, unused; delete once approved).
@@ -361,7 +361,7 @@ anomaly system off.
 - GameTests (own batches: new `defaultBatch` rows reshuffle packing-sensitive lanes): `anomaly/gametest/CaveFieldGameTest` (batch `anomaly_caves`: exact artefact entities per tier), 
   RebounderGameTest`, `SiteLayoutGameTest` (+ FISSURES vents = STEAM_VENT, batch `anomaly_sites`); `artifact/gametest/
   ArtifactGameTest` (damage type -> Hit; reveal/take by rank and radius; batch `artifacts`), `BoltGameTest` (rest on
-  flat / stairs / after a wall, sets off a Springboard, walk-over returns the same stack, throw takes one; batch
+  flat / stairs / after a wall, sets off a Springboard, walk-over ignored, use returns the same stack, throw takes one; batch
   `bolts`); `ItemMassGameTest`. WFMedical `WfLibArtifactGameTest` (drain, clot, thin), `WfLibStressGameTest` (psy ->
   stress). Known flakes in WFLib's suite: `apilotfliesthedronefromtheiranchor`,
   `animpactonunloadedgroundwaitsforitschunk`, `alockedsimcomesbackandstays`.
@@ -398,7 +398,7 @@ archives `~/games/gamma/anomaly/db/`. All converted art is third-party: **intern
    mods + DLTX `mod_system_*` patches) with fx, light, weight, tier.
 4. `devtools/xray-ogf.py <ogf>` lists children with texture and **shader**; the shader decides the slot kind:
    `models\artefact`, `artefact2`, `xanomaly` -> `body` (texture alpha is gloss: forced opaque); `selflightl` ->
-   `glowsolid` (opaque, self-lit); `lightplanes` -> `glow` (additive light cards; drawn alpha-blended);
+   `glowsolid` (opaque, self-lit); `lightplanes` -> `glow` (additive cards; DDS alpha opaque => alpha = max(rgb), colour / alpha, `light_card`);
    `xdistortcolor(l)` -> blended veil; `xdistort` -> refraction only, not drawn.
 5. `GAMMA=<mo2 dir> devtools/gamma/artefact_batch.py <base> src/main/resources/assets/wflib [id...]`: converts
    `BATCH` (ids limit it): textures (max 512 px, `_bloom.png` blurred copies for glows), glbs (`--centre`). Texture

@@ -17,27 +17,30 @@ class SmokingTimelineTest {
 
     @Test
     void exhalesInTheGammaWindows() {
-        assertFalse(SmokingTimeline.exhaling(115));
-        assertTrue(SmokingTimeline.exhaling(116));
-        assertTrue(SmokingTimeline.exhaling(137));
-        assertFalse(SmokingTimeline.exhaling(138));
-        assertTrue(SmokingTimeline.exhaling(185));
+        assertFalse(SmokingTimeline.exhaling(143));
+        assertTrue(SmokingTimeline.exhaling(144));
+        assertTrue(SmokingTimeline.exhaling(161));
+        assertFalse(SmokingTimeline.exhaling(162));
+        assertTrue(SmokingTimeline.exhaling(199));
+        assertTrue(SmokingTimeline.exhaling(229));
+        assertFalse(SmokingTimeline.exhaling(230));
     }
 
     @Test
     void dragsJustBeforeEachExhale() {
-        assertFalse(SmokingTimeline.dragging(91));
-        assertTrue(SmokingTimeline.dragging(92));
-        assertTrue(SmokingTimeline.dragging(115));
-        assertFalse(SmokingTimeline.dragging(116));
-        assertTrue(SmokingTimeline.dragging(166));
+        assertFalse(SmokingTimeline.dragging(119));
+        assertTrue(SmokingTimeline.dragging(120));
+        assertTrue(SmokingTimeline.dragging(143));
+        assertFalse(SmokingTimeline.dragging(144));
+        assertFalse(SmokingTimeline.dragging(149));
+        assertTrue(SmokingTimeline.dragging(150));
     }
 
     @Test
     void theWristHangsThenReachesTheMouthThenHangsAgain() {
         Vector3f hanging = SmokingTimeline.wrist(0.0F, new Vector3f());
         Vector3f mouth = SmokingTimeline.wrist(2.8F, new Vector3f());
-        Vector3f end = SmokingTimeline.wrist(9.3F, new Vector3f());
+        Vector3f end = SmokingTimeline.wrist(12.2F, new Vector3f());
         assertEquals(0.875F, hanging.y, 1.0e-6F);
         assertTrue(mouth.y < 0.0F && mouth.z < -0.25F, mouth.toString());
         assertEquals(0.0F, hanging.distance(end), 1.0e-6F);

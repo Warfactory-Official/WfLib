@@ -113,7 +113,7 @@ public class ArtifactGameTest {
     }
 
     @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "artifacts", timeoutTicks = 200)
-    public static void aDroppedArtefactRollsAsItselfAndIsWalkedUp(GameTestHelper helper) {
+    public static void aDroppedArtefactRollsAsItselfAndIsNotTakenByWalkingOver(GameTestHelper helper) {
         floor(helper, 130, 3);
         Vec3 at = helper.absoluteVec(new Vec3(0.5D, 132.0D, 0.5D));
         ItemEntity item = new ItemEntity(helper.getLevel(), at.x, at.y, at.z,
@@ -133,7 +133,10 @@ public class ArtifactGameTest {
             Player player = helper.makeMockPlayer(GameType.SURVIVAL);
             player.setPos(a.getX(), a.getY(), a.getZ());
             a.playerTouch(player);
-            helper.assertFalse(a.isAlive(), "not walked up");
+            helper.assertTrue(a.isAlive(), "walked up");
+            helper.assertTrue(a.interact(player, net.minecraft.world.InteractionHand.MAIN_HAND).consumesAction(),
+                    "use did not take it");
+            helper.assertFalse(a.isAlive(), "use left it");
             helper.assertTrue(player.getInventory().contains(new ItemStack(ArtifactContent.ARTIFACTS.get("battery").get())),
                     "not in the inventory");
         });

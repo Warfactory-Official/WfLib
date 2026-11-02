@@ -51,6 +51,7 @@ public final class WFParticleStyles {
     private static final Map<Integer, Integer> SURGES = new ConcurrentHashMap<>();
 
     private static volatile int wake = -1;
+    private static volatile int flame = -1;
     private static volatile int puff = -1;
     private static volatile int debris = -1;
     private static volatile int cloud = -1;
@@ -97,6 +98,26 @@ public final class WFParticleStyles {
             }
         }
         return wake;
+    }
+
+    /** Lingering fire. */
+    public static int flame() {
+        if (flame < 0) {
+            synchronized (WFParticleStyles.class) {
+                if (flame < 0) {
+                    flame = ParticleBuffer.getInstance()
+                            .registerStyle(ParticleStyle.builder()
+                                    .drag(DRAG_09, 0.0F)
+                                    .gravity(ParticleStyle.gravityFromPerTickDelta(0.002F))
+                                    .size(1.0F, 0.0F)
+                                    .alpha(0.7F, 0.5F)
+                                    .cool(0.55F, 0.45F)
+                                    .glow(1.0F)
+                                    .build());
+                }
+            }
+        }
+        return flame;
     }
 
     /**

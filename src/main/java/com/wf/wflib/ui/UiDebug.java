@@ -58,7 +58,7 @@ public final class UiDebug {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
-        return Commands.literal("wfui")
+        return Commands.literal("wfui").requires(s -> com.wf.wflib.core.client.DebugGate.allowed())
                 .then(Commands.literal("demo").executes(ctx -> {
                     shown = !shown;
                     ctx.getSource().sendSuccess(() -> Component.literal("wfui demo " + (shown ? "on" : "off")), false);

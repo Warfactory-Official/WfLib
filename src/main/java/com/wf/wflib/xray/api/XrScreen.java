@@ -213,9 +213,9 @@ public final class XrScreen {
         }
         String[] rgb = {"R", "G", "B"};
         for (int i = 0; i < 3; i++) {
-            c.setUniform("Base" + rgb[i], 0.5F + (SUM.base[i] - 0.5F) * strength);
+            c.setUniform("Base" + rgb[i], Math.clamp(0.5F + (SUM.base[i] - 0.5F) * strength, 0.0F, 1.0F));
             c.setUniform("Add" + rgb[i], SUM.add[i] * strength);
-            c.setUniform("GrayColor" + rgb[i], SUM.grayColor[i]);
+            c.setUniform("GrayColor" + rgb[i], Math.clamp(SUM.grayColor[i], 0.0F, 1.0F));
         }
         c.setUniform("Gray", Math.clamp(SUM.gray * strength, 0.0F, 1.0F));
         c.setUniform("Blur", SUM.blur * strength);
