@@ -1,11 +1,7 @@
 package com.wf.wflib.compat.warforge;
 
 import com.flansmod.warforge.api.WarforgeAPI;
-import com.flansmod.warforge.common.ExplosionProtection;
-import com.flansmod.warforge.common.WarForgeMod;
-import com.flansmod.warforge.common.util.DimChunkPos;
-import com.flansmod.warforge.server.Faction;
-import com.flansmod.warforge.server.FactionStorage;
+import com.flansmod.warforge.api.ZoneKind;
 import com.wf.wflib.compat.api.TerritoryVerdict;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
@@ -13,7 +9,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,60 +20,52 @@ public final class WarforgeApi {
     }
 
     public static UUID factionOfPlayer(UUID playerId) {
-        Faction faction = WarForgeMod.FACTIONS.getFactionOfPlayer(playerId);
-        return faction == null ? null : faction.uuid;
+        return WarforgeAPI.factionOf(playerId);
     }
 
     public static UUID factionClaiming(Level level, BlockPos pos) {
-        UUID claim = WarForgeMod.FACTIONS.getClaim(new DimChunkPos(level.dimension(), pos));
-        return (claim == null || claim.equals(NULL_UUID)) ? null : claim;
+        return WarforgeAPI.ownerOf(level.dimension(), new ChunkPos(pos));
     }
 
     /** Can a drone owned by {@code faction} edit blocks here. */
     public static TerritoryVerdict buildVerdict(Level level, UUID faction, BlockPos pos) {
-        DimChunkPos chunk = new DimChunkPos(level.dimension(), pos);
-        FactionStorage.SiegeZoneResult siege = WarForgeMod.FACTIONS.getSiegeZone(chunk);
-        if (siege.zone == FactionStorage.SiegeZone.SIEGED) {
-            return TerritoryVerdict.SIEGE;
+        ChunkPos chunk = new ChunkPos(pos);
+        switch (WarforgeAPI.siegeZoneAt(level.dimension(), chunk)) {
+            case SIEGED -> {
+                return TerritoryVerdict.SIEGE;
+            }
+            case WAR -> {
+                return TerritoryVerdict.WAR_ZONE;
+            }
+            default -> {
+            }
         }
-        if (siege.zone == FactionStorage.SiegeZone.WAR) {
-            return TerritoryVerdict.WAR_ZONE;
-        }
-        UUID claim = WarForgeMod.FACTIONS.getClaim(chunk);
-        if (claim == null || claim.equals(NULL_UUID) || claim.equals(Faction.nullUuid)) {
+        ZoneKind zone = WarforgeAPI.zoneAt(level.dimension(), chunk);
+        if (zone == ZoneKind.WILDERNESS) {
             return TerritoryVerdict.ALLOWED;
         }
-        if (claim.equals(FactionStorage.SAFE_ZONE_ID)) {
+        if (zone == ZoneKind.SAFE_ZONE) {
             return TerritoryVerdict.SAFE_ZONE;
         }
-        if (claim.equals(FactionStorage.WAR_ZONE_ID)) {
+        if (zone == ZoneKind.WAR_ZONE) {
             return TerritoryVerdict.WAR_ZONE;
         }
         if (faction == null || faction.equals(NULL_UUID)) {
             // No faction => no standing against any claim.
             return TerritoryVerdict.FOREIGN_CLAIM;
         }
-        if (claim.equals(faction) || areFactionsFriendly(faction, claim)) {
-            return TerritoryVerdict.ALLOWED;
-        }
-        return TerritoryVerdict.FOREIGN_CLAIM;
+        UUID claim = WarforgeAPI.ownerOf(level.dimension(), chunk);
+        return WarforgeAPI.areAlliedOrTruced(faction, claim) ? TerritoryVerdict.ALLOWED : TerritoryVerdict.FOREIGN_CLAIM;
     }
 
     /** Batched owner lookup for a route re-asked every edit. Unclaimed chunk: absent, not null-mapped. */
     public static Map<ChunkPos, UUID> ownersAlong(Level level, Collection<ChunkPos> chunks) {
-        Map<ChunkPos, UUID> out = new LinkedHashMap<>();
-        for (ChunkPos chunk : chunks) {
-            UUID owner = WarforgeAPI.ownerOf(new DimChunkPos(level.dimension(), chunk.x, chunk.z));
-            if (owner != null) {
-                out.put(chunk, owner);
-            }
-        }
-        return out;
+        return WarforgeAPI.ownersAlong(level.dimension(), chunks);
     }
 
     /** Same rule the block-place event cancels on. */
     public static boolean mayPlaceAt(Level level, UUID playerId, ChunkPos chunk, Block block) {
-        return WarforgeAPI.mayPlace(playerId, new DimChunkPos(level.dimension(), chunk.x, chunk.z), block);
+        return WarforgeAPI.mayPlace(playerId, level.dimension(), chunk, block);
     }
 
     /** 0xRRGGBB; {@code fallback} if no such faction. */
@@ -101,27 +88,14 @@ public final class WarforgeApi {
     }
 
     public static boolean areFactionsFriendly(UUID a, UUID b) {
-        Faction fa = WarForgeMod.FACTIONS.getFaction(a);
-        return fa != null && (fa.isAllyOf(b) || fa.isInTruceWith(b));
+        return WarforgeAPI.areAlliedOrTruced(a, b);
     }
 
     public static boolean claimProtected(Level level, UUID player, BlockPos pos) {
-        return ExplosionProtection.isProtected(level, player, pos);
+        return WarforgeAPI.isExplosionProtected(level, pos, player);
     }
 
     public static void filterClaimProtected(Level level, UUID igniterFaction, Collection<BlockPos> positions) {
-        ExplosionProtection.filter(level, actingPlayerFor(igniterFaction), positions);
-    }
-
-    private static UUID actingPlayerFor(UUID igniterFaction) {
-        if (igniterFaction == null || igniterFaction.equals(NULL_UUID)) {
-            return NULL_UUID;
-        }
-        Faction faction = WarForgeMod.FACTIONS.getFaction(igniterFaction);
-        if (faction == null) {
-            return NULL_UUID;
-        }
-        UUID leader = faction.getLeaderId();
-        return (leader == null || leader.equals(NULL_UUID)) ? NULL_UUID : leader;
+        WarforgeAPI.filterExplosionProtected(level, igniterFaction, positions);
     }
 }
