@@ -162,6 +162,11 @@ neoForge {
             server()
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            // ./gradlew runServer -Plabs=<ids|all> [-PlabsArgs="ranges=0,100 rounds=wflib:*"]: WFLabs headless run, then stop.
+            if (project.hasProperty('labs')) {
+                systemProperty 'wflabs', project.property('labs').toString()
+                systemProperty 'wflabs.args', project.findProperty('labsArgs')?.toString() ?: ''
+            }
         }
         gameTestServer {
             type = 'gameTestServer'
@@ -179,7 +184,8 @@ neoForge {
             // the save, so a factions run must not share a world with the plain dev run.
             // Game tests: own directory; run/server.properties names the 5.5 GB benchmark world => hang.
             gameDirectory = project.file(
-                    project.hasProperty('withIR') ? 'run-ir'
+                    project.hasProperty('labs') ? 'run-labs'
+                            : project.hasProperty('withIR') ? 'run-ir'
                             : project.hasProperty('withWarforge') ? 'run-warforge'
                             : delegate.name == 'gameTestServer' ? 'run-gametest' : 'run')
             systemProperty 'forge.logging.markers', 'REGISTRIES'
@@ -487,6 +493,20 @@ def buildNatives = tasks.register('buildNatives') {
         project.delete(fileTree(nativeOut) { include '**/*.o', '**/*.pdb', '**/*.lib' })
     }
 }
+if (project.hasProperty('labs')) {
+    tasks.matching { it.name == 'runServer' }.configureEach {
+        doFirst {
+            def dir = project.file('run-labs')
+            dir.mkdirs()
+            new File(dir, 'eula.txt').text = 'eula=true\n'
+            def props = new File(dir, 'server.properties')
+            if (!props.exists()) {
+                props.text = 'level-name=labs\nlevel-type=minecraft\\:flat\nonline-mode=false\nspawn-protection=0\nview-distance=4\nsimulation-distance=4\n'
+            }
+        }
+    }
+}
+
 tasks.named('processResources', ProcessResources).configure {
     from(buildNatives)
 }

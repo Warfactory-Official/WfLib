@@ -69,7 +69,8 @@ public class WFLibMod {
             new com.wf.wflib.sway.SwaySystem(),
             new com.wf.wflib.physics.PhysicsSystem(),
             new com.wf.wflib.suppression.SuppressionSystem(),
-            new com.wf.wflib.packs.PacksSystem());
+            new com.wf.wflib.packs.PacksSystem(),
+            new com.wf.wflib.labs.LabsSystem());
 
     public WFLibMod(IEventBus modEventBus, ModContainer modContainer) {
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.register(com.wf.wflib.core.api.ServerTicks.Listeners.class);
@@ -80,6 +81,9 @@ public class WFLibMod {
                 net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MODID, "workers"),
                 com.wf.wflib.core.api.TickOrder.WORKERS_STOP, server -> com.wf.wflib.core.api.WorkerPool.shutdown());
         com.wf.wflib.core.api.WFSystems.define(MODID, modEventBus, modContainer, SYSTEMS);
+        if (com.wf.wflib.labs.LabsSystem.headlessRequested() && !net.neoforged.fml.loading.FMLEnvironment.production) {
+            WFLibContent.everything(MODID + " labs");
+        }
         modEventBus.addListener(com.wf.wflib.core.SystemsNetwork::registerPayloads);
         modEventBus.addListener(com.wf.wflib.core.SystemsNetwork::registerTasks);
         net.neoforged.neoforge.registries.DeferredRegister<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.conditions.ICondition>> conditions =

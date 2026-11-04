@@ -34,6 +34,7 @@ the look-at probe, recon/sonar, and the UI widget system other mods build HUDs f
 | [radiation](radiation.md) | NTM NEXT radiation field + item/inventory hazards: divergences, gaps |
 | [backpacks](backpacks.md) | worn backpack: player attachment + capability, inventory panel, lock, probe node, wfweight |
 | [physics](physics.md) | rigid-body engine, step slots, decks, prediction: api, config, traps |
+| [labs](labs.md) | WFLabs: headless data-mapping of the damage stack, run commands, tables, api |
 | [anomalies-and-artefacts](anomalies-and-artefacts.md) | STALKER Zone project: anomalies, tiered sites, artefacts, detectors, bolts; handoff state + remaining work |
 
 Each doc keeps the detailed explanatory voice it was written in; this index is a reference layer on top,

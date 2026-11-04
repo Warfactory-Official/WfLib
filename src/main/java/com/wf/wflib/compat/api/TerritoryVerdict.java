@@ -21,7 +21,11 @@ public enum TerritoryVerdict {
     /**
      * Claimed by a faction that is neither us, an ally, nor under truce.
      */
-    FOREIGN_CLAIM("it is claimed by another faction");
+    FOREIGN_CLAIM("it is claimed by another faction"),
+    /**
+     * The claim's own block rules forbid it, whoever is asking.
+     */
+    CLAIM_RULES("the claim's protection rules forbid it");
 
     private final String reason;
 

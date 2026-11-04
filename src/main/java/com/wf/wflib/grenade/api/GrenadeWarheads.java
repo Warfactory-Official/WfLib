@@ -172,7 +172,7 @@ public final class GrenadeWarheads {
         Entity direct = source instanceof Entity e ? e : null;
         int rays = source.getFragmentCount() > 0 ? source.getFragmentCount() : FRAG_RAYS;
         FragRays.burst(level, pos, rays, FRAG_RANGE, FRAG_PER_HIT, FRAG_DECAY, source.exploder(), direct,
-                level.random);
+                source.igniterFactionId(), level.random);
         float size = source.blastSize() > 0 ? source.blastSize() : FRAG_BLAST;
         new ExplosionAEF(level, pos.x, pos.y, pos.z, size, source.exploder())
                 .setEntityProcessor(new EntityProcessorCross())
@@ -204,7 +204,8 @@ public final class GrenadeWarheads {
                 x -> x instanceof LivingEntity && x.isAlive())) {
             double d = e.getEyePosition().distanceTo(pos);
             if (d < CONCUSSION) {
-                e.hurt(WFDamageSources.create(level, DamageClass.EXPLOSIVE, source.exploder(), direct),
+                e.hurt(WFDamageSources.create(level, DamageClass.EXPLOSIVE, source.exploder(), direct,
+                        source.igniterFactionId()),
                         (float) (CONCUSSION_PEAK * (1 - d / CONCUSSION)));
             }
             if (e instanceof Mob mob && clear(level, pos, e.getEyePosition())) {

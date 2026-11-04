@@ -61,6 +61,10 @@ public record ProjectileLook(boolean visible, Shape shape, @Nullable ResourceLoc
             return new Override(v, null, null, null, null, null, null, null, null, null);
         }
 
+        public Override withBody(int rgb) {
+            return new Override(visible, shape, model, lengthMm, diameterMm, rgb, band, spinRps, trail, flame);
+        }
+
         public Override withShape(Shape s, @Nullable Float lengthMm, @Nullable Float diameterMm) {
             return new Override(visible, s, model, lengthMm, diameterMm, body, band, spinRps, trail, flame);
         }

@@ -111,6 +111,13 @@ public final class ArmorSystem implements WFSystem {
             DressProbe.registerServer();
         }
         NeoForge.EVENT_BUS.register(ArmorEvents.class);
+        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.armor.lab.PersonalArmorProducer());
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.armor.lab.ExplosiveProducer());
+            com.wf.wflib.labs.api.LabContents.register(new com.wf.wflib.armor.lab.ArmorLabContent());
+            com.wf.wflib.armor.lab.ArmorHazards.register(com.wf.wflib.core.api.WFSystems.enabled("hazard")
+                    && com.wf.wflib.core.api.WFSystems.enabled("radiation"));
+        }
     }
 
     @Override

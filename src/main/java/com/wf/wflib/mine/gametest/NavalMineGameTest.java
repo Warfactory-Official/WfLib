@@ -72,18 +72,21 @@ public class NavalMineGameTest {
         mine.scatter(new Vec3(0.0, -4.0, 0.0), level.getRandom(), 0.0f);
 
         helper.runAfterDelay(SETTLE_TICKS, () -> {
-            force(level, tank, false);
-            if (!mine.isAlive() || mine.isRemoved()) {
-                helper.fail("the mine did not survive");
-                return;
+            try {
+                if (!mine.isAlive() || mine.isRemoved()) {
+                    helper.fail("the mine did not survive");
+                    return;
+                }
+                if (!mine.isMoored()) {
+                    helper.fail("thrown: moored=" + mine.isMoored() + " wet=" + mine.isWet()
+                            + " y=" + String.format("%.3f", mine.getY()) + " bed=" + bed
+                            + " motion=" + mine.getDeltaMovement());
+                    return;
+                }
+                helper.succeed();
+            } finally {
+                release(level, tank, SHALLOW_DEPTH);
             }
-            if (!mine.isMoored()) {
-                helper.fail("thrown: moored=" + mine.isMoored() + " wet=" + mine.isWet()
-                        + " y=" + String.format("%.3f", mine.getY()) + " bed=" + bed
-                        + " motion=" + mine.getDeltaMovement());
-                return;
-            }
-            helper.succeed();
         });
     }
 
@@ -105,13 +108,31 @@ public class NavalMineGameTest {
         level.addFreshEntity(mine);
 
         helper.runAfterDelay(SETTLE_TICKS, () -> {
-            force(level, tank, false);
-            if (!mine.isAlive() || mine.isRemoved()) {
-                helper.fail("the mine did not survive");
-                return;
+            try {
+                if (!mine.isAlive() || mine.isRemoved()) {
+                    helper.fail("the mine did not survive");
+                    return;
+                }
+                check.run(mine);
+            } finally {
+                release(level, tank, TANK_DEPTH);
             }
-            check.run(mine);
         });
+    }
+
+    /** Tank volume back to air before its chunks are released: water left over would flood whichever arena lands there next. */
+    private static void release(ServerLevel level, BlockPos tank, int depth) {
+        BlockState air = Blocks.AIR.defaultBlockState();
+        int floorY = tank.getY() - 1;
+        int wall = TANK_HALF + 1;
+        for (int x = -wall; x <= wall; x++) {
+            for (int z = -wall; z <= wall; z++) {
+                for (int y = 0; y <= depth + 16; y++) {
+                    level.setBlock(tank.offset(x, 0, z).atY(floorY + y), air, 2);
+                }
+            }
+        }
+        force(level, tank, false);
     }
 
     private static int buildTank(ServerLevel level, BlockPos tank, int depth) {

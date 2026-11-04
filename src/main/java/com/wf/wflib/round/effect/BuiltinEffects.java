@@ -2,6 +2,7 @@ package com.wf.wflib.round.effect;
 
 import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.WFDamage;
+import com.wf.wflib.damage.api.WFDamageSources;
 import com.wf.wflib.warhead.api.WarheadCarrier;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
@@ -151,8 +152,8 @@ public final class BuiltinEffects {
 
     private static void damage(ImpactContext ctx, ResourceKey<DamageType> type, float amount) {
         Entity target = ctx.entity();
-        DamageSource source = new DamageSource(ctx.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
-                .getHolderOrThrow(type), ctx.projectile(), ctx.shooter());
+        DamageSource source = WFDamageSources.of(ctx.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                .getHolderOrThrow(type), ctx.projectile(), ctx.shooter(), ctx.faction());
         if (target instanceof LivingEntity living) {
             WFDamage.hurtIgnoringIFrames(living, source, amount);
         } else {

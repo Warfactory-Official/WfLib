@@ -2,6 +2,7 @@ package com.wf.wflib.round.api;
 
 import com.norwood.ahf.hit.AhfHitSource;
 import com.norwood.ahf.part.HitboxPart;
+import com.wf.wflib.damage.api.Attributed;
 import com.wf.wflib.damage.api.StrikeContext;
 import com.wf.wflib.damage.api.Threat;
 import net.minecraft.core.Holder;
@@ -12,12 +13,13 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Direct hit by a round or rocket; the strike rides on the source. AHF reads the swept segment
  * {@code position() -> segmentEnd} at {@link #hitGameTime}, never the shooter's eye.
  */
-public final class RoundDamageSource extends DamageSource implements StrikeContext, AhfHitSource {
+public final class RoundDamageSource extends DamageSource implements StrikeContext, AhfHitSource, Attributed {
 
     /** {@link #hitGameTime} of an unrewound strike: no history entry => AHF classifies live. */
     public static final long LIVE = Long.MIN_VALUE;
@@ -32,10 +34,12 @@ public final class RoundDamageSource extends DamageSource implements StrikeConte
     private final List<HitboxPart> parts;
     private final float pierceDT;
     private final float pierceDR;
+    @Nullable
+    private final UUID faction;
 
     RoundDamageSource(Holder<DamageType> type, @Nullable Entity direct, @Nullable Entity shooter, Threat threat,
                       Vec3 position, Vec3 velocity, Object key, Vec3 segmentEnd, long gameTime,
-                      @Nullable List<HitboxPart> parts, float pierceDT, float pierceDR) {
+                      @Nullable List<HitboxPart> parts, float pierceDT, float pierceDR, @Nullable UUID faction) {
         super(type, direct, shooter, position);
         this.threat = threat;
         this.position = position;
@@ -46,6 +50,13 @@ public final class RoundDamageSource extends DamageSource implements StrikeConte
         this.parts = parts;
         this.pierceDT = pierceDT;
         this.pierceDR = pierceDR;
+        this.faction = faction;
+    }
+
+    @Nullable
+    @Override
+    public UUID attributedFaction() {
+        return this.faction;
     }
 
     /** Preset pierce; armour reads it here, never from the thread context (nested damage must not inherit it). */

@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.UUID;
 import java.util.EnumMap;
 
 /**
@@ -53,6 +54,13 @@ public final class FragRays {
 
     public static Result burst(Level level, Vec3 pos, int rays, double range, float perHit, double decay,
                                @Nullable Entity attacker, @Nullable Entity direct, RandomSource random) {
+        return burst(level, pos, rays, range, perHit, decay, attacker, direct, null, random);
+    }
+
+    /** {@code faction}: see {@link com.wf.wflib.damage.api.Attribution#faction}. */
+    public static Result burst(Level level, Vec3 pos, int rays, double range, float perHit, double decay,
+                               @Nullable Entity attacker, @Nullable Entity direct, @Nullable UUID faction,
+                               RandomSource random) {
         Quaternionf turn = new Quaternionf().rotationXYZ(random.nextFloat() * 6.2832f, random.nextFloat() * 6.2832f,
                 random.nextFloat() * 6.2832f);
         Vec3[] dirs = directions(rays, turn);
@@ -111,7 +119,7 @@ public final class FragRays {
             if (struck > 0 && damage >= 0.5f) {
                 victims++;
                 hits += struck;
-                victim.hurt(BlastDamageSource.of(WFDamageSources.create(level, DamageClass.EXPLOSIVE, attacker, direct),
+                victim.hurt(BlastDamageSource.of(WFDamageSources.create(level, DamageClass.EXPLOSIVE, attacker, direct, faction),
                         victim, pos, through, part), damage);
             }
         }

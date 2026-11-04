@@ -150,7 +150,7 @@ public class TorpedoGameTest {
         MissileEntity torpedo = launch(level, tank, bed, "torpedo");
         helper.runAfterDelay(SETTLE_TICKS, () -> {
             if (!torpedo.isAlive() || torpedo.flight().getPhase() == MissileEntity.Phase.ASCEND) {
-                force(level, tank, false);
+                release(level, tank);
                 helper.fail("the torpedo never reached its run, so there is nothing to broach");
                 return;
             }
@@ -158,7 +158,7 @@ public class TorpedoGameTest {
             torpedo.setDeltaMovement(Vec3.ZERO);
             helper.runAfterDelay(40, () -> {
                 boolean gone = torpedo.isRemoved() || !torpedo.isAlive();
-                force(level, tank, false);
+                release(level, tank);
                 if (!gone) {
                     helper.fail("a torpedo held clear of the water for 40 ticks is still running, at y="
                             + String.format("%.2f", torpedo.getY()));
@@ -187,13 +187,31 @@ public class TorpedoGameTest {
 
         MissileEntity missile = launch(level, tank, bed, presetPath);
         helper.runAfterDelay(settleTicks, () -> {
-            force(level, tank, false);
-            if (!missile.isAlive() || missile.isRemoved()) {
-                helper.fail("the torpedo did not survive its run");
-                return;
+            try {
+                if (!missile.isAlive() || missile.isRemoved()) {
+                    helper.fail("the torpedo did not survive its run");
+                    return;
+                }
+                check.run(missile, bed, surface);
+            } finally {
+                release(level, tank);
             }
-            check.run(missile, bed, surface);
         });
+    }
+
+    /** Tank volume back to air before its chunks are released: water left over would flood whichever arena lands there next. */
+    private static void release(ServerLevel level, BlockPos tank) {
+        BlockState air = Blocks.AIR.defaultBlockState();
+        int floorY = tank.getY() - 1;
+        int wall = TANK_HALF_WIDTH + 1;
+        for (int x = -2; x <= TANK_LENGTH + 1; x++) {
+            for (int z = -wall; z <= wall; z++) {
+                for (int y = 0; y <= TANK_DEPTH + 1; y++) {
+                    level.setBlock(tank.offset(x, 0, z).atY(floorY + y), air, 2);
+                }
+            }
+        }
+        force(level, tank, false);
     }
 
     /** This test's own stretch of water, far enough off the arena grid that nothing shares it. */

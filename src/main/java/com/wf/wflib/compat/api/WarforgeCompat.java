@@ -3,6 +3,7 @@ package com.wf.wflib.compat.api;
 import com.wf.wflib.compat.CompatConfig;
 import com.wf.wflib.compat.warforge.WarforgeApi;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -44,6 +45,13 @@ public final class WarforgeCompat {
         return LOADED;
     }
 
+    /** Lets WarForge credit kills by unmanned systems to their faction ({@link com.wf.wflib.damage.api.Attribution}). */
+    public static void registerKillAttribution() {
+        if (LOADED) {
+            WarforgeApi.registerKillAttribution();
+        }
+    }
+
     public static UUID factionOfPlayer(UUID playerId) {
         if (!LOADED || playerId == null) {
             return null;
@@ -62,10 +70,32 @@ public final class WarforgeCompat {
      * @return whether {@code faction} may have drones change blocks at {@code pos}.
      */
     public static TerritoryVerdict buildVerdict(Level level, UUID faction, BlockPos pos) {
+        return verdict(level, faction, pos, ClaimAction.PLACEMENT, CompatConfig.excavationsRespectClaims());
+    }
+
+    /** {@link #buildVerdict} for digging: the claim's terraform rule applies. */
+    public static TerritoryVerdict excavationVerdict(Level level, UUID faction, BlockPos pos) {
+        return verdict(level, faction, pos, ClaimAction.TERRAFORM, CompatConfig.excavationsRespectClaims());
+    }
+
+    private static TerritoryVerdict verdict(Level level, UUID faction, BlockPos pos, ClaimAction kind,
+                                            boolean claimRules) {
         if (!LOADED || !territoryProtectionEnabled || level == null || pos == null) {
             return TerritoryVerdict.ALLOWED;
         }
-        return WarforgeApi.buildVerdict(level, faction, pos);
+        TerritoryVerdict verdict = WarforgeApi.buildVerdict(level, faction, pos, kind);
+        return !claimRules && verdict == TerritoryVerdict.CLAIM_RULES ? TerritoryVerdict.ALLOWED : verdict;
+    }
+
+    /**
+     * Whether an effect of {@code kind} may alter {@code chunk}.
+     *
+     * @param respect the config switch for this effect; off => always true
+     */
+    public static boolean mayAlter(Level level, ChunkPos chunk, UUID player, UUID faction, ClaimAction kind,
+                                   boolean respect) {
+        return !respect || !LOADED || level == null || chunk == null
+                || WarforgeApi.mayAlter(level, chunk, player, faction, kind);
     }
 
     /**

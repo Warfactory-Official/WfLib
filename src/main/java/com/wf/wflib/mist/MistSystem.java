@@ -50,6 +50,9 @@ public final class MistSystem implements WFSystem {
         MistEffects.register(WFFluids.PHOSGENE.getId(), new PhosgeneMistEffect());
         MistEffects.register(WFFluids.MUSTARD_GAS.getId(), new MustardGasMistEffect());
         MistEffects.register(WFFluids.TEAR_GAS.getId(), new TearGasMistEffect());
+        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
+            com.wf.wflib.mist.lab.MistHazards.register();
+        }
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, MistDebug::onRegisterCommands);
     }
 

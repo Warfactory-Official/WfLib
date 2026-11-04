@@ -10,6 +10,10 @@ import com.wf.wflib.mist.api.MistEffect;
 
 public class PhosgeneMistEffect implements MistEffect {
 
+    /** Per hit at intensity 1, once a second. */
+    public static final float DAMAGE = 2.0F;
+    public static final int DAMAGE_INTERVAL = 20;
+
     @Override
     public void affect(MistEntity mist, Entity target, double intensity) {
         if (!(target instanceof LivingEntity living) || living.isInvulnerable()) return;
@@ -21,7 +25,7 @@ public class PhosgeneMistEffect implements MistEffect {
 
         // Once a second so the i-frame window doesn't swallow the damage.
         if (living.tickCount % 20 == 0) {
-            living.hurt(mist.level().damageSources().magic(), (float) (2.0 * intensity));
+            living.hurt(mist.level().damageSources().magic(), (float) (DAMAGE * intensity));
         }
     }
 

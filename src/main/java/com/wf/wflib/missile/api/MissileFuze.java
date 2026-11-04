@@ -128,7 +128,7 @@ public final class MissileFuze {
             }
             if (this.impactDamage > 0.0f) {
                 ehr.getEntity().hurt(WFDamageSources.create(this.missile.level(), DamageClass.PHYSICAL,
-                        this.missile.getOwner(), this.missile), this.impactDamage);
+                        this.missile.getOwner(), this.missile, this.missile.igniterFactionId()), this.impactDamage);
             }
         }
         this.detonate(at, false);

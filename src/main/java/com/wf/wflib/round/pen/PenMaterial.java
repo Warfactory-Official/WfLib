@@ -99,7 +99,7 @@ public enum PenMaterial {
         }
     }
 
-    static PenMaterial resolve(BlockState state) {
+    public static PenMaterial resolve(BlockState state) {
         for (int m = VALUES.length - 1; m >= 0; m--) {
             if (state.is(VALUES[m].tag)) {
                 return VALUES[m];

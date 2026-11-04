@@ -10,11 +10,16 @@ public final class CompatConfig {
 
     private static final ModConfigSpec.BooleanValue FACTION_FRIEND_OR_FOE;
     private static final ModConfigSpec.BooleanValue EXPLOSIONS_RESPECT_CLAIMS;
+    private static final ModConfigSpec.BooleanValue EXCAVATIONS_RESPECT_CLAIMS;
+    private static final ModConfigSpec.BooleanValue RADIATION_RESPECTS_CLAIMS;
+    private static final ModConfigSpec.BooleanValue EMP_RESPECTS_CLAIMS;
 
-    private record Values(boolean factionFriendOrFoe, boolean explosionsRespectClaims) {
+    private record Values(boolean factionFriendOrFoe, boolean explosionsRespectClaims,
+                          boolean excavationsRespectClaims,
+                          boolean radiationRespectsClaims, boolean empRespectsClaims) {
     }
 
-    private static volatile Values values = new Values(true, true);
+    private static volatile Values values = new Values(true, true, true, false, false);
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -29,6 +34,16 @@ public final class CompatConfig {
                         "blocks survive, except in active siege zones). Individual blasts can still opt out (e.g.",
                         "strategic nukes).")
                 .define("explosionsRespectClaims", true);
+        EXCAVATIONS_RESPECT_CLAIMS = b
+                .comment("Tunnel boring, track laying and drone builds obey the claim's block rules (break /",
+                        "place), not just zone and alliance.")
+                .define("excavationsRespectClaims", true);
+        RADIATION_RESPECTS_CLAIMS = b
+                .comment("Fallout block decay obeys claim rules. Off: radiation ignores claims.")
+                .define("radiationRespectsClaims", false);
+        EMP_RESPECTS_CLAIMS = b
+                .comment("EMP pulses obey claim rules. Off: EMP ignores claims.")
+                .define("empRespectsClaims", false);
         b.pop();
         SPEC = b.build();
     }
@@ -44,9 +59,23 @@ public final class CompatConfig {
         return values.explosionsRespectClaims;
     }
 
+    public static boolean excavationsRespectClaims() {
+        return values.excavationsRespectClaims;
+    }
+
+    public static boolean radiationRespectsClaims() {
+        return values.radiationRespectsClaims;
+    }
+
+    public static boolean empRespectsClaims() {
+        return values.empRespectsClaims;
+    }
+
     public static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() == SPEC) {
-            values = new Values(FACTION_FRIEND_OR_FOE.get(), EXPLOSIONS_RESPECT_CLAIMS.get());
+            values = new Values(FACTION_FRIEND_OR_FOE.get(), EXPLOSIONS_RESPECT_CLAIMS.get(),
+                    EXCAVATIONS_RESPECT_CLAIMS.get(),
+                    RADIATION_RESPECTS_CLAIMS.get(), EMP_RESPECTS_CLAIMS.get());
         }
     }
 }

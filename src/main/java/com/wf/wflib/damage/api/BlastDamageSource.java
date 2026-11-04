@@ -11,22 +11,33 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.UUID;
+
 /**
  * One victim's share of a blast or fragment burst. AHF reads blast origin -> struck point, never the exploder's eye:
  * a base source with direct == attacker (launcher, thrower) is melee to AHF and gap-tested on the attacker's look.
  * Part always set => never a gap.
  */
-public final class BlastDamageSource extends DamageSource implements AhfHitSource {
+public final class BlastDamageSource extends DamageSource implements AhfHitSource, Attributed {
 
     private final Vec3 from;
     private final Vec3 to;
     private final HitboxPart part;
+    @Nullable
+    private final UUID faction;
 
     private BlastDamageSource(DamageSource base, Vec3 from, Vec3 to, HitboxPart part) {
         super(base.typeHolder(), base.getDirectEntity(), base.getEntity(), from);
         this.from = from;
         this.to = to;
         this.part = part;
+        this.faction = base instanceof Attributed attributed ? attributed.attributedFaction() : null;
+    }
+
+    @Nullable
+    @Override
+    public UUID attributedFaction() {
+        return this.faction;
     }
 
     /**

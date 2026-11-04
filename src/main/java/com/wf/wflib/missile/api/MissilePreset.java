@@ -163,6 +163,10 @@ public final class MissilePreset {
         return warheadId;
     }
 
+    public MissileEntity.Medium medium() {
+        return medium;
+    }
+
     public boolean isInterceptor() {
         return interceptor;
     }
