@@ -13,6 +13,9 @@ public final class LabArmors {
 
     /** Sets whose garment and inserts match no {@code armorExclude} glob and whose garment matches {@code armor=} (comma globs); dev content only with {@code dev=1}. */
     public static List<ArmorSetups.Setup> sets(LabContext ctx) {
+        if (!com.wf.wflib.core.api.WFSystems.enabled("armor")) {
+            return List.of();
+        }
         String filter = ctx.param("armor", null);
         List<String> exclude = LabsConfig.snapshot().armorExclude();
         return ArmorSetups.all().stream()

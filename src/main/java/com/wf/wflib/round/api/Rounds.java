@@ -85,6 +85,11 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     public static final Rounds KIND = new Rounds();
 
+    /** {@code RoundConfig.ammoAccuracy}. */
+    public static boolean ammoAccuracy() {
+        return com.wf.wflib.round.RoundConfig.snapshot().ammoAccuracy();
+    }
+
     /** Fraction of kinetic energy landing as damage when the preset names no flat figure. */
     private static final float ENERGY_TO_DAMAGE = 0.1f;
     private static final ResourceLocation SHAPED_CHARGE = Warheads.rl("shaped_charge");

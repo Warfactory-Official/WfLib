@@ -2,7 +2,6 @@ package com.wf.wflib.ammo.api;
 
 import com.google.gson.JsonObject;
 import com.wf.wflib.damage.api.ThreatKind;
-import com.wf.wflib.round.RoundConfig;
 import com.wf.wflib.round.api.ImpactTrigger;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -59,7 +58,7 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
 
     /** {@code coneMul}, 1 when {@code RoundConfig.ammoAccuracy} is off. */
     public float effectiveConeMul() {
-        return RoundConfig.snapshot().ammoAccuracy() ? coneMul : 1f;
+        return com.wf.wflib.round.api.Rounds.ammoAccuracy() ? coneMul : 1f;
     }
 
     public record Pierce(float dt, float dr) {

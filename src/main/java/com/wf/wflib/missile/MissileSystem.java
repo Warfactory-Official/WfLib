@@ -223,7 +223,9 @@ public final class MissileSystem implements WFSystem {
         if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
             WFLibContent.warheads(WFLib.MODID, "inert");
             com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileFlightProducer());
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileVulnerabilityProducer());
+            if (com.wf.wflib.core.api.WFSystems.enabled("armor")) {
+                com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileVulnerabilityProducer());
+            }
             com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.InterceptionProducer());
             com.wf.wflib.missile.lab.TurretDefender.registerAll();
         }

@@ -3,7 +3,7 @@ package com.wf.wflib.radiation;
 import net.minecraft.world.level.ChunkPos;
 import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.compat.api.ClaimAction;
-import com.wf.wflib.compat.CompatConfig;
+import com.wf.wflib.compat.api.ClaimPolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
@@ -29,7 +29,7 @@ public final class RadiationWorldHandler {
     // of scope rather than unported.
     static void decayBlock(ServerLevel world, BlockPos pos, BlockState state) {
         if (!WarforgeCompat.mayAlter(world, new ChunkPos(pos), null, null, ClaimAction.RADIATION,
-                CompatConfig.radiationRespectsClaims())) {
+                ClaimPolicy.radiationRespectsClaims())) {
             return;
         }
         Block block = state.getBlock();

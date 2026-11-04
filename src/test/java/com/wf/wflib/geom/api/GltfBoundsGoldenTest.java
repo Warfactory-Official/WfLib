@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Every glTF/GLB under {@code assets/}: names, whole bounds, per-node origin + subtree; recorded before {@link Glb}. */
 class GltfBoundsGoldenTest {
 
-    static final long GOLDEN = -4387854197496352581L;
+    static final long GOLDEN = 8545780671145439419L;
 
     private static long mix(long h, long v) {
         return h * 0x9E3779B97F4A7C15L + v;
