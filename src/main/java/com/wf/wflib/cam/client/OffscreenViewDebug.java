@@ -69,7 +69,7 @@ public final class OffscreenViewDebug {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
-        return Commands.literal("wfview").requires(s -> com.wf.wflib.core.client.DebugGate.allowed())
+        return Commands.literal("wfview").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed())
                 .then(Commands.literal("off").executes(ctx -> {
                     close();
                     return reply(ctx, "offscreen view off");

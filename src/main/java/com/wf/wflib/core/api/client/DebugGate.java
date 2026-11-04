@@ -1,4 +1,4 @@
-package com.wf.wflib.core.client;
+package com.wf.wflib.core.api.client;
 
 import net.minecraft.client.Minecraft;
 import net.neoforged.fml.loading.FMLEnvironment;

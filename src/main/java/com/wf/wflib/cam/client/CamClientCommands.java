@@ -12,7 +12,7 @@ public final class CamClientCommands {
 
     public static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
         event.getDispatcher().register(OffscreenViewDebug.command());
-        event.getDispatcher().register(Commands.literal("wffeed").requires(s -> com.wf.wflib.core.client.DebugGate.allowed()).then(Commands.literal("cull")
+        event.getDispatcher().register(Commands.literal("wffeed").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed()).then(Commands.literal("cull")
                 .then(Commands.literal("skip").executes(ctx -> probe(ctx.getSource(), FeedProbe.Mode.SKIP)))
                 .then(Commands.literal("evict").executes(ctx -> probe(ctx.getSource(), FeedProbe.Mode.EVICT)))));
     }
