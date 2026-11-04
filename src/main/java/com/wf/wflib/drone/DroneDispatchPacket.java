@@ -1,6 +1,5 @@
 package com.wf.wflib.drone;
 
-import com.wf.wflib.drone.api.DroneTask;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -17,20 +16,21 @@ import java.util.UUID;
 import com.wf.wflib.drone.api.PdaDrones;
 import com.wf.wflib.core.api.WFLib;
 
-/** Drones app DISPATCH -> the selected linked body, else nearest pad; reply + fresh status back. */
-public record DroneDispatchPacket(String kind, double x, double y, double z, Optional<UUID> drone)
+/** Drones app DISPATCH -> the selected linked body, else nearest pad; reply + fresh status back. Verbs: {@link PdaDrones#dispatch}. */
+public record DroneDispatchPacket(String kind, double x, double y, double z, double arg, Optional<UUID> drone)
         implements CustomPacketPayload {
     public static final Type<DroneDispatchPacket> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_drone_dispatch"));
     public static final StreamCodec<FriendlyByteBuf, DroneDispatchPacket> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.stringUtf8(16), DroneDispatchPacket::kind, ByteBufCodecs.DOUBLE, DroneDispatchPacket::x,
             ByteBufCodecs.DOUBLE, DroneDispatchPacket::y, ByteBufCodecs.DOUBLE, DroneDispatchPacket::z,
-            ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC), DroneDispatchPacket::drone, DroneDispatchPacket::new);
+            ByteBufCodecs.DOUBLE, DroneDispatchPacket::arg, ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC),
+            DroneDispatchPacket::drone, DroneDispatchPacket::new);
 
     public void handle(IPayloadContext ctx) {
         if (ctx.player() instanceof ServerPlayer player) {
             ctx.enqueueWork(() -> {
-                String line = PdaDrones.dispatch(player, DroneTask.Kind.byId(kind), new Vec3(x, y, z), drone);
+                String line = PdaDrones.dispatch(player, kind, new Vec3(x, y, z), arg, drone);
                 PacketDistributor.sendToPlayer(player, new DroneDispatchReplyPacket(line));
                 PacketDistributor.sendToPlayer(player, new DroneStatusPacket(PdaDrones.status(player)));
             });

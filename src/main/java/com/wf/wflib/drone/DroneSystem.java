@@ -229,6 +229,7 @@ public final class DroneSystem implements WFSystem {
                 (pkt, ctx) -> ctx.enqueueWork(() -> DronesApp.accept(pkt.status())));
         r.playToServer(DroneActionPacket.TYPE, DroneActionPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
         r.playToServer(DroneDispatchPacket.TYPE, DroneDispatchPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
+        r.playToServer(DroneProgramPacket.TYPE, DroneProgramPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
         r.playToClient(DroneDispatchReplyPacket.TYPE, DroneDispatchReplyPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> DronesApp.reply(pkt.line())));
     }

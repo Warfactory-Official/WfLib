@@ -1,13 +1,16 @@
 package com.wf.wflib.drone.client;
 
+import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.drone.DroneDebrisEntity;
 import com.wf.wflib.drone.DroneSystem;
 import com.wf.wflib.drone.api.DroneEntity;
+import com.wf.wflib.map.api.client.WFMaps;
 import dev.engine_room.flywheel.api.visual.EntityVisual;
 import dev.engine_room.flywheel.api.visualization.EntityVisualizer;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.api.visualization.VisualizerRegistry;
 import net.minecraft.client.renderer.entity.NoopRenderer;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
@@ -50,6 +53,8 @@ public final class DroneClientSetup {
                 }
             });
             DronesApp.register();
+            WFMaps.TOOLS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "drone_orders"), 0,
+                    new DroneMapLayer());
             RadioApp.register();
         }));
         com.wf.wflib.missile.api.client.SimGhostEntities.KINDS.register(

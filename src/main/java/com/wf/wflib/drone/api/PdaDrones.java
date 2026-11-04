@@ -20,6 +20,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -144,12 +145,12 @@ public final class PdaDrones {
                 remote == null ? List.of() : remote.cells(), remote == null ? List.of() : remote.ammo(),
                 (int) distance, refusal == null ? "" : refusal, offers,
                 e instanceof RadioCarrier rc && rc.radioVoice() != null,
-                e instanceof RadioCarrier rc ? rc.radioStation() : "");
+                e instanceof RadioCarrier rc ? rc.radioStation() : "", body == null ? List.of() : route(body));
     }
 
     private static DroneStatus.Entry offline(UUID id, String name, String status, String refusal) {
         return new DroneStatus.Entry(id, 0, name, status, "", 0.0f, false, 0.0f, List.of(), List.of(), -1, refusal,
-                List.of(), false, "");
+                List.of(), false, "", List.of());
     }
 
     @Nullable
@@ -206,38 +207,78 @@ public final class PdaDrones {
         }
     }
 
+    /** Order verbs a linked autonomous body takes besides the {@link DroneTask.Kind} ids. */
+    public static final List<String> CONTROLS = List.of("stop", "hold", "rtb", "land", "alt", "climb");
+
     /**
+     * @param verb a {@link DroneTask.Kind} id (one-step {@link #program}), or one of {@link #CONTROLS} (linked body
+     *      only): {@code stop} = hold where it is, {@code hold} = hold over {@code at}, {@code alt} / {@code climb} =
+     *      cruise altitude set to / raised by {@code arg}
+     * @param arg loiter radius (&lt;= 0: default), or the altitude for {@code alt} / {@code climb}
      * @param drone linked autonomous body to task; empty => nearest pad
-     * @return reply line; pad launches join the held PDA's channels
+     * @return reply line
      */
-    public static String dispatch(ServerPlayer player, DroneTask.Kind kind, Vec3 at, Optional<UUID> drone) {
+    public static String dispatch(ServerPlayer player, String verb, Vec3 at, double arg, Optional<UUID> drone) {
+        if (!Double.isFinite(at.x + at.y + at.z + arg)) {
+            return "err: bad coordinates";
+        }
+        if (!CONTROLS.contains(verb)) {
+            if (Arrays.stream(DroneTask.Kind.values()).noneMatch(k -> k.id().equals(verb))) {
+                return "err: unknown order '" + verb + "'";
+            }
+            DroneTask.Kind kind = DroneTask.Kind.byId(verb);
+            return program(player, List.of(kind == DroneTask.Kind.LOITER && arg > 0
+                    ? new DroneTask.Loiter(at, arg, 0) : kind.at(at)), drone);
+        }
         if (!Pda.carries(player)) {
             return "err: no PDA carried";
         }
+        if (drone.isEmpty()) {
+            return "err: " + verb + " needs a linked drone selected";
+        }
+        try {
+            return control(player, linked(player, Pda.carriedStack(player), drone.get()), verb, at, arg);
+        } catch (IllegalStateException e) {
+            return "err: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Queue for a linked autonomous body, else launched from the nearest pad; a trailing waypoint holds
+     * ({@link DroneTasking#holdAtEnd}). Pad launches join the held PDA's channels.
+     *
+     * @return reply line
+     */
+    public static String program(ServerPlayer player, List<DroneTask> tasks, Optional<UUID> drone) {
+        if (!Pda.carries(player)) {
+            return "err: no PDA carried";
+        }
+        if (tasks.isEmpty() || tasks.size() > DroneTask.MAX_STEPS) {
+            return "err: 1-" + DroneTask.MAX_STEPS + " steps";
+        }
+        for (DroneTask task : tasks) {
+            Vec3 at = task.at();
+            if (at != null && !Double.isFinite(at.x + at.y + at.z)) {
+                return "err: bad coordinates";
+            }
+        }
+        DroneProgram program = DroneTasking.holdAtEnd(tasks);
+        String plan = describe(program);
         ItemStack pda = Pda.carriedStack(player);
         if (drone.isPresent()) {
-            UUID id = drone.get();
-            if (!channels(pda).has(FeedTarget.ofDrone(id))) {
-                return "err: not linked";
+            try {
+                ControllableDrone body = linked(player, pda, drone.get());
+                String error = DroneTasking.assign(body, player.getUUID(), program);
+                return error != null ? "err: " + error : body.callsign() + " " + plan;
+            } catch (IllegalStateException e) {
+                return "err: " + e.getMessage();
             }
-            ControllableDrone body = DroneTracker.byId(player.serverLevel(), id);
-            if (body == null) {
-                return "err: drone not in range";
-            }
-            RemoteBody remote = RemoteBody.of(body.asEntity());
-            String refusal = remote == null ? null : remote.connectRefusal(player);
-            if (refusal != null && !body.asEntity().hasPassenger(player)) {
-                return "err: " + refusal;
-            }
-            String error = DroneTasking.assign(body, player.getUUID(), kind, at);
-            return error != null ? "err: " + error : String.format(Locale.ROOT, "%s %s toward %d %d",
-                    body.callsign(), kind.id(), (int) at.x, (int) at.z);
         }
         DroneDispatcher dispatcher = DroneDispatchers.nearest(player);
         if (dispatcher == null) {
             return "err: no drone pad in reach";
         }
-        DroneMission.Result result = dispatcher.dispatch(player, kind, at);
+        DroneMission.Result result = dispatcher.dispatch(player, program);
         if (!result.ok()) {
             return "err: " + result.error();
         }
@@ -247,8 +288,86 @@ public final class PdaDrones {
             channels = channels.with(FeedTarget.ofDrone(launched.droneId()), cap);
         }
         pda.set(CameraContent.CHANNELS.get(), channels);
-        return String.format(Locale.ROOT, "%s x%d launched toward %d %d", kind.id(), result.ordered(), (int) at.x,
-                (int) at.z);
+        return String.format(Locale.ROOT, "pad x%d launched: %s", result.ordered(), plan);
+    }
+
+    /** "hold over 1000 5800", or "3 steps, ends hold over ...". */
+    private static String describe(DroneProgram program) {
+        DroneTask last = program.tasks().getLast();
+        Vec3 at = last.at();
+        String end = switch (last) {
+            case DroneTask.Exfil e -> "rtb";
+            case DroneTask.Loiter l when l.stationary() -> "hold over";
+            case DroneTask.Loiter l -> "loiter r" + (int) l.radius();
+            default -> last.kind().id();
+        } + (at == null ? "" : String.format(Locale.ROOT, " %d %d", (int) Math.floor(at.x), (int) Math.floor(at.z)));
+        int steps = program.tasks().size();
+        return steps == 1 ? end : steps + " steps, ends " + end;
+    }
+
+    /** Linked autonomous body the player may order. @throws IllegalStateException why not */
+    private static ControllableDrone linked(ServerPlayer player, ItemStack pda, UUID id) {
+        if (!channels(pda).has(FeedTarget.ofDrone(id))) {
+            throw new IllegalStateException("not linked");
+        }
+        ControllableDrone body = DroneTracker.byId(player.serverLevel(), id);
+        if (body == null) {
+            throw new IllegalStateException("drone not in range");
+        }
+        RemoteBody remote = RemoteBody.of(body.asEntity());
+        String refusal = remote == null ? null : remote.connectRefusal(player);
+        if (refusal != null && !body.asEntity().hasPassenger(player)) {
+            throw new IllegalStateException(refusal);
+        }
+        return body;
+    }
+
+    private static String control(ServerPlayer player, ControllableDrone body, String verb, Vec3 at, double arg) {
+        String name = body.callsign();
+        UUID operator = player.getUUID();
+        Vec3 here = body.asEntity().position();
+        String error;
+        String done;
+        switch (verb) {
+            case "stop" -> {
+                error = DroneTasking.assign(body, operator, new DroneTask.Loiter(here, 0, 0));
+                done = String.format(Locale.ROOT, "%s holding at %d %d", name, (int) here.x, (int) here.z);
+            }
+            case "hold" -> {
+                error = DroneTasking.assign(body, operator, new DroneTask.Loiter(at, 0, 0));
+                done = String.format(Locale.ROOT, "%s hold over %d %d", name, (int) at.x, (int) at.z);
+            }
+            case "rtb" -> {
+                error = DroneTasking.recall(body, operator);
+                Vec3 home = body.route().getExfil();
+                done = String.format(Locale.ROOT, "%s returning to %d %d", name, (int) home.x, (int) home.z);
+            }
+            case "land" -> {
+                error = DroneTasking.land(body);
+                done = String.format(Locale.ROOT, "%s landing at %d %d", name, (int) here.x, (int) here.z);
+            }
+            default -> {
+                error = DroneTasking.altitude(body, verb.equals("climb") ? body.flight().getCruiseAltitude() + arg : arg);
+                done = String.format(Locale.ROOT, "%s cruise altitude %d", name, (int) body.flight().getCruiseAltitude());
+            }
+        }
+        return error != null ? "err: " + error : done;
+    }
+
+    /** Where it is, then each step still to fly; exfil-bound => home last. Empty for bodies with no program. */
+    private static List<Vec3> route(ControllableDrone body) {
+        List<Vec3> out = new ArrayList<>();
+        out.add(body.asEntity().position());
+        DroneProgram program = body.orders().getProgram();
+        Vec3 home = body.route().getExfil();
+        for (int i = program.cursor(); i < program.tasks().size(); i++) {
+            Vec3 at = program.tasks().get(i).at();
+            out.add(at != null ? at : home);
+        }
+        if (body.flight().getDroneState() == DroneState.EXFIL) {
+            out.add(home);
+        }
+        return out.size() > 1 ? out : List.of();
     }
 
     /** wflib's own drone: CONNECT = remote ride ({@link DroneEntity#pilot}). */

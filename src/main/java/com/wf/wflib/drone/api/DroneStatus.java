@@ -7,6 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
+import net.minecraft.world.phys.Vec3;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,10 +38,14 @@ public record DroneStatus(List<Entry> drones, Optional<Pad> pad) {
      * @param offers {@code DroneTask.Kind} ids this body flies on its own; empty = manual only
      * @param radio carries a {@code RadioCarrier} set now
      * @param station tuned station; "" = off
+     * @param route where it is, then each step still to fly; empty = no program or not loaded
      */
     public record Entry(UUID id, int feedId, String name, String status, String task, float fuel, boolean electric,
                         float link, List<RemoteBody.Cell> cells, List<String> ammo, int distance, String refusal,
-                        List<String> offers, boolean radio, String station) {
+                        List<String> offers, boolean radio, String station, List<Vec3> route) {
+        private static final StreamCodec<ByteBuf, List<Vec3>> ROUTE = StreamCodec.<ByteBuf, Vec3, Double, Double, Double>composite(
+                ByteBufCodecs.DOUBLE, Vec3::x, ByteBufCodecs.DOUBLE, Vec3::y, ByteBufCodecs.DOUBLE, Vec3::z, Vec3::new)
+                .apply(ByteBufCodecs.list(DroneTask.MAX_STEPS + 2));
         private static final StreamCodec<FriendlyByteBuf, RemoteBody.Cell> CELL = StreamCodec.composite(
                 ByteBufCodecs.stringUtf8(24), RemoteBody.Cell::label, ByteBufCodecs.FLOAT, RemoteBody.Cell::ratio,
                 RemoteBody.Cell::new);
@@ -60,10 +65,12 @@ public record DroneStatus(List<Entry> drones, Optional<Pad> pad) {
             KINDS.encode(buf, e.offers);
             buf.writeBoolean(e.radio);
             buf.writeUtf(e.station, RadioCarrier.MAX_STATION);
+            ROUTE.encode(buf, e.route);
         }, buf -> new Entry(buf.readUUID(), buf.readVarInt(), buf.readUtf(64), buf.readUtf(24), buf.readUtf(96),
                 buf.readFloat(), buf.readBoolean(), buf.readFloat(), CELL.apply(ByteBufCodecs.list(24)).decode(buf),
                 ByteBufCodecs.stringUtf8(64).apply(ByteBufCodecs.list(8)).decode(buf), buf.readVarInt(),
-                buf.readUtf(64), KINDS.decode(buf), buf.readBoolean(), buf.readUtf(RadioCarrier.MAX_STATION)));
+                buf.readUtf(64), KINDS.decode(buf), buf.readBoolean(), buf.readUtf(RadioCarrier.MAX_STATION),
+                ROUTE.decode(buf)));
 
         public boolean loaded() {
             return distance >= 0;

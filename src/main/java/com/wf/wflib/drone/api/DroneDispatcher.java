@@ -25,4 +25,13 @@ public interface DroneDispatcher {
 
     /** One-step program {@code kind} at {@code at}; {@code kind} outside {@link #offers} => refusal. */
     DroneMission.Result dispatch(ServerPlayer by, DroneTask.Kind kind, Vec3 at);
+
+    /** Several steps; default = one-step programs only. */
+    default DroneMission.Result dispatch(ServerPlayer by, DroneProgram program) {
+        DroneTask only = program.tasks().size() == 1 ? program.tasks().getFirst() : null;
+        if (only == null || only.at() == null) {
+            return new DroneMission.Result(List.of(), 0, "this dispatcher flies single steps only");
+        }
+        return dispatch(by, only.kind(), only.at());
+    }
 }

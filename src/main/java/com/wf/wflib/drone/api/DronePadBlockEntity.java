@@ -6,6 +6,8 @@ import com.wf.wflib.drone.exchange.ExchangeManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.EnumSet;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -240,20 +242,37 @@ public class DronePadBlockEntity extends BlockEntity implements MenuProvider, Dr
         return kinds;
     }
 
-    /** Configured mission's airframe, flight and count; DIRECT, home = this pad. */
     @Override
     public DroneMission.Result dispatch(ServerPlayer by, DroneTask.Kind kind, Vec3 at) {
-        ControllableDrone body = this.parked((ServerLevel) this.level, kind);
+        return dispatch(by, DroneProgram.of(List.of(kind.at(at))));
+    }
+
+    /**
+     * Configured mission's airframe, flight and count; DIRECT, home = this pad. Waypoints always fly; every other
+     * step must be in {@link #offers}, and a payload / rack / cargo rides only when a step uses it.
+     */
+    @Override
+    public DroneMission.Result dispatch(ServerPlayer by, DroneProgram program) {
+        if (program.isEmpty()) {
+            return new DroneMission.Result(List.of(), 0, "empty program");
+        }
+        Set<DroneTask.Kind> kinds = EnumSet.noneOf(DroneTask.Kind.class);
+        program.tasks().forEach(t -> kinds.add(t.kind()));
+        DroneTask.Kind lead = program.tasks().getFirst().kind();
+        ControllableDrone body = this.parked((ServerLevel) this.level, lead);
         if (body != null) {
-            String error = DroneTasking.assign(body, by.getUUID(), kind, at);
+            String error = DroneTasking.assign(body, by.getUUID(), program);
             if (error != null) {
                 return new DroneMission.Result(List.of(), 0, error);
             }
             body.route().setExfil(Vec3.atCenterOf(this.worldPosition.above()));
             return new DroneMission.Result(List.of(body), 1, null);
         }
-        if (!offers().contains(kind)) {
-            return new DroneMission.Result(List.of(), 0, "pad cannot fly " + kind.id());
+        List<DroneTask.Kind> offered = offers();
+        for (DroneTask.Kind kind : kinds) {
+            if (kind != DroneTask.Kind.MOVE_TO && kind != DroneTask.Kind.EXFIL && !offered.contains(kind)) {
+                return new DroneMission.Result(List.of(), 0, "pad cannot fly " + kind.id());
+            }
         }
         DroneMission run = DroneMission.load(this.mission.save());
         run.mode = ExchangeMode.DIRECT;
@@ -265,16 +284,16 @@ public class DronePadBlockEntity extends BlockEntity implements MenuProvider, Dr
         run.operator = by.getUUID();
         run.approachLegs = List.of();
         run.egressLegs = List.of();
-        run.program = DroneProgram.of(List.of(kind.at(at)));
-        if (kind != DroneTask.Kind.STRIKE) {
+        run.program = program;
+        if (!kinds.contains(DroneTask.Kind.STRIKE)) {
             run.payloadId = null;
         }
-        if (kind != DroneTask.Kind.MINELAY) {
+        if (!kinds.contains(DroneTask.Kind.MINELAY)) {
             run.mines = null;
         }
         Vec3 origin = Vec3.atCenterOf(this.worldPosition.above());
         run.exfil = origin;
-        return this.launch((ServerLevel) this.level, run, origin, kind == DroneTask.Kind.DELIVER);
+        return this.launch((ServerLevel) this.level, run, origin, kinds.contains(DroneTask.Kind.DELIVER));
     }
 
     private boolean cargoEmpty() {

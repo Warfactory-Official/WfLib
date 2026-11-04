@@ -34,6 +34,8 @@ public final class CameraTarget implements AutoCloseable {
     private static final int[] STEPS = {320, 480, 640, 854, 1280, 1920};
     /** How far ahead of the drone's centre the lens sits, in blocks. */
     private static final double GIMBAL_BOOM = 1.5;
+    /** Client drone copy this close to the feed walk (which trails it by up to ~6 blocks) is live, else frozen. */
+    private static final double LIVE_POSE_SQ = 16.0 * 16.0;
     /** TV seeker lens ahead of the nose; behind it the round's own mesh fills the picture. */
     private static final double SEEKER_CLEAR = 0.3;
 
@@ -191,6 +193,11 @@ public final class CameraTarget implements AutoCloseable {
                 lens = missile.getPosition(partial)
                         .add(CameraSource.Guided.heading(missile).scale(missile.noseForward()))
                         .add(forward.scale(SEEKER_CLEAR));
+            } else if (anchor instanceof com.wf.wflib.drone.api.DroneEntity drone
+                    && drone.lensPosition(partial).distanceToSqr(FeedMotion.position(feed)) < LIVE_POSE_SQ) {
+                // Same per-frame pose its model is drawn at; the 5 Hz feed walk lags it and swings the body into
+                // view. Only while the client copy keeps up: outside the client's ticking chunks it freezes.
+                lens = drone.lensPosition(partial).add(forward.scale(Math.max(GIMBAL_BOOM, drone.getBbWidth())));
             } else if (feed.kind() == CameraFeed.MOUNTED) {
                 lens = FeedMotion.position(feed);
             } else {
