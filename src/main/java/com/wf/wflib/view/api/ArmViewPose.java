@@ -15,9 +15,18 @@ public final class ArmViewPose {
     /**
      * Right shoulder joint from the eye, view space, m (left: x mirrored). Vanilla arm pivot (0.29, -0.33, 0) FORBIDDEN:
      * wide + low => grip 0.30 m off, arm line inward-up, elbow either across the chest (hand axis) or under the fist,
-     * forearm vertical (pole). Set back = shoulder rolled behind the cheek weld.
+     * forearm vertical (pole). Set back = shoulder rolled behind the cheek weld. Square: hands without a shouldered
+     * gun, pistols; shouldered gun => {@link #stance}.
      */
     public static final Vector3fc SHOULDER = new Vector3f(0.18F, -0.20F, 0.13F);
+    /**
+     * Shouldered gun, bladed: firing side back (reach 0.30 -> 0.46 m, forearm off the bore 44 -> 32 deg), support side
+     * forward (grip out of reach: 123 -> 96 arms slide the shoulder). Body geometry: one gun's problem => its grips /
+     * hint, never here; change gated by MA {@code ArmGateTest}. Further forward => support forearm steep, tucked.
+     */
+    private static final Vector3fc STANCE_RIGHT_HIP = new Vector3f(0.16F, -0.20F, 0.30F),
+            STANCE_RIGHT_ADS = new Vector3f(0.11F, -0.18F, 0.32F), STANCE_LEFT_HIP = new Vector3f(-0.18F, -0.20F, 0.10F),
+            STANCE_LEFT_ADS = new Vector3f(-0.18F, -0.20F, 0.08F);
     /** Fraction of full reach the solver bends to; past it the shoulder slides toward the wrist (arm keeps length). */
     public static final float MAX_REACH = 0.995F;
     /** Reach for an arm held out straight: ~1.4 degrees at the elbow (MAX_REACH leaves ~11), still a defined hinge. */
@@ -25,8 +34,11 @@ public final class ArmViewPose {
     /** Natural elbow direction, view space: seeds the elbow and leads it where the hand axis is inconclusive. */
     public static final Vector3fc RIGHT_POLE = new Vector3f(0.6F, -1, 0.2F);
     public static final Vector3fc LEFT_POLE = new Vector3f(-0.6F, -1, 0.2F);
-    /** s: {@link Bend} time constant. */
+    /** s: {@link Bend} time constant, error >= {@link #BEND_LOCK}. */
     static final float BEND_TAU = 0.05F;
+    /** s: {@link Bend} time constant, error <= {@link #BEND_LOCK} / 2. Bob / recoil leave a held elbow in space. */
+    static final float BEND_RELAX_TAU = 1;
+    static final float BEND_LOCK = (float) Math.toRadians(30);
     /** rad/s: {@link Bend} turn cap; uncapped => elbow whips round where the hand axis sweeps through the arm line. */
     static final float BEND_SPEED = (float) Math.toRadians(600);
     /**
@@ -38,6 +50,8 @@ public final class ArmViewPose {
     static final float HAND_AXIS_MIN = (float) Math.sin(Math.toRadians(3));
     /** rad: hinted solve, hand-axis elbow range either side of the hint. */
     public static final float HINT_CONE = (float) Math.toRadians(30);
+    /** sin of the hand +Y tilt off the arm line that fully steers a hinted elbow; ramp from {@link #HAND_AXIS_MIN}. */
+    static final float HINT_AXIS_FULL = (float) Math.sin(Math.toRadians(10));
     /** rad: either side of the out-of-range midpoint where the elbow keeps its bound (no flapping across it). */
     static final float ELBOW_HOLD = (float) Math.toRadians(45);
 
@@ -60,8 +74,8 @@ public final class ArmViewPose {
 
     /**
      * One arm's elbow direction across frames: turns about the arm line toward the hand-axis elbow at
-     * {@code c (1 - exp(-dt / }{@link #BEND_TAU}{@code ))}, c = hand-axis confidence, at most {@link #BEND_SPEED}.
-     * Inconclusive hand axis => elbow held, never a one-frame side switch.
+     * {@code c (1 - exp(-dt / tau))}, c = hand-axis confidence, tau {@link #BEND_RELAX_TAU} -> {@link #BEND_TAU} with
+     * the error, at most {@link #BEND_SPEED}. Inconclusive hand axis => elbow held, never a one-frame side switch.
      */
     public static final class Bend {
         private final Vector3f dir = new Vector3f();
@@ -82,6 +96,11 @@ public final class ArmViewPose {
     public static float swing(@Nullable Quaternionfc hand, Matrix4f lower) {
         if (hand == null) return 0;
         return hand.transform(T.set(ARM_AXIS)).angle(lower.getColumn(1, FOREARM).normalize());
+    }
+
+    /** Shoulder joint of a shouldered gun, hip -> ADS by {@code ads}. */
+    public static Vector3f stance(boolean left, float ads, Vector3f out) {
+        return (left ? STANCE_LEFT_HIP : STANCE_RIGHT_HIP).lerp(left ? STANCE_LEFT_ADS : STANCE_RIGHT_ADS, ads, out);
     }
 
     /** {@link #SHOULDER} of one side. */
@@ -149,7 +168,7 @@ public final class ArmViewPose {
 
     /**
      * {@code hinted}: {@code pole} = authored elbow direction; hand-axis elbow within +-{@link #HINT_CONE} of it,
-     * inconclusive hand axis => toward it (unhinted: held).
+     * continuous in hand axis ({@link #hintTarget}), inconclusive => toward it (unhinted: held).
      */
     public static float solve(Vector3fc wrist, @Nullable Quaternionfc hand, Vector3f shoulder, Vector3fc pole,
                       boolean hinted, PlayerArms.Lengths lengths, float minReach, float maxReach, @Nullable Bend state,
@@ -174,7 +193,6 @@ public final class ArmViewPose {
         if (held) {
             PREV.set(state.dir).fma(-state.dir.dot(DIR), DIR);
             if (PREV.lengthSquared() > 1e-10F) from = (float) Math.atan2(PREV.dot(LAT), PREV.dot(PERP));
-            rate *= 1 - (float) Math.exp(-dt / BEND_TAU);
         }
         float to = 0;
         if (hand != null) {
@@ -188,16 +206,21 @@ public final class ArmViewPose {
                 rate = 0;
                 to = from;
             }
+            if (hinted) to = hintTarget(to, guess / l2);
         }
         // outside the range => nearer bound, held side within ELBOW_HOLD of the far point; elbow goes round through
         // the range, never across the body. Held side alone => parks on a bound the guess has left (hk416 inspect)
         ArmLimits limits = state == null ? ArmLimits.DEFAULT : state.limits;
-        float in = hinted ? HINT_CONE : limits.elbowIn(), out = hinted ? HINT_CONE : limits.elbowOut();
-        if (to < -in || to > out) {
+        float in = limits.elbowIn(), out = limits.elbowOut();
+        if (!hinted && (to < -in || to > out)) {
             float far = (out + 2 * (float) Math.PI - in) / 2;
             float past = (to < -in ? to + 2 * (float) Math.PI : to) - far;
             to = Math.abs(past) < ELBOW_HOLD ? (Math.abs(from + in) < Math.abs(from - out) ? -in : out)
                     : past > 0 ? -in : out;
+        }
+        if (held) {
+            float lock = Math.clamp(2 * Math.abs(to - from) / BEND_LOCK - 1, 0, 1);
+            rate *= 1 - (float) Math.exp(-dt / (BEND_RELAX_TAU + (BEND_TAU - BEND_RELAX_TAU) * lock * lock * (3 - 2 * lock)));
         }
         float turn = (to - from) * rate;
         if (held) turn = Math.clamp(turn, -BEND_SPEED * dt, BEND_SPEED * dt);
@@ -221,5 +244,16 @@ public final class ArmViewPose {
         LOWER_Q.set(hand).premul(Q.rotationTo(hand.transform(T.set(ARM_AXIS)), FOREARM));
         LOWER_Q.transform(T.set(1, 0, 0));
         return (float) Math.atan2(OUT.set(HINGE).cross(T).dot(FOREARM), HINGE.dot(T));
+    }
+
+    /**
+     * Hand-axis elbow {@code to} about the arm line from the hint, {@code tilt} = sin hand +Y off the arm line ->
+     * hinted target. Near the arm line direction = noise (KS-23 hip: 3.4 deg, step at {@link #HAND_AXIS_MIN} => 30 deg
+     * elbow swing on walk bob). Past 90 deg back to the hint: bound flip +-{@link #HINT_CONE} => 22 cm swing at ADS.
+     */
+    private static float hintTarget(float to, float tilt) {
+        float a = Math.abs(to), half = (float) Math.PI / 2;
+        float t = Math.clamp((tilt - HAND_AXIS_MIN) / (HINT_AXIS_FULL - HAND_AXIS_MIN), 0, 1);
+        return Math.copySign(a <= half ? Math.min(a, HINT_CONE) : HINT_CONE * (2 - a / half), to) * t * t * (3 - 2 * t);
     }
 }

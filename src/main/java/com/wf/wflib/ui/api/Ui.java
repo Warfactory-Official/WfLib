@@ -88,6 +88,22 @@ public final class Ui {
         return new Text(template, color, shadow, scale);
     }
 
+    /**
+     * HUD hint: key cap(s) + {@code label} template; size 0 while {@code condition} is false or hints are off
+     * ({@code ui.key_hints}). {@code right}: label first, for a column on the right edge. JSON type {@code key_hint}.
+     */
+    public static WidgetDef keyHint(String condition, String label, boolean right, String... keys) {
+        WidgetDef[] caps = new WidgetDef[keys.length];
+        for (int i = 0; i < keys.length; i++) {
+            caps[i] = new Box("#B8101410", "#70E8E8E0", 0.75F, 0, 2.25F, 1.5F, 10.5F, 9, Point.CENTER,
+                    text("{key:" + keys[i] + "}", "#FFF2F2EA", false, "0.75"));
+        }
+        WidgetDef capRow = row(1.5F, Align.CENTER, caps);
+        WidgetDef name = text(label, "#E8E8E8E0", true, "0.75");
+        return when("ui.key_hints && (" + condition + ")",
+                right ? row(3, Align.CENTER, name, capRow) : row(3, Align.CENTER, capRow, name));
+    }
+
     public static WidgetDef when(String condition, WidgetDef then) {
         return new When(condition, then, null);
     }

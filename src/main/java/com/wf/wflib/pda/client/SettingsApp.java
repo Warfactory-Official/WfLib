@@ -1,5 +1,6 @@
 package com.wf.wflib.pda.client;
 
+import com.wf.wflib.ui.UiClientConfig;
 import com.wf.wflib.ui.api.Signals;
 import com.wf.wflib.ui.api.Subject;
 import com.wf.wflib.ui.api.WidgetDef;
@@ -25,7 +26,7 @@ import static com.wf.wflib.ui.api.Ui.stack;
 import static com.wf.wflib.ui.api.Ui.text;
 import static com.wf.wflib.ui.api.Ui.when;
 
-/** PDA look: colours by hex code, panel opacity, background image from the server ({@link PdaTheme}). */
+/** PDA look: colours by hex code, panel opacity, background image from the server ({@link PdaTheme}); HUD key hints. */
 public final class SettingsApp implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "settings");
     private static final SettingsApp INSTANCE = new SettingsApp();
@@ -89,6 +90,10 @@ public final class SettingsApp implements PdaApp {
                         PdaShell.TEXT)),
                 at("146", "94", text("{pda_settings.opacity_text}", PdaShell.TEXT)),
                 at("12", "116", btn("RESET ALL", 60, 14, i -> PdaTheme.reset())),
+                at("12", "139", text("HUD KEY HINTS", PdaShell.DIM)),
+                at("94", "136", new Button(i -> UiClientConfig.toggleKeyHints(), "true", PdaShell.PANEL, PdaShell.HOVER,
+                        PdaShell.PRESS, PdaShell.EDGE, 1, 0, 0, 0, 30, 14, Point.CENTER, when("ui.key_hints",
+                        text("ON", PdaShell.ACCENT), text("OFF", PdaShell.DIM)))),
 
                 at(Float.toString(rightX), "8", PdaShell.panel(rightW, h)),
                 at(Float.toString(rightX + 4), "12", text("BACKGROUND", PdaShell.DIM)),

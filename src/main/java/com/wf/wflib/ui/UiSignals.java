@@ -36,6 +36,7 @@ public final class UiSignals {
         Signals.num(UI, "scale", ev -> ev.scale);
         Signals.num(UI, "px", ev -> ev.pixel);
         Signals.bool(UI, "hide_gui", ev -> Minecraft.getInstance().options.hideGui);
+        Signals.bool(UI, "key_hints", ev -> UiClientConfig.keyHints());
 
         Signals.num(PLAYER, "health", LocalPlayer::getHealth);
         Signals.num(PLAYER, "max_health", LocalPlayer::getMaxHealth);

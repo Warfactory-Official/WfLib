@@ -57,6 +57,8 @@ Missing subject => NUM NaN, BOOL false, TEXT empty, list empty.
 |---|---|
 | `Stack` | children share the box |
 | `Flow` (`row`, `column`) | gap, cross-axis align; zero-size children take no gap |
+| `Ui.keyHint` (JSON `key_hint`: `if`, `label`, `key`, `key2`, `right`) | key cap(s) + label; `ui.key_hints && if`, else size 0. Toggle: `wflib-ui-client.toml`, PDA Settings, `key.wflib.key_hints` (unbound) |
+| `AmmoGlyph` (JSON `ammo_glyph`: `size`, `alpha`) | `repeat` child over `Signals.items(.., AmmoGlyph.VARIANT)`: `AmmoKind` glyph on tip-colour chip |
 | `Anchor` | 9-point pin + inward margin + offset exprs |
 | `Place` (`place`, `at`) | child pivot at (x, y) exprs; size 0 |
 | `Transform` | translate, rotate (deg, clockwise), uniform scale about a pivot; layout ignores it |
