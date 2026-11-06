@@ -1,8 +1,8 @@
-package com.wf.wflib.ui;
+package com.wf.wflib.ui.api;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
-/** {@code wflib-ui-client.toml}. Also changed from the PDA's Settings app and {@link UiKeys#KEY_HINTS}. */
+/** {@code wflib-ui-client.toml}. */
 public final class UiClientConfig {
     public static final ModConfigSpec SPEC;
     private static final ModConfigSpec.BooleanValue KEY_HINTS;

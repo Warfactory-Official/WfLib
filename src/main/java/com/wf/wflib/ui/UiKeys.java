@@ -1,6 +1,7 @@
 package com.wf.wflib.ui;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.wf.wflib.ui.api.UiClientConfig;
 import net.minecraft.client.KeyMapping;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientTickEvent;

@@ -1,6 +1,6 @@
 package com.wf.wflib.pda.client;
 
-import com.wf.wflib.ui.UiClientConfig;
+import com.wf.wflib.ui.api.UiClientConfig;
 import com.wf.wflib.ui.api.Signals;
 import com.wf.wflib.ui.api.Subject;
 import com.wf.wflib.ui.api.WidgetDef;

@@ -1,6 +1,7 @@
 package com.wf.wflib.ui;
 
 import com.wf.wflib.core.api.WFSystem;
+import com.wf.wflib.ui.api.UiClientConfig;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
