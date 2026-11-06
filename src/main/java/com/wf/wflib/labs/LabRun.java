@@ -68,7 +68,8 @@ public final class LabRun {
         List<LabProducer> all = new ArrayList<>(LabProducers.REGISTRY.entries().stream()
                 .sorted(Map.Entry.comparingByKey()).map(Map.Entry::getValue).toList());
         if (what.equals("all")) {
-            return all.stream().filter(p -> !p.ticksWorld() || com.wf.wflib.labs.api.LabTicks.available()).toList();
+            return all.stream().filter(p -> !p.explicitOnly())
+                    .filter(p -> !p.ticksWorld() || com.wf.wflib.labs.api.LabTicks.available()).toList();
         }
         List<LabProducer> out = new ArrayList<>();
         for (String want : what.split(",")) {

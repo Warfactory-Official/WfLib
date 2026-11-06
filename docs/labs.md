@@ -55,6 +55,7 @@ System `labs` (`com.wf.wflib.labs`, R17 switchable, default on, config `wflib-la
 | `bearings=` | deg from body front, +90 = body local +x side; chain: first value | `0` |
 | `armor=` | garment id glob, comma list; never re-admits `armorExclude` matches | all |
 | `distances=` | explosive, m | `0,1,2,3,5,8,12,20,30,50,80,120` |
+| `scenario=` `scenario_json=` | `wflib:scenario` only (exactly one): JSON file path on the server / inline JSON (CLI args split on spaces: inline needs none, or use the warm-server map form) | required |
 | `dev=1` | include dev/test content | off |
 | `missiles=` | missile preset globs (id or path); air medium, not interceptors | all |
 | `missile_ranges=` `missile_samples=` | missile_flight ranges m / seeded launches per cell (also interception) | `250,500,1000,2000` / 4 |
@@ -84,6 +85,7 @@ Units SI; `mm_rha` pen; `deg` angles. `content_origin` = `shipped|dev`. Launcher
 | `hazards` | hazard, kind, content_origin, intensity, armor, modifier, shelter, duration_s | amount_in, amount_after_shelter, protection_type, outcome, through_hit, absorbed_hit, hits, through_total, dose_total_rad, dose_mult, wear_first_contact_pts, wear_per_interval_pts, armor_life_s |
 | `wfmedical:hazards` | hazard, kind, content_origin, intensity, armor, shelter, duration_s | amount_after_shelter, hits, p_major_trauma, armor_wear_frac, wounds, bleed_ml_tick, pain, p_incapacitated, t_incapacitated_s, p_dead, t_dead_s, samples, horizon_s |
 | `wfweight:loadout` | armor, weapon, ammo, kit, content_origin | total_kg, armor_kg, weapon_kg, ammo_kg, kit_kg, unplaced, carry_capacity_kg, load_frac, threshold_index, speed_mult, jump_mult, speed_locked, jump_locked, hard_locked, overweight_hp_s, max_stamina, stamina_use_mult, sprint_s, regen_s, jumps_to_empty, groups_over, group_over, kinetic_through_frac, blast_through_frac |
+| `wflib:scenario` | scenario, case_id, case, launcher, round, range_m, step, stage, layer | speed_in_ms, speed_out_ms, p_pass, p_reach, verdict, detail (JSON) |
 | `shots` (recorder) | kind, round, content_origin, shooter, target, threat_kind, part, outcome | tick, x, y, z, speed, caliber, pen, damage_in, damage_out, exit_speed, spent |
 
 ## Hazards and shelters
@@ -132,11 +134,46 @@ Units SI; `mm_rha` pen; `deg` angles. `content_origin` = `shipped|dev`. Launcher
 - Chain: wound columns conditional on perforating the cover; limb row `p_hit` = `p_hit_part` of the limb (stance, aim), `*_total` = `p_hit x p_cover_perforate x p`. `limb=all` row: `p_hit` = sum over parts; p_major_trauma / p_fracture / p_internal_bleeding / p_incapacitated / p_dead = part-weighted, conditional on a hit; `t_*` weighted by those; `*_total` = `p_cover_perforate x sum_part(p_part x p)`; limbs the garment does not cover answer bare; armor_outcome / wear / wound_mode / bleed / pain null. Ricochet off cover counts as no hit. Before 2026-11-04: `p_hit` = fixed rectangles (torso 0.5 x 0.7 m, head 0.25 x 0.25 m at the aim centre), no stance / aim dims.
 - Dice: fixed `seed`; sample i uses `seed + i x 0x9E3779B97F4A7C15`.
 
+## Scenarios
+
+`wflib:scenario` (`explicitOnly`: `all` skips it; domain `shared`). Launcher -> flight to range -> ordered layers; one row per (case, launcher, range, layer).
+
+| key | type | default |
+|---|---|---|
+| `name` | str | `scenario` |
+| `launcher` | id \| [id] | every selected launcher (exact id, must be selected) |
+| `range` | m \| [m] | `ctx.ranges()` |
+| `layers` | [{`stage`, ...keys}] | required, non-empty |
+| `samples` | int | `samples=` param / config |
+
+- Sweep axis = any array: `launcher`, `range`, any layer value. Cases = cartesian product, order launcher, layers (layer then key order), range; last axis fastest. Cap 200000 => `IllegalArgumentException`. Unswept launcher / range expand per row, not per case.
+- `case_id` = index in the product; `case` = swept values only, `layer1.thickness=0.5 layer1.angle=30 range=100` (empty when nothing swept).
+- Stage unknown => `IllegalArgumentException` listing ids; unknown layer key => same. Stages: `ScenarioStages.REGISTRY` (bare id).
+- Chain: `speed_in` of layer n+1 = `speed_out` of n; `p_reach` = product of `p_pass` through this layer. `p_pass == 0` => later layers emit nothing.
+- Range beyond round life => one row, `step` 0, `stage` `flight`, verdict `EXPIRED`, `speed_in_ms` = muzzle.
+- Rows ordered launcher id, case, range, layer; same seed => identical.
+
+| stage | keys | `detail` |
+|---|---|---|
+| `cover` | `block` id, `thickness` m (>0), `angle` deg (0) | p_ricochet, p_stop, spent, depth, exit_pen, damage_frac |
+
+`cover`: `LabCover.evaluate`, `samples` / `seed` as the `cover` table; `p_pass` = `p_perforate`; `speed_out` = `exit_speed`; verdict = `LabCover.Verdict` upper case.
+
+```json
+{"name": "wall then plate", "launcher": "wflib:5.56x45/ball", "range": [100, 300],
+ "layers": [
+   {"stage": "cover", "block": "minecraft:oak_planks", "thickness": [0.5, 1], "angle": 30},
+   {"stage": "cover", "block": "minecraft:iron_block", "thickness": 0.25}]}
+```
+
+-> 2 x 2 = 4 cases, 2 rows each (fewer after a stop). Run: `/wflabs run wflib:scenario scenario=/srv/s.json`.
+
 ## Api (`labs.api`)
 
 | type | role |
 |---|---|
-| `LabProducer` | `id()`, `table()`, `produce(ctx, sink)`; fill `LabProducers.REGISTRY` at construction, guard `WFSystems.enabled("labs")` |
+| `ScenarioStage` / `ScenarioStages.REGISTRY` | scenario layer: `id()`, `apply(ctx, ScenarioState, spec)` -> `Result(speedOut, pPass, verdict, label, detail)` |
+| `LabProducer` | `id()`, `table()`, `explicitOnly()`, `produce(ctx, sink)`; fill `LabProducers.REGISTRY` at construction, guard `WFSystems.enabled("labs")` |
 | `LabTable` | name + columns (`DIM`/`MEASURE`, `NUM`/`STR`, unit) |
 | `LabSink` | `row(Object...)`, thread-safe |
 | `LabArmors` | `sets(ctx)`: armour sets minus `armorExclude`, `armor=`, dev |

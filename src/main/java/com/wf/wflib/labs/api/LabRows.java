@@ -36,9 +36,11 @@ public final class LabRows {
 
     public static String extra(LabLauncher l) {
         Map<String, Object> m = l.extra();
-        if (m.isEmpty()) {
-            return null;
-        }
+        return m.isEmpty() ? null : json(m);
+    }
+
+    /** Flat JSON object, keys sorted; values Number or String (other => toString). */
+    public static String json(Map<String, Object> m) {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
         for (Map.Entry<String, Object> e : new java.util.TreeMap<>(m).entrySet()) {

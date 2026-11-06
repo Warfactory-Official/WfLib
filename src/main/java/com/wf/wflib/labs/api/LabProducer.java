@@ -17,6 +17,11 @@ public interface LabProducer {
         return false;
     }
 
+    /** Needs arguments: {@code all} skips it; naming it runs it. */
+    default boolean explicitOnly() {
+        return false;
+    }
+
     /** Rows go to {@code sink}; pure work may use {@link LabContext#executor()}; must return after all rows are written. */
     void produce(LabContext ctx, LabSink sink);
 }

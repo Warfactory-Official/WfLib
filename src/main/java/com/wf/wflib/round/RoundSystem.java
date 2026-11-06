@@ -72,6 +72,7 @@ public final class RoundSystem implements WFSystem {
             com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.CoverProducer());
             com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.CoverBlocksProducer());
             com.wf.wflib.labs.api.LabContents.register(new com.wf.wflib.round.lab.RoundLabContent());
+            com.wf.wflib.labs.api.ScenarioStages.register(new com.wf.wflib.round.lab.CoverStage());
         }
     }
 

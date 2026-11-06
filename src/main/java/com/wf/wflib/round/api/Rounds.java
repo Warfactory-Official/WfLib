@@ -1145,7 +1145,10 @@ public final class Rounds implements SimKind<RoundBatch> {
         float damage = impactDamage(preset, velocity) * damageScale;
         // One hit per round: i-frames from anything else must not swallow it (MG streams).
         if (eh.entity instanceof LivingEntity living) {
+            Vec3 before = living.getDeltaMovement();
             WFDamage.hurtIgnoringIFrames(living, source, damage * headshotFactor(preset, living, eh));
+            Vec3 pushed = living.getDeltaMovement().subtract(before);
+            living.setDeltaMovement(before.add(pushed.scale(knockbackScale(preset, velocity))));
         } else {
             eh.entity.hurt(source, damage);
         }
@@ -1465,6 +1468,14 @@ public final class Rounds implements SimKind<RoundBatch> {
             return ThreatKind.KINETIC;
         }
         return ThreatKind.HE;
+    }
+
+    /** Momentum (kg*m/s) at which a hit gets full vanilla knockback; ~.50 BMG. */
+    private static final double FULL_KNOCKBACK_MOMENTUM = 30.0;
+
+    /** Fraction of vanilla knockback a hit keeps: {@code mass*speed / FULL_KNOCKBACK_MOMENTUM}, capped at 1. */
+    static double knockbackScale(KineticPreset preset, Vec3 velocity) {
+        return Math.min(1.0, preset.mass() * velocity.length() * 20.0 / FULL_KNOCKBACK_MOMENTUM);
     }
 
     /** Before the launch's damage scale. {@code velocity} blocks/tick. */

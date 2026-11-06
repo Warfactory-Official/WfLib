@@ -25,6 +25,7 @@ public final class LabsSystem implements WFSystem {
     public void register(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.COMMON, LabsConfig.SPEC, "wflib-labs.toml");
         modBus.addListener(LabsConfig::onLoad);
+        com.wf.wflib.labs.api.LabProducers.register(new ScenarioProducer());
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, LabsCommands::register);
         NeoForge.EVENT_BUS.addListener(ServerStartedEvent.class, LabsSystem::headless);
     }
