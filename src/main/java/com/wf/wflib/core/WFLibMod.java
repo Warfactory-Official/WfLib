@@ -52,6 +52,7 @@ public class WFLibMod {
             new com.wf.wflib.skin.SkinSystem(),
             new com.wf.wflib.smoking.SmokingSystem(),
             new com.wf.wflib.carry.CarrySystem(),
+            new com.wf.wflib.ragdoll.RagdollSystem(),
             new com.wf.wflib.hazard.HazardSystem(),
             new com.wf.wflib.radiation.RadiationSystem(),
             new com.wf.wflib.work.WorkSystem(),

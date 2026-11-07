@@ -9,6 +9,8 @@
     "armor.MixinEntityArmorStep",
     "armor.MixinLivingEntityArmorSounds",
     "carry.MixinPlayerShoulder",
+    "ragdoll.MixinPlayerRagdoll",
+    "ragdoll.MixinServerGamePacketListenerRagdoll",
     "colony.MixinEntity",
     "core.MixinInventoryMenuSlots",
     "core.MixinServerGamePacketListenerImplSlots",
@@ -47,6 +49,7 @@
   ],
   "client": [
     "drone.MixinCameraDronePilot",
+    "ragdoll.MixinCameraRagdoll",
     "geom.MixinEntityRenderDispatcher",
     "fx.MixinLevelRenderer",
     "cam.MixinLevelRendererFeed",

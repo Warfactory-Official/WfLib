@@ -17,6 +17,7 @@ public final class TickOrder {
     public static final int COUPLING = 1990;
     /** Bodies carried by non-stepped carriers, after their carrier moved. */
     public static final int CARRIED = 1980;
+    public static final int RAGDOLL = 1970;
     public static final int SIM_EARLY = 1000;
     public static final int DRONE = 900;
     /** After the drones have moved, so a zone is judged on where everyone actually is this tick. */
@@ -59,4 +60,5 @@ public final class TickOrder {
     public static final int COLONY_NAV_STOP = 830;
     public static final int BENCH_STOP = 820;
     public static final int RAIL_STOP = 810;
+    public static final int RAGDOLL_STOP = 800;
 }

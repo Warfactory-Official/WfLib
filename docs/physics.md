@@ -8,7 +8,7 @@ System `physics`: switchable, default on, no `requires`; `geom` is bare mandator
 |---|---|
 | body | `PhysicsBody`, `BodyState`, `StepResult`, `SpringRows`, `Coupling`, `DeckView`, `PhysicsStep` (register/predict/warm/stats) |
 | hulls | `ConvexHull`, `HullPiece`, `HullTag`, `CompoundBody`, `SweptHull`, `ConvexSweep`, `BoxBuffer`, `OrientedBoxes` |
-| terrain | `ChunkCollisionCache`, `SectionSource`, `SectionCollision`, `SectionScan`, `SurfaceSection`, `SurfaceBake`, `DriveSurface`, `CellTops`, `Narrowphase` |
+| terrain | `ChunkCollisionCache`, `SectionSource`, `SectionCollision`, `SectionScan`, `SurfaceSection`, `SurfaceBake`, `DriveSurface`, `CellTops`, `Narrowphase`, `BoxContacts` |
 | providers | `CollisionProvider`, `CollisionProviders.PROVIDERS` (`OrderedRegistry`; ids `create`, `sable`, `gametest_plank` are CA's) |
 | deck | `DeckBody`, `DeckCarrier`, `DeckRider`, `DeckAttachment`, `DeckClip`, `DeckCollision`, `DeckEffects`, `DeckFrame`, `DeckSnapshot`, `DeckRejoin`, `ServerDeckRejoin`, `CarrierDecks`, `CarrierLink`, `VehicleParenting`, `TickClock` |
 | prediction | `Prediction<I>`, `Predictable<I>` |
