@@ -225,23 +225,29 @@ final class BotTactics {
      */
     static List<Vec3> route(ServerLevel level, Entity viewer, BlockPos start, BlockPos goal, List<Vec3> threats) {
         if (start.equals(goal)) return List.of();
-        return route(level, viewer, start, goal, threats, List.of(), List.of());
+        return route(new LevelTerrain(level, viewer), start, goal, threats, List.of(), List.of());
     }
 
     static List<Vec3> routeAvoiding(ServerLevel level, Entity viewer, BlockPos start, BlockPos goal,
                                     List<Vec3> threats, List<BlockPos> occupied) {
+        return routeAvoiding(new LevelTerrain(level, viewer), start, goal, threats, occupied);
+    }
+
+    /** The route, or a route to the nearest free cell when the exact goal is taken or unreachable. */
+    static List<Vec3> routeAvoiding(Terrain level, BlockPos start, BlockPos goal,
+                                    List<Vec3> threats, List<BlockPos> occupied) {
         if (start.equals(goal)) return List.of();
-        List<Vec3> direct = route(level, viewer, start, goal, threats, List.of(), occupied);
+        List<Vec3> direct = route(level, start, goal, threats, List.of(), occupied);
         if (!direct.isEmpty()) return direct;
         // A blocked/occupied exact anchor must not make a soldier run into its wall forever.
         List<BlockPos> alternatives = new ArrayList<>();
         for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
             BlockPos cell = goal.offset(dx, 0, dz);
-            if (!cell.equals(start) && !occupied.contains(cell) && walkable(level, cell)) alternatives.add(cell);
+            if (!cell.equals(start) && !occupied.contains(cell) && level.walkable(cell)) alternatives.add(cell);
         }
         alternatives.sort(Comparator.comparingDouble(c -> c.distSqr(goal) + c.distSqr(start) * 0.05));
         for (BlockPos cell : alternatives.stream().limit(4).toList()) {
-            List<Vec3> detour = route(level, viewer, start, cell, threats, List.of(), occupied);
+            List<Vec3> detour = route(level, start, cell, threats, List.of(), occupied);
             if (!detour.isEmpty()) return detour;
         }
         return List.of();
@@ -250,22 +256,24 @@ final class BotTactics {
     /** Search for reachable safety, including a partial escape when every exit is blocked. */
     static List<Vec3> escape(ServerLevel level, Entity viewer, BlockPos start, List<Vec3> grenades) {
         if (grenades.isEmpty()) return List.of();
-        return route(level, viewer, start, null, List.of(), grenades, List.of());
+        return route(new LevelTerrain(level, viewer), start, null, List.of(), grenades, List.of());
     }
 
-    private static List<Vec3> route(ServerLevel level, Entity viewer, BlockPos start, BlockPos goal,
+    private static List<Vec3> route(Terrain level, BlockPos start, BlockPos goal,
                                     List<Vec3> threats, List<Vec3> grenades, List<BlockPos> occupied) {
         long began = System.nanoTime();
-        SoldierProfiler.routes++;
+        if (level.live()) SoldierProfiler.routes++;
         try {
-            return routeImpl(level, viewer, start, goal, threats, grenades, occupied);
+            return routeImpl(level, start, goal, threats, grenades, occupied);
         } finally {
-            SoldierProfiler.routeNanos += System.nanoTime() - began;
+            if (level.live()) SoldierProfiler.routeNanos += System.nanoTime() - began;
+            else SoldierProfiler.asyncNanos.add(System.nanoTime() - began);
         }
     }
 
-    private static List<Vec3> routeImpl(ServerLevel level, Entity viewer, BlockPos start, BlockPos goal,
-                                        List<Vec3> threats, List<Vec3> grenades, List<BlockPos> occupied) {
+    /** The A* itself: runs against any {@link Terrain}, so it can run on a worker over a snapshot. */
+    static List<Vec3> routeImpl(Terrain level, BlockPos start, BlockPos goal,
+                                List<Vec3> threats, List<Vec3> grenades, List<BlockPos> occupied) {
         boolean fleeing = goal == null;
         Map<Long, Double> cost = new HashMap<>();
         Map<Long, Long> parent = new HashMap<>();
@@ -282,7 +290,7 @@ final class BotTactics {
             long k = (long) entry[1];
             if (entry[2] > cost.get(k)) continue; // superseded routes must not consume the search budget
             expanded++;
-            SoldierProfiler.nodes++;
+            if (level.live()) SoldierProfiler.nodes++;
             BlockPos at = BlockPos.of(k);
             double clearance = fleeing ? BotGrenades.clearance(Vec3.atBottomCenterOf(at), grenades) : 0;
             if (fleeing && clearance > bestClearance + 0.05) {
@@ -301,15 +309,15 @@ final class BotTactics {
                         BlockPos c = at.offset(dx, dy, dz);
                         if (occupied.contains(c) && !c.equals(goal) && !c.equals(start)) continue;
                         if (fleeing && start.distSqr(c) > 18 * 18) continue;
-                        if (!walkable(level, c)) continue;
+                        if (!level.walkable(c)) continue;
                         if (dy != 0 && (dx != 0 && dz != 0
-                                || dy > 0 && !clear(level, at.above(2))          // head room to step up
-                                || dy < 0 && !clear(level, c.above(2)))) continue; // and to step down into
-                        if (dy == 0 && dx != 0 && dz != 0 && (!walkable(level, at.offset(dx, 0, 0))
-                                || !walkable(level, at.offset(0, 0, dz)))) continue;
+                                || dy > 0 && !level.clear(at.above(2))          // head room to step up
+                                || dy < 0 && !level.clear(c.above(2)))) continue; // and to step down into
+                        if (dy == 0 && dx != 0 && dz != 0 && (!level.walkable(at.offset(dx, 0, 0))
+                                || !level.walkable(at.offset(0, 0, dz)))) continue;
                         long ck = c.asLong();
                         double step = (dx != 0 && dz != 0 ? 1.414 : 1) + (dy != 0 ? 0.6 : 0)
-                                + (danger.computeIfAbsent(ck, q -> exposed(level, c, threats, KNEEL_HIGH, viewer)) ? EXPOSED_COST : 0);
+                                + (danger.computeIfAbsent(ck, q -> level.exposed(c, threats, KNEEL_HIGH)) ? EXPOSED_COST : 0);
                         double distance = fleeing ? BotGrenades.clearance(Vec3.atBottomCenterOf(c), grenades) : 0;
                         if (fleeing) step += 3 / Math.max(1, distance)
                                 + Math.max(0, clearance - distance) * 8;
@@ -340,7 +348,7 @@ final class BotTactics {
             BlockPos a = cells.get(anchor), b = cells.get(i);
             if (a.getY() != b.getY() || cells.get(i - 1).getY() != b.getY() || !straight(level, a, b)
                     || !unoccupied(a, b, occupied)
-                    || !threats.isEmpty() && !safeShortcut(level, viewer, a, b, threats)) {
+                    || !threats.isEmpty() && !safeShortcut(level, a, b, threats)) {
                 out.add(Vec3.atBottomCenterOf(cells.get(i - 1)));
                 anchor = i - 1;
             }
@@ -360,13 +368,13 @@ final class BotTactics {
     }
 
     /** String-pulling must not erase the safer detour that the exposure-weighted search just selected. */
-    private static boolean safeShortcut(ServerLevel level, Entity viewer, BlockPos a, BlockPos b, List<Vec3> threats) {
+    private static boolean safeShortcut(Terrain level, BlockPos a, BlockPos b, List<Vec3> threats) {
         int steps = Math.max(1, (int) Math.ceil(Math.sqrt(a.distSqr(b)) * 2));
         for (int i = 1; i < steps; i++) {
             double t = (double) i / steps;
             BlockPos cell = BlockPos.containing(a.getX() + 0.5 + (b.getX() - a.getX()) * t,
                     a.getY(), a.getZ() + 0.5 + (b.getZ() - a.getZ()) * t);
-            if (exposed(level, cell, threats, KNEEL_HIGH, viewer)) return false;
+            if (level.exposed(cell, threats, KNEEL_HIGH)) return false;
         }
         return true;
     }
@@ -377,13 +385,17 @@ final class BotTactics {
 
     /** Every cell a body (±0.35) crosses on the segment is walkable. */
     private static boolean straight(ServerLevel level, BlockPos a, BlockPos b) {
+        return straight(new LevelTerrain(level, null), a, b);
+    }
+
+    private static boolean straight(Terrain level, BlockPos a, BlockPos b) {
         double ax = a.getX() + 0.5, az = a.getZ() + 0.5, bx = b.getX() + 0.5, bz = b.getZ() + 0.5;
         int steps = (int) Math.ceil(Math.hypot(bx - ax, bz - az) * 3);
         for (int i = 1; i < steps; i++) {
             double t = (double) i / steps, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
             for (double ox : new double[]{-0.35, 0.35}) {
                 for (double oz : new double[]{-0.35, 0.35}) {
-                    if (!walkable(level, BlockPos.containing(x + ox, a.getY(), z + oz))) return false;
+                    if (!level.walkable(BlockPos.containing(x + ox, a.getY(), z + oz))) return false;
                 }
             }
         }

@@ -93,6 +93,9 @@ public final class SoldierAi {
         String stallInfo = "";
         int smokes, pushes;
         ResourceLocation fragItem, smokeItem;
+        /** A route search running on a worker, and what it is for. */
+        java.util.concurrent.Future<List<Vec3>> pendingRoute;
+        BlockPos pendingGoal;
         String planFor = "";
         long planAt = -1000;
         SoldierMedical.Plan planCached;
@@ -1344,12 +1347,11 @@ public final class SoldierAi {
                 return flat(delta).scale(Math.min(1, distance * 2));
         }
         BlockPos g = BlockPos.containing(goal);
+        collectRoute(b, g);
         if (g.equals(b.routeGoal) && b.route.isEmpty() && p.level().getGameTime() - b.routeChecked < 20) return null;
         if (!g.equals(b.routeGoal) || b.route.isEmpty() || p.tickCount % 60 == 0) {
             if (SoldierProfiler.covers + SoldierProfiler.routes >= SEARCHES_PER_TICK) return null;   // next tick
-            b.routeChecked = p.level().getGameTime();
-            b.routeGoal = g;
-            b.route.clear();
+            if (b.pendingRoute != null) return b.route.isEmpty() ? null : routeStep(p, b);          // still searching
             List<BlockPos> occupied = new ArrayList<>();
             if (b.blockedCell != null && p.level().getGameTime() < b.blockedUntil) occupied.add(b.blockedCell);
             for (Bot ally : BOTS.values()) {
@@ -1358,10 +1360,49 @@ public final class SoldierAi {
                 if (t != null && t.level() == p.level() && (!ally.moving
                         || BotMovement.yields(b.name, priority(b), ally.name, priority(ally)))) occupied.add(feet(t));
             }
-            b.route.addAll(BotTactics.routeAvoiding(p.serverLevel(), p, feet(p), g,
-                    threatEyes(b, p.getEyePosition()).stream().limit(2).toList(), occupied));
+            List<Vec3> eyes = threatEyes(b, p.getEyePosition()).stream().limit(2).toList();
+            if (SoldierJobs.enabled()) {
+                var job = SoldierJobs.route(p.serverLevel(), feet(p), g, eyes, occupied);
+                if (job != null) {                                 // a worker has it: keep walking the old route meanwhile
+                    b.pendingRoute = job;
+                    b.pendingGoal = g;
+                    b.routeChecked = p.level().getGameTime();
+                    b.routeGoal = g;
+                    return b.route.isEmpty() ? null : routeStep(p, b);
+                }
+            }
+            b.routeChecked = p.level().getGameTime();
+            b.routeGoal = g;
+            b.route.clear();
+            b.route.addAll(BotTactics.routeAvoiding(p.serverLevel(), p, feet(p), g, eyes, occupied));
             if (b.route.isEmpty()) return null;
         }
+        return routeStep(p, b);
+    }
+
+    /** A finished worker search replaces the route, unless the soldier has since gone somewhere else. */
+    private static void collectRoute(Bot b, BlockPos goal) {
+        var job = b.pendingRoute;
+        if (job == null) return;
+        if (!goal.equals(b.pendingGoal)) {                          // wanted elsewhere now
+            job.cancel(true);
+            b.pendingRoute = null;
+            b.routeGoal = null;
+            return;
+        }
+        if (!job.isDone()) return;
+        b.pendingRoute = null;
+        try {
+            List<Vec3> found = job.get();
+            b.route.clear();
+            b.route.addAll(found);
+        } catch (java.util.concurrent.CancellationException | java.util.concurrent.ExecutionException | InterruptedException e) {
+            b.route.clear();
+        }
+    }
+
+    /** The next step along the route. */
+    private static Vec3 routeStep(ServerPlayer p, Bot b) {
         while (b.route.size() > 1 && at(p, b.route.peek(), 0.5)) b.route.poll();
         Vec3 next = b.route.peek();
         // a step up on the route (stairs take it themselves, a full block needs a hop)

@@ -14,6 +14,9 @@ public final class SoldierProfiler {
     static final int WINDOW = 400;
 
     // counters of the tick in progress
+    /** Nanos workers spent on searches since the last report (any thread). */
+    static final java.util.concurrent.atomic.LongAdder asyncNanos = new java.util.concurrent.atomic.LongAdder();
+    static final java.util.concurrent.atomic.LongAdder asyncJobs = new java.util.concurrent.atomic.LongAdder();
     static long rays, routes, nodes, covers, routeNanos, coverNanos, driveNanos;
 
     private static final long[] TICK = new long[WINDOW], DRIVE = new long[WINDOW], ROUTE = new long[WINDOW],
@@ -94,8 +97,13 @@ public final class SoldierProfiler {
         JsonObject sections = new JsonObject();
         for (Map.Entry<String, long[]> e : SECTION_RING.entrySet()) sections.addProperty(e.getKey(), round(ms(e.getValue(), n)));
         o.add("sections_ms_avg", sections);
+        o.addProperty("worker_search_ms_total", round(asyncNanos.sum() / 1e6));
+        o.addProperty("worker_searches", asyncJobs.sum());
+        o.addProperty("block_sections_held", SoldierSections.held());
         if (reset) {
             at = filled = 0;
+            asyncNanos.reset();
+            asyncJobs.reset();
             SECTION_RING.values().forEach(r -> Arrays.fill(r, 0));
         }
         return o;

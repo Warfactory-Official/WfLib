@@ -30,6 +30,10 @@ public final class SoldierSystem implements WFSystem {
     public void register(IEventBus modBus, ModContainer container) {
         NeoForge.EVENT_BUS.addListener(SoldierAi::onServerTick);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, SoldierAi::onGrenadeSound);
-        NeoForge.EVENT_BUS.addListener(ServerStoppingEvent.class, e -> Soldiers.removeAll(e.getServer()));
+        NeoForge.EVENT_BUS.addListener(ServerStoppingEvent.class, e -> {
+            Soldiers.removeAll(e.getServer());
+            SoldierJobs.shutdown();
+        });
+        NeoForge.EVENT_BUS.addListener(SoldierChecks::onRegisterCommands);
     }
 }

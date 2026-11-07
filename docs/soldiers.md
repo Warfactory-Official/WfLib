@@ -64,11 +64,23 @@ The glyphid swarm (`colony`) already solved the same problem, and the same machi
    position or follow the flow field at walking speed; the worker advances them. When a player comes near, the soldier is placed back from the
    record. Records are `persistent()`, which also fixes "soldiers vanish when the server stops". Bodies are therefore bounded by the number near players.
 
+### Status
+
+- **Baseline** (`/soldiers profile`, 12v12 in the city, ~7-11 soldiers alive): the AI handler cost 2-4 ms per tick (p95 6-12 ms) plus the soldier
+  bodies' own player tick 1.3-1.7 ms (about 0.15-0.25 ms each). Spikes were the route searches: a live 30-block search with an exposure test per node
+  costs 27-50 ms on the tick thread (`/soldiers routebench`), 94-327 ms worst tick in a fight.
+- **Done, measured:** route searches run on a worker over a block copy (`SoldierSections`, `Terrain`/`SnapshotTerrain`, `SoldierJobs`).
+  The copy agrees with the live world on walkability for every one of 16,000 sampled cells and on sight for 96-99.5% of sampled lines
+  (`/soldiers check`); the same search over the copy is 2-3x faster; handing one to a worker costs the tick 0.07-0.17 ms. In the fight
+  benchmark `steer` went 1.8 -> 0.017 ms per tick, `route` 1.9 -> 0.02 ms, worst tick 94 -> 16 ms. Also: at most 3 searches start per tick, treatment plans and
+  sight checks are cached per tick. `/soldiers async off` switches back to the live search for comparison.
+- **Next by cost:** perception (about 1.1 ms/tick, 100-540 rays), the soldier bodies (1.3-1.7 ms, only a record tier removes that), cover searches (spikes).
+
 ### Order of work
 
 0. Done: engine moved here with the SPIs; inert container menu.
-1. `soldierbench` + counters (rays, A* nodes, ms per phase) to get the baseline on N soldiers.
-2. `SoldierWorld` + port `BotTactics`/`BotSenses` onto it, run on the tick thread first and compare against the `level`-based results.
+1. Done: `/soldiers profile` with per-phase sections, `routebench`, `check`.
+2. Partly done: the block copy and the route search over it; sight, cover and perception still read the live level.
 3. Brain/Body split of `SoldierAi`, `SoldierKind` with `async() = true`.
 4. Flow fields, budgeted searches, idle rate.
 5. Record tier and persistence.
