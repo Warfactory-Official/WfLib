@@ -20,6 +20,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -54,6 +55,7 @@ public final class RagdollSystem implements WFSystem {
                 server -> RagdollServer.stopped());
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, true, LivingIncomingDamageEvent.class,
                 RagdollServer::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, LivingDeathEvent.class, RagdollServer::onDeath);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.StartTracking.class, RagdollServer::onStartTracking);
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerRespawnEvent.class, RagdollServer::onRespawn);
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, RagdollSystem::commands);

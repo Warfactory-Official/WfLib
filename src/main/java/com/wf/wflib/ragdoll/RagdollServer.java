@@ -12,6 +12,7 @@ import com.wf.wflib.ragdoll.sim.Ragdoll;
 import com.wf.wflib.ragdoll.sim.RagdollPose;
 import com.wf.wflib.ragdoll.sim.Skeleton;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,6 +26,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -476,6 +478,25 @@ public final class RagdollServer {
         Vec3 d = to.subtract(from);
         double t = Mth.clamp(target.subtract(from).dot(d) / d.lengthSqr(), 0.0, 1.0);
         return from.add(d.scale(t));
+    }
+
+    /**
+     * The body rests with its low point up to ~0.09 inside the floor (sim contact slop), and mods that spawn something
+     * at the death position (Corpse) then see it inside a block and let it fall through a thin floor. Lift it onto the
+     * surface before they read the position.
+     */
+    static void onDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer p) || !owned(p)) {
+            return;
+        }
+        AABB probe = new AABB(p.getX() - 0.3, p.getY(), p.getZ() - 0.3, p.getX() + 0.3, p.getY() + 0.01, p.getZ() + 0.3);
+        double lift = 0;
+        for (VoxelShape shape : p.level().getBlockCollisions(p, probe)) {
+            lift = Math.max(lift, shape.max(net.minecraft.core.Direction.Axis.Y) - p.getY());
+        }
+        if (lift > 0 && lift <= 0.5) {
+            p.setPos(p.getX(), p.getY() + lift, p.getZ());
+        }
     }
 
     static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {

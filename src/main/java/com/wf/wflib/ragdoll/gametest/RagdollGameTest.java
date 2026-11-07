@@ -142,6 +142,41 @@ public class RagdollGameTest {
                 .thenSucceed();
     }
 
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "wflib_ragdoll", timeoutTicks = 500)
+    public static void aBodyKilledAtRestIsNotLeftInsideTheFloor(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos at = new BlockPos(1064, Y, 9064);
+        List<ChunkPos> lane = List.of(new ChunkPos(at));
+        ForcedChunks.set(level, lane, true);
+        ServerPlayer[] p = new ServerPlayer[1];
+        helper.startSequence()
+                .thenWaitUntil(ForcedChunks.ticking(level, lane))
+                .thenExecute(() -> {
+                    floor(level, at, 7);
+                    p[0] = player(level, "rag-kill", at.getX() + 0.5, Y + 1, at.getZ() + 0.5);
+                    AhfStance.setDowned(p[0], true);
+                    Ragdolls.set(p[0], true);
+                })
+                .thenWaitUntil(() -> {
+                    Ragdoll sim = RagdollServer.simOf(p[0]);
+                    helper.assertTrue(sim != null && sim.asleep, "not settled: " + state(p[0], sim));
+                })
+                .thenExecute(() -> {
+                    // Posted by hand: a FakePlayer is invulnerable, so die() would never reach the event.
+                    double[] seen = {Double.NaN};
+                    var bus = net.neoforged.neoforge.common.NeoForge.EVENT_BUS;
+                    java.util.function.Consumer<net.neoforged.neoforge.event.entity.living.LivingDeathEvent> read =
+                            e -> seen[0] = e.getEntity().getY();
+                    // Corpse reads the position at LOWEST, after this mod's HIGHEST lift.
+                    bus.addListener(net.neoforged.bus.api.EventPriority.LOWEST, true,
+                            net.neoforged.neoforge.event.entity.living.LivingDeathEvent.class, read);
+                    bus.post(new net.neoforged.neoforge.event.entity.living.LivingDeathEvent(p[0], p[0].damageSources().genericKill()));
+                    helper.assertTrue(seen[0] >= Y + 1 - 1.0e-6, "died inside the floor at y " + seen[0]);
+                    ForcedChunks.set(level, lane, false);
+                })
+                .thenSucceed();
+    }
+
     /** Hit part classification works at the pose, not only near it. */
     @GameTest(templateNamespace = WFLib.MODID, template = "empty", batch = "wflib_ragdoll", timeoutTicks = 500)
     public static void aHitTakesTheLimbAtItsRagdolledPose(GameTestHelper helper) {
