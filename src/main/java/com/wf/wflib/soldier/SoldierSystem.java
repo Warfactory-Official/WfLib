@@ -23,16 +23,31 @@ public final class SoldierSystem implements WFSystem {
 
     @Override
     public Set<String> requires() {
-        return Set.of("grenade");
+        return Set.of("grenade", "audio");
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, VoiceDelivery.SPEC, "wflib-voices.toml");
+        try { SoldierVoices.reload(); }
+        catch (java.io.IOException e) { com.mojang.logging.LogUtils.getLogger().error("NPC voice packs failed to load", e); }
+        modBus.addListener(VoiceResources::add);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.server.ServerStartedEvent.class,
+                e -> VoiceDelivery.start(e.getServer()));
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.class,
+                e -> { if (e.getEntity() instanceof net.minecraft.server.level.ServerPlayer p) VoiceDelivery.offer(p); });
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.living.LivingDeathEvent.class, e -> {
+            if (e.getEntity() instanceof net.minecraft.server.level.ServerPlayer p && SoldierAi.scripted(p)) {
+                var bot = SoldierAi.botOf(p.getGameProfile().getName());
+                if (bot != null) SoldierVoices.say(p, bot, "death");
+            }
+        });
         NeoForge.EVENT_BUS.addListener(SoldierAi::onServerTick);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, SoldierAi::onGrenadeSound);
         NeoForge.EVENT_BUS.addListener(ServerStoppingEvent.class, e -> {
             Soldiers.removeAll(e.getServer());
             SoldierJobs.shutdown();
+            VoiceDelivery.stop();
         });
         NeoForge.EVENT_BUS.addListener(SoldierCommands::onRegisterCommands);
     }

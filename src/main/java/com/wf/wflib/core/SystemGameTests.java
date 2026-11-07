@@ -70,6 +70,7 @@ public final class SystemGameTests {
                     com.wf.wflib.armor.gametest.ExoGameTest.class,
                     com.wf.wflib.armor.gametest.DressGameTest.class,
                     com.wf.wflib.armor.gametest.ArmorLabGameTest.class)),
+            Map.entry("soldier", List.of(com.wf.wflib.soldier.VoiceGameTest.class)),
             Map.entry("packs", List.of(com.wf.wflib.packs.gametest.PacksGameTest.class)),
             Map.entry("carry", List.of(com.wf.wflib.carry.gametest.CarryGameTest.class)),
             Map.entry("radiation", List.of(
