@@ -71,6 +71,8 @@ public final class SoldierAi {
         /** Awareness of this person (1 = noticed): builds while they are in view, fades while they are not. */
         float value = 1f;
         boolean downReported;
+        /** Fought for real (acquired as a target, or reported so by a squadmate): remembered longer, see {@link BotPolicy}. */
+        boolean confirmed;
 
         /** A contact known only by report or sound: half-aware, so seeing the person confirms it fast. */
         static Threat told() {
@@ -89,6 +91,8 @@ public final class SoldierAi {
         final VoiceCadence voiceCadence = new VoiceCadence();
         /** Spawn-egg soldier: ticks anywhere, is never respawned, and (if {@link #huntsPlayers}) shoots real players. */
         boolean soldier, huntsPlayers, hunting;
+        /** {@link Threat#seen} of the contact a chase already went to look for and did not find. */
+        long huntedSeen = -1;
         /** Wants a reload that is worth the time; out of ammunition for good; was falling back to reload or heal. */
         boolean needReload, dry, retreating, engaged;
         Vec3 targetAnchor;
@@ -179,7 +183,7 @@ public final class SoldierAi {
     private static final Map<String, Long> TEAM_FRAG = new HashMap<>(), TEAM_SMOKE = new HashMap<>();
     private static final RandomSource RNG = RandomSource.create(7L);
     private static final float MAX_TURN = 10f, FIRE_CONE = 6f;
-    private static final int GIVE_UP_TICKS = 90, FORGET_TICKS = 300, SUPPRESS_TICKS = 160;
+    private static final int GIVE_UP_TICKS = 90, SUPPRESS_TICKS = 160;
 
     private SoldierAi() {}
 
@@ -583,7 +587,7 @@ public final class SoldierAi {
                 observe(p, b, t.isSpectator() || t.isCreative() ? null : t, key, now, true);
             }
         }
-        b.threats.values().removeIf(th -> now - th.seen > FORGET_TICKS);
+        b.threats.values().removeIf(th -> BotPolicy.forgotten(now, th.seen, th.confirmed));
     }
 
     /** Updates {@code b}'s memory of one enemy. {@code spare} = a real player: a downed one is no longer a target. */
@@ -622,6 +626,7 @@ public final class SoldierAi {
         }
         th.reaction = 2;
         th.visible++;
+        th.confirmed |= th.visible >= th.reaction;
         th.eye = t.getEyePosition();
         th.seen = now;
         if (!th.downReported && now % 10 == 0 && !SoldierVoices.ids().isEmpty() && BotMedical.condition(t).downed()) {

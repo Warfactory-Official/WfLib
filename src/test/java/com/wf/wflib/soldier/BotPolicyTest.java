@@ -39,4 +39,12 @@ class BotPolicyTest {
         assertFalse(BotPolicy.shouldPush(200, 100, 20, 0, true, false, 5, 6), "squad says hold");
         assertFalse(BotPolicy.shouldPush(200, 100, 20, 0, true, true, 40, 6), "too far from its post");
     }
+
+    @Test
+    void aRealFightOutlastsAGlimpse() {
+        assertFalse(BotPolicy.forgotten(300, 0, false), "a glimpse lasts 15 s");
+        assertTrue(BotPolicy.forgotten(301, 0, false));
+        assertFalse(BotPolicy.forgotten(1200, 0, true), "an enemy it was fighting lasts a minute");
+        assertTrue(BotPolicy.forgotten(1201, 0, true));
+    }
 }

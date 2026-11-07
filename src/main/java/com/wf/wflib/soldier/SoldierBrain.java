@@ -14,6 +14,8 @@ final class SoldierBrain {
     /** An enemy gives up a chase this far from its post. */
     static final double LEASH = 56;
     private static final int SEARCH_DELAY = 40;
+    /** The chase counts as having reached where the contact was seen this close (blocks). */
+    private static final double ARRIVED = 4;
 
     private SoldierBrain() {
     }
@@ -42,18 +44,27 @@ final class SoldierBrain {
         long now = p.level().getGameTime();
         SoldierAi.Threat last = null;
         for (SoldierAi.Threat t : b.threats.values()) if (last == null || t.seen > last.seen) last = t;
-        boolean lost = last != null && last.visible == 0 && now - last.seen > SEARCH_DELAY;
+        if (b.hunting && last != null && last.visible == 0 && p.position().distanceToSqr(b.anchor) < ARRIVED * ARRIVED) {
+            b.huntedSeen = last.seen;                                           // got there: nothing, so stop looking
+        }
+        boolean lost = last != null && worthChasing(now, last.seen, last.visible, b.huntedSeen);
         if (lost && p.position().distanceToSqr(post) < LEASH * LEASH) {
             b.anchor = last.eye.subtract(0, 1.62, 0);                           // where they were, not where they are
             b.mode = SoldierAi.Mode.ADVANCE;
             b.holdRadius = 4;
             b.hunting = true;
-        } else if (b.hunting && (last == null || p.position().distanceToSqr(post) >= LEASH * LEASH)) {
+        } else if (b.hunting && (last == null || last.seen == b.huntedSeen
+                || p.position().distanceToSqr(post) >= LEASH * LEASH)) {
             b.anchor = post;                                                    // nothing left to find: back to the post
             b.mode = SoldierAi.Mode.HOLD;
             b.holdRadius = 8;
             b.hunting = false;
         }
+    }
+
+    /** Go to where a contact was last seen: once it has been out of sight a moment, and not again after a chase there found nothing. */
+    static boolean worthChasing(long now, long lastSeen, int visible, long huntedSeen) {
+        return visible == 0 && now - lastSeen > SEARCH_DELAY && lastSeen != huntedSeen;
     }
 
     /** A spot around {@code centre}, a different one for each soldier (by name hash). */

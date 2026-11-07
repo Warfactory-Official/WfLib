@@ -133,6 +133,7 @@ final class BotSquad {
             remembered.eye = contact.eye;
             remembered.seen = contact.seen;
             remembered.reaction = 6;
+            remembered.confirmed |= contact.confirmed;
             ally.reports++;
         }
     }

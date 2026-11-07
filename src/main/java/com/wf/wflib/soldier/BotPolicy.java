@@ -8,6 +8,16 @@ final class BotPolicy {
     /** Ticks a contact stays unseen before a soldier considers pushing to it. */
     static final long PUSH_AFTER = 80;
     static final double PUSH_RANGE = 30, PUSH_LEASH = 18;
+    /**
+     * Ticks a soldier remembers where an enemy was after last seeing or hearing it: a glimpse or a rumour for 15 s, an
+     * enemy it was really fighting for a minute. Smoke, cover and a lost sight line all end a firefight without ending
+     * it, so the fight must outlast the first quiet moments instead of being forgotten into idling.
+     */
+    static final long GLIMPSE_MEMORY = 300, CONTACT_MEMORY = 1200;
+
+    static boolean forgotten(long now, long lastSeen, boolean confirmed) {
+        return now - lastSeen > (confirmed ? CONTACT_MEMORY : GLIMPSE_MEMORY);
+    }
 
     private BotPolicy() {
     }

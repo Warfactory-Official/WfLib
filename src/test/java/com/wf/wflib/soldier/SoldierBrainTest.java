@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SoldierBrainTest {
@@ -22,5 +23,14 @@ class SoldierBrainTest {
             distinct.add(slot);
         }
         assertTrue(distinct.size() >= 6, "eight friendlies share " + distinct.size() + " spots");
+    }
+
+    @Test
+    void aChaseGoesOncePerContactAndNotWhileItIsInSight() {
+        assertTrue(SoldierBrain.worthChasing(100, 0, 0, -1), "out of sight a while: go and look");
+        assertFalse(SoldierBrain.worthChasing(30, 0, 0, -1), "only just lost");
+        assertFalse(SoldierBrain.worthChasing(100, 0, 3, -1), "still in sight");
+        assertFalse(SoldierBrain.worthChasing(100, 0, 0, 0), "already went there and found nothing");
+        assertTrue(SoldierBrain.worthChasing(400, 300, 0, 0), "a newer contact is a new chase");
     }
 }
