@@ -36,6 +36,7 @@ final class SoldierCommands {
                                                 .executes(c -> spawn(c.getSource(), StringArgumentType.getString(c, "side"),
                                                         IntegerArgumentType.getInteger(c, "count"),
                                                         IntegerArgumentType.getInteger(c, "radius")))))))
+                .then(VoiceCommands.node())
                 .then(Commands.literal("clear").executes(c -> {
                     Soldiers.removeAll(c.getSource().getServer());
                     c.getSource().sendSuccess(() -> Component.literal("soldiers removed"), false);

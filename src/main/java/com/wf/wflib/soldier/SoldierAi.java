@@ -70,6 +70,7 @@ public final class SoldierAi {
         int reaction;
         /** Awareness of this person (1 = noticed): builds while they are in view, fades while they are not. */
         float value = 1f;
+        boolean downReported;
 
         /** A contact known only by report or sound: half-aware, so seeing the person confirms it fast. */
         static Threat told() {
@@ -83,6 +84,9 @@ public final class SoldierAi {
         final String name;
         String team = "";
         String role = "rifle";
+        String voice = "", lastCallout = "";
+        int callouts;
+        final VoiceCadence voiceCadence = new VoiceCadence();
         /** Spawn-egg soldier: ticks anywhere, is never respawned, and (if {@link #huntsPlayers}) shoots real players. */
         boolean soldier, huntsPlayers, hunting;
         /** Wants a reload that is worth the time; out of ammunition for good; was falling back to reload or heal. */
@@ -242,6 +246,11 @@ public final class SoldierAi {
         Bot b = bot(a.get("name").getAsString());
         if (a.has("team")) b.team = a.get("team").getAsString();
         if (a.has("role")) b.role = a.get("role").getAsString();
+        if (a.has("voice")) {
+            String voice = a.get("voice").getAsString();
+            if (!voice.isEmpty() && !SoldierVoices.ids().contains(voice)) throw new IllegalArgumentException("Unknown voice pack: " + voice);
+            b.voice = voice;
+        }
         if (a.has("squad")) b.squad = a.get("squad").getAsString();
         if (a.has("mode")) {
             b.mode = Mode.valueOf(a.get("mode").getAsString().toUpperCase(Locale.ROOT));
@@ -357,6 +366,9 @@ public final class SoldierAi {
     private static JsonObject describe(Bot b) {
         JsonObject o = new JsonObject();
         o.addProperty("name", b.name);
+        o.addProperty("voice", SoldierVoices.profile(b));
+        o.addProperty("last_callout", b.lastCallout);
+        o.addProperty("callouts", b.callouts);
         o.addProperty("team", b.team);
         o.addProperty("squad", b.squad);
         o.addProperty("squad_task", b.squadTask);
@@ -555,7 +567,10 @@ public final class SoldierAi {
     }
 
     private static void perceive(MinecraftServer server, ServerPlayer p, Bot b, long now) {
-        if (p.hurtTime == 9) b.suppression = Math.min(1, b.suppression + 0.45f);      // hit this tick
+        if (p.hurtTime == 9) {
+            b.suppression = Math.min(1, b.suppression + 0.45f);
+            SoldierVoices.say(p, b, "wounded");
+        }
         b.suppression = Math.max(0, b.suppression - 0.012f);
         for (Bot other : BOTS.values()) {
             if (other.team.equals(b.team)) continue;
@@ -603,11 +618,16 @@ public final class SoldierAi {
             b.glimpses.remove(enemy);
             b.threats.put(enemy, track);
             th = track;
+            SoldierVoices.say(p, b, "contact");
         }
         th.reaction = 2;
         th.visible++;
         th.eye = t.getEyePosition();
         th.seen = now;
+        if (!th.downReported && now % 10 == 0 && !SoldierVoices.ids().isEmpty() && BotMedical.condition(t).downed()) {
+            th.downReported = true;
+            SoldierVoices.say(p, b, "enemy_down");
+        }
         BotSquad.report(p.server, BOTS, b, enemy, th, now);
     }
 
@@ -667,11 +687,14 @@ public final class SoldierAi {
         t0 = SoldierProfiler.begin();
         boolean evading = evadeGrenades(p, b, now);
         SoldierProfiler.end("grenade_evade", t0);
-        if (evading) return;
+        if (evading) { SoldierVoices.say(p, b, "grenade"); return; }
         t0 = SoldierProfiler.begin();
         boolean caring = medical(server, p, b, now);
         SoldierProfiler.end("medical", t0);
         if (caring) return;
+        if (b.hunting) SoldierVoices.say(p, b, "search");
+        else if (b.threats.isEmpty()) SoldierVoices.say(p, b, "idle");
+        else if (b.suppression > 0.75f) SoldierVoices.say(p, b, "retreat");
         considerGrenades(server, p, b, now);
         if (b.throwPhase >= 0) {
             throwGrenade(p, b);
@@ -680,6 +703,7 @@ public final class SoldierAi {
         ServerPlayer target = target(server, p, b);
         String was = b.target;
         b.target = target == null ? "" : target.getGameProfile().getName();
+        if (!was.isEmpty() && target == null) SoldierVoices.say(p, b, "lost_contact");
         b.onTarget = b.target.equals(was) && target != null ? b.onTarget + 1 : 0;
 
         // where to stand: scripted path, else the mode's choice
@@ -964,6 +988,7 @@ public final class SoldierAi {
             if (b.careAction.equals("revive")) {
                 if (previous != null && !BotMedical.condition(previous).downed()) {
                     b.revives++;
+                    SoldierVoices.say(p, b, "revived");
                     b.reviveAttempts = 0;
                 } else if (b.reviveAttempts >= 4) b.careRetry = now + 200;
             } else if (b.carePlan != null && BotMedical.count(p, b.carePlan.item()) < b.careCount) b.treatments++;
@@ -997,6 +1022,7 @@ public final class SoldierAi {
             b.moving = false;
             pose(p, b, Posture.PRONE, 0, false);
             b.state = "wounded-awaiting-medic";
+            SoldierVoices.say(p, b, "help");
             return true;
         }
         ServerPlayer patient = b.patient.isEmpty() ? p : server.getPlayerList().getPlayerByName(b.patient);
@@ -1054,6 +1080,7 @@ public final class SoldierAi {
                 b.reviveAttempts++;
                 b.careAction = "revive";
                 b.state = "reviving";
+                SoldierVoices.say(p, b, "revive");
             } else b.careRetry = now + 20;
         } else {
             BotMedical.equip(p, plan);
@@ -1063,6 +1090,7 @@ public final class SoldierAi {
                 b.careAction = plan.item().toString();
                 b.careShelter = null;
                 b.state = self ? "self-treat" : "treating-ally";
+                SoldierVoices.say(p, b, "treat");
             } else {
                 p.getInventory().selected = 0;
                 b.careRetry = now + 20;
@@ -1295,7 +1323,10 @@ public final class SoldierAi {
             p.setYRot(yaw);
             p.setYHeadRot(yaw);
             p.setXRot(throwPitch(d.horizontalDistance(), d.y, speed));
-            if (phase == 4) SoldierServices.throwables().pull(p);
+            if (phase == 4) {
+                SoldierServices.throwables().pull(p);
+                SoldierVoices.say(p, b, "throw_grenade");
+            }
             if (phase == 20) {
                 SoldierServices.throwables().release(p);
                 b.thrown++;
@@ -1567,7 +1598,10 @@ public final class SoldierAi {
             b.firing = 0;
             b.climb = 0;
             // reload behind cover (or when nothing is in the way of doing it)
-            if (b.needReload && (safe || rounds(p)[0] == 0) && weapon.reload(p)) b.reloads++;
+            if (b.needReload && (safe || rounds(p)[0] == 0) && weapon.reload(p)) {
+                b.reloads++;
+                SoldierVoices.say(p, b, "reload");
+            }
             return;
         }
         if (b.fire == Fire.BURST) {
@@ -1579,6 +1613,7 @@ public final class SoldierAi {
         SoldierWeapon.Result shot = weapon.fire(p);
         b.verdict = shot.verdict();
         if (shot.shot() == SoldierWeapon.Shot.FIRED) {
+            if (b.firing == 0) SoldierVoices.say(p, b, b.target.isEmpty() ? "covering" : "attack");
             b.shots++;
             b.lastShot = p.level().getGameTime();
             b.climb += b.role.equals("mg") ? 0.15f : 0.3f;           // muzzle climb within a burst
@@ -1595,6 +1630,7 @@ public final class SoldierAi {
         }
         if (shot.shot() == SoldierWeapon.Shot.EMPTY && b.needReload && weapon.reload(p)) {
             b.reloads++;
+            SoldierVoices.say(p, b, "reload");
         }
     }
 
