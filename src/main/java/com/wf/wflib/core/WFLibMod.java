@@ -17,6 +17,7 @@ public class WFLibMod {
 
     static final List<com.wf.wflib.core.api.WFSystem> SYSTEMS = List.of(
             new com.wf.wflib.sim.SimSystem(),
+            new com.wf.wflib.soldier.SoldierSystem(),
             new com.wf.wflib.compat.CompatSystem(),
             new com.wf.wflib.fx.FxSystem(),
             new com.wf.wflib.recon.ReconSystem(),

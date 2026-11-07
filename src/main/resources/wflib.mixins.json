@@ -5,6 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "plugin": "com.wf.wflib.mixin.core.WFMixinPlugin",
   "mixins": [
+    "soldier.ConnectionMixin",
+    "soldier.PlayerListMixin",
+    "soldier.ServerCommonPacketListenerImplMixin",
     "armor.MixinArmorSlot",
     "armor.MixinEntityArmorStep",
     "armor.MixinLivingEntityArmorSounds",
