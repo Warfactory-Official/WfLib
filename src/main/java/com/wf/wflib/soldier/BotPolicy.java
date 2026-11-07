@@ -19,6 +19,16 @@ final class BotPolicy {
         return now - lastSeen > (confirmed ? CONTACT_MEMORY : GLIMPSE_MEMORY);
     }
 
+    /**
+     * Light (0-15, block and sky together, so night, storms and caves all count) at a soldier's eyes at or below which
+     * it switches its light on, and at or above which it switches it off again; the gap stops dusk flickering it.
+     */
+    static final int LIGHT_ON_AT = 6, LIGHT_OFF_AT = 9;
+
+    static boolean wantsLight(boolean lit, int brightness) {
+        return lit ? brightness < LIGHT_OFF_AT : brightness <= LIGHT_ON_AT;
+    }
+
     private BotPolicy() {
     }
 

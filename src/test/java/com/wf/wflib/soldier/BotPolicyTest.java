@@ -47,4 +47,13 @@ class BotPolicyTest {
         assertFalse(BotPolicy.forgotten(1200, 0, true), "an enemy it was fighting lasts a minute");
         assertTrue(BotPolicy.forgotten(1201, 0, true));
     }
+
+    @Test
+    void theLightComesOnInTheDarkAndStaysOnThroughDusk() {
+        assertFalse(BotPolicy.wantsLight(false, 15), "full daylight");
+        assertFalse(BotPolicy.wantsLight(false, 7), "dim, not dark yet");
+        assertTrue(BotPolicy.wantsLight(false, 6), "dark enough to switch on");
+        assertTrue(BotPolicy.wantsLight(true, 8), "already on: stays on until clearly bright");
+        assertFalse(BotPolicy.wantsLight(true, 9), "bright again");
+    }
 }

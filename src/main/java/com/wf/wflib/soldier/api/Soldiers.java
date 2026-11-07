@@ -69,6 +69,7 @@ public final class Soldiers {
         server.getPlayerList().broadcastAll(new ClientboundRotateHeadPacket(p, (byte) (yaw * 256 / 360)), level.dimension());
         server.getPlayerList().broadcastAll(new ClientboundTeleportEntityPacket(p), level.dimension());
         wear(p, spec.armour());
+        com.wf.wflib.soldier.Headlamp.issue(p);
         SoldierAi.spawned(server, name, spec, owner == null ? null : owner.getUUID(), at, yaw);
         return p;
     }

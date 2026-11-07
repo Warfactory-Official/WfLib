@@ -49,6 +49,10 @@ final class SoldierCommands {
                         .then(Commands.argument("radius", IntegerArgumentType.integer(4, 40))
                                 .executes(c -> check(c.getSource().getLevel(), c.getSource().getPosition(),
                                         IntegerArgumentType.getInteger(c, "radius"), c.getSource()))))
+                .then(Commands.literal("light")
+                        .then(Commands.literal("auto").executes(c -> light(c.getSource(), "auto")))
+                        .then(Commands.literal("on").executes(c -> light(c.getSource(), "on")))
+                        .then(Commands.literal("off").executes(c -> light(c.getSource(), "off"))))
                 .then(Commands.literal("routebench").executes(c -> routeBench(c.getSource())))
                 .then(Commands.literal("async")
                         .then(Commands.literal("on").executes(c -> {
@@ -59,6 +63,13 @@ final class SoldierCommands {
                             SoldierJobs.enabled(false);
                             return 1;
                         }))));
+    }
+
+    private static int light(net.minecraft.commands.CommandSourceStack source, String mode) {
+        int n = SoldierAi.lightAll(mode);
+        source.sendSuccess(() -> Component.literal("weapon lights " + mode + " for " + n + " soldiers"
+                + ("auto".equals(mode) ? " (on in the dark: night, storms, caves)" : "")), false);
+        return n;
     }
 
     private static int spawn(net.minecraft.commands.CommandSourceStack source, String side, int count, int radius) {

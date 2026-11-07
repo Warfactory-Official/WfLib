@@ -93,6 +93,9 @@ public final class SoldierAi {
         boolean soldier, huntsPlayers, hunting;
         /** {@link Threat#seen} of the contact a chase already went to look for and did not find. */
         long huntedSeen = -1;
+        /** Weapon light: "auto" (by the dark), "on" or "off"; {@code lit} is what clients were last told. */
+        String light = "auto";
+        boolean lit;
         /** Wants a reload that is worth the time; out of ammunition for good; was falling back to reload or heal. */
         boolean needReload, dry, retreating, engaged;
         Vec3 targetAnchor;
@@ -285,6 +288,7 @@ public final class SoldierAi {
         if (a.has("pause")) b.pause = Math.max(0, a.get("pause").getAsInt());
         if (a.has("spread")) b.spreadDeg = Math.max(0, a.get("spread").getAsFloat());
         if (a.has("range")) b.range = a.get("range").getAsFloat();
+        if (a.has("light")) b.light = lightMode(a.get("light").getAsString());
         if (a.has("spawn")) {
             JsonArray s = a.getAsJsonArray("spawn");
             b.spawn = point(s);
@@ -394,6 +398,8 @@ public final class SoldierAi {
         o.addProperty("bleeding", b.health.bleeding());
         o.addProperty("mode", b.mode.name().toLowerCase(Locale.ROOT));
         o.addProperty("state", b.state);
+        o.addProperty("light", b.lit);
+        o.addProperty("light_mode", b.light);
         o.addProperty("target", b.target);
         o.addProperty("threats", b.threats.size());
         o.addProperty("suppression", Math.round(b.suppression * 100) / 100f);
@@ -479,6 +485,7 @@ public final class SoldierAi {
                 b.cover = null;
                 b.route.clear();
                 b.threats.clear();
+                b.lit = false;
                 b.suppression = 0;
                 b.danger.clear();
                 b.evading = false;
@@ -677,6 +684,36 @@ public final class SoldierAi {
         b.dry = BotPolicy.dry(r[0], r[1]);
     }
 
+    static String lightMode(String mode) {
+        String m = mode.toLowerCase(Locale.ROOT);
+        if (!m.equals("auto") && !m.equals("on") && !m.equals("off")) throw new IllegalArgumentException("light: auto, on or off");
+        return m;
+    }
+
+    /** Every soldier's light mode ("auto" by the dark, "on", "off"); how many soldiers it reached. */
+    public static int lightAll(String mode) {
+        String m = lightMode(mode);
+        BOTS.values().forEach(b -> b.light = m);
+        return BOTS.size();
+    }
+
+    /** Twice a second: the light follows the dark at the soldier's eyes unless ordered on or off. */
+    private static void light(ServerPlayer p, Bot b) {
+        if (p.tickCount % 10 != 0) return;
+        boolean want = wantsLight(p, b);
+        if (want != b.lit || want && p.tickCount % SoldierLights.REPEAT == 0) SoldierLights.send(p, want);
+        b.lit = want;
+    }
+
+    static boolean wantsLight(ServerPlayer p, Bot b) {
+        if (!Headlamp.worn(p)) return false;
+        return switch (b.light) {
+            case "on" -> true;
+            case "off" -> false;
+            default -> BotPolicy.wantsLight(b.lit, p.level().getMaxLocalRawBrightness(BlockPos.containing(p.getEyePosition())));
+        };
+    }
+
     private static void drive(MinecraftServer server, ServerPlayer p, Bot b) {
         long now = p.serverLevel().getGameTime();
         if (!b.oriented) {
@@ -686,6 +723,7 @@ public final class SoldierAi {
         long t0 = SoldierProfiler.begin();
         perceive(server, p, b, now);
         SoldierProfiler.end("perceive", t0);
+        light(p, b);
         t0 = SoldierProfiler.begin();
         ammo(p, b);
         SoldierProfiler.end("ammo", t0);
