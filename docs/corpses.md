@@ -20,7 +20,10 @@ System `corpse`, requires `ragdoll`. API `corpse.api.Corpses`. Replaces Corpse (
 - Dead players not drawn (`RenderPlayerEvent.Pre`): corpse is the body from the death tick.
 - Below min build height => body frozen, no void fall.
 - `BackpackLayer` draws inside AHF `ArmorRenderer.begin/end`: outside, GemRender copies part rotations only => pack at standing height on a ragdoll.
+- Claim: Curios load moves stacks failing `isItemValid` to its invalid list; save never ticks => `handleInvalidStacks` before reading (-> inventory entries), else lost on write-back.
+
+## Verified
+- Harness `wf_corpse` / `wf_carry` / `ma_corpse_backpack` / `wf_op_corpse` (dedicated, OP claim): death, transfer, despawn, curios / kit / MA backpack capture, reload, carry.
 
 ## Gaps
-- Unverified in game: OP claim. Harness `wf_corpse` / `wf_carry` / `ma_corpse_backpack`: death, transfer, despawn, curios / kit / MA backpack capture, reload, carry.
 - Box fixed 1.8 x 0.5 at the torso, not the body.
