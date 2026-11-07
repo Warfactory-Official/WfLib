@@ -79,6 +79,28 @@ class VoicePackTest {
         assertThrows(IOException.class, () -> SoldierVoices.readTeams(file));
     }
 
+    @Test void aTeamBindingMayPinOneSpeaker() throws Exception {
+        Path file = temp.resolve("teams.json");
+        Files.writeString(file, "{\"enemy\":\"trepang2_horizon/horizon_heavy\"}");
+        assertEquals(Map.of("enemy", "trepang2_horizon/horizon_heavy"), SoldierVoices.readTeams(file));
+        Files.writeString(file, "{\"enemy\":\"a/b/c\"}");
+        assertThrows(IOException.class, () -> SoldierVoices.readTeams(file));
+        assertEquals("pack", SoldierVoices.binding("pack", "auto"));
+        assertEquals("pack", SoldierVoices.binding("pack", ""));
+        assertEquals("pack/who", SoldierVoices.binding("pack", "who"));
+        assertTrue(SoldierVoices.valid(""), "no voice is always allowed");
+        assertFalse(SoldierVoices.valid("not_installed"));
+        assertFalse(SoldierVoices.valid("../escape"));
+    }
+
+    @Test void menuSurvivesTheWire() {
+        var menu = new VoicePackets.Menu(java.util.List.of(new VoicePackets.Pack("one", java.util.List.of("a", "b")),
+                new VoicePackets.Pack("two", java.util.List.of())), "one/a", "");
+        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        VoicePackets.Menu.CODEC.encode(buf, menu);
+        assertEquals(menu, VoicePackets.Menu.CODEC.decode(buf));
+    }
+
     @Test void deliveryAcceptsOnlyPublicHttpUrlsWithoutCredentials() {
         assertEquals("https://example.com/packs", VoiceDelivery.baseUrl("https://example.com/packs/"));
         for (String bad : new String[]{"file:///tmp/voices.zip", "http://user:secret@example.com", "http://example.com?q=secret", "not-a-url"})

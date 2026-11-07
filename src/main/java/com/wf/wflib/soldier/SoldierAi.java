@@ -248,7 +248,7 @@ public final class SoldierAi {
         if (a.has("role")) b.role = a.get("role").getAsString();
         if (a.has("voice")) {
             String voice = a.get("voice").getAsString();
-            if (!voice.isEmpty() && !SoldierVoices.ids().contains(voice)) throw new IllegalArgumentException("Unknown voice pack: " + voice);
+            if (!SoldierVoices.valid(voice)) throw new IllegalArgumentException("Unknown voice pack or speaker: " + voice);
             b.voice = voice;
         }
         if (a.has("squad")) b.squad = a.get("squad").getAsString();

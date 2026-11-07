@@ -16,7 +16,25 @@ MineAssault, or another mod jar. This uses the existing positional WFLib audio p
 3. Restart after the initial installation. After changing packs while playing, run the reload command
    and use **F3+T** locally to refresh the client sound definitions.
 
-`friendly` and `enemy` are MineAssault's spawn-egg team names. Filming squads can use any team name.
+## Switching voices: commands and the menu
+
+Operator level 2. Allies and enemies are the `friendly` and `enemy` teams.
+
+```mcfunction
+/soldiers voices                                   # packs, speakers, current assignments
+/soldiers voices menu                              # opens the screen below
+/soldiers voices allies trepang2_horizon           # a pack: each soldier keeps one stable speaker from it
+/soldiers voices enemies trepang2_horizon horizon_heavy   # pin every enemy to one speaker
+/soldiers voices enemies none                      # silence a team; `auto` as speaker un-pins
+/soldiers voices team <team> <pack> [speaker]      # any other team name
+/soldiers voices npc Ally_1 stalker_duty           # one NPC; `default` goes back to its team's voice
+```
+
+The menu has a pack button and a speaker button per side (Auto = each soldier keeps its own speaker), plus **Play**,
+which plays a sample line next to you. Changes apply and save to `teams.json` immediately. The menu channel is optional:
+a client without WFLib's menu still joins and just uses the commands. A team entry is `pack` or `pack/speaker`.
+
+`friendly` and `enemy` are the spawn-egg team names. Filming squads can use any team name.
 Any faction's voice can be assigned to either side. Unknown/missing packs stay silent. Assignments are
 saved atomically, and a malformed pack rejects the reload while preserving the last good library.
 To silence one team, remove its binding from `teams.json` and reload.
@@ -80,6 +98,26 @@ PDA-filtered duplicates and execution dialogue are excluded. Unmapped clips are 
 meaning is not guessed. The tool refuses to overwrite existing ZIPs and rejects overly long clips
 (30 seconds), invalid identifiers, and packs above 64 MiB. Conversion never plays sound aloud.
 `--normalize` enables FFmpeg loudness normalization at -18 LUFS / -2 dB true peak.
+
+### Trepang2
+
+`--preset trepang2` reads the NPC dialogue straight out of the game's `.pak` (unencrypted and uncompressed; the reader
+is `tools/voices/pak.py`, no external tools). Point it at the game's `Content/Paks` folder:
+
+```sh
+python3 tools/voices/convert.py ~/.local/share/Steam/steamapps/common/Trepang2/CPPFPS/Content/Paks \
+  --preset trepang2 --output /path/to/minecraft/wflib/voices/packs --normalize
+```
+
+Packs: `trepang2_horizon` (speakers `horizon_blackops`, `horizon_heavy`, `horizon_lawyerthugs`, `horizon_mallcops`),
+`trepang2_syndicate` (`syndicate_mercs`) and `trepang2_cultists` (`cultists_martyrs`); `--factions horizon` picks one.
+The grunts (death and pain only) are skipped. 15 of the 18 events are covered; `help`, `treat` and `revive` have no
+Trepang2 equivalent and stay silent. Events follow the game's folder names, e.g. `Contact/ContactSoldiers` and
+`Target/TargetFound*` -> `contact`, `Combat/Reloading` -> `reload`, `Danger/DangerGrenade` -> `grenade`,
+`Throwing/ThrowingGrenade` -> `throw_grenade`, `Damage/Pain*` -> `wounded`, `TargetKilled/*` -> `enemy_down`,
+`Damage/Death*` -> `death`; the whole table is `TREPANG` in `convert.py`. Everything else (hostage chatter, spawn
+banter, reply lines) is listed as unmapped in each pack's `.report.json`. The audio is the game's: keep it out of
+commits and mod jars.
 
 ## Your own recordings, including medic lines
 

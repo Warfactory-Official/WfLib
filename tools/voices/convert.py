@@ -35,6 +35,33 @@ STALKER = [
     (r'states/idle/idle_[^/]+', 'idle'),
     (r'fight/death/death_[^/]+', 'death'),
 ]
+# Trepang2 NPC VO: Content/Sounds/VO/NPCs/<faction>/<voice>/<category>/<event>-NNN. The folder names say what each line is
+# for; nothing is guessed from listening. Unlisted events (hostage chatter, spawn banter, ...) are reported as unmapped.
+TREPANG_FACTIONS = {'horizon': 'Horizon', 'syndicate': 'Syndicate', 'cultists': 'Cultists'}
+TREPANG_SKIP_VOICES = {'grunts'}  # death/pain only: a speaker that would be nearly silent
+TREPANG = {
+    'contact': ['Contact/ContactSoldiers', 'Contact/Contact106', 'Contact/SpottedFlashlight*', 'Target/TargetFoundClose',
+                'Target/TargetFoundFar'],
+    'lost_contact': ['Target/TargetLost*', 'Target/TargetRunningAway'],
+    'search': ['Spawn/SearchTheArea*', 'SusMode/AlertedNoVisualYet', 'SusMode/SusSound', 'SusMode/SusVision'],
+    'attack': ['Combat/Suppressing', 'Combat/Cursing'],
+    'covering': ['Combat/SuppressingStill', 'Combat/MovingCoverMeReplies'],
+    'flank': ['Combat/MovingToFlank', 'Combat/MovingToFlankA', 'Combat/MovingToFlankB'],
+    'retreat': ['Combat/Fallback', 'Danger/Suppressed', 'Danger/TakeCover', 'Danger/TakeCoverUrgent'],
+    'grenade': ['Danger/DangerGrenade', 'Danger/DangerGrenadesRare', 'Danger/DangerGrenadesSuperRare'],
+    'throw_grenade': ['Throwing/ThrowingGrenade', 'Throwing/ThrowingMolotov'],
+    'reload': ['Combat/Reloading'],
+    'wounded': ['Damage/PainGunshot', 'Damage/PainGunshotRare', 'Damage/PainGeneric', 'Damage/PainGenericWords',
+                'Damage/PainMelee'],
+    'revived': ['Damage/RecoveredYouOkay'],
+    'enemy_down': ['TargetKilled/TargetKilledSoldier'],
+    'idle': ['SusMode/SusRelief'],
+    'death': ['Damage/DeathGunshot', 'Damage/DeathMelee', 'Damage/DeathFire', 'Damage/Death'],
+}
+TREPANG_EXACT = {name: event for event, names in TREPANG.items() for name in names if not name.endswith('*')}
+TREPANG_PREFIX = [(name[:-1], event) for event, names in TREPANG.items() for name in names if name.endswith('*')]
+TREPANG_ROOT = 'CPPFPS/Content/Sounds/VO/NPCs/'
+NOTICE = 'Audio supplied by the pack author; source rights are unchanged.'
 AUDIO = {'.ogg', '.wav', '.flac', '.mp3', '.m4a', '.opus'}
 
 
@@ -51,11 +78,53 @@ def stalker_event(relative):
     return next((event for pattern, event in STALKER if re.fullmatch(pattern, name)), None)
 
 
+def trepang_event(relative):
+    """Category/event of one extracted clip, e.g. Damage/PainGunshot-003.ogg -> wounded."""
+    parts = relative.with_suffix('').parts
+    stem = re.sub(r'-?\d+$', '', parts[-1])
+    key = '/'.join((*parts[:-1], stem)) if stem else '/'.join(parts[:-1])
+    if key in TREPANG_EXACT:
+        return TREPANG_EXACT[key]
+    if len(parts) > 1 and (alt := '/'.join(parts[:-1])) in {'Combat/Deaths': 0, 'Combat/Pain': 0}:  # Grunts layout
+        return 'death' if alt.endswith('Deaths') else 'wounded'
+    return next((event for prefix, event in TREPANG_PREFIX if key.startswith(prefix)), None)
+
+
+def extract_trepang2(source, destination):
+    """Pulls the NPC dialogue clips out of Trepang2's pak into <voice>/<category>/<clip>.ogg under destination.
+
+    A SoundWave's .uexp holds the Ogg Vorbis stream verbatim, followed by the 4-byte package tag. Returns the clip count.
+    """
+    import pak
+    path = source if source.is_file() else next(iter(sorted(source.rglob('*.pak'))), None)
+    if path is None:
+        raise ValueError(f'No .pak found under {source}')
+    archive = pak.Pak(path)
+    count = 0
+    for name in sorted(archive.entries):
+        marker = name.find(TREPANG_ROOT)
+        if marker < 0 or not name.endswith('.uexp'):
+            continue
+        parts = name[marker + len(TREPANG_ROOT):].split('/')
+        if len(parts) < 4 or parts[0].lower() not in TREPANG_FACTIONS:
+            continue
+        data = archive.read(name)
+        start = data.find(b'OggS')
+        if start < 0 or not re.search(r'(^|-)\d+\.uexp$', parts[-1]):
+            continue  # the unnumbered siblings are dialogue-line wrappers, not audio
+        voice = f'{parts[0]}_{parts[1]}'.lower()
+        out = destination / voice / Path(*parts[2:]).with_suffix('.ogg')
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(data[start:-4])
+        count += 1
+    return count
+
+
 def discover(root, preset, faction=None):
     """Returns speaker/event -> files, plus every deliberately unmapped clip for review."""
     groups = defaultdict(list)
     unmapped = []
-    prefix = FACTIONS[faction] if faction else None
+    prefix = (faction if preset == 'trepang2' else FACTIONS[faction]) if faction else None
     for source in sorted(root.rglob('*')):
         if not source.is_file() or source.suffix.lower() not in AUDIO:
             continue
@@ -66,7 +135,12 @@ def discover(root, preset, faction=None):
         speaker = relative.parts[0]
         if prefix and not re.fullmatch(re.escape(prefix) + r'_[a-z0-9_]+', speaker):
             continue
-        event = stalker_event(Path(*relative.parts[1:])) if preset == 'stalker' else relative.parts[1]
+        if preset == 'trepang2':
+            if speaker.split('_', 1)[1] in TREPANG_SKIP_VOICES:
+                continue
+            event = trepang_event(Path(*relative.parts[1:]))
+        else:
+            event = stalker_event(Path(*relative.parts[1:])) if preset == 'stalker' else relative.parts[1]
         if event not in EVENTS:
             unmapped.append(relative.as_posix())
             continue
@@ -165,34 +239,52 @@ def convert(root, destination, pack_id, groups, unmapped, limit, normalize, noti
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('source', type=Path, help='STALKER characters_voice/human, or custom <speaker>/<event>/<clip> folders')
-    parser.add_argument('--preset', choices=['stalker', 'folders'], default='folders')
+    parser.add_argument('source', type=Path, help='STALKER characters_voice/human; Trepang2 Content/Paks (or the .pak); or custom <speaker>/<event>/<clip> folders')
+    parser.add_argument('--preset', choices=['stalker', 'trepang2', 'folders'], default='folders')
     parser.add_argument('--id', help='Required for custom folders')
-    parser.add_argument('--factions', nargs='+', choices=sorted(FACTIONS), default=['bandit', 'monolith', 'military'])
+    parser.add_argument('--factions', nargs='+', choices=sorted(FACTIONS) + sorted(TREPANG_FACTIONS), default=None,
+                        help='stalker: bandit monolith military ... (default bandit monolith military); trepang2: horizon syndicate cultists (default all)')
     parser.add_argument('--output', type=Path, required=True, help='Destination directory, e.g. minecraft/wflib/voices/packs')
     parser.add_argument('--max-per-event', type=int, default=6, help='Per speaker/event (0 includes all). Default: 6')
     parser.add_argument('--normalize', action='store_true', help='Normalize to -18 LUFS / -2 dB true peak')
     parser.add_argument('--inspect', action='store_true', help='Print mapping counts without encoding or writing packs')
-    parser.add_argument('--notice', default='Audio supplied by the pack author; source rights are unchanged.')
+    parser.add_argument('--notice', default=NOTICE)
     args = parser.parse_args()
-    if not args.source.is_dir():
-        parser.error('Source must be a directory containing extracted audio')
+    trepang = args.preset == 'trepang2'
+    if not (args.source.is_file() if trepang and args.source.suffix == '.pak' else args.source.is_dir()):
+        parser.error('Source must be a directory containing extracted audio (Trepang2: its Paks folder or the .pak)')
     if not 0 <= args.max_per_event <= 128:
         parser.error('--max-per-event must be 0–128')
     if args.preset == 'folders' and not args.id:
         parser.error('--id is required for custom folders')
     if not args.inspect and (not shutil.which('ffmpeg') or not shutil.which('ffprobe')):
         parser.error('Install ffmpeg (including ffprobe) first')
-    for faction in dict.fromkeys(args.factions) if args.preset == 'stalker' else [None]:
-        pack_id = f'stalker_{faction}' if faction else identifier(args.id)
-        groups, unmapped = discover(args.source, args.preset, faction)
-        if args.inspect:
-            print(json.dumps({'pack': pack_id, 'mapped': {f'{s}/{e}': len(v) for (s, e), v in groups.items()},
-                              'unmapped_count': len(unmapped)}, indent=2))
-        else:
-            count, speakers, report = convert(args.source, args.output / f'{pack_id}.zip', pack_id, groups,
-                                               unmapped, args.max_per_event, args.normalize, args.notice)
-            print(f'{pack_id}: {count} clips, {speakers} speakers; report {report}')
+    if args.preset == 'folders':
+        factions = [None]
+    else:
+        valid = TREPANG_FACTIONS if trepang else FACTIONS
+        factions = list(dict.fromkeys(args.factions or (sorted(valid) if trepang else ['bandit', 'monolith', 'military'])))
+        for faction in factions:
+            if faction not in valid:
+                parser.error(f'--factions {faction} is not a {args.preset} faction; choose from {" ".join(sorted(valid))}')
+    with tempfile.TemporaryDirectory(prefix='wf-trepang-') as extracted:
+        root = args.source
+        if trepang:
+            root = Path(extracted)
+            print(f'Extracted {extract_trepang2(args.source, root)} Trepang2 clips')
+        for faction in factions:
+            pack_id = f'{args.preset}_{faction}' if faction else identifier(args.id)
+            groups, unmapped = discover(root, args.preset, faction)
+            if args.inspect:
+                print(json.dumps({'pack': pack_id, 'mapped': {f'{s}/{e}': len(v) for (s, e), v in groups.items()},
+                                  'unmapped_count': len(unmapped)}, indent=2))
+            else:
+                notice = args.notice if args.notice != NOTICE else (
+                    'Extracted locally from Trepang2 NPC dialogue; source rights are unchanged. Do not redistribute.'
+                    if trepang else NOTICE)
+                count, speakers, report = convert(root, args.output / f'{pack_id}.zip', pack_id, groups,
+                                                   unmapped, args.max_per_event, args.normalize, notice)
+                print(f'{pack_id}: {count} clips, {speakers} speakers; report {report}')
 
 
 if __name__ == '__main__':

@@ -31,7 +31,32 @@ final class SoldierVoices {
 
     private SoldierVoices() {}
 
+    /** A binding is a pack id, or {@code pack/speaker} to pin every soldier on the team to one speaker. */
+    static final String BINDING = "[a-z0-9_]{1,64}(/[a-z0-9_]{1,64})?";
+
     static java.util.Set<String> ids() { return packs.keySet(); }
+
+    static Map<String, String> teams() { return teams; }
+
+    /** Pack id -> speaker ids, in manifest order, for menus and tab completion. */
+    static Map<String, List<String>> catalog() {
+        Map<String, List<String>> out = new LinkedHashMap<>();
+        packs.forEach((id, pack) -> out.put(id, List.copyOf(pack.speakers().keySet())));
+        return out;
+    }
+
+    /** Empty string (no voice) or a binding naming an installed pack and, if given, one of its speakers. */
+    static boolean valid(String binding) {
+        if (binding.isEmpty()) return true;
+        if (!binding.matches(BINDING)) return false;
+        int slash = binding.indexOf('/');
+        VoicePack pack = packs.get(slash < 0 ? binding : binding.substring(0, slash));
+        return pack != null && (slash < 0 || pack.speakers().containsKey(binding.substring(slash + 1)));
+    }
+
+    static String binding(String pack, String speaker) {
+        return speaker == null || speaker.isEmpty() || speaker.equals("auto") ? pack : pack + "/" + speaker;
+    }
 
     static void reload() throws IOException {
         Files.createDirectories(root().resolve("packs"));
@@ -61,7 +86,7 @@ final class SoldierVoices {
             var json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
             for (var entry : json.entrySet()) {
                 String id = entry.getValue().getAsString();
-                if (entry.getKey().isBlank() || entry.getKey().length() > 64 || !id.matches("[a-z0-9_]{1,64}"))
+                if (entry.getKey().isBlank() || entry.getKey().length() > 64 || !id.matches(BINDING))
                     throw new IOException("Invalid team assignment");
                 bindings.put(entry.getKey(), id);
             }
@@ -69,11 +94,12 @@ final class SoldierVoices {
         return bindings;
     }
 
-    static void team(String team, String pack) throws IOException {
-        if (!packs.containsKey(pack)) throw new IOException("Unknown voice pack: " + pack);
+    /** Binds a team to a voice ({@link #valid}); an empty binding silences the team. Saved atomically to teams.json. */
+    static void team(String team, String binding) throws IOException {
         if (team.isBlank() || team.length() > 64) throw new IOException("Invalid team");
+        if (!valid(binding)) throw new IOException("Unknown voice pack or speaker: " + binding);
         var changed = new LinkedHashMap<>(teams);
-        changed.put(team, pack);
+        if (binding.isEmpty()) changed.remove(team); else changed.put(team, binding);
         Files.createDirectories(root());
         Path tmp = Files.createTempFile(root(), "teams-", ".json");
         try {
@@ -122,12 +148,15 @@ final class SoldierVoices {
 
     static boolean say(ServerPlayer p, SoldierAi.Bot b, String event) {
         if ((!p.isAlive() || b.health.downed()) && !event.equals("death")) return false;
-        VoicePack pack = packs.get(profile(b));
+        String binding = profile(b);
+        int slash = binding.indexOf('/');
+        VoicePack pack = packs.get(slash < 0 ? binding : binding.substring(0, slash));
         if (pack == null) return false;
         long now = p.level().getGameTime();
         if (!b.voiceCadence.ready(event, now)) return false;
+        var pinned = slash < 0 ? null : pack.speakers().get(binding.substring(slash + 1));
         var speakers = List.copyOf(pack.speakers().values());
-        var speaker = speakers.get(Math.floorMod(p.getUUID().hashCode(), speakers.size()));
+        var speaker = pinned != null ? pinned : speakers.get(Math.floorMod(p.getUUID().hashCode(), speakers.size()));
         var clips = speaker.get(event);
         if (clips == null) return false; // Missing lines remain silent; never substitute a misleading callout.
         String squad = p.level().dimension().location() + "/" + b.team + "/" + b.squad;
@@ -144,6 +173,27 @@ final class SoldierVoices {
         b.callouts++;
         return true;
     }
+
+    /** Plays one line of a binding at the listener, for the menu. Ignores cadence: it is a sample, not a callout. */
+    static boolean sample(ServerPlayer listener, String binding) {
+        int slash = binding.indexOf('/');
+        VoicePack pack = packs.get(slash < 0 ? binding : binding.substring(0, slash));
+        if (pack == null) return false;
+        var speaker = slash < 0 ? List.copyOf(pack.speakers().values()).get(listener.getRandom().nextInt(pack.speakers().size()))
+                : pack.speakers().get(binding.substring(slash + 1));
+        if (speaker == null) return false;
+        for (String event : SAMPLE_EVENTS) {
+            var clips = speaker.get(event);
+            if (clips != null) {
+                var clip = clips.get(listener.getRandom().nextInt(clips.size()));
+                WfAudio.at(listener.serverLevel(), listener.getEyePosition(), AudioCategory.RADIO, List.of(SoundSpec.of(clip.sound(), 1, 40)));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static final List<String> SAMPLE_EVENTS = List.of("contact", "attack", "enemy_down", "reload", "wounded", "idle");
 
     static void clear() { squads.clear(); }
 }

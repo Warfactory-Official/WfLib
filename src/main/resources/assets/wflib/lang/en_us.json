@@ -530,5 +530,13 @@
   "item.wflib.artifact.psy": "Psy protection %s",
   "item.wflib.artifact.carry": "Carry weight %s kg",
   "item.wflib.artifact.starves": "Starves its wearer",
-  "item.wflib.artifact.bleeding": "Closes wounds"
+  "item.wflib.artifact.bleeding": "Closes wounds",
+  "wflib.voices.title": "Soldier voices",
+  "wflib.voices.allies": "Allies",
+  "wflib.voices.enemies": "Enemies",
+  "wflib.voices.silent": "Silent",
+  "wflib.voices.auto": "Auto",
+  "wflib.voices.speaker": "Speaker",
+  "wflib.voices.sample": "Play",
+  "wflib.voices.none_installed": "No voice packs installed (wflib/voices/packs)"
 }

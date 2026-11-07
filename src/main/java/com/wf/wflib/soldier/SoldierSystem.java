@@ -32,6 +32,8 @@ public final class SoldierSystem implements WFSystem {
         try { SoldierVoices.reload(); }
         catch (java.io.IOException e) { com.mojang.logging.LogUtils.getLogger().error("NPC voice packs failed to load", e); }
         modBus.addListener(VoiceResources::add);
+        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+                e -> VoicePackets.register(e.registrar("soldier-voices-1").optional()));
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.server.ServerStartedEvent.class,
                 e -> VoiceDelivery.start(e.getServer()));
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.class,
