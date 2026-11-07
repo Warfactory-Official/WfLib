@@ -8,6 +8,13 @@ System `ragdoll`, requires `physics`. API `ragdoll.api.Ragdolls`. Trigger: WFMed
 - Server authority: rewind, hits, medical read the sim pose. Client authority FORBIDDEN (Ragdollified: conflicts with rig).
 - Wire + draw = torso + 11 rotations; `RagdollPose.channels` FK => joints never open; knee / elbow / waist twist dropped (mesh has none). Sim position only for the torso.
 - Player entity: xz torso, y lowest body. Client moves dropped (`MixinServerGamePacketListenerRagdoll`), `Player.travel` off both sides.
+- Inert body (any `LivingEntity`, [corpses](corpses.md)): `Ragdolls.handOff` / `restore` / `state`; never stands, no fall damage.
+
+## Carry
+- `key.wflib.carry` on a running body (corpse or ragdolled player) -> fireman carry; carry system restrictions + walk x0.7. Drop key lets go, momentum kept.
+- Torso = kinematic grip (`Ragdoll.grip`, infinite mass, lerped over substeps); rest hangs. Carrier box (+-0.15, feet .. +1.15) in the world boxes after the 12 tick lift: limbs hang front / back, not through. Box at bbox width / 1.34 => legs propped level.
+- Hold ends: carrier dead / gone / other level / ragdolled / > 3 m after lift; body stands, ends or is handed off (death while carried => corpse drops). `Carry.BODY` attachment polls `Ragdolls.carrier`.
+- Sim-owned bodies neither push nor are pushed (`MixinLivingEntityRagdoll`): carried box sits on the carrier.
 
 ## Joints
 - Soft: last 30 % of range: spring + damping ramp. Neutral: weak pull to relaxed posture (Mount 2003). Both below gravity torque.
@@ -34,4 +41,4 @@ System `ragdoll`, requires `physics`. API `ragdoll.api.Ragdolls`. Trigger: WFMed
 - No collision with vehicles, decks, Create / Sable providers, other entities.
 - Round shove + `causeFallDamage` path not verified in game; explosion throw needs `DamageSource.getSourcePosition` != null (TNT seen, wflib blasts unverified).
 - Stand-up = 14 tick pose blend, no clip. First person camera: no block clip.
-- Dead body: pose held until vanilla removal; no corpse.
+- Carried body drawn from the server pose: lags the carrier's predicted position by ping + 1 tick.

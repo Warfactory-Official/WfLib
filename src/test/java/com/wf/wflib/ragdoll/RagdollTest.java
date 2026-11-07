@@ -214,6 +214,32 @@ class RagdollTest {
     }
 
     @Test
+    void gripCarriesTheBodyAndReleaseKeepsItsMomentum() {
+        Ragdoll sim = standing(0.5);
+        double[] to = new double[7];
+        System.arraycopy(sim.q, Skeleton.TORSO * 4, to, 3, 4);
+        double z = sim.x[Skeleton.TORSO * 3 + 2];
+        for (int t = 1; t <= 80; t++) {
+            to[0] = 0.075 * t;
+            to[1] = 1.6;
+            to[2] = z;
+            sim.grip(Skeleton.TORSO, to);
+            sim.step(FLOOR);
+            assertEquals(to[0], sim.x[Skeleton.TORSO * 3], 1.0e-9);
+            assertEquals(to[1], sim.x[Skeleton.TORSO * 3 + 1], 1.0e-9);
+        }
+        assertSane(sim, 0);
+        assertTrue(!sim.asleep, "slept while held");
+        double[] shin = {sim.x[Skeleton.LEFT_SHIN * 3], sim.x[Skeleton.LEFT_SHIN * 3 + 1]};
+        assertTrue(shin[1] < 1.2 && Math.abs(shin[0] - to[0]) < 0.6, "legs not hanging: " + shin[0] + ", " + shin[1]);
+        sim.release();
+        sim.step(FLOOR);
+        assertTrue(sim.v[Skeleton.TORSO * 3] > 1.0, "momentum lost: " + sim.v[Skeleton.TORSO * 3]);
+        run(sim, FLOOR, 200);
+        assertSane(sim, 0);
+    }
+
+    @Test
     void sameInputSameBits() {
         Ragdoll a = standing(0), b = standing(0);
         a.kick(2, 1, -1);

@@ -47,6 +47,7 @@ public final class CarrySystem implements WFSystem {
         components.<net.minecraft.world.item.component.ItemContainerContents>registerComponentType("shouldered_gun",
                 b -> b.persistent(net.minecraft.world.item.component.ItemContainerContents.CODEC)
                         .networkSynchronized(net.minecraft.world.item.component.ItemContainerContents.STREAM_CODEC));
+        attachments.register("carried_body", () -> AttachmentType.builder(() -> -1).build());
         attachments.register("shouldered_gun", () -> AttachmentType.builder(() -> ItemStack.EMPTY)
                 .serialize(ItemStack.OPTIONAL_CODEC).copyOnDeath().build());
         components.register(modBus);
