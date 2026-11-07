@@ -52,6 +52,7 @@ final class BotTactics {
     }
 
     static boolean clearRay(ServerLevel level, Vec3 from, Vec3 to, Entity viewer) {
+        SoldierProfiler.rays++;
         return level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, viewer))
                 .getType() == HitResult.Type.MISS;
     }
@@ -75,6 +76,17 @@ final class BotTactics {
      */
     static Cover findCover(ServerLevel level, Entity viewer, BlockPos from, BlockPos center, int radius,
                            List<Vec3> threats, Vec3 toward, double minProgress, List<BlockPos> taken, boolean needPeek) {
+        long start = System.nanoTime();
+        try {
+            return findCoverImpl(level, viewer, from, center, radius, threats, toward, minProgress, taken, needPeek);
+        } finally {
+            SoldierProfiler.covers++;
+            SoldierProfiler.coverNanos += System.nanoTime() - start;
+        }
+    }
+
+    private static Cover findCoverImpl(ServerLevel level, Entity viewer, BlockPos from, BlockPos center, int radius,
+                                       List<Vec3> threats, Vec3 toward, double minProgress, List<BlockPos> taken, boolean needPeek) {
         if (threats.isEmpty()) return null;
         Vec3 primary = threats.get(0);
         double startProgress = toward == null ? 0 : horizontal(Vec3.atBottomCenterOf(from), toward);
@@ -243,6 +255,17 @@ final class BotTactics {
 
     private static List<Vec3> route(ServerLevel level, Entity viewer, BlockPos start, BlockPos goal,
                                     List<Vec3> threats, List<Vec3> grenades, List<BlockPos> occupied) {
+        long began = System.nanoTime();
+        SoldierProfiler.routes++;
+        try {
+            return routeImpl(level, viewer, start, goal, threats, grenades, occupied);
+        } finally {
+            SoldierProfiler.routeNanos += System.nanoTime() - began;
+        }
+    }
+
+    private static List<Vec3> routeImpl(ServerLevel level, Entity viewer, BlockPos start, BlockPos goal,
+                                        List<Vec3> threats, List<Vec3> grenades, List<BlockPos> occupied) {
         boolean fleeing = goal == null;
         Map<Long, Double> cost = new HashMap<>();
         Map<Long, Long> parent = new HashMap<>();
@@ -259,6 +282,7 @@ final class BotTactics {
             long k = (long) entry[1];
             if (entry[2] > cost.get(k)) continue; // superseded routes must not consume the search budget
             expanded++;
+            SoldierProfiler.nodes++;
             BlockPos at = BlockPos.of(k);
             double clearance = fleeing ? BotGrenades.clearance(Vec3.atBottomCenterOf(at), grenades) : 0;
             if (fleeing && clearance > bestClearance + 0.05) {

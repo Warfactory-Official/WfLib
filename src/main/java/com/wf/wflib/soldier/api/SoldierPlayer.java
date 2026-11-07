@@ -89,8 +89,10 @@ public final class SoldierPlayer extends ServerPlayer {
         xxa = strafe * (sneak ? 0.3f : 1);
         setSprinting(sprint);
         setShiftKeyDown(sneak);
+        long start = System.nanoTime();
         super.tick();
         doTick();                                          // the connection that would tick it does not exist
+        com.wf.wflib.soldier.SoldierProfiler.record("body_player_tick", System.nanoTime() - start);
     }
 
     @Override

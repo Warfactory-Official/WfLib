@@ -93,6 +93,9 @@ public final class SoldierAi {
         String stallInfo = "";
         int smokes, pushes;
         ResourceLocation fragItem, smokeItem;
+        String planFor = "";
+        long planAt = -1000;
+        SoldierMedical.Plan planCached;
         long lastSmoke = -1000, pushSearched = -1000;
         Vec3 rest, restFor;
         float restYaw;
@@ -434,7 +437,11 @@ public final class SoldierAi {
         if (BOTS.isEmpty()) return;
         MinecraftServer server = e.getServer();
         boolean filmingServer = filming.test(server);
+        long tickStart = System.nanoTime();
+        int driven = 0;
+        long squadStart = SoldierProfiler.begin();
         BotSquad.tick(server, BOTS, server.overworld().getGameTime());
+        SoldierProfiler.end("squad", squadStart);
         for (var it = BOTS.values().iterator(); it.hasNext(); ) {
             Bot b = it.next();
             if (!runsOn(b, server, filmingServer)) continue;
@@ -468,7 +475,9 @@ public final class SoldierAi {
                 issue(b, b.grenades);
                 BotMedical.kit(p, b.role.equals("medic"));
             }
+            long healthStart = SoldierProfiler.begin();
             b.health = BotMedical.condition(p);
+            SoldierProfiler.end("condition", healthStart);
             if (b.health.downed()) {
                 move(p, 0, 0, false, false);
                 p.setJumping(false);
@@ -483,8 +492,12 @@ public final class SoldierAi {
             }
             b.down = 0;
             b.lastSeenAt = p.position();
+            long driveStart = System.nanoTime();
             drive(server, p, b);
+            SoldierProfiler.driveNanos += System.nanoTime() - driveStart;
+            driven++;
         }
+        SoldierProfiler.endTick(System.nanoTime() - tickStart, driven);
     }
 
     private static void respawn(MinecraftServer server, Bot b) {
@@ -642,10 +655,20 @@ public final class SoldierAi {
             b.watchYaw = p.getYRot();
             b.oriented = true;
         }
+        long t0 = SoldierProfiler.begin();
         perceive(server, p, b, now);
+        SoldierProfiler.end("perceive", t0);
+        t0 = SoldierProfiler.begin();
         ammo(p, b);
-        if (evadeGrenades(p, b, now)) return;
-        if (medical(server, p, b, now)) return;
+        SoldierProfiler.end("ammo", t0);
+        t0 = SoldierProfiler.begin();
+        boolean evading = evadeGrenades(p, b, now);
+        SoldierProfiler.end("grenade_evade", t0);
+        if (evading) return;
+        t0 = SoldierProfiler.begin();
+        boolean caring = medical(server, p, b, now);
+        SoldierProfiler.end("medical", t0);
+        if (caring) return;
         considerGrenades(server, p, b, now);
         if (b.throwPhase >= 0) {
             throwGrenade(p, b);
@@ -657,7 +680,9 @@ public final class SoldierAi {
         b.onTarget = b.target.equals(was) && target != null ? b.onTarget + 1 : 0;
 
         // where to stand: scripted path, else the mode's choice
+        t0 = SoldierProfiler.begin();
         Vec3 goal = b.medicalRetreat && !b.threats.isEmpty() || b.path.isEmpty() ? goal(server, p, b, now) : b.path.peek();
+        SoldierProfiler.end("goal", t0);
         while (!b.path.isEmpty() && at(p, b.path.peek(), 0.45)) b.path.poll();
         if (!java.util.Objects.equals(b.peekingCover, b.cover)) {
             b.peekingCover = b.cover;
@@ -677,7 +702,9 @@ public final class SoldierAi {
         // Already looking at the enemy from here: there is nothing to gain from stepping out to the lean position.
         if (workingCover && b.engaged && target != null && seen(p, target) != null) goal = null;
         // A decimeter short of the planned edge can leave a fully leaned eye behind the wall.
+        t0 = SoldierProfiler.begin();
         Vec3 step = steer(p, b, goal, workingCover ? 0.04 : 0.45);
+        SoldierProfiler.end("steer", t0);
         boolean arrivedNow = b.moving && step == null;
         b.moving = step != null;
         if (arrivedNow) {
@@ -727,7 +754,9 @@ public final class SoldierAi {
         boolean canShoot = direct
                 ? clear && line && onAim && (settled || b.onTarget > 6 || p.distanceTo(target) < 15)
                 : clear && !b.moving && b.peek.settled() && settled && line && onAim;
+        t0 = SoldierProfiler.begin();
         trigger(server, p, b, aim, canShoot, inCover(p, b) || low);
+        SoldierProfiler.end("trigger", t0);
         b.state = (b.moving ? (sprinting ? "rush" : crawl ? "crawl" : "move") : low ? "cover" : peek ? "peek" : "stand")
                 + (pinned ? "/pinned" : "") + (SoldierServices.weapon().blocked(p) ? "/wounded" : "");
     }
@@ -743,6 +772,13 @@ public final class SoldierAi {
             b.targetAnchor = target.position();
             b.targetStill = 0;
         }
+    }
+
+    /** Searches (cover, routes) one tick may start across all soldiers; the rest wait a tick, so a firefight cannot spike the thread. */
+    private static final int SEARCHES_PER_TICK = 3;
+
+    private static boolean searchReady(Bot b, long now) {
+        return now - b.searched >= 20 && SoldierProfiler.covers + SoldierProfiler.routes < SEARCHES_PER_TICK;
     }
 
     private static Threat freshest(Bot b) {
@@ -767,7 +803,7 @@ public final class SoldierAi {
                 b.route.clear();
             }
             Vec3 primary = eyes.get(0);
-            if (b.cover == null && now - b.searched >= 20) {
+            if (b.cover == null && searchReady(b, now)) {
                 b.searched = now;
                 Vec3 away = BotTactics.horizontal(p.position(), primary) < 1e-3 ? Vec3.ZERO
                         : flat(p.position().subtract(primary));
@@ -819,7 +855,7 @@ public final class SoldierAi {
             coverValid = b.cover != null;
         }
         boolean mayBound = mayBound(server, b, now);
-        if (b.mode == Mode.ADVANCE && !nearObjective && coverValid && !b.moving && now - b.searched >= 20 && mayBound) {
+        if (b.mode == Mode.ADVANCE && !nearObjective && coverValid && !b.moving && searchReady(b, now) && mayBound) {
             b.searched = now;
             BotTactics.Cover next = BotTactics.findCover(p.serverLevel(), p, feet, feet, 12, eyes, b.anchor, 3,
                     taken(b), true);
@@ -843,7 +879,7 @@ public final class SoldierAi {
                 b.pushes++;
             }
         }
-        if (!coverValid && b.cover == null && now - b.searched >= 20) {   // searches cost thousands of rays
+        if (!coverValid && b.cover == null && searchReady(b, now)) {   // searches cost thousands of rays
             b.searched = now;
             BlockPos center = b.mode == Mode.HOLD || nearObjective ? BlockPos.containing(b.anchor) : feet;
             int r = b.mode == Mode.HOLD || nearObjective ? b.holdRadius : 8;
@@ -858,7 +894,7 @@ public final class SoldierAi {
         }
         // No cover at all: never stand about in the open, take the least exposed spot near here and wait there.
         if (b.mode == Mode.ADVANCE && b.mayAdvance && !nearObjective && age > 100) return toward(p.position(), b.anchor, 7);
-        if (now - b.searched >= 20) {
+        if (searchReady(b, now)) {
             b.searched = now;
             BlockPos spot = BotTactics.leastExposed(p.serverLevel(), p, feet, 5, eyes);
             b.rest = spot == null ? null : Vec3.atBottomCenterOf(spot);
@@ -906,6 +942,17 @@ public final class SoldierAi {
 
     // --- first aid and rescue ---------------------------------------------------------------------------------
 
+    /** A treatment plan walks the inventory and every wound: recomputed twice a second per soldier, not every tick. */
+    private static SoldierMedical.Plan cachedPlan(Bot b, ServerPlayer actor, ServerPlayer patient) {
+        long now = actor.level().getGameTime();
+        String key = patient.getGameProfile().getName();
+        if (b.planFor.equals(key) && now - b.planAt < 10 && b.carePlan == null) return b.planCached;
+        b.planFor = key;
+        b.planAt = now + Math.floorMod(b.name.hashCode(), 5);
+        b.planCached = BotMedical.plan(actor, patient);
+        return b.planCached;
+    }
+
     private static boolean medical(MinecraftServer server, ServerPlayer p, Bot b, long now) {
         if (!BotMedical.present()) return false;
         b.medicalRetreat = b.health.hands();
@@ -941,7 +988,7 @@ public final class SoldierAi {
             b.state = b.careAction.equals("revive") ? "reviving" : previous == p ? "self-treat" : "treating-ally";
             return true;
         }
-        if (b.health.legs() && b.patient.isEmpty() && BotMedical.plan(p, p) == null) {
+        if (b.health.legs() && b.patient.isEmpty() && cachedPlan(b, p, p) == null) {
             move(p, 0, 0, false, true);
             p.setJumping(false);
             b.moving = false;
@@ -951,7 +998,7 @@ public final class SoldierAi {
         }
         ServerPlayer patient = b.patient.isEmpty() ? p : server.getPlayerList().getPlayerByName(b.patient);
         if (patient == null || !patient.isAlive() || patient.level() != p.level()) return false;
-        SoldierMedical.Plan plan = b.health.hands() ? null : BotMedical.plan(p, patient);
+        SoldierMedical.Plan plan = b.health.hands() ? null : cachedPlan(b, p, patient);
         boolean revive = patient != p && BotMedical.condition(patient).downed() && plan == null;
         if (plan == null && !revive) return false;
         boolean self = patient == p;
@@ -1299,6 +1346,7 @@ public final class SoldierAi {
         BlockPos g = BlockPos.containing(goal);
         if (g.equals(b.routeGoal) && b.route.isEmpty() && p.level().getGameTime() - b.routeChecked < 20) return null;
         if (!g.equals(b.routeGoal) || b.route.isEmpty() || p.tickCount % 60 == 0) {
+            if (SoldierProfiler.covers + SoldierProfiler.routes >= SEARCHES_PER_TICK) return null;   // next tick
             b.routeChecked = p.level().getGameTime();
             b.routeGoal = g;
             b.route.clear();
@@ -1560,13 +1608,31 @@ public final class SoldierAi {
 
     /** Chest, else head, visible from the actual eased/leaned eye; hidden bodies need a real lookout first. */
     private static Vec3 seen(ServerPlayer p, ServerPlayer t) {
+        long now = p.level().getGameTime();
+        if (now != seenTick) {
+            SEEN.clear();
+            seenTick = now;
+        }
+        long key = ((long) p.getId() << 32) | (t.getId() & 0xffffffffL);
+        Vec3 hit = SEEN.get(key);
+        if (hit != null) return hit == NOT_SEEN ? null : hit;
+        hit = NOT_SEEN;
         Vec3 eye = p.getEyePosition();
         for (double f : new double[]{0.7, 0.9}) {
             Vec3 to = t.position().add(0, t.getBbHeight() * f, 0);
-            if (BotTactics.sees(p.serverLevel(), eye, to, p)) return to;
+            if (BotTactics.sees(p.serverLevel(), eye, to, p)) {
+                hit = to;
+                break;
+            }
         }
-        return null;
+        SEEN.put(key, hit);
+        return hit == NOT_SEEN ? null : hit;
     }
+
+    /** Who saw whom this tick (the same pair is asked about several times a tick): cleared on the next tick. */
+    private static final java.util.Map<Long, Vec3> SEEN = new java.util.HashMap<>();
+    private static final Vec3 NOT_SEEN = new Vec3(Double.NaN, 0, 0);
+    private static long seenTick = Long.MIN_VALUE;
 
     // --- equipment ----------------------------------------------------------------------------------------------
 

@@ -50,6 +50,11 @@ public final class SoldierControl {
         SoldierAi.onGunshot(shooter, origin);
     }
 
+    /** Where a soldier tick goes (rays, searches, ms per phase) over the last 400 ticks; {@code reset} starts a new window. */
+    public static JsonObject profile(boolean reset) {
+        return com.wf.wflib.soldier.SoldierProfiler.report(reset);
+    }
+
     public static int soldierCount() {
         return SoldierAi.soldiers();
     }
