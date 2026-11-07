@@ -67,6 +67,13 @@ public final class RoundSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(ServerStartingEvent.class,
                 event -> ImpactEffects.check(KineticPresets.all(), event.getServer().registryAccess()));
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, RoundCommands::onRegisterCommands);
+        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.RoundFlightProducer());
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.CoverProducer());
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.CoverBlocksProducer());
+            com.wf.wflib.labs.api.LabContents.register(new com.wf.wflib.round.lab.RoundLabContent());
+            com.wf.wflib.labs.api.ScenarioStages.register(new com.wf.wflib.round.lab.CoverStage());
+        }
     }
 
     @Override

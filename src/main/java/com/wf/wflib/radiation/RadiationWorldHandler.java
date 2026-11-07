@@ -1,5 +1,9 @@
 package com.wf.wflib.radiation;
 
+import net.minecraft.world.level.ChunkPos;
+import com.wf.wflib.compat.api.WarforgeCompat;
+import com.wf.wflib.compat.api.ClaimAction;
+import com.wf.wflib.compat.api.ClaimPolicy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
@@ -24,6 +28,10 @@ public final class RadiationWorldHandler {
     // RadiationWorldHandler:55 against its only callers RadiationSystemNT:531,552, both 3-arg - so it is out
     // of scope rather than unported.
     static void decayBlock(ServerLevel world, BlockPos pos, BlockState state) {
+        if (!WarforgeCompat.mayAlter(world, new ChunkPos(pos), null, null, ClaimAction.RADIATION,
+                ClaimPolicy.radiationRespectsClaims())) {
+            return;
+        }
         Block block = state.getBlock();
         if (block instanceof DoublePlantBlock) {
             BlockPos base = pos.immutable();

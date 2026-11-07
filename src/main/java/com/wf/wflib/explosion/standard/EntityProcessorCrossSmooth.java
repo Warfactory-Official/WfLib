@@ -45,7 +45,8 @@ public class EntityProcessorCrossSmooth extends EntityProcessorCross {
         if (!entity.isAlive()) return;
         if (explosion.exploder == entity) amount *= 0.5F; // shooter takes half damage
 
-        DamageSource dmg = blastSource(WFDamageSources.create(explosion.level, clazz, explosion.exploder), explosion,
+        DamageSource dmg = blastSource(WFDamageSources.create(explosion.level, clazz, explosion.exploder, explosion.exploder,
+                explosion.igniterFaction()), explosion,
                 entity, aim);
 
         if (!(entity instanceof LivingEntity living)) {

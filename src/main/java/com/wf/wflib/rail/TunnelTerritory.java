@@ -102,7 +102,7 @@ public final class TunnelTerritory {
      * than the rule.</p>
      */
     public static TerritoryVerdict verdict(ServerLevel level, UUID faction, ChunkPos chunk, int y) {
-        return WarforgeCompat.buildVerdict(level, faction,
+        return WarforgeCompat.excavationVerdict(level, faction,
                 new BlockPos(chunk.getMiddleBlockX(), y, chunk.getMiddleBlockZ()));
     }
 
@@ -113,7 +113,7 @@ public final class TunnelTerritory {
             return;
         }
         // The same question the drones ask, so a tunnel obeys the rule everything else in the mod does.
-        TerritoryVerdict verdict = WarforgeCompat.buildVerdict(level, faction,
+        TerritoryVerdict verdict = WarforgeCompat.excavationVerdict(level, faction,
                 new BlockPos(chunk.getMiddleBlockX(), floorY, chunk.getMiddleBlockZ()));
         if (verdict.allowed()) {
             allowed.add(chunk.toLong());

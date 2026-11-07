@@ -410,7 +410,8 @@ public final class MineWarheads {
             return;
         }
         Entity direct = source instanceof Entity entity ? entity : null;
-        DamageSource damage = WFDamageSources.create(level, DamageClass.EXPLOSIVE, layer(level, source), direct);
+        DamageSource damage = WFDamageSources.create(level, DamageClass.EXPLOSIVE, layer(level, source), direct,
+                source.igniterFactionId());
         victim.hurt(damage, amount);
     }
 

@@ -17,7 +17,20 @@ final class MwTestArmor {
     private MwTestArmor() {
     }
 
+    private static final java.util.Set<ResourceLocation> IDS = new java.util.HashSet<>();
+
+    static boolean isDev(ResourceLocation id) {
+        return IDS.contains(id);
+    }
+
     static void addTo(Map<ResourceLocation, ArmorPreset> presets) {
+        java.util.Set<ResourceLocation> before = new java.util.HashSet<>(presets.keySet());
+        addAll(presets);
+        IDS.addAll(presets.keySet());
+        IDS.removeAll(before);
+    }
+
+    private static void addAll(Map<ResourceLocation, ArmorPreset> presets) {
         add(presets, "mw_6b47", ArmorItem.Type.HELMET, "armed_forces_of_the_russian_federation/armor/6b47");
         add(presets, "mw_bearsuit", ArmorItem.Type.CHESTPLATE, "eftc/armor/bearsuit");
         add(presets, "mw_bearpants", ArmorItem.Type.LEGGINGS, "eftc/armor/bearpants");

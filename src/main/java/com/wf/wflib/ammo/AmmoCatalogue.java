@@ -18,6 +18,7 @@ import com.wf.wflib.ammo.api.CaseMaterial;
 import com.wf.wflib.ammo.api.ProjectileLook;
 import com.wf.wflib.core.api.WFLib;
 
+import static com.wf.wflib.round.api.ImpactEffects.EXPLODE;
 import static com.wf.wflib.round.api.ImpactEffects.IGNITE;
 import static com.wf.wflib.round.api.ImpactEffects.MOB_EFFECT;
 
@@ -41,6 +42,19 @@ public final class AmmoCatalogue {
     static final int TIP_YELLOW = 0xD8C23A;
     static final int TIP_GOLD = 0xC9A227;
     static final int TIP_BLUE = 0x2F5DA8;
+    static final int TIP_STEEL = 0x9AA0A6;
+    static final int TIP_SILVER = 0xC0C0C0;
+    static final int TIP_LIGHT_BLUE = 0x5FB4E8;
+    static final int TIP_AMBER = 0xE0A030;
+    /** Group-size ratio vs ball, damped ~half: 7N10/7N22 ~1.2x 7N6 (R50 300 m), tracer 1.14-1.87x; subsonic unknown => 1. */
+    static final float AP_CONE = 1.10f;
+    static final float MATCH_CONE = 0.88f;
+    /** Damage per kJ vs ball: penetrators shed less energy in soft targets, expanding / frangible shed more. Tuning guesses. */
+    static final float AP_DAMAGE = 0.9f;
+    static final float EXPANDING_DAMAGE = 1.2f;
+    /** Mk 211 trades kinetic damage for its blast; value is a tuning guess. */
+    static final float MK211_KINETIC = 0.8f;
+    static final float TRACER_CONE = 1.10f;
     private static final ResourceLocation STANDARD = rl("standard");
     private static final ResourceLocation SHAPED = rl("shaped_charge");
 
@@ -119,10 +133,11 @@ public final class AmmoCatalogue {
         add(c.kinetic("ball", ball, g, ms, cd, 1f, g, ms).tip(c.key().equals("5.56x45") ? TIP_GREEN
                 : AmmoVariant.NONE));
         if (tracer != null) {
-            add(c.kinetic("tracer", tracer, g, ms, cd, 1f, g, ms).tracer(tracerRgb).tip(tracerTip));
+            add(c.kinetic("tracer", tracer, g, ms, cd, 1f, g, ms).tracer(tracerRgb).tip(tracerTip).coneMul(TRACER_CONE));
         }
         if (ap != null) {
-            add(c.kinetic("ap", ap, apGrams, apMs, cd, 1.5f, g, ms).tip(TIP_BLACK));
+            add(c.kinetic("ap", ap, apGrams, apMs, cd, 1.5f, g, ms).tip(TIP_BLACK).coneMul(AP_CONE)
+                    .damagePerKJ(c.dpk() * AP_DAMAGE));
         }
         if (sub != null) {
             add(c.kinetic("subsonic", sub, subGrams, subMs, cd, 1f, g, ms).tip(c.key().equals("9x19")
@@ -175,10 +190,30 @@ public final class AmmoCatalogue {
                 "DM11", 2f, 720, 0.30f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("5.6x27r", ".22 WMR", p, 5.7f, 26.8f, 6.1f, 6.1f, 7.4f, 34f, 12f, br, 4.5f, 15f),
                 "JHP", 2.6f, 580, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
-        smallArms(cal("5.56x45", "5.56x45mm NATO", r, 5.7f, 44.7f, 9.6f, 6.43f, 9.6f, 57.4f, 23f, br, 12.3f, 5.94f),
-                "M855", 4f, 930, 0.30f, "M856", RED, TIP_ORANGE, "M995", 3.4f, 1030, null, 0, 0);
-        smallArms(cal("5.45x39", "5.45x39mm", r, 5.6f, 39.82f, 10f, 6.29f, 10f, 57f, 25.5f, st, 10.2f, 8.0f),
-                "7N6", 3.4f, 880, 0.30f, "7T3M", GREEN, TIP_GREEN, "7N22", 3.7f, 890, "7U1", 5.2f, 303);
+        Cal c556 = cal("5.56x45", "5.56x45mm NATO", r, 5.7f, 44.7f, 9.6f, 6.43f, 9.6f, 57.4f, 23f, br, 12.3f, 5.94f);
+        smallArms(c556, "M855", 4f, 930, 0.30f, "M856", RED, TIP_ORANGE, "M995", 3.4f, 1030, null, 0, 0);
+        // M193/M855A1/Mk 262 mass + 20 in velocity: Wikipedia. TODO Mk 318 / Mk 255 mass + velocity assumed
+        // (62 gr, ~2950 fps / reduced); Mk 255 pen factor guessed.
+        add(c556.kinetic("m193", "M193", 3.56f, 993, 0.30f, 1f, 4f, 930));
+        add(c556.kinetic("m855a1", "M855A1 EPR", 4f, 961, 0.30f, 1.3f, 4f, 930).tip(TIP_STEEL)
+                .look(ProjectileLook.Override.NONE.withBody(ProjectileLook.STEEL))
+                .damagePerKJ(c556.dpk() * AP_DAMAGE));
+        add(c556.kinetic("mk262", "Mk 262 Mod 1", 5f, 838, 0.25f, 1f, 4f, 930).coneMul(MATCH_CONE)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.BULLET, 26f, null))
+                .damagePerKJ(c556.dpk() * EXPANDING_DAMAGE));
+        add(c556.kinetic("mk318", "Mk 318 SOST", 4f, 900, 0.28f, 1.2f, 4f, 930).tip(TIP_BLUE)
+                .damagePerKJ(c556.dpk() * EXPANDING_DAMAGE));
+        add(c556.kinetic("mk255", "Mk 255 Mod 0", 4f, 900, 0.30f, 0.5f, 4f, 930).tip(TIP_YELLOW)
+                .damagePerKJ(c556.dpk() * EXPANDING_DAMAGE));
+        Cal c545 = cal("5.45x39", "5.45x39mm", r, 5.6f, 39.82f, 10f, 6.29f, 10f, 57f, 25.5f, st, 10.2f, 8.0f);
+        smallArms(c545, "7N6", 3.4f, 880, 0.30f, "7T3M", GREEN, TIP_GREEN, "7N22", 3.7f, 890, "7U1", 5.2f, 303);
+        // TODO 7N39 mass/ms estimated (cartridge 181 gr vs 173 gr 7N24, 7N39 ~1.8x 7N24 pen); 7N40 ms assumed 7N6's
+        add(c545.kinetic("ap_7n24", "7N24", 4.15f, 840, 0.30f, 2f, 3.4f, 880).tip(TIP_BLACK).coneMul(AP_CONE)
+                .damagePerKJ(c545.dpk() * AP_DAMAGE));
+        add(c545.kinetic("ap_7n39", "7N39", 4.65f, 840, 0.30f, 3f, 3.4f, 880).tip(TIP_BLACK).coneMul(AP_CONE)
+                .damagePerKJ(c545.dpk() * AP_DAMAGE));
+        add(c545.kinetic("ap_7n40", "7N40", 4.2f, 880, 0.30f, 1.5f, 3.4f, 880).tip(TIP_BLACK).coneMul(AP_CONE)
+                .damagePerKJ(c545.dpk() * AP_DAMAGE));
         smallArms(cal("5.8x42", "5.8x42mm DBP10", r, 6f, 42f, 10.4f, 6.6f, 10.4f, 58f, 24f, st, 12.9f, 12.9f),
                 "DBP10", 4.6f, 915, 0.30f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("6.8x43", "6.8mm SPC", r, 7f, 42.6f, 10.7f, 7.8f, 10.7f, 58f, 25f, br, 16f, 4.13f),
@@ -188,8 +223,25 @@ public final class AmmoCatalogue {
         smallArms(cal("7.62x39", "7.62x39mm", r, 7.92f, 38.7f, 11.35f, 8.6f, 11.35f, 56f, 26.8f, st, 16.3f, 5.46f),
                 "57-N-231", 7.9f, 715, 0.33f, "57-T-231P", GREEN, TIP_GREEN, "7N23", 7.9f, 740, "US", 12.5f,
                 295);
-        smallArms(cal("7.62x51", "7.62x51mm NATO", r, 7.82f, 51.18f, 11.94f, 8.77f, 12.01f, 71.12f, 29f, br, 24f,
-                3.65f), "M80", 9.5f, 840, 0.30f, "M62", RED, TIP_ORANGE, "M993", 8.2f, 910, null, 0, 0);
+        Cal c762 = cal("7.62x51", "7.62x51mm NATO", r, 7.82f, 51.18f, 11.94f, 8.77f, 12.01f, 71.12f, 29f, br, 24f,
+                3.65f);
+        smallArms(c762, "M80", 9.5f, 840, 0.30f, "M62", RED, TIP_ORANGE, "M993", 8.2f, 910, null, 0, 0);
+        // M80A1/M61/M118LR/Mk 316/Mk 319 mass: Wikipedia; M61 + M118LR velocity too. TODO Mk 316 velocity = M118LR's,
+        // Mk 319 velocity assumed, M80A1 / Mk 319 pen factor guessed.
+        add(c762.kinetic("m80a1", "M80A1 EPR", 8.4f, 930, 0.30f, 1.2f, 9.5f, 840).tip(TIP_STEEL)
+                .look(ProjectileLook.Override.NONE.withBody(ProjectileLook.STEEL))
+                .damagePerKJ(c762.dpk() * AP_DAMAGE));
+        add(c762.kinetic("m61", "M61 AP", 9.8f, 855, 0.30f, 1.5f, 9.5f, 840).tip(TIP_BLACK).coneMul(AP_CONE)
+                .look(ProjectileLook.Override.NONE.withBody(ProjectileLook.STEEL))
+                .damagePerKJ(c762.dpk() * AP_DAMAGE));
+        add(c762.kinetic("m118lr", "M118LR", 11.3f, 792, 0.25f, 1f, 9.5f, 840).coneMul(MATCH_CONE)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.BULLET, 33f, null))
+                .damagePerKJ(c762.dpk() * EXPANDING_DAMAGE));
+        add(c762.kinetic("mk316", "Mk 316 Mod 0", 11.3f, 792, 0.25f, 1f, 9.5f, 840).coneMul(MATCH_CONE)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.BULLET, 33f, null))
+                .damagePerKJ(c762.dpk() * EXPANDING_DAMAGE));
+        add(c762.kinetic("mk319", "Mk 319 Mod 0", 8.4f, 900, 0.28f, 1.2f, 9.5f, 840).tip(TIP_BLUE)
+                .damagePerKJ(c762.dpk() * EXPANDING_DAMAGE));
         smallArms(cal("7.62x54r", "7.62x54mmR", r, 7.92f, 53.72f, 12.37f, 8.53f, 14.48f, 77.16f, 32f, st, 22f,
                 4.83f), "57-N-323S", 9.6f, 825, 0.30f, "T-46", GREEN, TIP_GREEN, "7N13", 9.4f, 830, null, 0, 0);
         smallArms(cal("9.3x64", "9.3x64mm Brenneke", r, 9.3f, 64f, 11.95f, 9.95f, 11.95f, 88f, 32f, st, 29f, 4.4f),
@@ -208,8 +260,35 @@ public final class AmmoCatalogue {
                 12.3f), "405 gr", 26.2f, 400, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
         smallArms(cal("12.7x55", "12.7x55mm", r, 12.7f, 55f, 15f, 13.8f, 15f, 81f, 40f, st, 100f, 5.1f),
                 "STs-130", 59f, 295, 0.25f, null, 0, 0, null, 0, 0, null, 0, 0);
-        smallArms(cal("12.7x99", ".50 BMG", r, 12.95f, 99.3f, 20.4f, 14.2f, 20.4f, 138.4f, 58f, br, 115f, 2.33f),
-                "M33", 42f, 890, 0.28f, "M17", RED, TIP_RED, "M2 AP", 45.8f, 856, null, 0, 0);
+        Cal c50 = cal("12.7x99", ".50 BMG", r, 12.95f, 99.3f, 20.4f, 14.2f, 20.4f, 138.4f, 58f, br, 115f, 2.33f);
+        smallArms(c50, "M33", 42f, 890, 0.28f, "M17", RED, TIP_RED, "M2 AP", 45.8f, 856, null, 0, 0);
+        // Tip colours (Wikipedia): M8 silver, M20 red + aluminium ring, Mk 211 green + grey ring, M1 light blue.
+        // TODO M8 / M20 / Mk 211 / M1 mass + velocity assumed ~M33's; Mk 211: small blast (BLAST armour axis) for MK211_KINETIC x ball damage.
+        add(c50.kinetic("m8", "M8 API", 40.3f, 880, 0.28f, 1.5f, 42f, 890).tip(TIP_SILVER).coneMul(AP_CONE)
+                .look(ProjectileLook.Override.NONE.withBody(ProjectileLook.STEEL))
+                .effect(onHit(IGNITE, "{\"seconds\": 2}"))
+                .damagePerKJ(c50.dpk() * AP_DAMAGE));
+        add(c50.kinetic("m20", "M20 APIT", 40f, 880, 0.28f, 1.4f, 42f, 890).tracer(RED).tip(TIP_RED)
+                .coneMul(TRACER_CONE).look(ProjectileLook.Override.NONE.withBody(ProjectileLook.STEEL))
+                .effect(onHit(IGNITE, "{\"seconds\": 2}"))
+                .damagePerKJ(c50.dpk() * AP_DAMAGE));
+        add(c50.kinetic("mk211", "Mk 211 Raufoss", 42f, 885, 0.28f, 1f, 42f, 890).tip(TIP_GREEN).coneMul(AP_CONE)
+                .damagePerKJ(c50.dpk() * MK211_KINETIC)
+                .effect(onHit(EXPLODE, "{\"warhead\": \"wflib:standard\", \"size\": 0.5, \"breaksBlocks\": false}"))
+                .effect(new AmmoVariant.Effect(EXPLODE, ImpactTrigger.BLOCK, 1f,
+                        json("{\"warhead\": \"wflib:standard\", \"size\": 0.3, \"breaksBlocks\": false}"))));
+        add(c50.kinetic("m1", "M1 incendiary", 38f, 890, 0.28f, 0.6f, 42f, 890).tip(TIP_LIGHT_BLUE)
+                .coneMul(AP_CONE).effect(onHit(IGNITE, "{\"seconds\": 4}")));
+        // SLAP: sabot-launched tungsten penetrator only in flight (355-360 gr, 1200 m/s; 19 mm steel at 1400 m).
+        // blockPen ~2x M2 AP (34 mm at 500 m vs 23 mm at 200 m); drag from the ~6.5 mm penetrator.
+        add(AmmoVariant.builder(rl("12.7x99/slap"), c50.c().id(), "M903 SLAP")
+                .flight(1200, 0.0231f, quadDrag(6.5f, 23.1f, 0.30f)).damagePerKJ(c50.dpk() * AP_DAMAGE).blockPen(120f)
+                .tip(TIP_AMBER)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.DART, 48f, 6.5f)));
+        add(AmmoVariant.builder(rl("12.7x99/slap_t"), c50.c().id(), "M962 SLAP-T")
+                .flight(1200, 0.0231f, quadDrag(6.5f, 23.1f, 0.30f)).damagePerKJ(c50.dpk() * AP_DAMAGE).blockPen(120f)
+                .tracer(RED).tip(TIP_RED)
+                .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.DART, 48f, 6.5f)));
         smallArms(cal("12.7x108", "12.7x108mm", r, 12.98f, 107.8f, 21.75f, 13.95f, 21.75f, 147.5f, 64f, st, 130f,
                 2.33f), "57-B-541", 48f, 820, 0.28f, "BZT-44", GREEN, TIP_VIOLET, "B-32", 48.3f, 830, null, 0, 0);
         smallArms(cal("14.5x114", "14.5x114mm", r, 14.88f, 114f, 26.95f, 16.4f, 26.95f, 155.8f, 66f, st, 200f,

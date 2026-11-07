@@ -166,6 +166,11 @@ public class ExplosionAEF {
         return this;
     }
 
+    @Nullable
+    public UUID igniterFaction() {
+        return this.igniterFaction;
+    }
+
     public ExplosionAEF makeStandard() {
         this.setBlockAllocator(new BlockAllocatorStandard());
         this.setBlockProcessor(new BlockProcessorStandard());

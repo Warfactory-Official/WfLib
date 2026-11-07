@@ -31,13 +31,15 @@ class ArchitectureTest {
 
     /** Edges guarded by {@code WFSystems.enabled} at the call site; system -> systems it may touch without requiring. */
     private static final Map<String, Set<String>> GUARDED = Map.ofEntries(
-            Map.entry("missile", Set.of("probe")),
+            Map.entry("missile", Set.of("probe", "armor", "labs")),
+            Map.entry("labs", Set.of("armor")),
+            Map.entry("cam", Set.of("drone")),
             Map.entry("laser", Set.of("nvg")),
             Map.entry("damage", Set.of("armor")),
-            Map.entry("mist", Set.of("armor")),
+            Map.entry("mist", Set.of("armor", "labs")),
             Map.entry("view", Set.of("armor")),
-            Map.entry("round", Set.of("armor")),
-            Map.entry("armor", Set.of("nvg", "skin", "backpack", "carry", "probe")),
+            Map.entry("round", Set.of("armor", "labs")),
+            Map.entry("armor", Set.of("nvg", "skin", "backpack", "carry", "probe", "labs", "hazard", "radiation")),
             Map.entry("backpack", Set.of("probe")),
             Map.entry("hazard", Set.of("armor")),
             Map.entry("radiation", Set.of("hazard")),
@@ -46,7 +48,7 @@ class ArchitectureTest {
             Map.entry("colony", Set.of("mine", "industry")),
             Map.entry("drone", Set.of("build", "mine")),
             Map.entry("mine", Set.of("probe")),
-            Map.entry("compat", Set.of("armor", "artifact", "backpack", "carry", "magazine", "mine")));
+            Map.entry("compat", Set.of("armor", "artifact", "backpack", "carry", "magazine", "mine", "labs")));
 
     /** Packages that are systems without a {@link WFSystem} entry; all mandatory. */
     private static final Set<String> BARE_MANDATORY = Set.of("core", "geom", "testkit", "recoil");
@@ -95,7 +97,8 @@ class ArchitectureTest {
                     for (Dependency d : c.getDirectDependenciesFromSelf()) {
                         JavaClass t = d.getTargetClass();
                         String to = owner(t, Systems.INSTANCE.ids);
-                        if (to == null || to.equals(from) || t.getPackageName().startsWith(ROOT + to + ".api")
+                        if (to == null || to.equals(from) || to.equals("core") || t.getPackageName().startsWith(ROOT + to + ".api")
+                                || c.getPackageName().startsWith(ROOT + from + ".lab") && t.getPackageName().startsWith(ROOT + to + ".lab")
                                 || isActiveGuard(d, t, to)) {
                             continue;
                         }

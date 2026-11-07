@@ -12,19 +12,24 @@ public final class RoundConfig {
     private static final ModConfigSpec.DoubleValue UNLOADED_PRELOAD_BLAST;
     private static final ModConfigSpec.BooleanValue BLOCK_DAMAGE;
     private static final ModConfigSpec.DoubleValue BLOCK_TOUGHNESS_SCALE;
+    private static final ModConfigSpec.BooleanValue AMMO_ACCURACY;
 
     public record Snapshot(boolean rewindWholeFlight, double nearMissRadius, float preloadBlast, boolean blockDamage,
-                           float blockToughnessScale) {
+                           float blockToughnessScale, boolean ammoAccuracy) {
         public Snapshot withRewindWholeFlight(boolean v) {
-            return new Snapshot(v, nearMissRadius, preloadBlast, blockDamage, blockToughnessScale);
+            return new Snapshot(v, nearMissRadius, preloadBlast, blockDamage, blockToughnessScale, ammoAccuracy);
         }
 
         public Snapshot withBlockToughnessScale(float v) {
-            return new Snapshot(rewindWholeFlight, nearMissRadius, preloadBlast, blockDamage, v);
+            return new Snapshot(rewindWholeFlight, nearMissRadius, preloadBlast, blockDamage, v, ammoAccuracy);
+        }
+
+        public Snapshot withAmmoAccuracy(boolean v) {
+            return new Snapshot(rewindWholeFlight, nearMissRadius, preloadBlast, blockDamage, blockToughnessScale, v);
         }
     }
 
-    private static volatile Snapshot snapshot = new Snapshot(true, 3.0, 4.0f, true, 1.0f);
+    private static volatile Snapshot snapshot = new Snapshot(true, 3.0, 4.0f, true, 1.0f, true);
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -48,6 +53,10 @@ public final class RoundConfig {
         BLOCK_TOUGHNESS_SCALE = b
                 .comment("x every block's toughness: 2 = twice the hits.")
                 .defineInRange("blockToughnessScale", 1.0, 0.01, 1000.0);
+        AMMO_ACCURACY = b
+                .comment("Each ammo load's coneMul scales the gun's spread cone (tracer / AP slightly wider).",
+                        "false = every load shoots the gun's own cone. Set the same on server and client.")
+                .define("ammoAccuracy", true);
         b.pop();
         SPEC = b.build();
     }
@@ -61,7 +70,7 @@ public final class RoundConfig {
         }
         snapshot = new Snapshot(REWIND_WHOLE_FLIGHT.get(), NEAR_MISS_RADIUS.get(),
                 UNLOADED_PRELOAD_BLAST.get().floatValue(), BLOCK_DAMAGE.get(),
-                BLOCK_TOUGHNESS_SCALE.get().floatValue());
+                BLOCK_TOUGHNESS_SCALE.get().floatValue(), AMMO_ACCURACY.get());
     }
 
     public static Snapshot snapshot() {

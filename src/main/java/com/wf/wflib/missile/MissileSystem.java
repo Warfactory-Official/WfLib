@@ -220,6 +220,15 @@ public final class MissileSystem implements WFSystem {
         SimKinds.register(SimMissileManager.KIND);
         // Interceptor turrets fly unregistered catalogue presets => warhead live.
         WFLibContent.warheads(WFLib.MODID, "interceptor");
+        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
+            WFLibContent.warheads(WFLib.MODID, "inert");
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileFlightProducer());
+            if (com.wf.wflib.core.api.WFSystems.enabled("armor")) {
+                com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileVulnerabilityProducer());
+            }
+            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.InterceptionProducer());
+            com.wf.wflib.missile.lab.TurretDefender.registerAll();
+        }
 
         modBus.addListener(EventPriority.NORMAL, RegisterEvent.class, MissileSystem::registerItems);
         modBus.addListener(RegisterTicketControllersEvent.class, event -> {

@@ -85,6 +85,11 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     public static final Rounds KIND = new Rounds();
 
+    /** {@code RoundConfig.ammoAccuracy}. */
+    public static boolean ammoAccuracy() {
+        return com.wf.wflib.round.RoundConfig.snapshot().ammoAccuracy();
+    }
+
     /** Fraction of kinetic energy landing as damage when the preset names no flat figure. */
     private static final float ENERGY_TO_DAMAGE = 0.1f;
     private static final ResourceLocation SHAPED_CHARGE = Warheads.rl("shaped_charge");
@@ -140,13 +145,17 @@ public final class Rounds implements SimKind<RoundBatch> {
     public static long fire(ServerLevel level, KineticPreset preset, Vec3 from, Vec3 direction, float inaccuracy,
                             Vec3 carrier, @Nullable Entity shooter, @Nullable UUID faction) {
         Vec3 heading = direction.lengthSqr() < 1.0e-8 ? new Vec3(0.0, 1.0, 0.0) : direction.normalize();
-        float spread = inaccuracy + preset.dispersion();
-        if (spread > 0.0f) {
-            RandomSource random = level.random;
-            double s = 0.0172275 * Math.toRadians(spread) * 40.0;
-            heading = heading.add(random.triangle(0.0, s), random.triangle(0.0, s), random.triangle(0.0, s)).normalize();
-        }
+        heading = spread(heading, inaccuracy + preset.dispersion(), level.random);
         return launch(level, preset, from, heading.scale(preset.muzzleSpeed()).add(carrier), shooter, faction);
+    }
+
+    /** {@code heading} (unit) scattered by {@code spreadDeg}, as {@link #fire}; unchanged at 0. */
+    public static Vec3 spread(Vec3 heading, float spreadDeg, RandomSource random) {
+        if (spreadDeg > 0.0f) {
+            double s = 0.0172275 * Math.toRadians(spreadDeg) * 40.0;
+            return heading.add(random.triangle(0.0, s), random.triangle(0.0, s), random.triangle(0.0, s)).normalize();
+        }
+        return heading;
     }
 
     /** A round at {@code at} moving {@code velocity}. @return the round's key */
@@ -1131,12 +1140,15 @@ public final class Rounds implements SimKind<RoundBatch> {
         if (strike.outcome() != ProjectileStrikeEvent.Outcome.PROCEED) {
             return strike;
         }
-        RoundDamageSource source = new RoundDamageSource(damageType(level), projectile, shooter, threat, from,
-                velocity, key, segmentEnd, eh.when, eh.parts, preset.pierceDT(), preset.pierceDR());
+        RoundDamageSource source = source(level, preset, projectile, shooter, faction, threat, from, velocity, key,
+                segmentEnd, eh.when, eh.parts);
         float damage = impactDamage(preset, velocity) * damageScale;
         // One hit per round: i-frames from anything else must not swallow it (MG streams).
         if (eh.entity instanceof LivingEntity living) {
+            Vec3 before = living.getDeltaMovement();
             WFDamage.hurtIgnoringIFrames(living, source, damage * headshotFactor(preset, living, eh));
+            Vec3 pushed = living.getDeltaMovement().subtract(before);
+            living.setDeltaMovement(before.add(pushed.scale(knockbackScale(preset, velocity))));
         } else {
             eh.entity.hurt(source, damage);
         }
@@ -1144,6 +1156,22 @@ public final class Rounds implements SimKind<RoundBatch> {
             e.apply(ctx);
         }
         return strike;
+    }
+
+    /** The damage source of a direct hit, as {@link #strike} builds it; {@code when} {@link RoundDamageSource#LIVE} = unrewound. */
+    public static RoundDamageSource source(ServerLevel level, KineticPreset preset, @Nullable Entity projectile,
+                                           @Nullable Entity shooter, Threat threat, Vec3 from, Vec3 velocity,
+                                           Object key, Vec3 segmentEnd, long when, @Nullable List<HitboxPart> parts) {
+        return source(level, preset, projectile, shooter, null, threat, from, velocity, key, segmentEnd, when, parts);
+    }
+
+    /** {@code faction}: the round's side, readable through {@link com.wf.wflib.damage.api.Attribution#faction}. */
+    public static RoundDamageSource source(ServerLevel level, KineticPreset preset, @Nullable Entity projectile,
+                                           @Nullable Entity shooter, @Nullable UUID faction, Threat threat, Vec3 from,
+                                           Vec3 velocity, Object key, Vec3 segmentEnd, long when,
+                                           @Nullable List<HitboxPart> parts) {
+        return new RoundDamageSource(damageType(level), projectile, shooter, threat, from, velocity, key, segmentEnd,
+                when, parts, preset.pierceDT(), preset.pierceDR(), faction);
     }
 
     /** Claimed body => 1 (its owner scales by part); part => HEAD; no part => eye height +- 0.25 at the swept tick. */
@@ -1442,8 +1470,16 @@ public final class Rounds implements SimKind<RoundBatch> {
         return ThreatKind.HE;
     }
 
+    /** Momentum (kg*m/s) at which a hit gets full vanilla knockback; ~.50 BMG. */
+    private static final double FULL_KNOCKBACK_MOMENTUM = 30.0;
+
+    /** Fraction of vanilla knockback a hit keeps: {@code mass*speed / FULL_KNOCKBACK_MOMENTUM}, capped at 1. */
+    static double knockbackScale(KineticPreset preset, Vec3 velocity) {
+        return Math.min(1.0, preset.mass() * velocity.length() * 20.0 / FULL_KNOCKBACK_MOMENTUM);
+    }
+
     /** Before the launch's damage scale. {@code velocity} blocks/tick. */
-    static float impactDamage(KineticPreset preset, Vec3 velocity) {
+    public static float impactDamage(KineticPreset preset, Vec3 velocity) {
         if (preset.damagePerKJ() > 0.0f) {
             double mps2 = velocity.lengthSqr() * 400.0;
             return (float) (0.5 * preset.mass() * mps2 / 1000.0 * preset.damagePerKJ());

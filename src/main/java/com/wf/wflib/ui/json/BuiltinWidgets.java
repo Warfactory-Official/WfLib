@@ -4,6 +4,8 @@ import com.wf.wflib.ui.api.input.UiAction;
 import com.wf.wflib.ui.api.input.UiActions;
 import com.wf.wflib.ui.api.input.UiDrag;
 import com.wf.wflib.ui.api.input.UiSetter;
+import com.wf.wflib.ammo.api.client.AmmoGlyph;
+import com.wf.wflib.ui.api.Ui;
 import com.wf.wflib.ui.api.widget.Align;
 import com.wf.wflib.ui.api.widget.Anchor;
 import com.wf.wflib.ui.api.widget.Arc;
@@ -64,6 +66,15 @@ public final class BuiltinWidgets {
         add("text", p -> new Text(p.template("text"), p.expr("color", WHITE), p.flag("shadow", false),
                 p.expr("scale", "1"), p.expr("max_width", "0")));
         add("when", p -> new When(p.expr("if"), p.widget("then"), p.widgetOrNull("else")));
+        add("ammo_glyph", p -> new AmmoGlyph(p.number("size", 8), p.expr("alpha", "1")));
+        add("key_hint", p -> {
+            String condition = p.expr("if", "true");
+            String label = p.template("label");
+            boolean right = p.flag("right", false);
+            String key = p.template("key");
+            return p.has("key2") ? Ui.keyHint(condition, label, right, key, p.template("key2"))
+                    : Ui.keyHint(condition, label, right, key);
+        });
         add("rect", p -> new Rect(p.expr("w"), p.expr("h"), p.expr("color", WHITE), p.number("radius", 0),
                 p.number("stroke", 0)));
         add("sized", p -> new Sized(p.expr("w"), p.expr("h"), p.choice("align", Point.class, Point.TOP_LEFT),

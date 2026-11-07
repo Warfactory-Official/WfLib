@@ -33,6 +33,9 @@ public final class CompatSystem implements WFSystem {
     public void register(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.COMMON, CompatConfig.SPEC, "wflib-compat.toml");
         modBus.addListener(CompatConfig::onLoad);
+        if (ModList.get().isLoaded("wfweight") && WFSystems.enabled("labs") && WFSystems.enabled("armor")) {
+            com.wf.wflib.compat.wfweight.WeightLabs.register();
+        }
         if (GregtechCompat.isActive()) {
             modBus.addListener(GregtechEMPGameTest::register);
         }

@@ -1,8 +1,10 @@
 package com.wf.wflib.ui;
 
 import com.wf.wflib.core.api.WFSystem;
+import com.wf.wflib.ui.api.UiClientConfig;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -27,11 +29,13 @@ public final class UiSystem implements WFSystem {
     @Override
     public void register(IEventBus modBus, ModContainer container) {
         active = true;
+        container.registerConfig(ModConfig.Type.CLIENT, UiClientConfig.SPEC, "wflib-ui-client.toml");
     }
 
     @Override
     public void registerClient(IEventBus modBus) {
         UiDebug.register();
+        UiKeys.register(modBus);
         SkinShader.register(modBus);
         NeoForge.EVENT_BUS.addListener(RegisterClientCommandsEvent.class,
                 event -> event.getDispatcher().register(UiDebug.command()));

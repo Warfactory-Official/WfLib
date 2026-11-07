@@ -73,6 +73,11 @@ public final class ArmorCatalogue {
         return Collections.unmodifiableCollection(DEFS.values());
     }
 
+    /** Dev-only {@code mw_*} / test pieces. */
+    public static boolean isDev(ResourceLocation id) {
+        return MwTestArmor.isDev(id);
+    }
+
     public static ArmorPreset get(ResourceLocation id) {
         return DEFS.get(id);
     }

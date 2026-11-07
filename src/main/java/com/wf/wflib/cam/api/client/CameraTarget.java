@@ -193,7 +193,8 @@ public final class CameraTarget implements AutoCloseable {
                 lens = missile.getPosition(partial)
                         .add(CameraSource.Guided.heading(missile).scale(missile.noseForward()))
                         .add(forward.scale(SEEKER_CLEAR));
-            } else if (anchor instanceof com.wf.wflib.drone.api.DroneEntity drone
+            } else if (com.wf.wflib.core.api.WFSystems.enabled("drone")
+                    && anchor instanceof com.wf.wflib.drone.api.DroneEntity drone
                     && drone.lensPosition(partial).distanceToSqr(FeedMotion.position(feed)) < LIVE_POSE_SQ) {
                 // Same per-frame pose its model is drawn at; the 5 Hz feed walk lags it and swings the body into
                 // view. Only while the client copy keeps up: outside the client's ticking chunks it freezes.

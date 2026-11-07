@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArmViewPoseTest {
     private static final float PISTOL_REACH = 0.92F;
+    /** Frames at 60 Hz: {@link ArmViewPose#BEND_RELAX_TAU} / c to 1e-3 rad. */
+    private static final int SETTLE = 1500;
 
     @Test
     void shouldersMirror() {
@@ -102,7 +104,7 @@ class ArmViewPoseTest {
         target.set(shoulder).fma(along, line).fma((float) Math.sqrt(l1 * l1 - along * along),
                 p.mul((float) Math.cos(within)).fma((float) Math.sin(within), out));
         Quaternionf hand = new Quaternionf().rotationTo(new Vector3f(0, 1, 0), new Vector3f(fist).sub(target));
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < SETTLE; i++) {
             ArmViewPose.solve(fist, hand, ArmViewPose.shoulder(false, new Vector3f()), ArmViewPose.RIGHT_POLE,
                     LENGTHS, 0, bend, 1 / 60F, new Matrix4f(), new Matrix4f(), elbow);
         }
@@ -147,7 +149,7 @@ class ArmViewPoseTest {
             }
             Vector3f shoulder = ArmViewPose.shoulder(left, new Vector3f()), elbow = new Vector3f();
             ArmViewPose.Bend bend = new ArmViewPose.Bend();
-            for (int i = 0; i < 60; i++) {
+            for (int i = 0; i < SETTLE; i++) {
                 ArmViewPose.solve(fist, q, shoulder, pole, LENGTHS, 0, bend, 1 / 60F, new Matrix4f(), new Matrix4f(),
                         elbow);
             }
@@ -205,7 +207,7 @@ class ArmViewPoseTest {
         ArmViewPose.solve(fist, null, ArmViewPose.shoulder(false, new Vector3f()), flipped, LENGTHS, new Matrix4f(),
                 new Matrix4f(), free);
         float worst = 0, total = last.distance(free);
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < SETTLE; i++) {
             ArmViewPose.solve(fist, null, ArmViewPose.shoulder(false, new Vector3f()), flipped, LENGTHS, 0, bend,
                     1 / 60F, new Matrix4f(), new Matrix4f(), elbow);
             worst = Math.max(worst, elbow.distance(last));
@@ -213,6 +215,81 @@ class ArmViewPoseTest {
         }
         assertTrue(worst < 0.4F * total, "per-frame step " + worst + " of " + total);
         assertEquals(0, elbow.distance(free), 1e-3F, "settled");
+    }
+
+    /** ks23 hip hold: hand +Y 3.4 deg off the arm line, walk bob across {@link ArmViewPose#HAND_AXIS_MIN}. */
+    @Test
+    void hintedElbowStaysLockedThroughBob() {
+        Vector3f fist = new Vector3f(0.126F, -0.161F, -0.174F);
+        Vector3f hint = new Vector3f(0.15F, -0.45F, -0.05F);
+        Vector3f line = new Vector3f(fist).sub(ArmViewPose.SHOULDER).normalize();
+        Vector3f tilted = new Vector3f(line).add(new Vector3f(line).cross(hint).normalize().mul((float) Math.tan(Math.toRadians(3.4)))).normalize();
+        Quaternionf hand = new Quaternionf().rotationTo(new Vector3f(0, 1, 0), tilted);
+        ArmViewPose.Bend bend = new ArmViewPose.Bend();
+        Vector3f elbow = new Vector3f();
+        for (int i = 0; i < SETTLE; i++) hinted(fist, hand, hint, bend, elbow);
+        Vector3f rest = new Vector3f(elbow);
+        float worst = 0;
+        for (int i = 0; i < 120; i++) {
+            float a = (float) Math.toRadians(2.5) * (float) Math.sin(i * 2 * Math.PI * 2 / 60);
+            hinted(fist, new Quaternionf().rotationAxis(a, 1, 0, 0).mul(hand), hint, bend, elbow);
+            worst = Math.max(worst, elbow.distance(rest));
+        }
+        assertTrue(worst < 0.01F, "elbow moved " + worst);
+    }
+
+    /** ks23 ADS: hand axis swept across the far side of the hint: no flip between the cone bounds. */
+    @Test
+    void hintedTargetContinuousAcrossTheFarSide() {
+        Vector3f fist = new Vector3f(0.12F, -0.15F, -0.35F);
+        Vector3f hint = new Vector3f(0.15F, -0.45F, -0.05F);
+        Vector3f line = new Vector3f(fist).sub(ArmViewPose.SHOULDER).normalize();
+        Vector3f elbow = new Vector3f(), last = null;
+        for (int i = 150; i <= 210; i++) {
+            Quaternionf hand = new Quaternionf().rotationAxis((float) Math.toRadians(i), line).rotateX(-1.3F);
+            hinted(fist, hand, hint, null, elbow);
+            if (last != null) assertTrue(elbow.distance(last) < 0.01F, "step " + elbow.distance(last) + " at " + i);
+            last = new Vector3f(elbow);
+        }
+    }
+
+    /** Large authored hand turn: elbow still follows at {@link ArmViewPose#BEND_TAU}, not the relax rate. */
+    @Test
+    void largeHandTurnStillLeadsTheElbow() {
+        Vector3f fist = new Vector3f(0.12F, -0.15F, -0.35F);
+        Vector3f shoulder = ArmViewPose.shoulder(false, new Vector3f());
+        Vector3f pole = new Vector3f(ArmViewPose.RIGHT_POLE);
+        Vector3f line = new Vector3f(fist).sub(shoulder).normalize();
+        Vector3f p = new Vector3f(pole).fma(-pole.dot(line), line).normalize();
+        Vector3f out = new Vector3f(p).cross(line), target = new Vector3f();
+        float d = fist.distance(shoulder), l1 = LENGTHS.upper(), l2 = LENGTHS.forearm();
+        float along = (l1 * l1 - l2 * l2 + d * d) / (2 * d), within = (float) Math.toRadians(90);
+        target.set(shoulder).fma(along, line).fma((float) Math.sqrt(l1 * l1 - along * along),
+                new Vector3f(p).mul((float) Math.cos(within)).fma((float) Math.sin(within), out));
+        Quaternionf hand = new Quaternionf().rotationTo(new Vector3f(0, 1, 0), new Vector3f(fist).sub(target));
+        ArmViewPose.Bend bend = new ArmViewPose.Bend();
+        Vector3f elbow = new Vector3f();
+        ArmViewPose.solve(fist, null, ArmViewPose.shoulder(false, new Vector3f()), pole, LENGTHS, 0, bend, 1 / 60F,
+                new Matrix4f(), new Matrix4f(), elbow);
+        for (int i = 0; i < 30; i++) {
+            ArmViewPose.solve(fist, hand, ArmViewPose.shoulder(false, new Vector3f()), pole, LENGTHS, 0, bend, 1 / 60F,
+                    new Matrix4f(), new Matrix4f(), elbow);
+        }
+        assertTrue(elbowAngle(fist, shoulder, elbow, pole) > within - ArmViewPose.BEND_LOCK, "lagged");
+    }
+
+    private static void hinted(Vector3f fist, Quaternionf hand, Vector3f hint, ArmViewPose.Bend bend, Vector3f elbow) {
+        ArmViewPose.solve(fist, hand, ArmViewPose.shoulder(false, new Vector3f()), hint, true, LENGTHS, 0,
+                ArmViewPose.MAX_REACH, bend, 1 / 60F, new Matrix4f(), new Matrix4f(), elbow);
+    }
+
+    @Test
+    void stanceIsBladedAndFollowsAds() {
+        Vector3f right = ArmViewPose.stance(false, 0, new Vector3f()), left = ArmViewPose.stance(true, 0, new Vector3f());
+        assertTrue(right.z > ArmViewPose.SHOULDER.z() && left.z < ArmViewPose.SHOULDER.z(), "firing back, support forward");
+        Vector3f ads = ArmViewPose.stance(false, 1, new Vector3f()), half = ArmViewPose.stance(false, 0.5F, new Vector3f());
+        assertTrue(ads.x < right.x, "firing shoulder in toward the stock");
+        assertEquals(0, half.distance(new Vector3f(right).lerp(ads, 0.5F)), 1e-6F);
     }
 
     /** Hand rolled round the forearm axis 1 deg per frame: twist follows it one for one (unclamped, wrapped). */

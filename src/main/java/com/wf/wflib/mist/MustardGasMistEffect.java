@@ -17,8 +17,8 @@ import com.wf.wflib.mist.api.MistContact;
 public class MustardGasMistEffect implements MistEffect {
 
     /** Damage per application at full concentration, and how often it is applied. */
-    private static final float DAMAGE = 4.0F;
-    private static final int DAMAGE_INTERVAL = 10;
+    public static final float DAMAGE = 4.0F;
+    public static final int DAMAGE_INTERVAL = 10;
 
     /**
      * What the agent costs armour at full concentration, in condition points per exposure interval. The
@@ -27,7 +27,7 @@ public class MustardGasMistEffect implements MistEffect {
      *
      * <p>150 against an unsealed 600-durability garment is about a hundred seconds of standing in it.
      */
-    private static final double EXPOSURE_TIER = 150.0D;
+    public static final double EXPOSURE_TIER = 150.0D;
 
     /**
      * How often stale entries are swept out of {@link #lastAffected}, and how old an entry has to be to go.

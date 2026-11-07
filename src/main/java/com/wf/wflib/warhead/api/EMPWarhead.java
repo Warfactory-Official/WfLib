@@ -1,5 +1,6 @@
 package com.wf.wflib.warhead.api;
 
+import com.wf.wflib.compat.api.ClaimPolicy;
 import com.wf.wflib.explosion.api.ExplosionAEF;
 import com.wf.wflib.explosion.api.BlockAllocatorBlockEntities;
 import com.wf.wflib.explosion.api.BlockProcessorEMP;
@@ -37,7 +38,7 @@ public final class EMPWarhead {
         ExplosionAEF emp = new ExplosionAEF(level, pos.x, pos.y, pos.z, RADIUS);
         emp.setBlockAllocator(new BlockAllocatorBlockEntities(RADIUS));
         emp.setBlockProcessor(new BlockProcessorEMP(CHARGE_LOCK_SECONDS, DRAIN_ENERGY, PAUSE_WORK, BREAK_MAINTENANCE));
-        emp.bypassClaims(true);
+        emp.bypassClaims(!ClaimPolicy.empRespectsClaims());
         emp.explode();
 
         EMPCreator.compose(level, pos.x, pos.y, pos.z, RADIUS);

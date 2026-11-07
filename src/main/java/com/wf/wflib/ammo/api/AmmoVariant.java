@@ -13,15 +13,17 @@ import java.util.List;
  * {@code drag} fraction per tick, {@code blockPen} / {@code armorPenMm} mm. {@code tracer} / {@code tip} rgb, -1 =
  * none. {@code look} = override onto the per-shape defaults in {@link ProjectileLook#resolve}. {@code threat}: null =>
  * derived from the warhead / pen ({@code Rounds.threat}). {@code patternDeg}: pellet cone half-angle about the shot
- * line, 0 => every pellet draws the gun's cone. {@code light}: point light carried in flight, range blocks, 0 = none.
+ * line, 0 => every pellet draws the gun's cone. {@code coneMul}: x gun cone, 1 = service ball. {@code light}: point light carried in flight, range blocks, 0 = none.
  */
 public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String name, float speed,
                           float projectileMassKg, float drag, float quadraticDrag, float gravity, float damagePerKJ,
-                          int pellets, float patternDeg, int tracer, int tip, float light, @Nullable Pierce pierce,
+                          int pellets, float patternDeg, float coneMul, int tracer, int tip, float light, @Nullable Pierce pierce,
                           @Nullable Explosive explosive, @Nullable Motor motor, float blockPen, float armorPenMm,
                           List<Effect> effects, ProjectileLook.Override look, @Nullable ThreatKind threat) {
 
     public static final int NONE = -1;
+    public static final float MIN_CONE_MUL = 0.5f;
+    public static final float MAX_CONE_MUL = 2f;
     /** Unset {@code armorPenMm}, no explosive => {@code blockPen} x this. Estimate. */
     public static final float RHA_PER_BLOCK_PEN = 0.5f;
 
@@ -40,6 +42,9 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         if (!(patternDeg >= 0 && patternDeg < 90) || !(light >= 0 && light <= 256)) {
             throw new IllegalArgumentException(id + ": patternDeg " + patternDeg + " / light " + light);
         }
+        if (!(coneMul >= MIN_CONE_MUL && coneMul <= MAX_CONE_MUL)) {
+            throw new IllegalArgumentException(id + ": coneMul " + coneMul + " not " + MIN_CONE_MUL + ".." + MAX_CONE_MUL);
+        }
         if (tracer == 0) {
             throw new IllegalArgumentException(id + ": tracer 0 (WFLib none); use -1");
         }
@@ -49,6 +54,11 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         if (motor != null && blockPen > 0) {
             throw new IllegalArgumentException(id + ": blockPen with motor");
         }
+    }
+
+    /** {@code coneMul}, 1 when {@code RoundConfig.ammoAccuracy} is off. */
+    public float effectiveConeMul() {
+        return com.wf.wflib.round.api.Rounds.ammoAccuracy() ? coneMul : 1f;
     }
 
     public record Pierce(float dt, float dr) {
@@ -82,6 +92,7 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         private float damagePerKJ;
         private int pellets = 1;
         private float pattern;
+        private float coneMul = 1f;
         private int tracer = NONE;
         private int tip = NONE;
         private float light;
@@ -125,6 +136,11 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
 
         public Builder pellets(int n) {
             this.pellets = n;
+            return this;
+        }
+
+        public Builder coneMul(float m) {
+            this.coneMul = m;
             return this;
         }
 
@@ -192,7 +208,7 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
             float armor = armorPenMm > 0 || explosive != null ? armorPenMm
                     : Math.round(blockPen * RHA_PER_BLOCK_PEN * 2) / 2f;
             return new AmmoVariant(id, calibre, name, speed, mass, drag, quadraticDrag, gravity, damagePerKJ,
-                    pellets, pattern, tracer, tip, light, pierce, explosive, motor, blockPen, armor, effects, look,
+                    pellets, pattern, coneMul, tracer, tip, light, pierce, explosive, motor, blockPen, armor, effects, look,
                     threat);
         }
     }

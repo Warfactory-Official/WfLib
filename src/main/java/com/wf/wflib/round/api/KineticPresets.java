@@ -28,6 +28,7 @@ public final class KineticPresets {
     private static volatile Map<ResourceLocation, KineticPreset> presets = Map.of();
     private static volatile List<KineticPreset> withItems = List.of();
     private static boolean frozen;
+    private static final java.util.Set<ResourceLocation> DEV = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private KineticPresets() {
     }
@@ -59,6 +60,10 @@ public final class KineticPresets {
             throw new IllegalStateException("kinetic preset " + preset.id() + " already registered");
         }
         into.register(preset.id(), preset);
+        if (!net.neoforged.fml.loading.FMLEnvironment.production && StackWalker.getInstance()
+                .walk(f -> f.anyMatch(x -> x.getClassName().contains(".gametest.")))) {
+            DEV.add(preset.id());
+        }
         put(preset);
         if (frozen) {
             requireWarheads(preset);
@@ -92,6 +97,11 @@ public final class KineticPresets {
 
     public static boolean exists(ResourceLocation id) {
         return presets.containsKey(id);
+    }
+
+    /** Registered by a gametest class (dev run only): a fixture, never shipped content. */
+    public static boolean isDev(ResourceLocation id) {
+        return DEV.contains(id);
     }
 
     public static Collection<KineticPreset> all() {

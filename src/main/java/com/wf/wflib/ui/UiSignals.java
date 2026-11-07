@@ -7,6 +7,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import com.wf.wflib.ui.api.Signals;
 import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiClientConfig;
 import com.wf.wflib.ui.api.UiEval;
 
 /** wflib's own subjects and signals. {@code ui.time}/{@code ui.dt} are fixed slots, not signals. */
@@ -36,6 +37,7 @@ public final class UiSignals {
         Signals.num(UI, "scale", ev -> ev.scale);
         Signals.num(UI, "px", ev -> ev.pixel);
         Signals.bool(UI, "hide_gui", ev -> Minecraft.getInstance().options.hideGui);
+        Signals.bool(UI, "key_hints", ev -> UiClientConfig.keyHints());
 
         Signals.num(PLAYER, "health", LocalPlayer::getHealth);
         Signals.num(PLAYER, "max_health", LocalPlayer::getMaxHealth);

@@ -91,7 +91,8 @@ public class MistEntity extends Entity implements com.wf.wflib.grenade.api.Sight
     public static final com.wf.wflib.core.api.OrderedRegistry<java.util.function.Predicate<Entity>> IMMUNITY =
             com.wf.wflib.core.api.OrderedRegistry.create("mist", "mist.immunity");
 
-    private static boolean isAffectable(Entity entity) {
+    /** The gate every cloud tick applies: false => the entity takes nothing. */
+    public static boolean isAffectable(Entity entity) {
         if (entity instanceof MistEntity) return false;
         for (java.util.function.Predicate<Entity> immune : IMMUNITY.values()) {
             if (immune.test(entity)) return false;

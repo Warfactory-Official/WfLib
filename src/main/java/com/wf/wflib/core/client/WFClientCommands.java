@@ -25,7 +25,7 @@ public final class WFClientCommands {
             return 1;
         }));
         event.getDispatcher().register(com.wf.wflib.anomaly.client.AnomalyDebug.command());
-        event.getDispatcher().register(Commands.literal("wfdebug").requires(s -> com.wf.wflib.core.client.DebugGate.allowed()).then(Commands.literal("rounds")
+        event.getDispatcher().register(Commands.literal("wfdebug").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed()).then(Commands.literal("rounds")
                 .executes(ctx -> rounds(ctx.getSource(), !RoundDebug.enabled()))
                 .then(Commands.literal("on").executes(ctx -> rounds(ctx.getSource(), true)))
                 .then(Commands.literal("off").executes(ctx -> rounds(ctx.getSource(), false)))

@@ -9,6 +9,7 @@ import java.util.Map;
 /** Gametest classes of a system register only while it is on; no {@code @GameTestHolder}, which NeoForge scans regardless. */
 public final class SystemGameTests {
     private static final Map<String, List<Class<?>>> BY_SYSTEM = Map.ofEntries(
+            Map.entry("labs", List.of(com.wf.wflib.labs.LabServeGameTest.class)),
             Map.entry("sim", List.of(com.wf.wflib.sim.gametest.SimRegistryGameTest.class)),
             Map.entry("physics", List.of(com.wf.wflib.physics.gametest.PhysicsGameTest.class,
                     com.wf.wflib.physics.gametest.StepGameTest.class,
@@ -24,6 +25,7 @@ public final class SystemGameTests {
                     com.wf.wflib.round.gametest.RicochetGameTest.class,
                     com.wf.wflib.round.gametest.RocketGameTest.class,
                     com.wf.wflib.round.gametest.RoundHitGameTest.class,
+                    com.wf.wflib.round.gametest.RoundLabGameTest.class,
                     com.wf.wflib.round.api.RoundSweepBench.class)),
             Map.entry("missile", List.of(
                     com.wf.wflib.missile.gametest.SeekerDecoyGameTest.class,
@@ -32,7 +34,8 @@ public final class SystemGameTests {
                     com.wf.wflib.missile.gametest.AirLaunchGameTest.class,
                     com.wf.wflib.missile.gametest.TorpedoGameTest.class,
                     com.wf.wflib.missile.gametest.TvGuidanceGameTest.class,
-                    com.wf.wflib.missile.gametest.GlideGameTest.class)),
+                    com.wf.wflib.missile.gametest.GlideGameTest.class,
+                    com.wf.wflib.missile.gametest.MissileLabGameTest.class)),
             Map.entry("warhead", List.of(
                     com.wf.wflib.warhead.gametest.AgentOrangeGameTest.class,
                     com.wf.wflib.warhead.gametest.ThermobaricGameTest.class,
@@ -65,7 +68,8 @@ public final class SystemGameTests {
             Map.entry("compat", List.of(com.wf.wflib.compat.gametest.ItemMassGameTest.class)),
             Map.entry("armor", List.of(com.wf.wflib.armor.gametest.ArmorGameTest.class,
                     com.wf.wflib.armor.gametest.ExoGameTest.class,
-                    com.wf.wflib.armor.gametest.DressGameTest.class)),
+                    com.wf.wflib.armor.gametest.DressGameTest.class,
+                    com.wf.wflib.armor.gametest.ArmorLabGameTest.class)),
             Map.entry("packs", List.of(com.wf.wflib.packs.gametest.PacksGameTest.class)),
             Map.entry("carry", List.of(com.wf.wflib.carry.gametest.CarryGameTest.class)),
             Map.entry("radiation", List.of(
@@ -78,6 +82,9 @@ public final class SystemGameTests {
 
     public static void register(RegisterGameTestsEvent event) {
         event.register(com.wf.wflib.testkit.gametest.ForcedChunksGameTest.class);
+        if (net.neoforged.fml.ModList.get().isLoaded("wfweight") && WFSystems.enabled("labs") && WFSystems.enabled("armor")) {
+            event.register(com.wf.wflib.compat.gametest.WeightLabGameTest.class);
+        }
         BY_SYSTEM.forEach((system, classes) -> {
             if (WFSystems.enabled(system)) {
                 classes.forEach(event::register);

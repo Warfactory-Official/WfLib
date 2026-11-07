@@ -1,8 +1,11 @@
 package com.wf.wflib.compat.warforge;
 
+import com.flansmod.warforge.api.AlterKind;
 import com.flansmod.warforge.api.WarforgeAPI;
 import com.flansmod.warforge.api.ZoneKind;
+import com.wf.wflib.compat.api.ClaimAction;
 import com.wf.wflib.compat.api.TerritoryVerdict;
+import com.wf.wflib.damage.api.Attribution;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -19,6 +22,10 @@ public final class WarforgeApi {
     private WarforgeApi() {
     }
 
+    public static void registerKillAttribution() {
+        WarforgeAPI.addKillAttributor(Attribution::faction);
+    }
+
     public static UUID factionOfPlayer(UUID playerId) {
         return WarforgeAPI.factionOf(playerId);
     }
@@ -28,7 +35,15 @@ public final class WarforgeApi {
     }
 
     /** Can a drone owned by {@code faction} edit blocks here. */
-    public static TerritoryVerdict buildVerdict(Level level, UUID faction, BlockPos pos) {
+    public static TerritoryVerdict buildVerdict(Level level, UUID faction, BlockPos pos, ClaimAction kind) {
+        TerritoryVerdict zone = zoneVerdict(level, faction, pos);
+        if (zone.allowed() && !WarforgeAPI.mayAlter(level.dimension(), new ChunkPos(pos), null, faction, AlterKind.valueOf(kind.name()))) {
+            return TerritoryVerdict.CLAIM_RULES;
+        }
+        return zone;
+    }
+
+    private static TerritoryVerdict zoneVerdict(Level level, UUID faction, BlockPos pos) {
         ChunkPos chunk = new ChunkPos(pos);
         switch (WarforgeAPI.siegeZoneAt(level.dimension(), chunk)) {
             case SIEGED -> {
@@ -97,5 +112,9 @@ public final class WarforgeApi {
 
     public static void filterClaimProtected(Level level, UUID igniterFaction, Collection<BlockPos> positions) {
         WarforgeAPI.filterExplosionProtected(level, igniterFaction, positions);
+    }
+
+    public static boolean mayAlter(Level level, ChunkPos chunk, UUID player, UUID faction, ClaimAction kind) {
+        return WarforgeAPI.mayAlter(level.dimension(), chunk, player, faction, AlterKind.valueOf(kind.name()));
     }
 }
