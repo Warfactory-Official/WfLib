@@ -25,7 +25,7 @@ sync was the largest single per-tick cost of a bot).
 
 ## Why it is slow today, and how to make it asynchronous
 
-Measured on a spark profile of eight bots: a fake player costs about 8.5% of the server thread before any AI runs
+From a spark profile of Carpet-driven bots (read from a screenshot, so the bot count is not known): one fake player's own tick is about 8.5% of the server thread before any AI runs
 (`ServerPlayer.tick` 5%, of which container sync 4.9% with weight-tracking mixins, `doTick` 3.4%, ragdoll ticking). On top of that the
 AI itself runs on the server thread: every tick each soldier does line-of-sight rays to every enemy, and every ~20 ticks a cover search
 (a few thousand rays) and a danger-weighted A* (up to 5000 nodes, one exposure test per node).
