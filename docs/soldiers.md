@@ -15,7 +15,7 @@ aid and revival. The guns, grenades and medicine belong to other mods and are pl
 
 Register with `SoldierServices.weapon(..)` etc. during mod construction. A gun mod reports shots with
 `SoldierControl.shotFired(shooter, origin)` (soldiers hear them). `Soldiers.spawn(level, at, yaw, SoldierSpec, owner)` puts one
-in the world; `SoldierControl` carries orders, squad objectives and telemetry for scripted tooling (`filmingGate` lets a tool
+in the world; `SoldierServices.side(name, spec)` names a side the `/soldiers spawn <side> <n> [radius]` command can field (also `/soldiers clear`, `profile [reset]`, `check`, `routebench`, `async on|off`; permission level 2). `SoldierControl` carries orders, squad objectives and telemetry for scripted tooling (`filmingGate` lets a tool
 run Carpet-driven players the same AI drives).
 
 How a soldier works with no connection: `SoldierConnection` is a dead wire with an embedded channel (set by

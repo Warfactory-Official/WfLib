@@ -1,6 +1,13 @@
 package com.wf.wflib.soldier;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.wf.wflib.soldier.api.SoldierServices;
+import com.wf.wflib.soldier.api.SoldierSpec;
+import com.wf.wflib.soldier.api.Soldiers;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -12,13 +19,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/** {@code /soldiers check [radius]}, {@code /soldiers async <on|off>}: debugging for the worker-side search. */
-final class SoldierChecks {
-    private SoldierChecks() {
+/** {@code /soldiers spawn|clear|profile|check|routebench|async}: bench and debug tools (permission level 2). */
+final class SoldierCommands {
+    private SoldierCommands() {
     }
 
     static void onRegisterCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("soldiers").requires(s -> s.hasPermission(2))
+                .then(Commands.literal("spawn")
+                        .then(Commands.argument("side", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(SoldierServices.sides(), b))
+                                .then(Commands.argument("count", IntegerArgumentType.integer(1, Soldiers.CAP))
+                                        .executes(c -> spawn(c.getSource(), StringArgumentType.getString(c, "side"),
+                                                IntegerArgumentType.getInteger(c, "count"), 12))
+                                        .then(Commands.argument("radius", IntegerArgumentType.integer(2, 64))
+                                                .executes(c -> spawn(c.getSource(), StringArgumentType.getString(c, "side"),
+                                                        IntegerArgumentType.getInteger(c, "count"),
+                                                        IntegerArgumentType.getInteger(c, "radius")))))))
+                .then(Commands.literal("clear").executes(c -> {
+                    Soldiers.removeAll(c.getSource().getServer());
+                    c.getSource().sendSuccess(() -> Component.literal("soldiers removed"), false);
+                    return 1;
+                }))
+                .then(Commands.literal("profile")
+                        .executes(c -> profile(c.getSource(), false))
+                        .then(Commands.literal("reset").executes(c -> profile(c.getSource(), true))))
                 .then(Commands.literal("check").executes(c -> check(c.getSource().getLevel(), c.getSource().getPosition(), 12, c.getSource()))
                         .then(Commands.argument("radius", IntegerArgumentType.integer(4, 40))
                                 .executes(c -> check(c.getSource().getLevel(), c.getSource().getPosition(),
@@ -33,6 +58,35 @@ final class SoldierChecks {
                             SoldierJobs.enabled(false);
                             return 1;
                         }))));
+    }
+
+    private static int spawn(net.minecraft.commands.CommandSourceStack source, String side, int count, int radius) {
+        SoldierSpec spec = SoldierServices.spec(side);
+        if (spec == null) {
+            source.sendFailure(Component.literal("sides: " + SoldierServices.sides() + " (and a usable gun must be installed)"));
+            return 0;
+        }
+        ServerLevel level = source.getLevel();
+        Vec3 centre = source.getPosition();
+        ServerPlayer owner = source.getEntity() instanceof ServerPlayer p ? p : null;
+        Random rng = new Random();
+        int made = 0;
+        for (int i = 0; i < count * 6 && made < count; i++) {
+            double x = centre.x + (rng.nextDouble() * 2 - 1) * radius, z = centre.z + (rng.nextDouble() * 2 - 1) * radius;
+            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
+            if (Math.abs(y - centre.y) > 6) continue;
+            if (Soldiers.spawn(level, new Vec3(x, y, z), rng.nextFloat() * 360, spec, owner) != null) made++;
+        }
+        int total = made;
+        source.sendSuccess(() -> Component.literal("spawned " + total + " " + side), false);
+        return made;
+    }
+
+    private static int profile(net.minecraft.commands.CommandSourceStack source, boolean reset) {
+        var report = SoldierProfiler.report(reset);
+        report.addProperty("server_tick_ms_avg", Math.round(source.getServer().getAverageTickTimeNanos() / 1e4) / 100.0);
+        source.sendSuccess(() -> Component.literal(report.toString()), false);
+        return 1;
     }
 
     /** Compares the live world with its block copy on random cells and sight lines around the caller. */

@@ -34,6 +34,6 @@ public final class SoldierSystem implements WFSystem {
             Soldiers.removeAll(e.getServer());
             SoldierJobs.shutdown();
         });
-        NeoForge.EVENT_BUS.addListener(SoldierChecks::onRegisterCommands);
+        NeoForge.EVENT_BUS.addListener(SoldierCommands::onRegisterCommands);
     }
 }
