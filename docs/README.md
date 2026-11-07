@@ -13,6 +13,7 @@ the look-at probe, recon/sonar, and the UI widget system other mods build HUDs f
 | [magazines](magazines.md) | magazine contents, fill / unload, launch pods, shipped cans / drum / pods |
 | [barrels](barrels.md) | barrel heat, jams, cook-off, wear, quick-change spare barrels |
 | [ntm-doors](ntm-doors.md) | multiblock door roster, rendering |
+| [ragdoll](ragdoll.md) | player ragdolls: XPBD server sim, AHF rig + jointed body |
 | [the-probe](the-probe.md) | look-at panel: elements, providers, action list |
 | [model-gallery](model-gallery.md) | model gallery screen |
 | [explosion-debris](explosion-debris.md) | blast debris + corpse FX |
