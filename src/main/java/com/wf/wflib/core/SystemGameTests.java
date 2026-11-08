@@ -71,7 +71,7 @@ public final class SystemGameTests {
                     com.wf.wflib.armor.gametest.DressGameTest.class,
                     com.wf.wflib.armor.gametest.ArmorLabGameTest.class)),
             Map.entry("soldier", List.of(com.wf.wflib.soldier.VoiceGameTest.class, com.wf.wflib.soldier.LightGameTest.class,
-                    com.wf.wflib.soldier.InvestigateGameTest.class)),
+                    com.wf.wflib.soldier.InvestigateGameTest.class, com.wf.wflib.soldier.DeathGameTest.class)),
             Map.entry("packs", List.of(com.wf.wflib.packs.gametest.PacksGameTest.class)),
             Map.entry("carry", List.of(com.wf.wflib.carry.gametest.CarryGameTest.class)),
             Map.entry("ragdoll", List.of(com.wf.wflib.ragdoll.gametest.RagdollGameTest.class)),
