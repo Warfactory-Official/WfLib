@@ -112,7 +112,7 @@ Worktrees: `/home/overlord/Codebases/soldier-editor/WFLib` and
 `/home/overlord/Codebases/soldier-editor/MineAssault`, both `feat/soldier-editor`.
 WFLib rebases the committed main headlamp/aim fixes through `e959d88`. The distributable also
 preserves the active instance's existing main-worktree WFRegistry, Signals, Subject and Replay
-compatibility edits and four pixelated detector textures. These were copied verbatim; the other
+compatibility edits, current SoldierLightClient tuning and four pixelated detector textures. These were copied verbatim; the other
 agent's original working files were not changed. Keep these integration changes when rebuilding
 for the current instance; the feature commit itself is separate for review/cherry-picking.
 

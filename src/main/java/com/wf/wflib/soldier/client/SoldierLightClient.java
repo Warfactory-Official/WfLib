@@ -19,13 +19,24 @@ import java.util.Map;
 public final class SoldierLightClient {
     /** Ticks a soldier stays lit without being told again (the server repeats every 40). */
     private static final int LAPSE = 100;
-    static final float RANGE = 40, INNER = 5, OUTER = 22;
+    // TUNING-TEMP: values re-read from /tmp/wflib-lamp-tune.txt (inner outer intensity soft range) while tuning; removed before the final build.
+    static float RANGE = 40, INNER = 5, OUTER = 22;
     /**
      * Peak irradiance at 1 m before falloff, and the near-field softening (m): a wall 4 m off was clipped to white out to
      * 1.3 m of its 1.6 m pool, so the focused centre and the taper read as one disc; this keeps the centre white and the
      * taper visible from 2 m to 30 m (the pool itself already grows with distance: it is angular).
      */
-    private static final float INTENSITY = 140, SOFTNESS = 2.0F;
+    private static float INTENSITY = 140, SOFTNESS = 2.0F;
+    private static long tuneAt;
+    private static void tune() {
+        long now = System.nanoTime();
+        if (now - tuneAt < 500_000_000L) return;
+        tuneAt = now;
+        try {
+            String[] v = java.nio.file.Files.readString(java.nio.file.Path.of("/tmp/wflib-lamp-tune.txt")).trim().split("\\s+");
+            INNER = Float.parseFloat(v[0]); OUTER = Float.parseFloat(v[1]); INTENSITY = Float.parseFloat(v[2]); SOFTNESS = Float.parseFloat(v[3]); RANGE = Float.parseFloat(v[4]);
+        } catch (Exception ignored) { }
+    }
     static final int COLOR = 0xFFF4E6;
     /** At the headlamp model's lens: ahead of the eye and above it. */
     private static final float AHEAD = 0.44F, RISE = 0.16F;
@@ -68,6 +79,7 @@ public final class SoldierLightClient {
             LIT.clear();
             return;
         }
+        tune();
         long now = mc.level.getGameTime();
         LampFlare.clear();
         for (Iterator<Map.Entry<Integer, Long>> it = LIT.entrySet().iterator(); it.hasNext(); ) {
