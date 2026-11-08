@@ -49,6 +49,11 @@ public final class Headlamp {
         return curios() ? Curios.describe(p) : "curios not loaded";
     }
 
+    /** Whether the player visibly wears one (the client draws it; false without Curios, where nothing can be worn). */
+    public static boolean wearing(Player p) {
+        return curios() && Curios.wearing(p);
+    }
+
     static boolean curios() {
         return ModList.get().isLoaded("curios");
     }
@@ -60,6 +65,11 @@ public final class Headlamp {
                     .map(inventory -> inventory.getStacksHandler("head").isEmpty()
                             || inventory.findFirstCurio(stack -> stack.is(ITEM.get())).isPresent())
                     .orElse(true);
+        }
+
+        static boolean wearing(Player p) {
+            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
+                    .map(inventory -> inventory.findFirstCurio(stack -> stack.is(ITEM.get())).isPresent()).orElse(false);
         }
 
         static String describe(Player p) {

@@ -29,6 +29,7 @@ public final class SoldierLightClient {
     private SoldierLightClient() {}
 
     public static void register(IEventBus modBus) {
+        modBus.addListener(net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers.class, HeadlampLayer::addLayers);
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
             Lights.register(SoldierLightClient::collect);
             NeoForge.EVENT_BUS.addListener(LampFlare::onRenderLevel);
