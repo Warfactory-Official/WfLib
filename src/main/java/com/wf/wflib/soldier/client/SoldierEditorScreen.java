@@ -46,6 +46,12 @@ public final class SoldierEditorScreen extends Screen {
     private String factionEditId="",factionEditName="";
     private boolean factionHostile;
 
+    public static void registerNameTags() {
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderNameTagEvent.class,e->{
+            if(e.getEntity() instanceof net.minecraft.world.entity.player.Player p && p.hasCustomName()
+                    && e.getContent().getString().equals(p.getGameProfile().getName())) e.setContent(p.getCustomName());
+        });
+    }
     public static void receive(String json) {
         Minecraft mc=Minecraft.getInstance(); if (mc.player==null || !mc.player.isCreative()) return;
         var j=JsonParser.parseString(json).getAsJsonObject();

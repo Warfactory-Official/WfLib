@@ -29,6 +29,7 @@ public final class SoldierSystem implements WFSystem {
     @Override
     public void registerClient(IEventBus modBus) {
         com.wf.wflib.soldier.client.SoldierLightClient.register(modBus);
+        com.wf.wflib.soldier.client.SoldierEditorScreen.registerNameTags();
     }
 
     @Override

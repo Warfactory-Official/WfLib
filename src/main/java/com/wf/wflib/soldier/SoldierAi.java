@@ -391,6 +391,11 @@ public final class SoldierAi {
         o.addProperty("last_callout", b.lastCallout);
         o.addProperty("callouts", b.callouts);
         o.addProperty("team", b.team);
+        o.addProperty("role", b.role);
+        o.addProperty("burst", b.burst);
+        o.addProperty("burst_pause", b.pause);
+        o.addProperty("aim_spread", b.spreadDeg);
+        o.addProperty("sight_range", b.range);
         o.addProperty("squad", b.squad);
         o.addProperty("squad_task", b.squadTask);
         o.addProperty("patient", b.patient);
