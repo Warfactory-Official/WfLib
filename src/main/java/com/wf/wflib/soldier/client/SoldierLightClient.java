@@ -20,16 +20,55 @@ public final class SoldierLightClient {
     /** Ticks a soldier stays lit without being told again (the server repeats every 40). */
     private static final int LAPSE = 100;
     static final float RANGE = 40, INNER = 5, OUTER = 22;
-    private static final float INTENSITY = 500;
+    /**
+     * Peak irradiance at 1 m before falloff, and the near-field softening (m): a wall 4 m off was clipped to white out to
+     * 1.3 m of its 1.6 m pool, so the focused centre and the taper read as one disc; this keeps the centre white and the
+     * taper visible from 2 m to 30 m (the pool itself already grows with distance: it is angular).
+     */
+    private static final float INTENSITY = 140, SOFTNESS = 2.0F;
     static final int COLOR = 0xFFF4E6;
     /** At the headlamp model's lens: ahead of the eye and above it. */
-    private static final float AHEAD = 0.38F, RISE = 0.16F;
+    private static final float AHEAD = 0.44F, RISE = 0.16F;
     private static final Map<Integer, Long> LIT = new HashMap<>();
+
+    /** A light's smoothed frame: what is drawn, so an aim jitter on the server never reaches the eye as a shaking beam. */
+    static final class Frame {
+        double x, y, z;
+        float fx, fy, fz, ux, uy, uz;
+        long nanos;
+        boolean init;
+
+        /** Eases toward the target. {@code tau}: seconds; a jump past 3 m (a teleport) lands at once. */
+        void ease(double tx, double ty, double tz, Vector3f look, Vector3f up, float tau) {
+            long now = System.nanoTime();
+            float dt = init ? Math.min((now - nanos) * 1.0e-9F, 0.5F) : 1;
+            nanos = now;
+            double dx = tx - x, dy = ty - y, dz = tz - z;
+            float a = !init || dx * dx + dy * dy + dz * dz > 9 ? 1 : 1 - (float) Math.exp(-dt / tau);
+            init = true;
+            x += dx * a;
+            y += dy * a;
+            z += dz * a;
+            fx += (look.x - fx) * a;
+            fy += (look.y - fy) * a;
+            fz += (look.z - fz) * a;
+            ux += (up.x - ux) * a;
+            uy += (up.y - uy) * a;
+            uz += (up.z - uz) * a;
+            float l = (float) Math.sqrt(fx * fx + fy * fy + fz * fz);
+            if (l > 1.0e-4F) {
+                fx /= l;
+                fy /= l;
+                fz /= l;
+            }
+        }
+    }
+
+    private static final Map<Integer, Frame> FRAMES = new HashMap<>();
 
     private SoldierLightClient() {}
 
     public static void register(IEventBus modBus) {
-        modBus.addListener(net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers.class, HeadlampLayer::addLayers);
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
             Lights.register(SoldierLightClient::collect);
             com.wf.wflib.core.api.NightKey.UNHANDLED.set(com.wf.wflib.core.api.WFLib.MODID, SoldierLightClient::flipOwnLamp);
@@ -53,7 +92,10 @@ public final class SoldierLightClient {
 
     public static void set(int entity, boolean on) {
         Minecraft mc = Minecraft.getInstance();
-        if (!on || mc.level == null) LIT.remove(entity);
+        if (!on || mc.level == null) {
+            LIT.remove(entity);
+            FRAMES.remove(entity);
+        }
         else LIT.put(entity, mc.level.getGameTime() + LAPSE);
     }
 
@@ -61,6 +103,7 @@ public final class SoldierLightClient {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) {
             LIT.clear();
+            FRAMES.clear();
             return;
         }
         long now = mc.level.getGameTime();
@@ -69,6 +112,7 @@ public final class SoldierLightClient {
             Map.Entry<Integer, Long> e = it.next();
             Entity who = mc.level.getEntity(e.getKey());
             if (e.getValue() < now || who != null && who.isRemoved()) {
+                FRAMES.remove(e.getKey());
                 it.remove();
                 continue;
             }
@@ -94,8 +138,13 @@ public final class SoldierLightClient {
                 y = oy + look.y * AHEAD + up.y * RISE;
                 z = oz + look.z * AHEAD + up.z * RISE;
             }
-            sink.spot(x, y, z, look, up, RANGE, INNER, OUTER, COLOR, INTENSITY, null, true);
-            if (who != mc.player || !mc.options.getCameraType().isFirstPerson()) LampFlare.add(x, y, z, look);
+            // The drawn lens (and a ragdoll's head) is already smooth; the entity's own eye and view are not: the AI re-rolls
+            // an aim error every few ticks and snaps its head up to 10 degrees a tick, which an off-screen lamp would show.
+            Frame frame = FRAMES.computeIfAbsent(e.getKey(), k -> new Frame());
+            frame.ease(x, y, z, look, up, lens != null || head != null ? 0.05F : 0.35F);
+            Vector3f beam = new Vector3f(frame.fx, frame.fy, frame.fz), top = new Vector3f(frame.ux, frame.uy, frame.uz);
+            sink.spot(frame.x, frame.y, frame.z, beam, top, RANGE, INNER, OUTER, COLOR, INTENSITY, null, true, false, SOFTNESS);
+            if (who != mc.player || !mc.options.getCameraType().isFirstPerson()) LampFlare.add(frame.x, frame.y, frame.z, beam);
         }
     }
 }

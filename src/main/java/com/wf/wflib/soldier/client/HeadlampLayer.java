@@ -12,19 +12,12 @@ import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.soldier.Headlamp;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.LivingEntityRenderer;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -34,38 +27,41 @@ import org.joml.Vector3f;
 import java.util.HashMap;
 import java.util.Map;
 
-/** The headlamp on the head (headband, brow lamp, rear battery): drawn on the head bone of anyone wearing one. */
-final class HeadlampLayer extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
-    private static final ModelCache.Handle<GemRenderGltfModel> MODEL = GemRenderModels.armor(
-            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/soldier/headlamp.glb"));
-    private final GemRenderArmorModel model = new GemRenderArmorModel(new ArmorAppearance() {
+/**
+ * The headlamp on the head (headband, brow lamp, rear battery): drawn on the head bone of anyone wearing one, from inside
+ * the armour layer ({@code MixinHumanoidArmorLayerLamp}), because the jointed wearer body that poses worn models (crouch,
+ * kneel, lean) is only live there: a {@code RenderLayer} of its own draws the lamp at a standing head height.
+ */
+public final class HeadlampLayer {
+    /** Bare head: headband, crown strap, lamp, battery. Under a helmet the strap would only poke out of the shell: the lamp alone, clipped to its front. */
+    private static final ModelCache.Handle<GemRenderGltfModel> BARE = GemRenderModels.armor(
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/soldier/headlamp.glb")),
+            HELMETED = GemRenderModels.armor(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/soldier/headlamp_mounted.glb"));
+
+    private static GemRenderGltfModel pick(@Nullable LivingEntity wearer) {
+        return (wearer != null && !wearer.getItemBySlot(EquipmentSlot.HEAD).isEmpty() ? HELMETED : BARE).get();
+    }
+    private static final GemRenderArmorModel MODEL = new GemRenderArmorModel(new ArmorAppearance() {
         @Nullable
         @Override
         public GemRenderGltfModel model(@Nullable LivingEntity wearer, ItemStack worn, EquipmentSlot at) {
-            return MODEL.get();
+            return pick(wearer);
         }
     });
 
-    private HeadlampLayer(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> parent) {
-        super(parent);
-    }
-
+    /** Draws the lamp on {@code player}'s head, after the armour layer's pieces and inside its scope. */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    static void addLayers(EntityRenderersEvent.AddLayers e) {
-        for (PlayerSkin.Model skin : e.getSkins()) {
-            if (e.getSkin(skin) instanceof LivingEntityRenderer r) r.addLayer(new HeadlampLayer(r));
-        }
-    }
-
-    @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public void render(PoseStack pose, MultiBufferSource buffers, int light, AbstractClientPlayer player,
-                       float limbSwing, float limbSwingAmount, float partialTick, float age, float headYaw, float headPitch) {
+    public static void draw(PoseStack pose, int light, AbstractClientPlayer player, HumanoidModel parent) {
         if (!Headlamp.wearing(player) && !SoldierLightClient.lit(player.getId())) return;
-        HumanoidModel m = model.prepare(player, new ItemStack(Headlamp.ITEM.get()), EquipmentSlot.HEAD);
-        getParentModel().copyPropertiesTo(m);
-        m.renderToBuffer(pose, null, light, OverlayTexture.NO_OVERLAY, -1);
-        track(player, m, pose);
+        HumanoidModel m = MODEL.prepare(player, new ItemStack(Headlamp.ITEM.get()), EquipmentSlot.HEAD);
+        parent.copyPropertiesTo(m);
+        com.wf.wflib.core.client.WearerScope.begin(parent);
+        try {
+            m.renderToBuffer(pose, null, light, OverlayTexture.NO_OVERLAY, -1);
+            track(player, m, pose);
+        } finally {
+            com.wf.wflib.core.client.WearerScope.end();
+        }
     }
 
     /** Where the lamp's lens drew, in the world, and which way it faces and is up. */
@@ -86,7 +82,7 @@ final class HeadlampLayer extends RenderLayer<AbstractClientPlayer, PlayerModel<
      * animated, not from where the entity's eye would be.
      */
     private static void track(AbstractClientPlayer player, HumanoidModel<?> m, PoseStack pose) {
-        GemRenderGltfModel gltf = MODEL.get();
+        GemRenderGltfModel gltf = pick(player);
         if (gltf == null) return;
         NodeTable table = gltf.layout().nodeTable();
         int head = table.slotOfName(HEAD), lens = table.slotOfName(SOCKET);

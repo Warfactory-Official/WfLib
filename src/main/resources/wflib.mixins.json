@@ -54,6 +54,8 @@
   ],
   "client": [
     "drone.MixinCameraDronePilot",
+    "soldier.MixinHumanoidArmorLayerLamp",
+    "nvg.MixinHumanoidArmorLayerNvg",
     "ragdoll.MixinCameraRagdoll",
     "geom.MixinEntityRenderDispatcher",
     "fx.MixinLevelRenderer",
