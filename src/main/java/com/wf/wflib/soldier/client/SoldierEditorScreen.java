@@ -132,8 +132,8 @@ public final class SoldierEditorScreen extends Screen {
     private Button button(String text,int x,int y,int width,Runnable run) {
         var b=Button.builder(Component.literal(text),v->run.run()).bounds(x,y,width,20).build(); addRenderableWidget(b); return b;
     }
-    private EditBox field(String value,int x,int y,int width,int limit,java.util.function.Consumer<String> change) {
-        var e=new EditBox(font,x,y,width,18,Component.literal("Text")); e.setMaxLength(limit); e.setValue(value); e.setResponder(change); addRenderableWidget(e); return e;
+    private EditBox field(String label,String value,int x,int y,int width,int limit,java.util.function.Consumer<String> change) {
+        var e=new EditBox(font,x,y,width,18,Component.literal(label)); e.setMaxLength(limit); e.setValue(value); e.setResponder(change); addRenderableWidget(e); return e;
     }
     private void rebuild() {
         clearWidgets(); unitRows.clear(); choiceRows.clear(); details.clear();
@@ -148,15 +148,15 @@ public final class SoldierEditorScreen extends Screen {
         })).setTooltip(Tooltip.create(Component.literal("Click to cycle factions · Same faction = allies; different factions = enemies")));
         button("+ Faction",left,top+52,lw/2-2,()->{ factionEditId=""; factionEditName=""; factionHostile=false; modal="faction"; rebuild(); });
         button("Edit",left+lw/2+2,top+52,lw/2-2,()->{ if(f==null)return; factionEditId=f.id(); factionEditName=f.name(); factionHostile=f.hostile(); modal="faction"; rebuild(); });
-        field(unitQuery,left,top+78,lw,64,s->{unitQuery=s;unitOffset=0;filterUnits();}).setHint(Component.literal("Search variants…"));
+        field("Search variants",unitQuery,left,top+78,lw,64,s->{unitQuery=s;unitOffset=0;filterUnits();}).setHint(Component.literal("Search variants…"));
         int rows=Math.max(1,(h-181)/22);
         for (int i=0;i<rows;i++) { int index=i; unitRows.add(button("",left,top+101+i*22,lw,()->{ int at=unitOffset+index; if(at<filteredUnits.size()) { var u=filteredUnits.get(at); switchDraft(()->{load(u);rebuild();}); } })); }
         button("+ New variant",left,top+h-74,lw,()->switchDraft(()->{fresh();rebuild();}));
         button("Deploy faction",left,top+h-51,lw,()->{var d=new JsonObject();d.addProperty("id",faction);d.addProperty("count",count);send("spawn_faction",d);})
             .setTooltip(Tooltip.create(Component.literal("Deploy saved variants in rotation, using the Deploy count slider")));
         button("Clear deployed",left,top+h-28,lw,()->confirm("Remove all deployed soldiers in this faction? Saved variants stay.",()->{var d=new JsonObject();d.addProperty("id",faction);send("clear_faction",d);}));
-        idField=field(unitId,mx,top+30,mw,32,s->{unitId=s;touch();}); idField.setTooltip(Tooltip.create(Component.literal("Stable variant ID for commands and spawn eggs"))); idField.setEditable(!existing);
-        nameField=field(unitName,mx,top+55,mw,48,s->{unitName=s;touch();}); nameField.setHint(Component.literal("Soldier display name"));
+        idField=field("Variant ID",unitId,mx,top+30,mw,32,s->{unitId=s;touch();}); idField.setTooltip(Tooltip.create(Component.literal("Stable variant ID for commands and spawn eggs"))); idField.setEditable(!existing);
+        nameField=field("Soldier display name",unitName,mx,top+55,mw,48,s->{unitName=s;touch();}); nameField.setHint(Component.literal("Soldier display name"));
         button("Role: "+role.title,mx,top+78,mw,()->{modal="roles";rebuild();}).setTooltip(Tooltip.create(Component.literal(role.description)));
         button("Equipment",mx,top+101,mw/2-2,()->{page="loadout";detailOffset=0;rebuild();});
         button("Tactics",mx+mw/2+2,top+101,mw/2-2,()->{page="tactics";detailOffset=0;rebuild();});
@@ -202,7 +202,7 @@ public final class SoldierEditorScreen extends Screen {
         var packs=new ArrayList<String>(); packs.add("All packs");choices.stream().map(SoldierCatalogue.Choice::pack).distinct().sorted().forEach(packs::add);
         button(fit(pack,Math.max(30,width/3-12)),x+80,y,width/3,()->{pack=packs.get((packs.indexOf(pack)+1)%packs.size());choiceOffset=0;rebuild();});
         button("Unequip",x+width-86,y,86,()->{if(modal.equals("gun"))gun="";else if(modal.equals("frag"))frag="";else if(modal.equals("smoke"))smoke="";else armour.remove(modal);touch();modal="";rebuild();});
-        var search=field(query,x,y+26,width,128,s->{query=s;choiceOffset=0;filterChoices();});search.setHint(Component.literal("Search name, pack or item ID…"));
+        var search=field("Search installed equipment",query,x,y+26,width,128,s->{query=s;choiceOffset=0;filterChoices();});search.setHint(Component.literal("Search name, pack or item ID…"));
         int rows=Math.max(1,(h-102)/26);
         for(int i=0;i<rows;i++) {int index=i;choiceRows.add(button("",x,y+52+i*26,width,()->{
             int at=choiceOffset+index; if(at>=filteredChoices.size())return;var c=filteredChoices.get(at);
@@ -230,8 +230,8 @@ public final class SoldierEditorScreen extends Screen {
     private void factionForm() {
         int x=left+Math.max(12,w/5), width=Math.min(360,w-32),y=top+43;
         button("‹ Back",x,y,width,()->{modal="";rebuild();});
-        field(factionEditId,x,y+40,width,32,s->factionEditId=s).setHint(Component.literal("Faction ID (lowercase)"));
-        field(factionEditName,x,y+67,width,48,s->factionEditName=s).setHint(Component.literal("Faction display name"));
+        field("Faction ID",factionEditId,x,y+40,width,32,s->factionEditId=s).setHint(Component.literal("Faction ID (lowercase)"));
+        field("Faction display name",factionEditName,x,y+67,width,48,s->factionEditName=s).setHint(Component.literal("Faction display name"));
         button("Players: "+(factionHostile?"HOSTILE":"FRIENDLY"),x,y+94,width,()->{factionHostile=!factionHostile;rebuild();});
         button("Save faction",x,y+121,width,()->{var d=new JsonObject();d.addProperty("id",factionEditId);d.addProperty("name",factionEditName);d.addProperty("hostile",factionHostile);send("save_faction",d);});
         button("Delete faction",x,y+148,width,()->confirm("Delete this faction, all its variants and deployed soldiers?",()->{var d=new JsonObject();d.addProperty("id",factionEditId);modal="";send("delete_faction",d);rebuild();}));
@@ -323,7 +323,7 @@ public final class SoldierEditorScreen extends Screen {
             if(page.equals("tactics")) {int y=top+251;for(var line:font.split(Component.literal(role.description),mw-12)){if(y>top+h-34)break;g.drawString(font,line,mx+3,y,MUTED,false);y+=10;}}
         }else if(!choiceRows.isEmpty()) {
             String hovered="";
-            for(int i=0;i<choiceRows.size();i++){var b=choiceRows.get(i);int at=choiceOffset+i;if(b.visible && b.isMouseOver(mouseX,mouseY) && at<filteredChoices.size())hovered=filteredChoices.get(at).key();}
+            for(int i=0;i<choiceRows.size();i++){var b=choiceRows.get(i);int at=choiceOffset+i;if(b.visible && (b.isMouseOver(mouseX,mouseY) || b.isFocused()) && at<filteredChoices.size())hovered=filteredChoices.get(at).key();}
             drawPreview(g,hovered,top+h-45);
             g.drawString(font,filteredChoices.size()+" options · hover to preview",left+10,top+h-15,MUTED,false);
         }
