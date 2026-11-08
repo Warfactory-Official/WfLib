@@ -51,29 +51,35 @@ public final class HeadlampLayer {
 
     /** Draws the lamp on {@code player}'s head, after the armour layer's pieces and inside its scope. */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void draw(PoseStack pose, int light, AbstractClientPlayer player, HumanoidModel parent) {
+    public static void draw(PoseStack pose, int light, AbstractClientPlayer player, HumanoidModel parent, float partialTick) {
         if (!Headlamp.wearing(player) && !SoldierLightClient.lit(player.getId())) return;
         HumanoidModel m = MODEL.prepare(player, new ItemStack(Headlamp.ITEM.get()), EquipmentSlot.HEAD);
         parent.copyPropertiesTo(m);
         com.wf.wflib.core.client.WearerScope.begin(parent);
         try {
             m.renderToBuffer(pose, null, light, OverlayTexture.NO_OVERLAY, -1);
-            track(player, m, pose);
+            track(player, m, pose, partialTick);
         } finally {
             com.wf.wflib.core.client.WearerScope.end();
         }
     }
 
     /** Where the lamp's lens drew, in the world, and which way it faces and is up. */
-    record Lens(double x, double y, double z, Vector3f forward, Vector3f up, long tick) {}
+    record Lens(LampFrame.Local local, long tick) {}
 
     private static final Map<Integer, Lens> LENSES = new HashMap<>();
     private static final String HEAD = "head", SOCKET = "socket_lamp";
 
     /** The lens drawn this tick or the last, or null: callers fall back to the entity's eye. */
-    static Lens lens(int entity, long now) {
-        Lens l = LENSES.get(entity);
-        return l != null && now - l.tick <= 1 ? l : null;
+    static LampFrame.World lens(net.minecraft.world.entity.Entity who, long now, float partialTick) {
+        Lens l = LENSES.get(who.getId());
+        return l != null && now - l.tick <= 1 ? LampFrame.decode(basis(who, partialTick), l.local) : null;
+    }
+
+    private static LampFrame.Basis basis(net.minecraft.world.entity.Entity who, float partialTick) {
+        Vec3 eye = who.getEyePosition(partialTick);
+        return new LampFrame.Basis(eye.x, eye.y, eye.z, who.getViewVector(partialTick).toVector3f(),
+                who.getUpVector(partialTick).toVector3f());
     }
 
     /**
@@ -81,7 +87,7 @@ public final class HeadlampLayer {
      * joints), and reads the lens socket's matrix: the light comes from where the lamp is drawn, however the body is
      * animated, not from where the entity's eye would be.
      */
-    private static void track(AbstractClientPlayer player, HumanoidModel<?> m, PoseStack pose) {
+    private static void track(AbstractClientPlayer player, HumanoidModel<?> m, PoseStack pose, float partialTick) {
         GemRenderGltfModel gltf = pick(player);
         if (gltf == null) return;
         NodeTable table = gltf.layout().nodeTable();
@@ -112,7 +118,8 @@ public final class HeadlampLayer {
         double x = cam.x + p.x, y = cam.y + p.y, z = cam.z + p.z;
         // A shadow or mirror pass has another origin: drop what is not on the wearer.
         if (player.distanceToSqr(x, y, z) > 9) return;
-        LENSES.put(player.getId(), new Lens(x, y, z, at.transformDirection(new Vector3f(0, 0, -1)).normalize(),
-                at.transformDirection(new Vector3f(0, 1, 0)).normalize(), player.level().getGameTime()));
+        LENSES.put(player.getId(), new Lens(LampFrame.encode(basis(player, partialTick), x, y, z,
+                at.transformDirection(new Vector3f(0, 0, -1)).normalize(), at.transformDirection(new Vector3f(0, 1, 0)).normalize()),
+                player.level().getGameTime()));
     }
 }
