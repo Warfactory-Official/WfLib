@@ -22,8 +22,8 @@ public final class SoldierLightClient {
     static final float RANGE = 40, INNER = 5, OUTER = 22;
     private static final float INTENSITY = 500;
     static final int COLOR = 0xFFF4E6;
-    /** A little ahead of the eye and above it, on the forehead where a headlamp sits, blocks. */
-    private static final float AHEAD = 0.3F, RISE = 0.12F;
+    /** At the headlamp model's lens: ahead of the eye and above it. */
+    private static final float AHEAD = 0.38F, RISE = 0.16F;
     private static final Map<Integer, Long> LIT = new HashMap<>();
 
     private SoldierLightClient() {}
