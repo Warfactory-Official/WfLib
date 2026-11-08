@@ -1662,6 +1662,18 @@ public final class SoldierAi {
 
     // --- aiming and firing ------------------------------------------------------------------------------------
 
+    /** Share of the remaining angle a head closes per tick: it settles onto a new aim in a few ticks instead of snapping. */
+    static final float EASE = 0.4f;
+
+    /**
+     * One tick's turn toward {@code delta} degrees off: eased, and never faster than {@link #MAX_TURN}. The aim error is
+     * re-rolled every 5-10 ticks, which used to be a 10 degree-a-tick snap of the head (and of anything mounted on it: a
+     * lamp's beam shook) each time.
+     */
+    static float turn(float delta) {
+        return Mth.clamp(delta * EASE, -MAX_TURN, MAX_TURN);
+    }
+
     private static void aimAt(ServerPlayer p, Bot b, Vec3 aim, Vec3 step, ServerPlayer target) {
         float yaw = p.getYRot(), pitch = p.getXRot();
         if (aim != null) {
@@ -1685,9 +1697,9 @@ public final class SoldierAi {
             yaw = BotSenses.scan(b.watchYaw, p.level().getGameTime(), b.name.hashCode());
             pitch = 0;
         }
-        float newYaw = p.getYRot() + Mth.clamp(Mth.wrapDegrees(yaw - p.getYRot()), -MAX_TURN, MAX_TURN);
+        float newYaw = p.getYRot() + turn(Mth.wrapDegrees(yaw - p.getYRot()));
         p.setYRot(newYaw);
-        p.setXRot(Mth.clamp(p.getXRot() + Mth.clamp(pitch - p.getXRot(), -MAX_TURN, MAX_TURN), -89, 89));
+        p.setXRot(Mth.clamp(p.getXRot() + turn(pitch - p.getXRot()), -89, 89));
         p.setYHeadRot(newYaw);
     }
 
