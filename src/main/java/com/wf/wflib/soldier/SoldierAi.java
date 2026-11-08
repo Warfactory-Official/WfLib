@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier;
 
 import com.wf.wflib.soldier.api.SoldierMedical;
+import com.wf.wflib.soldier.api.SoldierRole;
 import com.wf.wflib.soldier.api.SoldierSpec;
 import com.wf.wflib.soldier.api.SoldierServices;
 import com.wf.wflib.soldier.api.SoldierWeapon;
@@ -214,6 +215,12 @@ public final class SoldierAi {
         b.team = spec.team();
         b.huntsPlayers = spec.huntsPlayers();
         b.ownerId = owner;
+        b.role = spec.role().id;
+        b.burst = spec.role().burst;
+        b.pause = spec.role().pause;
+        b.spreadDeg = spec.role().spread;
+        b.range = spec.role().range;
+        b.sprint = spec.role() != SoldierRole.HEAVY;
         b.gun = spec.gun();
         b.mags = spec.spares();
         b.arm = true;
@@ -789,7 +796,7 @@ public final class SoldierAi {
                 !b.engaged && (pinned || busy || b.needReload) || b.fire == Fire.OFF || !b.path.isEmpty()
                         || goal != null && !nearCover && !b.engaged);
         // A firing position remains the goal until the whole peek ends, not merely until the next burst pause.
-        boolean workingCover = nearCover && b.path.isEmpty();
+        boolean workingCover = nearCover && hasThreat && b.path.isEmpty();
         if (workingCover) goal = b.peek.exposed() ? b.cover.peek().feet() : Vec3.atBottomCenterOf(b.cover.cell());
         // Already looking at the enemy from here: there is nothing to gain from stepping out to the lean position.
         if (workingCover && b.engaged && target != null && seen(p, target) != null) goal = null;
@@ -823,7 +830,7 @@ public final class SoldierAi {
         b.engaged = direct;
         if (direct) b.peek.engage(now);
         boolean peek = b.peek.exposed() && !sprinting;
-        boolean low = !peek && (!b.moving || workingCover) && (b.crouch || workingCover);
+        boolean low = BotPolicy.crouch(b.soldier, hasThreat || b.suppression > 0.1f, peek, b.moving, workingCover, b.crouch);
         Vec3 dir = step;
         boolean crawl = b.moving && !workingCover && (b.suppression > 0.45f || b.health.legs());
         walk(p, b, dir, sprinting, low || crawl, !workingCover);
@@ -965,6 +972,14 @@ public final class SoldierAi {
             return at(p, b.anchor, b.mode == Mode.ADVANCE ? 2 : b.holdRadius) ? null : b.anchor;
         }
         Threat fresh = freshest(b);
+        var doctrine = SoldierRole.tactics(b.role);
+        if (fresh != null && fresh.visible > 0 && doctrine.standOff > 0 && !b.squadTask.equals("rescue")) {
+            double distance = BotTactics.horizontal(p.position(), fresh.eye);
+            if (distance < doctrine.standOff && b.suppression < .75f) {
+                Vec3 away = p.position().subtract(fresh.eye).multiply(1,0,1).normalize();
+                if (away.lengthSqr() > .1) return p.position().add(away.scale(Math.min(6, doctrine.standOff-distance)));
+            }
+        }
         long age = fresh == null ? 0 : now - fresh.seen;
         boolean nearObjective = at(p, b.anchor, 4);
         boolean coverValid = b.cover != null && now - b.coverChecked < 30;
@@ -989,7 +1004,7 @@ public final class SoldierAi {
         // A shot or a report with nobody in sight: go and look, cover or no cover, while the shooting goes on.
         Threat heard = soundContact(b);
         if (heard != null && b.probe == null && !b.moving && now - b.pushSearched >= 25 && mayBound
-                && BotPolicy.shouldInvestigate(now, heard.soundSince, BotTactics.horizontal(p.position(), heard.eye),
+                && !doctrine.support() && BotPolicy.shouldInvestigate(now, heard.soundSince, BotTactics.horizontal(p.position(), heard.eye),
                         b.suppression, !b.needReload && !b.dry, true, BotTactics.horizontal(p.position(), b.anchor),
                         b.holdRadius)) {
             b.pushSearched = now;
@@ -1001,7 +1016,7 @@ public final class SoldierAi {
         }
         // Press the contact: it has not shown itself for a while, so take the next cover toward where it was.
         if (fresh != null && fresh.visible == 0 && coverValid && !b.moving && now - b.pushSearched >= 25 && mayBound
-                && BotPolicy.shouldPush(now, fresh.seen, BotTactics.horizontal(p.position(), fresh.eye), b.suppression,
+                && !doctrine.support() && BotPolicy.shouldPush(now, fresh.seen, BotTactics.horizontal(p.position(), fresh.eye), b.suppression,
                         !b.needReload && !b.dry, true, BotTactics.horizontal(p.position(), b.anchor), b.holdRadius)) {
             b.pushSearched = now;
             BotTactics.Cover next = BotTactics.findCover(p.serverLevel(), p, feet, feet, 12, eyes, fresh.eye, 3, taken(b), true);
@@ -1349,7 +1364,8 @@ public final class SoldierAi {
     private static void considerFrag(MinecraftServer server, ServerPlayer p, Bot b, long now) {
         if (b.frags <= 0 || !b.target.isEmpty() || b.suppression > 0.5f || b.needReload
                 || !BotPolicy.cooledDown(now, b.lastFrag, TEAM_FRAG.getOrDefault(b.team, -100000L),
-                        BotPolicy.FRAG_COOLDOWN, BotPolicy.TEAM_FRAG_COOLDOWN) || RNG.nextInt(100) != 0) return;
+                        b.role.equals("grenadier") ? BotPolicy.FRAG_COOLDOWN / 2 : BotPolicy.FRAG_COOLDOWN,
+                        BotPolicy.TEAM_FRAG_COOLDOWN) || RNG.nextInt(b.role.equals("grenadier") ? 25 : 100) != 0) return;
         for (Threat t : b.threats.values()) {
             long since = now - t.seen;
             double d = BotTactics.horizontal(p.position(), t.eye);

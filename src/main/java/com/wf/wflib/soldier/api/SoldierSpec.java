@@ -18,5 +18,9 @@ import java.util.Map;
  * @param spares spare magazines
  */
 public record SoldierSpec(String team, String namePrefix, boolean huntsPlayers, ResourceLocation gun,
-                          List<ResourceLocation> grenades, Map<EquipmentSlot, ResourceLocation> armour, int spares) {
+                          List<ResourceLocation> grenades, Map<EquipmentSlot, ResourceLocation> armour, int spares, SoldierRole role) {
+    public SoldierSpec(String team, String namePrefix, boolean huntsPlayers, ResourceLocation gun,
+                       List<ResourceLocation> grenades, Map<EquipmentSlot, ResourceLocation> armour, int spares) {
+        this(team, namePrefix, huntsPlayers, gun, grenades, armour, spares, SoldierRole.RIFLEMAN);
+    }
 }

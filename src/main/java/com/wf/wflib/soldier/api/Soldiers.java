@@ -98,7 +98,10 @@ public final class Soldiers {
     /** The lowest unused {@code Ally_1}, {@code Hostile_2}, ... */
     static String freeName(MinecraftServer server, String prefix) {
         for (int n = 1; ; n++) {
-            String name = prefix + "_" + n;
+            String suffix = "_" + n;
+            String safe = prefix.replaceAll("[^A-Za-z0-9_]", "_");
+            if (safe.isEmpty()) safe = "Soldier";
+            String name = safe.substring(0, Math.min(safe.length(), 16-suffix.length())) + suffix;
             if (server.getPlayerList().getPlayerByName(name) == null) return name;
         }
     }
