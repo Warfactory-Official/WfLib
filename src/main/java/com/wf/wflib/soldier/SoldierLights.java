@@ -15,23 +15,47 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  * without it simply sees dark soldiers. The server repeats "on" every couple of seconds and clients let it lapse, so a
  * soldier that dies or leaves view never leaves a light behind.
  */
-final class SoldierLights {
+public final class SoldierLights {
     /** Blocks within which a player is told, and ticks between repeats of "on". */
     static final double TELL_RANGE = 160;
     static final int REPEAT = 40;
 
     private SoldierLights() {}
 
+    /** Client: ask the server to switch the headlamp this player wears. */
+    public static void requestToggle() {
+        PacketDistributor.sendToServer(new Toggle());
+    }
+
+    /** Client: whether the server has the channel {@link #requestToggle} needs. */
+    public static boolean canToggle(net.minecraft.network.protocol.common.ClientCommonPacketListener connection) {
+        return connection.hasChannel(Toggle.TYPE);
+    }
+
     static void register(PayloadRegistrar registrar) {
         registrar.playToClient(Lit.TYPE, Lit.CODEC, Lit::handle);
+        registrar.playToServer(Toggle.TYPE, Toggle.CODEC, Toggle::handle);
     }
 
     static void send(ServerPlayer soldier, boolean on) {
         Lit packet = new Lit(soldier.getId(), on);
         for (ServerPlayer viewer : soldier.serverLevel().players()) {
-            if (viewer == soldier || SoldierAi.scripted(viewer) || viewer.distanceToSqr(soldier) > TELL_RANGE * TELL_RANGE
+            if (SoldierAi.scripted(viewer) || viewer.distanceToSqr(soldier) > TELL_RANGE * TELL_RANGE
                     || !viewer.connection.hasChannel(Lit.TYPE)) continue;
             PacketDistributor.sendToPlayer(viewer, packet);
+        }
+    }
+
+    /** The wearer's key: switch the headlamp they wear. */
+    record Toggle() implements CustomPacketPayload {
+        static final Type<Toggle> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "headlamp_toggle"));
+        static final StreamCodec<FriendlyByteBuf, Toggle> CODEC = StreamCodec.unit(new Toggle());
+
+        @Override
+        public Type<Toggle> type() { return TYPE; }
+
+        static void handle(Toggle packet, IPayloadContext context) {
+            context.enqueueWork(() -> { if (context.player() instanceof ServerPlayer p) Headlamp.toggle(p); });
         }
     }
 

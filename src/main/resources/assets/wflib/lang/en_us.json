@@ -268,7 +268,7 @@
   "item.wflib.nvg_gpnvg18": "GPNVG-18 Panoramic Night Vision",
   "item.wflib.nvg.gain": "Gain: %s%%",
   "item.wflib.nvg.ir": "IR illuminator on",
-  "key.wflib.nvg_flip": "Night vision: flip down / up",
+  "key.wflib.nvg_flip": "Night vision: flip down / up (headlamp on / off with no goggles)",
   "key.wflib.backpack": "Backpack: put on / take off (held)",
   "key.wflib.exo_popup": "Exoskeleton attachments (hover armour in inventory)",
   "item.wflib.exo_cell": "Exo Energy Cell",

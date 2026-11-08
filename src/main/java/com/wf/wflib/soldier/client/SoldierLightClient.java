@@ -32,8 +32,18 @@ public final class SoldierLightClient {
         modBus.addListener(net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers.class, HeadlampLayer::addLayers);
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
             Lights.register(SoldierLightClient::collect);
+            com.wf.wflib.core.api.NightKey.UNHANDLED.set(com.wf.wflib.core.api.WFLib.MODID, SoldierLightClient::flipOwnLamp);
             NeoForge.EVENT_BUS.addListener(LampFlare::onRenderLevel);
         }));
+    }
+
+    /** The night-vision key with no goggles on: switches the lamp the player wears, if any. */
+    private static boolean flipOwnLamp() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.getConnection() == null || !com.wf.wflib.soldier.Headlamp.wearing(mc.player)
+                || !com.wf.wflib.soldier.SoldierLights.canToggle(mc.getConnection())) return false;
+        com.wf.wflib.soldier.SoldierLights.requestToggle();
+        return true;
     }
 
     public static void set(int entity, boolean on) {
@@ -70,7 +80,7 @@ public final class SoldierLightClient {
             double x = ox + look.x * AHEAD + up.x * RISE, y = oy + look.y * AHEAD + up.y * RISE,
                     z = oz + look.z * AHEAD + up.z * RISE;
             sink.spot(x, y, z, look, up, RANGE, INNER, OUTER, COLOR, INTENSITY, null, true);
-            LampFlare.add(x, y, z, look);
+            if (who != mc.player || !mc.options.getCameraType().isFirstPerson()) LampFlare.add(x, y, z, look);
         }
     }
 }

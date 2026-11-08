@@ -47,7 +47,9 @@ public final class NvgClient {
         wasDown = down;
         boolean worn = !NvgWorn.nvg(player).isEmpty();
         while (NvgKeys.FLIP.consumeClick()) {
-            if (worn && flip(0.0f) < 0.0f) {
+            if (!worn) {
+                com.wf.wflib.core.api.NightKey.UNHANDLED.get().getAsBoolean();
+            } else if (flip(0.0f) < 0.0f) {
                 flipStart = now;
                 PacketDistributor.sendToServer(new NvgActionPacket(NvgActionPacket.Action.FLIP));
             }

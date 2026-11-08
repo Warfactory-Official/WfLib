@@ -74,6 +74,8 @@ public final class NvgSystem implements WFSystem {
     @Override
     public void registerClient(IEventBus modBus) {
         modBus.register(NvgKeys.class);
+        modBus.addListener(net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers.class,
+                com.wf.wflib.nvg.client.NvgCuriosLayer::addLayers);
         NeoForge.EVENT_BUS.register(NvgClient.class);
         NeoForge.EVENT_BUS.register(NvgHand.class);
         NeoForge.EVENT_BUS.register(NvgView.class);

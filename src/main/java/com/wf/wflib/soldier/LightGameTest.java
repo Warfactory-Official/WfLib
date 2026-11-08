@@ -63,4 +63,26 @@ public class LightGameTest {
             });
         });
     }
+
+    /** A worn headlamp switches on and off by the key's toggle, and the state lives on the stack. */
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aWornHeadlampSwitchesOnAndOff(GameTestHelper h) {
+        if (!Headlamp.curios()) {
+            h.succeed();
+            return;
+        }
+        var spec = new SoldierSpec("lamp_toggle", "LampToggle", false, null, List.of(), Map.of(), 0);
+        var p = Soldiers.spawn(h.getLevel(), h.absoluteVec(new Vec3(1, 2, 1)), 0, spec, null);
+        h.assertTrue(p != null, "could not spawn test soldier");
+        try {
+            h.assertTrue(!Headlamp.on(p), "lamp on before being switched");
+            h.assertTrue(Headlamp.toggle(p) && Headlamp.on(p), "the toggle did not switch the lamp on");
+            h.assertTrue(Headlamp.toggle(p) && !Headlamp.on(p), "the toggle did not switch the lamp off");
+            Headlamp.take(p);
+            h.assertTrue(!Headlamp.toggle(p), "toggled a lamp that is not worn");
+            h.succeed();
+        } finally {
+            Soldiers.remove(p);
+        }
+    }
 }

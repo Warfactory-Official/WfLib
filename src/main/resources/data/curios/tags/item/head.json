@@ -1,1 +1,11 @@
-{"replace": false, "values": ["wflib:headlamp"]}
+{
+  "replace": false,
+  "values": [
+    "wflib:headlamp",
+    {"id": "wflib:nvg_gen1", "required": false},
+    {"id": "wflib:nvg_pvs7", "required": false},
+    {"id": "wflib:nvg_pvs14", "required": false},
+    {"id": "wflib:nvg_pvs31", "required": false},
+    {"id": "wflib:nvg_gpnvg18", "required": false}
+  ]
+}

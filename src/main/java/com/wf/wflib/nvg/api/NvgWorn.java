@@ -7,7 +7,7 @@ import net.minecraft.world.item.component.ItemContainerContents;
 
 import java.util.List;
 
-/** The NVG on an entity's head: worn standalone, or mounted on the helmet. */
+/** The NVG on an entity's head: worn standalone, mounted on the helmet, or in the Curios head slot. */
 public final class NvgWorn {
     private NvgWorn() {
     }
@@ -15,7 +15,11 @@ public final class NvgWorn {
     /** Read-only (mounted: the component's own stack); write through {@link #set}. */
     public static ItemStack nvg(LivingEntity entity) {
         ItemStack head = entity.getItemBySlot(EquipmentSlot.HEAD);
-        return head.getItem() instanceof NvgItem ? head : mounted(head);
+        if (head.getItem() instanceof NvgItem) {
+            return head;
+        }
+        ItemStack mounted = mounted(head);
+        return mounted.isEmpty() ? com.wf.wflib.nvg.NvgCurios.stack(entity) : mounted;
     }
 
     public static NvgState state(LivingEntity entity) {
@@ -40,6 +44,10 @@ public final class NvgWorn {
         }
         ItemContainerContents mount = head.get(NvgComponents.MOUNT.get());
         if (mount == null) {
+            ItemStack worn = com.wf.wflib.nvg.NvgCurios.stack(entity);
+            if (!worn.isEmpty()) {
+                worn.set(NvgComponents.STATE.get(), state);
+            }
             return;
         }
         ItemStack nvg = mount.copyOne();
