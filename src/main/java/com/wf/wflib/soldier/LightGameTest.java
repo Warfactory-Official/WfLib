@@ -85,4 +85,27 @@ public class LightGameTest {
             Soldiers.remove(p);
         }
     }
+
+    /** A soldier that has lost its lamp is issued another: every soldier carries one. */
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aSoldierWithoutALampIsIssuedOne(GameTestHelper h) {
+        if (!Headlamp.curios()) {
+            h.succeed();
+            return;
+        }
+        var spec = new SoldierSpec("lamp_heal", "LampHeal", false, null, List.of(), Map.of(), 0);
+        var p = Soldiers.spawn(h.getLevel(), h.absoluteVec(new Vec3(1, 2, 1)), 0, spec, null);
+        h.assertTrue(p != null, "could not spawn test soldier");
+        try {
+            h.assertTrue(Headlamp.wearing(p), "a fresh soldier has no headlamp");
+            Headlamp.take(p);
+            h.assertTrue(!Headlamp.wearing(p), "the lamp did not come off");
+            p.tickCount = 40;
+            Headlamp.tick(new net.neoforged.neoforge.event.tick.PlayerTickEvent.Post(p));
+            h.assertTrue(Headlamp.wearing(p), "a soldier without a lamp was not issued one");
+            h.succeed();
+        } finally {
+            Soldiers.remove(p);
+        }
+    }
 }

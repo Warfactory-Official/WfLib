@@ -86,8 +86,13 @@ public final class Headlamp {
     }
 
     /** Keeps nearby clients told while a player's lamp is on (they let it lapse), and tells them when it goes off. */
-    private static void tick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
-        if (!(e.getEntity() instanceof ServerPlayer p) || p.tickCount % 10 != 0 || SoldierAi.scripted(p)) return;
+    static void tick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
+        if (!(e.getEntity() instanceof ServerPlayer p) || p.tickCount % 10 != 0) return;
+        // Every soldier carries its lamp: issue one to any that lost or never got it (a respawn, a reload).
+        if (SoldierAi.scripted(p)) {
+            if (p.tickCount % 40 == 0 && curios() && !Curios.wearing(p)) issue(p);
+            return;
+        }
         boolean on = on(p);
         if (on && (!SHINING.contains(p.getUUID()) || p.tickCount % SoldierLights.REPEAT == 0)) shine(p, true);
         else if (!on && SHINING.contains(p.getUUID())) shine(p, false);

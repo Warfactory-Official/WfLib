@@ -46,6 +46,11 @@ public final class SoldierLightClient {
         return true;
     }
 
+    /** Whether the server has said this entity's light is on. */
+    static boolean lit(int entity) {
+        return LIT.containsKey(entity);
+    }
+
     public static void set(int entity, boolean on) {
         Minecraft mc = Minecraft.getInstance();
         if (!on || mc.level == null) LIT.remove(entity);
@@ -70,15 +75,25 @@ public final class SoldierLightClient {
             if (who == null) continue;
             // Ragdolled (downed, dying): the lamp rides the head bone, so a head turned to the ceiling lights the ceiling.
             double[][] head = WFSystems.enabled("ragdoll") ? RagdollView.head(who, partialTick) : null;
-            net.minecraft.world.phys.Vec3 eye = who.getEyePosition(partialTick);
-            Vector3f look = head != null ? new Vector3f((float) head[1][0], (float) head[1][1], (float) head[1][2])
-                    : who.getViewVector(partialTick).toVector3f();
-            Vector3f up = head != null ? new Vector3f((float) head[2][0], (float) head[2][1], (float) head[2][2])
-                    : who.getUpVector(partialTick).toVector3f();
-            double ox = head != null ? head[0][0] : eye.x, oy = head != null ? head[0][1] : eye.y,
-                    oz = head != null ? head[0][2] : eye.z;
-            double x = ox + look.x * AHEAD + up.x * RISE, y = oy + look.y * AHEAD + up.y * RISE,
-                    z = oz + look.z * AHEAD + up.z * RISE;
+            // Else the lens as the lamp model drew it (head bone and body rig included); else the entity's eye.
+            HeadlampLayer.Lens lens = head == null ? HeadlampLayer.lens(who.getId(), now) : null;
+            double x, y, z;
+            Vector3f look, up;
+            if (lens != null) {
+                x = lens.x(); y = lens.y(); z = lens.z();
+                look = lens.forward(); up = lens.up();
+            } else {
+                net.minecraft.world.phys.Vec3 eye = who.getEyePosition(partialTick);
+                look = head != null ? new Vector3f((float) head[1][0], (float) head[1][1], (float) head[1][2])
+                        : who.getViewVector(partialTick).toVector3f();
+                up = head != null ? new Vector3f((float) head[2][0], (float) head[2][1], (float) head[2][2])
+                        : who.getUpVector(partialTick).toVector3f();
+                double ox = head != null ? head[0][0] : eye.x, oy = head != null ? head[0][1] : eye.y,
+                        oz = head != null ? head[0][2] : eye.z;
+                x = ox + look.x * AHEAD + up.x * RISE;
+                y = oy + look.y * AHEAD + up.y * RISE;
+                z = oz + look.z * AHEAD + up.z * RISE;
+            }
             sink.spot(x, y, z, look, up, RANGE, INNER, OUTER, COLOR, INTENSITY, null, true);
             if (who != mc.player || !mc.options.getCameraType().isFirstPerson()) LampFlare.add(x, y, z, look);
         }
