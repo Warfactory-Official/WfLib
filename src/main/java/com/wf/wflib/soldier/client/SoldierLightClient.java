@@ -19,13 +19,14 @@ import java.util.Map;
 public final class SoldierLightClient {
     /** Ticks a soldier stays lit without being told again (the server repeats every 40). */
     private static final int LAPSE = 100;
-    static final float RANGE = 40, INNER = 5, OUTER = 22;
+    /** A real headlamp: a bright focus inside a wide flood that reaches 60 m; both are cones, so both grow with distance. */
+    static final float RANGE = 60, INNER = 15, OUTER = 45;
     /**
      * Peak irradiance at 1 m before falloff, and the near-field softening (m): a wall 4 m off was clipped to white out to
      * 1.3 m of its 1.6 m pool, so the focused centre and the taper read as one disc; this keeps the centre white and the
      * taper visible from 2 m to 30 m (the pool itself already grows with distance: it is angular).
      */
-    private static final float INTENSITY = 140, SOFTNESS = 2.0F;
+    private static final float INTENSITY = 300, SOFTNESS = 3.0F;
     static final int COLOR = 0xFFF4E6;
     /** At the headlamp model's lens: ahead of the eye and above it. */
     private static final float AHEAD = 0.44F, RISE = 0.16F;
@@ -81,7 +82,7 @@ public final class SoldierLightClient {
             // Ragdolled (downed, dying): the lamp rides the head bone, so a head turned to the ceiling lights the ceiling.
             double[][] head = WFSystems.enabled("ragdoll") ? RagdollView.head(who, partialTick) : null;
             // Else the lens as the lamp model drew it (head bone and body rig included); else the entity's eye.
-            HeadlampLayer.Lens lens = head == null ? HeadlampLayer.lens(who.getId(), now) : null;
+            LampFrame.World lens = head == null ? HeadlampLayer.lens(who, now, partialTick) : null;
             double x, y, z;
             Vector3f look, up;
             if (lens != null) {

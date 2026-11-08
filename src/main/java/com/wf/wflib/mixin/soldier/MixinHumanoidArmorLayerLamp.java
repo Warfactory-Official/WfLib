@@ -22,7 +22,7 @@ public abstract class MixinHumanoidArmorLayerLamp {
                             float c, float d, float e, float f, CallbackInfo ci) {
         if (entity instanceof AbstractClientPlayer player
                 && ((RenderLayer<?, ?>) (Object) this).getParentModel() instanceof HumanoidModel<?> parent && WFSystems.enabled("soldier")) {
-            com.wf.wflib.soldier.client.HeadlampLayer.draw(pose, light, player, parent);
+            com.wf.wflib.soldier.client.HeadlampLayer.draw(pose, light, player, parent, c);
         }
     }
 }
