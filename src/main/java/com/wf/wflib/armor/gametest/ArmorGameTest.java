@@ -51,6 +51,28 @@ public class ArmorGameTest {
     private static final int CARRIER_MAX = 600 * ArmorUnits.POINTS_PER_DAMAGE;
     private static final int STEEL_MAX = 3000 * ArmorUnits.POINTS_PER_DAMAGE;
 
+    /** Worn to nothing, a piece is still on the wearer after vanilla's armour pass, whose charge this system zeroes. */
+    @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
+    public static void aFullyWornPieceIsNotDestroyedByVanillasArmourPass(GameTestHelper helper) {
+        net.minecraft.server.level.ServerPlayer p = net.neoforged.neoforge.common.util.FakePlayerFactory.get(helper.getLevel(),
+                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "worn_out"));
+        ItemStack vest = new ItemStack(ArmorContent.item(ArmorPreset.rl("plate_carrier")));
+        ArmorStacks.setCondition(vest, ArmorProfiles.specFor(vest), 0);
+        p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, vest);
+        try {
+            var pass = net.minecraft.world.entity.LivingEntity.class.getDeclaredMethod("doHurtEquipment",
+                    net.minecraft.world.damagesource.DamageSource.class, float.class, net.minecraft.world.entity.EquipmentSlot[].class);
+            pass.setAccessible(true);
+            pass.invoke(p, p.damageSources().generic(), 28.0F, new net.minecraft.world.entity.EquipmentSlot[]{
+                    net.minecraft.world.entity.EquipmentSlot.CHEST});
+        } catch (ReflectiveOperationException e) {
+            helper.fail(e.toString());
+            return;
+        }
+        helper.assertFalse(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).isEmpty(), "a fully worn piece was destroyed by the armour pass");
+        helper.succeed();
+    }
+
     // ------------------------------------------------------------------ wiring
 
     @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)

@@ -11,6 +11,7 @@
     "soldier.ServerCommonPacketListenerImplMixin",
     "armor.MixinArmorSlot",
     "armor.MixinEntityArmorStep",
+    "armor.MixinItemStackWornOut",
     "armor.MixinLivingEntityArmorSounds",
     "carry.MixinPlayerShoulder",
     "ragdoll.MixinPlayerRagdoll",
