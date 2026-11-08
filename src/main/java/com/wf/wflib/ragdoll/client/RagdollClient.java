@@ -64,6 +64,20 @@ public final class RagdollClient {
         RagdollStore.of(true).clear();
     }
 
+    /**
+     * {centre, face direction, crown direction} of a ragdolled entity's head at render time, in world coordinates, or
+     * null when it is not ragdolled: what is mounted on the head follows the bone, whichever way it is turned.
+     */
+    public static @Nullable double[][] headFrame(Entity entity, float pt) {
+        RagdollStore.Track track = RagdollStore.of(true).track(entity.getId());
+        if (track == null || track.empty() || track.released()) {
+            return null;
+        }
+        double[][] out = new double[3][3];
+        track.sample(pt).headFrame(com.wf.wflib.ragdoll.RagdollServer.skeleton(), out[0], out[1], out[2]);
+        return out;
+    }
+
     /** Head / chest centre for the camera at render time; null => not ragdolled. */
     public static @Nullable double[] view(Entity entity, float pt, boolean head) {
         RagdollStore.Track track = RagdollStore.of(true).track(entity.getId());

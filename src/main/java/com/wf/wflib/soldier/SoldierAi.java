@@ -73,6 +73,9 @@ public final class SoldierAi {
         boolean downReported;
         /** Fought for real (acquired as a target, or reported so by a squadmate): remembered longer, see {@link BotPolicy}. */
         boolean confirmed;
+        /** Position known only from a shot or an ally's report, since {@link #soundSince}: worth going to look at. */
+        boolean sound;
+        long soundSince;
 
         /** A contact known only by report or sound: half-aware, so seeing the person confirms it fast. */
         static Threat told() {
@@ -96,6 +99,9 @@ public final class SoldierAi {
         /** Weapon light: "auto" (by the dark), "on" or "off"; {@code lit} is what clients were last told. */
         String light = "auto";
         boolean lit;
+        /** Where this soldier is going to look at a sound, since when (null = not investigating). */
+        Vec3 probe;
+        long probeSince;
         /** Wants a reload that is worth the time; out of ammunition for good; was falling back to reload or heal. */
         boolean needReload, dry, retreating, engaged;
         Vec3 targetAnchor;
@@ -399,6 +405,7 @@ public final class SoldierAi {
         o.addProperty("mode", b.mode.name().toLowerCase(Locale.ROOT));
         o.addProperty("state", b.state);
         o.addProperty("light", b.lit);
+        o.addProperty("investigating", b.probe != null);
         o.addProperty("light_mode", b.light);
         o.addProperty("target", b.target);
         o.addProperty("threats", b.threats.size());
@@ -485,6 +492,7 @@ public final class SoldierAi {
                 b.cover = null;
                 b.route.clear();
                 b.threats.clear();
+                b.probe = null;
                 b.lit = false;
                 b.suppression = 0;
                 b.danger.clear();
@@ -510,6 +518,7 @@ public final class SoldierAi {
                 pose(p, b, Posture.PRONE, 0, false);
                 b.moving = false;
                 b.state = "downed";
+                light(p, b);                       // a downed soldier keeps its lamp on, lying where it fell
                 BotMedical.cancel(p);
                 // Leave time for approach, bleeding control, blood replacement and the real CPR channel.
                 if (b.down == 0) b.giveUpAt = 1200 + RNG.nextInt(200);
@@ -567,6 +576,10 @@ public final class SoldierAi {
             double angle = Math.toRadians(Math.floorMod(b.name.hashCode(), 360));
             heard.eye = source.getEyePosition().add(Math.cos(angle) * error, 0, Math.sin(angle) * error);
             heard.seen = now;
+            if (!heard.sound) {
+                heard.sound = true;
+                heard.soundSince = now;
+            }
             heard.reaction = 6;
             b.heardShots++;
         }
@@ -575,6 +588,12 @@ public final class SoldierAi {
     /** Whether {@code observer} counts {@code other} as an enemy; a null {@code other} is a real player. */
     private static boolean hostile(Bot observer, Bot other) {
         return other == null ? observer.huntsPlayers : !other.team.equals(observer.team);
+    }
+
+    /** Whether {@code t} has a light on for others to see: a soldier with its headlamp lit. */
+    private static boolean showingLight(ServerPlayer t) {
+        Bot other = BOTS.get(t.getGameProfile().getName().toLowerCase(Locale.ROOT));
+        return other != null && other.lit;
     }
 
     private static void perceive(MinecraftServer server, ServerPlayer p, Bot b, long now) {
@@ -619,8 +638,10 @@ public final class SoldierAi {
             b.glimpses.put(enemy, track);
         }
         double speed = t.getDeltaMovement().horizontalDistance();
+        float exposure = BotSenses.exposure(t.level().getMaxLocalRawBrightness(BlockPos.containing(t.getEyePosition())),
+                showingLight(t));
         track.value = Math.min(1.5f, track.value + BotSenses.detectionGain(t.distanceTo(p), b.range, speed,
-                t.isCrouching(), b.suppression));
+                t.isCrouching(), b.suppression, exposure));
         if (track.value < 1f) {
             if (th != null) th.visible = 0;
             return;
@@ -634,6 +655,7 @@ public final class SoldierAi {
         th.reaction = 2;
         th.visible++;
         th.confirmed |= th.visible >= th.reaction;
+        th.sound = false;                                  // seen with their own eyes: nothing left to go and look at
         th.eye = t.getEyePosition();
         th.seen = now;
         if (!th.downReported && now % 10 == 0 && !SoldierVoices.ids().isEmpty() && BotMedical.condition(t).downed()) {
@@ -857,8 +879,34 @@ public final class SoldierAi {
         return best;
     }
 
+    /** The freshest contact known only by sound or report, or null. */
+    private static Threat soundContact(Bot b) {
+        Threat best = null;
+        for (Threat t : b.threats.values()) if (t.sound && t.visible == 0 && t.eye != null && (best == null || t.seen > best.seen)) best = t;
+        return best;
+    }
+
+    /**
+     * The spot this soldier is going to look at a sound from, or null once it has looked (arrived: the sound is spent),
+     * the contact is seen or gone, or it is pinned, reloading or has been walking too long. A new bound follows while
+     * the sound is still unexplained.
+     */
+    private static Vec3 probing(ServerPlayer p, Bot b, long now) {
+        if (b.probe == null) return null;
+        Threat heard = soundContact(b);
+        boolean arrived = at(p, b.probe, 1.5);
+        if (heard == null || arrived || now - b.probeSince > 300 || b.suppression > 0.5f || b.needReload || b.dry) {
+            if (heard != null && arrived && BotTactics.horizontal(p.position(), heard.eye) < BotPolicy.INVESTIGATE_MIN + 8) {
+                heard.sound = false;                       // looked from close by: nothing there now
+            }
+            b.probe = null;
+            return null;
+        }
+        return b.probe;
+    }
+
     /** Where this soldier wants to be now (null = stay). */
-    private static Vec3 goal(MinecraftServer server, ServerPlayer p, Bot b, long now) {
+    static Vec3 goal(MinecraftServer server, ServerPlayer p, Bot b, long now) {
         if (b.anchor == null) return null;
         if (b.squadTask.equals("rescue-cover") && b.cover == null && b.threats.isEmpty()) return null;
         List<Vec3> eyes = threatEyes(b, p.getEyePosition());
@@ -905,6 +953,8 @@ public final class SoldierAi {
             }
             return null;
         }
+        Vec3 probing = probing(p, b, now);
+        if (probing != null) return probing;
         if (b.cover != null && !b.peek.hidden()) return null;
         if (eyes.isEmpty()) {
             // quiet: ADVANCE walks on; HOLD waits by a wall near its anchor, not in the middle of the street
@@ -935,6 +985,19 @@ public final class SoldierAi {
             } else if (b.suppression < 0.5f && age > 100) {
                 return toward(p.position(), b.anchor, 7);                  // no cover ahead and nobody in sight: move up
             }
+        }
+        // A shot or a report with nobody in sight: go and look, cover or no cover, while the shooting goes on.
+        Threat heard = soundContact(b);
+        if (heard != null && b.probe == null && !b.moving && now - b.pushSearched >= 25 && mayBound
+                && BotPolicy.shouldInvestigate(now, heard.soundSince, BotTactics.horizontal(p.position(), heard.eye),
+                        b.suppression, !b.needReload && !b.dry, true, BotTactics.horizontal(p.position(), b.anchor),
+                        b.holdRadius)) {
+            b.pushSearched = now;
+            b.probe = toward(p.position(), heard.eye.subtract(0, 1.62, 0), 8);
+            b.probeSince = now;
+            b.cover = null;
+            b.pushes++;
+            return b.probe;
         }
         // Press the contact: it has not shown itself for a while, so take the next cover toward where it was.
         if (fresh != null && fresh.visible == 0 && coverValid && !b.moving && now - b.pushSearched >= 25 && mayBound

@@ -56,4 +56,16 @@ class BotPolicyTest {
         assertTrue(BotPolicy.wantsLight(true, 8), "already on: stays on until clearly bright");
         assertFalse(BotPolicy.wantsLight(true, 9), "bright again");
     }
+
+    @Test
+    void aSoundIsWorthALookOnceKnownEvenIfTheShootingGoesOn() {
+        assertTrue(BotPolicy.shouldInvestigate(100, 60, 30, 0, true, true, 5, 6));
+        assertFalse(BotPolicy.shouldInvestigate(100, 90, 30, 0, true, true, 5, 6), "only just heard");
+        assertFalse(BotPolicy.shouldInvestigate(100, 60, 4, 0, true, true, 5, 6), "close enough to have looked");
+        assertFalse(BotPolicy.shouldInvestigate(100, 60, 70, 0, true, true, 5, 6), "beyond earshot");
+        assertFalse(BotPolicy.shouldInvestigate(100, 60, 30, 0.5f, true, true, 5, 6), "pinned");
+        assertFalse(BotPolicy.shouldInvestigate(100, 60, 30, 0, false, true, 5, 6), "low on ammunition");
+        assertFalse(BotPolicy.shouldInvestigate(100, 60, 30, 0, true, false, 5, 6), "squad says hold");
+        assertFalse(BotPolicy.shouldInvestigate(100, 60, 30, 0, true, true, 60, 6), "too far from its post");
+    }
 }

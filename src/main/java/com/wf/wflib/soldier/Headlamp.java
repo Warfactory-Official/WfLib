@@ -44,14 +44,29 @@ public final class Headlamp {
         if (curios()) Curios.give(p, ItemStack.EMPTY);
     }
 
+    /** For tests: what the soldier's Curios inventory looks like. */
+    static String describe(ServerPlayer p) {
+        return curios() ? Curios.describe(p) : "curios not loaded";
+    }
+
     static boolean curios() {
         return ModList.get().isLoaded("curios");
     }
 
     private static final class Curios {
         static boolean has(Player p) {
+            // No head slot at all (a pack removed it): nothing to wear a lamp on, so it counts as carried.
             return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
-                    .flatMap(inventory -> inventory.findFirstCurio(stack -> stack.is(ITEM.get()))).isPresent();
+                    .map(inventory -> inventory.getStacksHandler("head").isEmpty()
+                            || inventory.findFirstCurio(stack -> stack.is(ITEM.get())).isPresent())
+                    .orElse(true);
+        }
+
+        static String describe(Player p) {
+            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
+                    .map(inventory -> "slots " + inventory.getCurios().keySet() + ", head "
+                            + inventory.getStacksHandler("head").map(h -> h.getSlots() + " slot(s), holding " + h.getStacks().getStackInSlot(0)).orElse("none"))
+                    .orElse("no curios inventory");
         }
 
         static void give(Player p, ItemStack lamp) {

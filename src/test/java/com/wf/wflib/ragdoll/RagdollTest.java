@@ -272,4 +272,31 @@ class RagdollTest {
         }
         System.out.println("ragdoll us/tick " + total / 1000.0 / ticks);
     }
+
+    /** What is mounted on the head (a headlamp) must point where the head bone points, face to the ceiling included. */
+    @Test
+    void theHeadFrameFollowsTheHeadBone() {
+        RagdollPose pose = new RagdollPose();
+        pose.from(standing(0));
+        double[] c = new double[3], f = new double[3], u = new double[3];
+        pose.headFrame(SK, c, f, u);
+        assertEquals(0, f[0], 1e-9);
+        assertEquals(0, f[1], 1e-9);
+        assertEquals(1, f[2], 1e-9, "upright at yaw 0 the face points along +z");
+        assertEquals(1, u[1], 1e-9, "and the crown points up");
+
+        // Tip the head back until the face looks at the ceiling: rotate the rest orientation by -90 degrees about x.
+        Quaterniond tipped = new Quaterniond().rotateX(-Math.PI / 2).mul(new Quaterniond(1, 0, 0, 0));
+        int r = Skeleton.HEAD * 4;
+        pose.q[r] = tipped.x;
+        pose.q[r + 1] = tipped.y;
+        pose.q[r + 2] = tipped.z;
+        pose.q[r + 3] = tipped.w;
+        double[] c2 = new double[3];
+        pose.headFrame(SK, c2, f, u);
+        assertEquals(1, f[1], 1e-9, "face to the ceiling");
+        assertEquals(-1, u[2], 1e-9, "crown toward the back");
+        assertEquals(0, f[0] * u[0] + f[1] * u[1] + f[2] * u[2], 1e-9, "still a right angle");
+        assertTrue(Math.abs(c2[1] - c[1]) > 0.01 || Math.abs(c2[2] - c[2]) > 0.01, "the head centre moves with the bone");
+    }
 }

@@ -31,6 +31,7 @@ class ArchitectureTest {
 
     /** Edges guarded by {@code WFSystems.enabled} at the call site; system -> systems it may touch without requiring. */
     private static final Map<String, Set<String>> GUARDED = Map.ofEntries(
+            Map.entry("soldier", Set.of("ragdoll")),
             Map.entry("missile", Set.of("probe", "armor", "labs")),
             Map.entry("labs", Set.of("armor")),
             Map.entry("cam", Set.of("drone")),

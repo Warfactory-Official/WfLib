@@ -126,6 +126,17 @@ public final class RagdollPose {
         out[2] = nz + v[2];
     }
 
+    /**
+     * The head body in the world: its centre, the way the face points and the way the crown points (unit vectors). The
+     * head body's own axes are the rig's: y down the neck, forward -z, so a head turned to the ceiling reads as forward
+     * = up.
+     */
+    public void headFrame(Skeleton sk, double[] centre, double[] forward, double[] up) {
+        bodyCentre(sk, Skeleton.HEAD, centre);
+        worldRotate(Skeleton.HEAD, 0, 0, -1, forward);
+        worldRotate(Skeleton.HEAD, 0, -1, 0, up);
+    }
+
     private void worldRotate(int i, double vx, double vy, double vz, double[] out) {
         rotate(q, i, new double[]{vx, vy, vz}, out);
     }

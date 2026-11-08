@@ -216,6 +216,7 @@
   "item.wflib.artifact.strike": "Impact protection %s",
   "item.wflib.artifact.worn": "Works worn in an artifact slot",
   "curios.identifier.artifact": "Artifact",
+  "curios.identifier.head": "Head",
   "block.wflib.deep_mining_charge": "Deep Mining Charge",
   "item.wflib.detonator": "Detonator",
   "tag.wflib.defuser": "a defuser (shovel or shears)",

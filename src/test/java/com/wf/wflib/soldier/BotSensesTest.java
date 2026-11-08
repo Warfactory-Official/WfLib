@@ -33,4 +33,16 @@ class BotSensesTest {
         org.junit.jupiter.api.Assertions.assertTrue(crouched < near && underFire < near);
         org.junit.jupiter.api.Assertions.assertTrue(1 / near > 3 && 1 / near < 14, "noticing a standing person at 10 blocks takes well under a second");
     }
+
+    @org.junit.jupiter.api.Test
+    void aLitLampMakesSomeoneStandOutAndDarknessHidesThem() {
+        float day = BotSenses.exposure(15, false), dusk = BotSenses.exposure(7, false), night = BotSenses.exposure(2, false);
+        assertEquals(1f, day, 1e-6);
+        assertTrue(day > dusk && dusk > night && night >= BotSenses.DARK_FLOOR, "darker is harder to see");
+        assertTrue(BotSenses.exposure(0, true) > day, "a lamp beats full daylight");
+        float unlitAtNight = BotSenses.detectionGain(50, 80, 0, false, 0, night);
+        float litAtNight = BotSenses.detectionGain(50, 80, 0, false, 0, BotSenses.exposure(2, true));
+        assertTrue(litAtNight > 4 * unlitAtNight, "lit " + litAtNight + " vs unlit " + unlitAtNight);
+        assertEquals(1f, BotSenses.detectionGain(3, 80, 0, false, 0, night), "arm's length is seen at once whatever the light");
+    }
 }

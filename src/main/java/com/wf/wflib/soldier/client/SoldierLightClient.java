@@ -2,6 +2,8 @@ package com.wf.wflib.soldier.client;
 
 import com.wf.gemrender.light.LightSink;
 import com.wf.gemrender.light.Lights;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.ragdoll.api.client.RagdollView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.bus.api.IEventBus;
@@ -55,11 +57,17 @@ public final class SoldierLightClient {
                 continue;
             }
             if (who == null) continue;
-            var eye = who.getEyePosition(partialTick);
-            Vector3f look = who.getViewVector(partialTick).toVector3f();
-            Vector3f up = who.getUpVector(partialTick).toVector3f();
-            double x = eye.x + look.x * AHEAD + up.x * RISE, y = eye.y + look.y * AHEAD + up.y * RISE,
-                    z = eye.z + look.z * AHEAD + up.z * RISE;
+            // Ragdolled (downed, dying): the lamp rides the head bone, so a head turned to the ceiling lights the ceiling.
+            double[][] head = WFSystems.enabled("ragdoll") ? RagdollView.head(who, partialTick) : null;
+            net.minecraft.world.phys.Vec3 eye = who.getEyePosition(partialTick);
+            Vector3f look = head != null ? new Vector3f((float) head[1][0], (float) head[1][1], (float) head[1][2])
+                    : who.getViewVector(partialTick).toVector3f();
+            Vector3f up = head != null ? new Vector3f((float) head[2][0], (float) head[2][1], (float) head[2][2])
+                    : who.getUpVector(partialTick).toVector3f();
+            double ox = head != null ? head[0][0] : eye.x, oy = head != null ? head[0][1] : eye.y,
+                    oz = head != null ? head[0][2] : eye.z;
+            double x = ox + look.x * AHEAD + up.x * RISE, y = oy + look.y * AHEAD + up.y * RISE,
+                    z = oz + look.z * AHEAD + up.z * RISE;
             sink.spot(x, y, z, look, up, RANGE, INNER, OUTER, COLOR, INTENSITY, null, true);
             LampFlare.add(x, y, z, look);
         }

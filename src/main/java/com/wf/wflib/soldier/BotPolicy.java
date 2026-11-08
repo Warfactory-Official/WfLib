@@ -53,6 +53,22 @@ final class BotPolicy {
         return now - mine >= myCooldown && now - team >= teamCooldown;
     }
 
+    /** Ticks a sound / report must have been known before a soldier goes to look, how close counts as having looked. */
+    static final long INVESTIGATE_AFTER = 30;
+    static final double INVESTIGATE_MIN = 6, INVESTIGATE_RANGE = 64, INVESTIGATE_LEASH = 30;
+
+    /**
+     * Go and look at a contact known only by sound or an ally's report: soon after first hearing it (the shooting need
+     * not stop), healthy and loaded, not pinned, the squad allows a move, and not too far from the post. Close enough
+     * to have looked is the end of it.
+     */
+    static boolean shouldInvestigate(long now, long knownSince, double distance, float suppression, boolean ammoOk,
+                                     boolean mayAdvance, double fromAnchor, int holdRadius) {
+        return mayAdvance && ammoOk && suppression < 0.3f && now - knownSince >= INVESTIGATE_AFTER
+                && distance >= INVESTIGATE_MIN && distance <= INVESTIGATE_RANGE
+                && fromAnchor <= holdRadius + INVESTIGATE_LEASH;
+    }
+
     /** Push on a contact that has not shown itself for a while, when healthy, loaded, and the squad allows a move. */
     static boolean shouldPush(long now, long lastSeen, double distance, float suppression, boolean ammoOk,
                               boolean mayAdvance, double fromAnchor, int holdRadius) {
