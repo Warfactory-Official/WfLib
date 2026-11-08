@@ -20,7 +20,7 @@ public final class Replay {
     private static final MethodHandle EXPORTING = flag("isExporting");
     private static final MethodHandle REPLAY_SERVER = replayServer();
     private static final MethodHandle CLIENT_RENDERING = serverFlag("doClientRendering", false);
-    private static final MethodHandle PROCESSING_SNAPSHOT = serverFlag("isProcessingSnapshot", false);
+    private static final MethodHandle PROCESSING_SNAPSHOT = serverFlag("isProcessingSnapshot", true);
     private static final MethodHandle FAST_FORWARDING = serverFlag("fastForwarding", true);
     private static final MethodHandle EXPORT_JOB = exportJob();
     private static final MethodHandle SETTINGS = exportMethod("ExportJob", "getSettings", "ExportSettings");

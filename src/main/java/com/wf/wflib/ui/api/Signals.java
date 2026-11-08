@@ -12,7 +12,7 @@ import java.util.function.ToIntFunction;
 /** Global signal registry; names unique, duplicates refused. Register during client setup. */
 public final class Signals {
     private static final String NAMESPACE = "wf_ui";
-    private static final WFRegistry<Signal<?>> SIGNALS = WFRegistry.create("ui", "ui.signals");
+    private static final WFRegistry<Signal<?>> SIGNALS = WFRegistry.createLazy("ui", "ui.signals");
 
     private Signals() {
     }

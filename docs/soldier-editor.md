@@ -105,3 +105,24 @@ invalid definitions, and large catalogue wire limits alongside the existing sold
 Native QA runs in a separate muted client/save under `build/editor-client`, never the user's
 visible client. QA screenshots and logs are archived with the build. Game balance across every
 weapon/armor pack is not implied by those functional checks.
+
+## Local integration handoff (2026-11-08)
+
+Worktrees: `/home/overlord/Codebases/soldier-editor/WFLib` and
+`/home/overlord/Codebases/soldier-editor/MineAssault`, both `feat/soldier-editor`.
+WFLib rebases the committed main headlamp/aim fixes through `e959d88`. The distributable also
+preserves the active instance's existing main-worktree WFRegistry, Signals, Subject and Replay
+compatibility edits and four pixelated detector textures. These were copied verbatim; the other
+agent's original working files were not changed. Keep these integration changes when rebuilding
+for the current instance; the feature commit itself is separate for review/cherry-picking.
+
+A pre-existing Zig array-repetition expression failed under the installed Zig 0.16. It now uses
+`@splat(-1)` with the same `[36]i8` type/value. All eight native libraries were rebuilt and the
+narrowphase parity tests passed. Other platforms were cross-compiled, not runtime tested.
+
+The native QA fixture uses MineAssault's existing MCP harness on loopback port 18235, a separate
+Xvfb display and muted client/save. Its tools were not connected to the user's visible client.
+The harness's older `stage_bot` endpoint accepts Carpet actors only; native workshop soldiers
+were checked with GUI deployment, commands, `stage_bots` telemetry and real inventory data.
+The harness close-world tool assumes Flashback is present, so QA saved through Minecraft's
+normal Save and Quit button instead. These harness limitations are outside this editor change.

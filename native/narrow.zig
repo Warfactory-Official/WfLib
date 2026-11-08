@@ -509,7 +509,7 @@ fn prismEdges(p: *Poly) void {
     const pts = &s.pts;
     var cursor: usize = 0;
     // a -> b and b -> a: bitwise negations => same `uniqueIndex`; one normalisation per prism edge.
-    var known = [_]i8{-1} ** 36;
+    var known: [36]i8 = @splat(-1);
     inline for (PRISM_FACES, 0..) |face, f| {
         s.face_start[f] = @intCast(cursor);
         for (0..face.len) |k| {
