@@ -36,10 +36,10 @@ public final class SoldierEditorScreen extends Screen {
     private String page="loadout", modal="", query="", pack="All packs", status="", unitQuery="";
     private boolean pending, dirty, existing, previewDirty=true;
     private RemotePlayer preview;
-    private String previewFor="";
+    private String previewFor="", pendingAction="";
     private int detailOffset;
     private final Map<AbstractWidget,Integer> details=new LinkedHashMap<>();
-    private EditBox nameField,idField;
+    private EditBox nameField,idField,focusNext;
     private List<SoldierTemplate> filteredUnits=List.of();
     private List<SoldierCatalogue.Choice> filteredChoices=List.of();
     private final List<Button> unitRows=new ArrayList<>(), choiceRows=new ArrayList<>();
@@ -59,7 +59,8 @@ public final class SoldierEditorScreen extends Screen {
                 s.rebuild();
             }
             s.filterUnits();
-            if (s.status.startsWith("Saved ") || s.status.startsWith("Spawn egg") || s.status.startsWith("Deployed")) { s.dirty=false; s.existing=true; if(s.idField!=null)s.idField.setEditable(false); }
+            if (Set.of("save","egg","spawn").contains(s.pendingAction) && (s.status.startsWith("Saved ") || s.status.startsWith("Spawn egg") || s.status.startsWith("Deployed"))) { s.dirty=false; s.existing=true; if(s.idField!=null)s.idField.setEditable(false); }
+            s.pendingAction="";
             if (s.status.startsWith("Faction saved")) { s.faction=s.factionEditId; s.modal=""; s.rebuild(); }
         } else if (j.get("open").getAsBoolean()) mc.setScreen(new SoldierEditorScreen(j));
     }
@@ -203,7 +204,7 @@ public final class SoldierEditorScreen extends Screen {
             touch();modal="";rebuild();
         }));}
         slider("Rotate preview",px+4,top+h-28,pw-8,-180,180,rotation,true,v->rotation=(float)v);
-        filterChoices(); setInitialFocus(search);
+        filterChoices(); focusNext=search;
     }
     private boolean matchesSlot(SoldierCatalogue.Choice c) {
         if(modal.equals("frag") || modal.equals("smoke")) return c.slot().equals("grenade") && SoldierServices.hasThrowables()
@@ -252,14 +253,16 @@ public final class SoldierEditorScreen extends Screen {
         try { var d=new JsonObject();d.add("unit",draft().json());d.addProperty("count",count);send(action,d); }
         catch(RuntimeException e){status=e.getMessage();}
     }
-    private void send(String action,JsonObject data) { if(pending)return;pending=true;status="Saving…";SoldierEditorPackets.request(action,data,roster.get("revision").getAsInt()); }
+    private void send(String action,JsonObject data) { if(pending)return;pending=true;pendingAction=action;status="Saving…";SoldierEditorPackets.request(action,data,roster.get("revision").getAsInt()); }
     private void confirm(String message,Runnable action) {
         minecraft.setScreen(new ConfirmScreen(ok->{minecraft.setScreen(this);if(ok)action.run();},Component.literal("Soldier workshop"),Component.literal(message)));
     }
     private void switchDraft(Runnable next) { if(dirty)confirm("Discard unsaved changes to this variant?",next);else next.run(); }
     @Override public void onClose() { if(dirty)confirm("Close without saving changes?",()->{dirty=false;super.onClose();});else super.onClose(); }
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void tick() { if(minecraft.player==null || !minecraft.player.isCreative()) minecraft.setScreen(null); }
+    private void focusPending() { if(focusNext!=null) { if(children().contains(focusNext)){setFocused(focusNext);focusNext.setFocused(true);} focusNext=null; } }
+    @Override public boolean mouseClicked(double x,double y,int button) { boolean handled=super.mouseClicked(x,y,button);focusPending();return handled; }
+    @Override public void tick() { focusPending(); if(minecraft.player==null || !minecraft.player.isCreative()) minecraft.setScreen(null); }
     @Override public boolean keyPressed(int key,int scan,int modifiers) {
         if(key==GLFW.GLFW_KEY_S && hasControlDown() && modal.isEmpty()){save("save");return true;}
         if(key==GLFW.GLFW_KEY_ESCAPE && !modal.isEmpty()){modal="";rebuild();return true;}
@@ -272,7 +275,13 @@ public final class SoldierEditorScreen extends Screen {
         return super.mouseScrolled(x,y,horizontal,vertical);
     }
     private void updatePreview(String hovered) {
-        if(preview==null)preview=new RemotePlayer(minecraft.level,new GameProfile(UUID.nameUUIDFromBytes("wflib:soldier_preview".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"SoldierPreview"));
+        if(preview==null) {
+            var team=new net.minecraft.world.scores.PlayerTeam(new net.minecraft.world.scores.Scoreboard(),"soldier_preview");
+            team.setNameTagVisibility(net.minecraft.world.scores.Team.Visibility.NEVER);
+            preview=new RemotePlayer(minecraft.level,new GameProfile(UUID.nameUUIDFromBytes("wflib:soldier_preview".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"SoldierPreview")) {
+                @Override public net.minecraft.world.scores.PlayerTeam getTeam() { return team; }
+            };
+        }
         if(!previewDirty && previewFor.equals(hovered))return;previewDirty=false;previewFor=hovered;
         for(var s:new EquipmentSlot[]{EquipmentSlot.MAINHAND,EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET})preview.setItemSlot(s,ItemStack.EMPTY);
         var weapon=catalogue.get(gun);if(weapon!=null)preview.setItemSlot(EquipmentSlot.MAINHAND,weapon.stack().copy());
