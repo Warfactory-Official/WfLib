@@ -46,7 +46,7 @@ public final class SoldierCatalogue {
         for (var setup:ArmorSetups.all()) if (!setup.dev()) c.add(setup.label(),setup.slot().getName(),setup.stack(),Set.copyOf(setup.covers()));
         for (var item:BuiltInRegistries.ITEM) {
             var id=BuiltInRegistries.ITEM.getKey(item); String key=id.toString();
-            if (com.wf.wflib.armor.ArmorCatalogue.isDev(id)) continue;
+            if (ArmorSetups.isDev(id)) continue;
             if (item instanceof ArmorItem a && a.getEquipmentSlot()!=EquipmentSlot.BODY && !c.choices.containsKey(key))
                 c.add(key,a.getEquipmentSlot().getName(),new ItemStack(item),Set.of(a.getEquipmentSlot()));
             if (SoldierServices.hasThrowables() && SoldierServices.throwables().kind(id)!=SoldierThrowables.Kind.OTHER)

@@ -92,6 +92,11 @@ public final class ArmorSetups {
         return new Setup(gid.toString(), inserts, stack, slot, covers, specs, ArmorCatalogue.isDev(gid));
     }
 
+    /** True for the armour test fixtures that must not appear in player-facing catalogues. */
+    public static boolean isDev(net.minecraft.resources.ResourceLocation id) {
+        return ArmorCatalogue.isDev(id);
+    }
+
     public static String zone(EquipmentSlot slot) {
         return switch (slot) {
             case HEAD -> "head";

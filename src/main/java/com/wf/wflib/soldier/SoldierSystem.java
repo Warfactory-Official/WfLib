@@ -23,7 +23,7 @@ public final class SoldierSystem implements WFSystem {
 
     @Override
     public Set<String> requires() {
-        return Set.of("grenade", "audio");
+        return Set.of("grenade", "audio", "armor");
     }
 
     @Override
