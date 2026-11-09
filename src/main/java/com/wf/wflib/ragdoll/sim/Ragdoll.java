@@ -76,6 +76,10 @@ public final class Ragdoll {
     private double tx, ty, tz;
     private final double[] ra = new double[3], rb = new double[3];
 
+    /** Kinematic body, -1 none: moved from its pose at {@link #grip} to {@link #gripTo} over the next step. */
+    private int grip = -1;
+    private final double[] gripFrom = new double[7], gripTo = new double[7];
+
     public Ragdoll(Skeleton skeleton) {
         this.skeleton = skeleton;
         this.jointBand = new double[skeleton.joints.length];
@@ -107,8 +111,10 @@ public final class Ragdoll {
                 gatherContacts(boxes, boxCount, CONTACT_PERIOD * H * Math.min(fastest, MAX_SPEED) + 0.02);
             }
             integrate();
+            pin(sub);
             solveJoints();
             solveContacts();
+            pin(sub);
             velocities();
             contactVelocities();
             jointDamping();
@@ -116,7 +122,54 @@ public final class Ragdoll {
         settle();
     }
 
+    /**
+     * Body {@code i} follows {@code to} = {@code x, y, z, qx, qy, qz, qw} through the next step, infinite mass; the rest
+     * hangs off it. Call every tick; its velocity comes out of the path, so {@link #release} keeps the momentum.
+     */
+    public void grip(int i, double[] to) {
+        grip = i;
+        System.arraycopy(x, i * 3, gripFrom, 0, 3);
+        System.arraycopy(q, i * 4, gripFrom, 3, 4);
+        System.arraycopy(to, 0, gripTo, 0, 7);
+        if (gripFrom[3] * to[3] + gripFrom[4] * to[4] + gripFrom[5] * to[5] + gripFrom[6] * to[6] < 0) {
+            for (int k = 3; k < 7; k++) {
+                gripTo[k] = -to[k];
+            }
+        }
+        wake();
+    }
+
+    public void release() {
+        grip = -1;
+    }
+
+    public int gripped() {
+        return grip;
+    }
+
+    private void pin(int sub) {
+        if (grip < 0) {
+            return;
+        }
+        double s = (sub + 1) / (double) SUBSTEPS, r = 1 - s;
+        int o = grip * 3, p = grip * 4;
+        x[o] = gripFrom[0] * r + gripTo[0] * s;
+        x[o + 1] = gripFrom[1] * r + gripTo[1] * s;
+        x[o + 2] = gripFrom[2] * r + gripTo[2] * s;
+        double qx = gripFrom[3] * r + gripTo[3] * s, qy = gripFrom[4] * r + gripTo[4] * s;
+        double qz = gripFrom[5] * r + gripTo[5] * s, qw = gripFrom[6] * r + gripTo[6] * s;
+        double n = 1.0 / Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+        q[p] = qx * n;
+        q[p + 1] = qy * n;
+        q[p + 2] = qz * n;
+        q[p + 3] = qw * n;
+    }
+
     private void settle() {
+        if (grip >= 0) {
+            calm = 0;
+            return;
+        }
         boolean still = true;
         for (int i = 0; i < Skeleton.BODIES && still; i++) {
             still = len(v, i) < CALM_SPEED && len(w, i) < CALM_SPIN;

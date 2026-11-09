@@ -5,6 +5,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.wf.wflib.carry.api.Carry;
 import com.wf.wflib.carry.CarryPackets;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.ragdoll.api.Ragdolls;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -100,8 +103,26 @@ public final class CarryClient {
         }
     }
 
-    /** Dropped carriable item under the crosshair and nearer than any wall, else -1 (main hand). */
+    /** Ragdoll body, else dropped carriable item, under the crosshair and nearer than any wall; else -1 (main hand). */
     private static int aimedItem(Minecraft mc, Player player) {
+        if (WFSystems.enabled("ragdoll")) {
+            Vec3 eye = player.getEyePosition();
+            Vec3 end = eye.add(player.getViewVector(1).scale(Carry.BODY_REACH));
+            double limit = mc.level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player))
+                    .getLocation().distanceToSqr(eye);
+            int best = -1;
+            for (LivingEntity body : mc.level.getEntitiesOfClass(LivingEntity.class, new AABB(eye, end).inflate(1),
+                    e -> e != player && Ragdolls.active(e) && Carry.carrierOf(e) == null)) {
+                Optional<Vec3> hit = body.getBoundingBox().inflate(0.3).clip(eye, end);
+                if (hit.isPresent() && hit.get().distanceToSqr(eye) < limit) {
+                    limit = hit.get().distanceToSqr(eye);
+                    best = body.getId();
+                }
+            }
+            if (best >= 0) {
+                return best;
+            }
+        }
         Vec3 eye = player.getEyePosition();
         Vec3 end = eye.add(player.getViewVector(1).scale(Carry.REACH));
         double limit = mc.level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player))
@@ -144,10 +165,15 @@ public final class CarryClient {
 
     // ------------------------------------------------------------------ view
 
-    /** Both hands out on the load; arms follow the head, item drawn by {@link Layer}. */
+    /** Both hands out on the load; arms follow the head, item drawn by {@link Layer}. Own carried body hidden in first person: it fills the view. */
     @SubscribeEvent
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void pose(RenderLivingEvent.Pre e) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && e.getEntity().getId() == Carry.body(mc.player) && mc.options.getCameraType().isFirstPerson()) {
+            e.setCanceled(true);
+            return;
+        }
         if (e.getEntity() instanceof Player p && Carry.carrying(p) && e.getRenderer().getModel() instanceof PlayerModel m) {
             m.rightArmPose = HumanoidModel.ArmPose.CROSSBOW_HOLD;
             m.leftArmPose = HumanoidModel.ArmPose.CROSSBOW_HOLD;

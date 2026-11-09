@@ -15,6 +15,7 @@
     "armor.MixinLivingEntityArmorSounds",
     "carry.MixinPlayerShoulder",
     "ragdoll.MixinPlayerRagdoll",
+    "ragdoll.MixinLivingEntityRagdoll",
     "ragdoll.MixinServerGamePacketListenerRagdoll",
     "colony.MixinEntity",
     "core.MixinInventoryMenuSlots",

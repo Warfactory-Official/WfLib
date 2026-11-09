@@ -56,12 +56,16 @@ public final class CarryPackets {
         }
     }
 
-    /** S2C: entity's carried stack. */
-    public record Carried(int entity, ItemStack stack, ItemStack gun) implements CustomPacketPayload {
+    /** S2C: entity's carried stack and body. */
+    public record Carried(int entity, ItemStack stack, ItemStack gun, int body) implements CustomPacketPayload {
         public static final Type<Carried> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carry_carried"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Carried> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Carried::entity, ItemStack.OPTIONAL_STREAM_CODEC, Carried::stack,
-                ItemStack.OPTIONAL_STREAM_CODEC, Carried::gun, Carried::new);
+                ItemStack.OPTIONAL_STREAM_CODEC, Carried::gun, ByteBufCodecs.VAR_INT, Carried::body, Carried::new);
+
+        public static Carried of(Player p) {
+            return new Carried(p.getId(), Carry.carried(p).copy(), p.getData(Shoulder.HELD).copy(), Carry.body(p));
+        }
 
         @Override
         public Type<Carried> type() {
@@ -73,6 +77,7 @@ public final class CarryPackets {
                 if (ctx.player().level().getEntity(entity) instanceof Player p) {
                     p.setData(Carry.CARRIED, stack);
                     p.setData(Shoulder.HELD, gun);
+                    p.setData(Carry.BODY, body);
                 }
             });
         }

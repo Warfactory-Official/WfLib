@@ -40,9 +40,15 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import com.wf.wflib.carry.CarryPackets;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.ragdoll.api.Ragdolls;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Open carry of one {@link #CARRIABLE} item in both hands: player attachment {@link #CARRIED}, no inventory slot.
+ * Open carry of one {@link #CARRIABLE} item in both hands: player attachment {@link #CARRIED}, no inventory slot; or of
+ * a ragdoll body over the shoulder ({@link #BODY}, ragdoll system): same restrictions, slower walk.
  * While {@link #carrying}: no attack, jump, sprint, held-item use, pickup, mounting or inventory screen; blocks still
  * usable; storage blocks take the item instead of opening. Creative / spectator exempt (stack handed back).
  * Weight counted through wfweight inventory source (compat.wfweight.CarryWeight).
@@ -52,12 +58,20 @@ public final class Carry {
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carriable"));
     /** Reach for picking a dropped item up. */
     public static final double REACH = 4;
+    /** Reach for lifting a body, eye to its box. */
+    public static final double BODY_REACH = 2.5;
 
     /** Registered by {@code CarrySystem}. */
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<ItemStack>> CARRIED = DeferredHolder.create(
             NeoForgeRegistries.Keys.ATTACHMENT_TYPES, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carried"));
 
+    /** Carried body's entity id, -1 none. Not saved: the hold ends with the session. Registered by {@code CarrySystem}. */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Integer>> BODY = DeferredHolder.create(
+            NeoForgeRegistries.Keys.ATTACHMENT_TYPES, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carried_body"));
+
     private static final ResourceLocation NO_JUMP = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carry_no_jump");
+    private static final ResourceLocation BODY_SLOW = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "carry_body_slow");
+    private static final double BODY_SPEED = -0.3;
 
     private Carry() {
     }
@@ -66,17 +80,38 @@ public final class Carry {
         return player.getData(CARRIED);
     }
 
-    /** Restrictions apply: stack held and player not exempt. */
+    public static int body(Player player) {
+        return player.getData(BODY);
+    }
+
+    /** Player carrying {@code body}, else null. Both sides. */
+    public static @Nullable Player carrierOf(Entity body) {
+        for (Player p : body.level().players()) {
+            if (body(p) == body.getId()) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /** Restrictions apply: stack or body held and player not exempt. */
     public static boolean carrying(Player player) {
-        return !carried(player).isEmpty() && !player.isCreative() && !player.isSpectator();
+        return (!carried(player).isEmpty() || body(player) >= 0) && !player.isCreative() && !player.isSpectator();
     }
 
     // ------------------------------------------------------------------ state changes (server)
 
-    /** {@code entity < 0} or none in reach => main hand. */
+    /** {@code entity < 0} or none in reach => main hand. Ragdoll body => over the shoulder. */
     public static void pickup(ServerPlayer player, int entity) {
-        if (!carried(player).isEmpty() || player.isCreative() || player.isSpectator() || !player.isAlive()
-                || player.isPassenger()) {
+        if (!carried(player).isEmpty() || body(player) >= 0 || player.isCreative() || player.isSpectator()
+                || !player.isAlive() || player.isPassenger()) {
+            return;
+        }
+        if (entity >= 0 && player.level().getEntity(entity) instanceof LivingEntity body) {
+            if (WFSystems.enabled("ragdoll") && body.getBoundingBox().inflate(0.3).distanceToSqr(player.getEyePosition())
+                    <= BODY_REACH * BODY_REACH && Ragdolls.carry(body, player)) {
+                setBody(player, body.getId());
+            }
             return;
         }
         if (entity >= 0) {
@@ -101,6 +136,10 @@ public final class Carry {
     }
 
     public static void drop(ServerPlayer player) {
+        if (body(player) >= 0) {
+            letGo(player);
+            return;
+        }
         ItemStack stack = carried(player);
         if (stack.isEmpty() || !carrying(player)) {
             return;
@@ -116,29 +155,51 @@ public final class Carry {
         sync(player);
     }
 
-    /** Exempt player holding a stack: inventory, else floor. */
+    /** Body dropped where it hangs. */
+    public static void letGo(ServerPlayer player) {
+        if (player.level().getEntity(body(player)) instanceof LivingEntity body && Ragdolls.carrier(body) == player) {
+            Ragdolls.carry(body, null);
+        }
+        setBody(player, -1);
+    }
+
+    /** Server mirror of the ragdoll's hold; {@link #letGo} to end one. */
+    public static void setBody(ServerPlayer player, int body) {
+        player.setData(BODY, body);
+        refresh(player);
+        sync(player);
+    }
+
+    /** Exempt player holding a stack: inventory, else floor; a body is let go. */
     public static void release(ServerPlayer player) {
+        if (body(player) >= 0) {
+            letGo(player);
+        }
         ItemStack stack = carried(player);
+        if (stack.isEmpty()) {
+            return;
+        }
         set(player, ItemStack.EMPTY);
         if (!player.getInventory().add(stack)) {
             player.drop(stack, false);
         }
     }
 
-    /** Jump power 0 while carrying (vanilla skips the jump at <= 1e-5). */
+    /** Jump power 0 while carrying (vanilla skips the jump at <= 1e-5); a body also slows the walk. */
     public static void refresh(Player player) {
-        AttributeInstance jump = player.getAttribute(Attributes.JUMP_STRENGTH);
-        if (jump == null) {
-            return;
-        }
         boolean want = carrying(player);
-        if (want == jump.hasModifier(NO_JUMP)) {
+        modifier(player.getAttribute(Attributes.JUMP_STRENGTH), NO_JUMP, -1, want);
+        modifier(player.getAttribute(Attributes.MOVEMENT_SPEED), BODY_SLOW, BODY_SPEED, want && body(player) >= 0);
+    }
+
+    private static void modifier(@Nullable AttributeInstance attribute, ResourceLocation id, double amount, boolean want) {
+        if (attribute == null || want == attribute.hasModifier(id)) {
             return;
         }
         if (want) {
-            jump.addTransientModifier(new AttributeModifier(NO_JUMP, -1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+            attribute.addTransientModifier(new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         } else {
-            jump.removeModifier(NO_JUMP);
+            attribute.removeModifier(id);
         }
     }
 
@@ -146,8 +207,7 @@ public final class Carry {
         if (!(player instanceof ServerPlayer sp)) {
             return;
         }
-        com.wf.wflib.carry.CarryPackets.Carried packet = new CarryPackets.Carried(sp.getId(), carried(sp).copy(),
-                sp.getData(Shoulder.HELD).copy());
+        CarryPackets.Carried packet = CarryPackets.Carried.of(sp);
         PacketDistributor.sendToPlayer(sp, packet);
         PacketDistributor.sendToPlayersTrackingEntity(sp, packet);
     }

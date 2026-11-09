@@ -2,6 +2,8 @@ package com.wf.wflib.carry;
 
 import com.wf.wflib.carry.api.Carry;
 import com.wf.wflib.carry.api.Shoulder;
+import com.wf.wflib.ragdoll.api.Ragdolls;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -81,9 +83,14 @@ final class CarryServer {
         if (player.level().isClientSide) {
             return;
         }
-        if (!Carry.carried(player).isEmpty() && !Carry.carrying(player) && player instanceof ServerPlayer sp) {
+        if ((!Carry.carried(player).isEmpty() || Carry.body(player) >= 0) && !Carry.carrying(player)
+                && player instanceof ServerPlayer sp) {
             Carry.release(sp);
             return;
+        }
+        if (Carry.body(player) >= 0 && player instanceof ServerPlayer sp
+                && !(sp.level().getEntity(Carry.body(sp)) instanceof LivingEntity body && Ragdolls.carrier(body) == sp)) {
+            Carry.setBody(sp, -1);
         }
         Carry.refresh(player);
         if (Carry.carrying(player)) {
@@ -141,7 +148,7 @@ final class CarryServer {
         }
         BlockPos pos = e.getPos();
         IItemHandler storage = e.getLevel().getCapability(Capabilities.ItemHandler.BLOCK, pos, e.getFace());
-        if (storage == null) {
+        if (storage == null || Carry.carried(player).isEmpty()) {
             return;
         }
         if (player instanceof ServerPlayer sp) {
@@ -189,8 +196,7 @@ final class CarryServer {
 
     static void onStartTracking(PlayerEvent.StartTracking e) {
         if (e.getTarget() instanceof ServerPlayer target && e.getEntity() instanceof ServerPlayer viewer) {
-            PacketDistributor.sendToPlayer(viewer, new CarryPackets.Carried(target.getId(), Carry.carried(target).copy(),
-                    target.getData(Shoulder.HELD).copy()));
+            PacketDistributor.sendToPlayer(viewer, CarryPackets.Carried.of(target));
         }
     }
 }
