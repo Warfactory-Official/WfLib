@@ -545,5 +545,6 @@
   "wflib.voices.auto": "Auto",
   "wflib.voices.speaker": "Speaker",
   "wflib.voices.sample": "Play",
-  "wflib.voices.none_installed": "No voice packs installed (wflib/voices/packs)"
+  "wflib.voices.none_installed": "No voice packs installed (wflib/voices/packs)",
+  "item.wflib.soldier_spawn_egg": "Soldier Editor"
 }

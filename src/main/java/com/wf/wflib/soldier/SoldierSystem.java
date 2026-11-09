@@ -29,11 +29,15 @@ public final class SoldierSystem implements WFSystem {
     @Override
     public void registerClient(IEventBus modBus) {
         com.wf.wflib.soldier.client.SoldierLightClient.register(modBus);
+        com.wf.wflib.soldier.client.SoldierEditorScreen.registerNameTags();
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
         Headlamp.register(modBus);
+        SoldierEditorEgg.register(modBus);
+        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+                e -> SoldierEditorPackets.register(e.registrar("soldier-editor-1").optional()));
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, VoiceDelivery.SPEC, "wflib-voices.toml");
         try { SoldierVoices.reload(); }
         catch (java.io.IOException e) { com.mojang.logging.LogUtils.getLogger().error("NPC voice packs failed to load", e); }
@@ -57,6 +61,8 @@ public final class SoldierSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(ServerStoppingEvent.class, e -> {
             Soldiers.removeAll(e.getServer());
             SoldierJobs.shutdown();
+            SoldierEditor.forget(e.getServer());
+            SoldierEditorPackets.forget();
             VoiceDelivery.stop();
         });
         NeoForge.EVENT_BUS.addListener(SoldierCommands::onRegisterCommands);

@@ -28,13 +28,13 @@ final class BotSquad {
     static List<String> movers(List<Member> members, int count) {
         return members.stream().filter(Member::available)
                 .sorted(Comparator.comparingLong(Member::lastBound)
-                        .thenComparingInt(m -> m.role.equals("mg") ? 2 : m.role.equals("medic") ? 1 : 0)
+                        .thenComparingInt(m -> com.wf.wflib.soldier.api.SoldierRole.tactics(m.role).movePriority())
                         .thenComparing(Member::name))
                 .limit(count).map(Member::name).toList();
     }
 
     static Vec3 formation(Vec3 objective, Vec3 forward, String role, int index) {
-        double back = role.equals("mg") ? 6 : role.equals("medic") ? 4 : 0;
+        double back = com.wf.wflib.soldier.api.SoldierRole.tactics(role).formationBack;
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
         return objective.subtract(forward.scale(back)).add(right.scale(index % 2 == 0 ? -2 : 2));
     }

@@ -25,8 +25,8 @@ final class SoldierCommands {
     }
 
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("soldiers").requires(s -> s.hasPermission(2))
-                .then(Commands.literal("spawn")
+        var root = Commands.literal("soldiers").requires(s -> s.hasPermission(2) || SoldierEditor.allowed(s))
+                .then(Commands.literal("spawn").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("side", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(SoldierServices.sides(), b))
                                 .then(Commands.argument("count", IntegerArgumentType.integer(1, Soldiers.CAP))
@@ -36,25 +36,25 @@ final class SoldierCommands {
                                                 .executes(c -> spawn(c.getSource(), StringArgumentType.getString(c, "side"),
                                                         IntegerArgumentType.getInteger(c, "count"),
                                                         IntegerArgumentType.getInteger(c, "radius")))))))
-                .then(VoiceCommands.node())
-                .then(Commands.literal("clear").executes(c -> {
+                .then(VoiceCommands.node().requires(s -> s.hasPermission(2)))
+                .then(Commands.literal("clear").requires(s -> s.hasPermission(2)).executes(c -> {
                     Soldiers.removeAll(c.getSource().getServer());
                     c.getSource().sendSuccess(() -> Component.literal("soldiers removed"), false);
                     return 1;
                 }))
-                .then(Commands.literal("profile")
+                .then(Commands.literal("profile").requires(s -> s.hasPermission(2))
                         .executes(c -> profile(c.getSource(), false))
                         .then(Commands.literal("reset").executes(c -> profile(c.getSource(), true))))
-                .then(Commands.literal("check").executes(c -> check(c.getSource().getLevel(), c.getSource().getPosition(), 12, c.getSource()))
+                .then(Commands.literal("check").requires(s -> s.hasPermission(2)).executes(c -> check(c.getSource().getLevel(), c.getSource().getPosition(), 12, c.getSource()))
                         .then(Commands.argument("radius", IntegerArgumentType.integer(4, 40))
                                 .executes(c -> check(c.getSource().getLevel(), c.getSource().getPosition(),
                                         IntegerArgumentType.getInteger(c, "radius"), c.getSource()))))
-                .then(Commands.literal("light")
+                .then(Commands.literal("light").requires(s -> s.hasPermission(2))
                         .then(Commands.literal("auto").executes(c -> light(c.getSource(), "auto")))
                         .then(Commands.literal("on").executes(c -> light(c.getSource(), "on")))
                         .then(Commands.literal("off").executes(c -> light(c.getSource(), "off"))))
-                .then(Commands.literal("routebench").executes(c -> routeBench(c.getSource())))
-                .then(Commands.literal("async")
+                .then(Commands.literal("routebench").requires(s -> s.hasPermission(2)).executes(c -> routeBench(c.getSource())))
+                .then(Commands.literal("async").requires(s -> s.hasPermission(2))
                         .then(Commands.literal("on").executes(c -> {
                             SoldierJobs.enabled(true);
                             return 1;
@@ -62,7 +62,9 @@ final class SoldierCommands {
                         .then(Commands.literal("off").executes(c -> {
                             SoldierJobs.enabled(false);
                             return 1;
-                        }))));
+                        })));
+        SoldierEditorCommands.add(root);
+        event.getDispatcher().register(root);
     }
 
     private static int light(net.minecraft.commands.CommandSourceStack source, String mode) {

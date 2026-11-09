@@ -5,6 +5,11 @@ System id `soldier` (`com.wf.wflib.soldier`, api in `soldier.api`). A soldier is
 over time, gunshot hearing, cover and peeking, bounding overwatch, suppression, grenades and smoke, grenade avoidance, first
 aid and revival. The guns, grenades and medicine belong to other mods and are plugged in through three SPIs.
 
+## Creative workshop
+
+`/soldiers editor` opens saved factions, named combat-role variants, installed equipment choices,
+live previews and custom spawn eggs. See [the workshop guide](soldier-editor.md).
+
 ## Plugging in
 
 | SPI | supplied by | gives the AI |

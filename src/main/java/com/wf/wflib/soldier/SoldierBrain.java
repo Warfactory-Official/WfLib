@@ -30,8 +30,8 @@ final class SoldierBrain {
         ServerPlayer owner = b.ownerId == null ? null : server.getPlayerList().getPlayer(b.ownerId);
         if (owner == null || !owner.isAlive() || owner.level() != p.level() || !owner.onGround()
                 || owner.distanceTo(p) > FOLLOW_RANGE) return;                 // out of reach: hold the last spot
-        Vec3 spot = slot(owner.position(), p.getGameProfile().getName().hashCode());
-        if (b.anchor == null || b.anchor.distanceToSqr(owner.position()) > ESCORT_RADIUS * ESCORT_RADIUS * 2.25) {
+        Vec3 spot = roleSlot(owner.position(),owner.getLookAngle(),b.role,p.getGameProfile().getName().hashCode());
+        if (b.anchor == null || b.anchor.distanceToSqr(spot) > ESCORT_RADIUS * ESCORT_RADIUS * 2.25) {
             b.anchor = spot;
             b.mode = SoldierAi.Mode.HOLD;
             b.holdRadius = (int) ESCORT_RADIUS;
@@ -47,7 +47,7 @@ final class SoldierBrain {
         if (b.hunting && last != null && last.visible == 0 && p.position().distanceToSqr(b.anchor) < ARRIVED * ARRIVED) {
             b.huntedSeen = last.seen;                                           // got there: nothing, so stop looking
         }
-        boolean lost = last != null && worthChasing(now, last.seen, last.visible, b.huntedSeen);
+        boolean lost = !com.wf.wflib.soldier.api.SoldierRole.tactics(b.role).support() && last != null && worthChasing(now, last.seen, last.visible, b.huntedSeen);
         if (lost && p.position().distanceToSqr(post) < LEASH * LEASH) {
             b.anchor = last.eye.subtract(0, 1.62, 0);                           // where they were, not where they are
             b.mode = SoldierAi.Mode.ADVANCE;
@@ -67,6 +67,10 @@ final class SoldierBrain {
         return visible == 0 && now - lastSeen > SEARCH_DELAY && lastSeen != huntedSeen;
     }
 
+    static Vec3 roleSlot(Vec3 centre,Vec3 forward,String role,int seed) {
+        int back=com.wf.wflib.soldier.api.SoldierRole.tactics(role).formationBack;
+        return slot(centre,seed).subtract(forward.multiply(1,0,1).normalize().scale(back));
+    }
     /** A spot around {@code centre}, a different one for each soldier (by name hash). */
     static Vec3 slot(Vec3 centre, int seed) {
         double angle = Math.toRadians(Math.floorMod(seed * 47, 360));

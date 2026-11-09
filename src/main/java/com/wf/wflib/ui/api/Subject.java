@@ -11,7 +11,7 @@ import java.util.function.Supplier;
  * with a {@code fallback} needs no context entry.
  */
 public final class Subject<S> {
-    private static final WFRegistry<Subject<?>> SUBJECTS = WFRegistry.create("ui", "ui.subjects");
+    private static final WFRegistry<Subject<?>> SUBJECTS = WFRegistry.createLazy("ui", "ui.subjects");
 
     private final String name;
     private final Class<S> type;

@@ -36,6 +36,11 @@ public final class WFRegistry<V> {
         return r;
     }
 
+    /** Never frozen: its entries come from client class init, which runs at first use (a screen, a HUD), after startup. */
+    public static <V> WFRegistry<V> createLazy(String system, String name) {
+        return new WFRegistry<>(system, name);
+    }
+
     /** Also freezes every {@link OrderedRegistry}. */
     public static void freezeAll() {
         for (Freezable f : ALL) f.freeze();

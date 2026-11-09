@@ -2,6 +2,10 @@ package com.wf.wflib.soldier;
 
 /** The numbers behind a soldier's judgement calls (reloading, pushing, grenades), apart from the world they act in. */
 final class BotPolicy {
+    static boolean crouch(boolean soldier, boolean combat, boolean peek, boolean moving, boolean cover, boolean requested) {
+        return (!soldier || combat) && !peek && (!moving || cover) && (requested || cover);
+    }
+
     /** A soldier throws a frag at most this often (ticks), and its team at most this often between any two throws. */
     static final long FRAG_COOLDOWN = 900, TEAM_FRAG_COOLDOWN = 500;
     static final long SMOKE_COOLDOWN = 2400, TEAM_SMOKE_COOLDOWN = 1200;
