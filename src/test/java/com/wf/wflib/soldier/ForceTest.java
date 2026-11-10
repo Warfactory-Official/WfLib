@@ -10,6 +10,20 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ForceTest {
+    @Test void soldierNamesFitAPlayerNameAndKeepTheirSideApart() {
+        var rng = new java.util.Random(7);
+        var seen = new java.util.HashSet<String>();
+        for (int i = 0; i < 2000; i++) {
+            for (boolean hostile : new boolean[]{false, true}) {
+                String n = com.wf.wflib.soldier.api.SoldierNames.random(rng, hostile);
+                assertTrue(n.matches("[A-Za-z0-9_]{2,13}"), n);
+                assertEquals(n, Companion.clean(n), "a callsign keeps the whole name");
+                if (!hostile) seen.add(n);
+            }
+        }
+        assertTrue(seen.size() > 500, "names vary: " + seen.size());
+    }
+
     private static Territory gate(List<Vec3> route) {
         return new Territory("gate", "North gate", "friendly", "minecraft:overworld", new Vec3(100, 64, 100), 20, 40, 120, route);
     }
