@@ -103,6 +103,29 @@ Four fire teams, Alpha to Delta, up to 24 soldiers per player; new recruits go t
 The client only ever *asks* (`SquadPackets.Command`); the server checks range (256 blocks), loaded chunk, ownership and that the
 territory exists. The channel is optional: without WFLib's UI a client commands with `/squad`.
 
+## Getting soldiers (recruiting)
+
+Interchangeable **sources**, switched on in `wflib-recruiting.toml` (`sources = [...]`; default `rescue`, `pda`, `barracks`), any mix at once:
+
+| Source | How |
+|---|---|
+| `pda` | The **Reinforcements** app on the PDA lists every friendly saved variant; pick one, pay, and they appear 28-44 blocks away and walk to you after `callin.delaySeconds` (default 45). Needs a PDA carried. The default way. |
+| `barracks` | Use (right-click, not sneaking) a barracks block: a menu of what it has for hire. `/soldiers barracks add` marks the block you look at (any block); `remove`, `list`. Mods register their own, below. |
+| `rescue` | Sneak and use an unowned friendly soldier with an empty hand (what existed before). |
+| `garrison` | The same on a territory garrison's soldier, at `garrison.cost*`; the territory raises a replacement. Off by default. |
+
+`/soldiers recruiting` shows what is on and the prices. Prices are an item (`costItem`, `costItemCount`) and/or currency from a wallet
+(`costCurrency`). **Wages** (`wages.enabled`, off by default): once per in-game day each soldier is paid `wages.item` / `wages.currency`
+from its owner; one that cannot be paid leaves, or with `wages.defectionChancePercent` (default 2, `wages.defection = false` to
+switch off) turns hostile where it stands. A paid hire is saved with the roster, so a restart does not lose one on its way, and it waits
+for an absent hirer.
+
+**For other mods** (`com.wf.wflib.soldier.api`): `Recruiting.barracks("mymod:barracks", state -> state.is(MyBlocks.BARRACKS), Cost.items(Items.EMERALD, 3), 20)`
+makes a block a barracks; a multiblock implements `BarracksType` (`matches` says whether the clicked position is a working one,
+`offers` what it has). `Recruiting.source(RecruitSource)` adds a whole new source (listed in the config by its id).
+`Recruiting.wallet(Wallet)` lets hiring and wages be priced in an economy mod's currency. WFLib supplies the menu, the payment and
+the arrival.
+
 ## Voices
 
 New callout events (pack format `voices.json`, `tools/voices/convert.py`, [VOICE_PACKS.md](../VOICE_PACKS.md)):
