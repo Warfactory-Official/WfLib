@@ -710,7 +710,7 @@ public final class SoldierAi {
             return;
         }
         boolean seeable = t.level() == p.level() && t.distanceTo(p) <= b.range;
-        Vec3 seen = seeable && BotSenses.inView(p.getEyePosition(), p.getLookAngle(), t.getEyePosition()) ? seen(p, t) : null;
+        Vec3 seen = seeable && BotSenses.inView(p.getEyePosition(), viewDirection(p, b), t.getEyePosition()) ? seen(p, t) : null;
         if (seen == null) {
             if (th != null) {
                 th.visible = 0;
@@ -1768,6 +1768,17 @@ public final class SoldierAi {
         return Mth.clamp(delta * EASE, -MAX_TURN, MAX_TURN);
     }
 
+    /**
+     * Where a soldier is looking for enemies. While it stands with nothing to shoot at, the view sweeps left and right
+     * ({@link BotSenses#scan}) without the body or head turning: a sweeping head jittered on screen (about 1 degree a
+     * tick, below what an entity rotation packet resolves) and shook a worn lamp's beam. Otherwise it is where the head points.
+     */
+    static Vec3 viewDirection(ServerPlayer p, Bot b) {
+        if (b.moving || !b.threats.isEmpty()) return p.getLookAngle();
+        double yaw = Math.toRadians(BotSenses.scan(b.watchYaw, p.level().getGameTime(), b.name.hashCode()));
+        return new Vec3(-Math.sin(yaw), 0, Math.cos(yaw));
+    }
+
     private static void aimAt(ServerPlayer p, Bot b, Vec3 aim, Vec3 step, ServerPlayer target) {
         float yaw = p.getYRot(), pitch = p.getXRot();
         if (aim != null) {
@@ -1788,7 +1799,7 @@ public final class SoldierAi {
             yaw = yawOf(step);
             pitch = 0;
         } else if (b.threats.isEmpty()) {
-            yaw = BotSenses.scan(b.watchYaw, p.level().getGameTime(), b.name.hashCode());
+            yaw = b.watchYaw;                      // stands still: the scan below is of the view cone, the head does not sweep
             pitch = 0;
         }
         float newYaw = p.getYRot() + turn(Mth.wrapDegrees(yaw - p.getYRot()));
