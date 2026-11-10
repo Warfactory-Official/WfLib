@@ -27,7 +27,7 @@ final class Orders {
                 b.anchor = null;
                 b.mode = SoldierAi.Mode.HOLD;
                 b.holdRadius = (int) SoldierBrain.ESCORT_RADIUS;
-                b.sprint = true;
+                b.sprint = false;                      // SoldierBrain decides by distance, the owner's pace and fights
             }
             case HOLD -> {
                 b.anchor = o.pos() != null ? o.pos() : here;

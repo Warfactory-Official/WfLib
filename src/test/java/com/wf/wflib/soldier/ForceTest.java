@@ -10,6 +10,17 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ForceTest {
+    @Test void aFollowerWalksUntilItIsFarBehindTheOwnerRunsOrAFightStarts() {
+        assertFalse(SoldierBrain.followSprint(false, 4, false, false), "close and calm: walk");
+        assertFalse(SoldierBrain.followSprint(false, 12, false, false), "a gap that is not far yet: walk");
+        assertTrue(SoldierBrain.followSprint(false, 20, false, false), "far behind: run");
+        assertTrue(SoldierBrain.followSprint(true, 10, false, false), "still catching up: keep running");
+        assertFalse(SoldierBrain.followSprint(true, 6, false, false), "caught up: walk again");
+        assertTrue(SoldierBrain.followSprint(false, 5, true, false), "the owner sprints: so does it");
+        assertFalse(SoldierBrain.followSprint(false, 2, true, false), "right beside a sprinting owner: no need yet");
+        assertTrue(SoldierBrain.followSprint(false, 2, false, true), "a fight: run");
+    }
+
     @Test void soldierNamesFitAPlayerNameAndKeepTheirSideApart() {
         var rng = new java.util.Random(7);
         var seen = new java.util.HashSet<String>();

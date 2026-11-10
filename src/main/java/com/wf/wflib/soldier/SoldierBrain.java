@@ -17,6 +17,10 @@ final class SoldierBrain {
     private static final int SEARCH_DELAY = 40;
     /** The chase counts as having reached where the contact was seen this close (blocks). */
     private static final double ARRIVED = 4;
+    /** Following: beyond this many blocks a soldier runs, and keeps running until it is within {@code RUN_CAUGHT_UP}. */
+    static final double RUN_FAR = 14, RUN_CAUGHT_UP = 8;
+    /** A contact seen this recently (game ticks) means a fight is on. */
+    private static final long FIGHT_TICKS = 100;
 
     private SoldierBrain() {
     }
@@ -75,12 +79,28 @@ final class SoldierBrain {
         ServerPlayer owner = b.ownerId == null ? null : server.getPlayerList().getPlayer(b.ownerId);
         if (owner == null || !owner.isAlive() || owner.level() != p.level() || !owner.onGround()
                 || owner.distanceTo(p) > FOLLOW_RANGE) return;                 // out of reach: hold the last spot
-        Vec3 spot = roleSlot(owner.position(),owner.getLookAngle(),b.role,p.getGameProfile().getName().hashCode());
+        // The formation faces the way the owner is travelling, not where they look: turning the head must not move anyone.
+        Vec3 moved = b.ownerSeen == null ? Vec3.ZERO : owner.position().subtract(b.ownerSeen).multiply(1, 0, 1);
+        b.ownerSeen = owner.position();
+        if (moved.lengthSqr() > 1) b.heading = moved.normalize();                // more than a block in half a second: really walking
+        else if (b.heading == null) b.heading = owner.getLookAngle().multiply(1, 0, 1).normalize();
+        Vec3 spot = roleSlot(owner.position(), b.heading, b.role, p.getGameProfile().getName().hashCode());
+        long now = p.level().getGameTime();
+        boolean fight = b.threats.values().stream().anyMatch(t -> now - t.seen < FIGHT_TICKS);
+        b.sprint = followSprint(b.sprint, owner.distanceTo(p), owner.isSprinting(), fight)
+                && com.wf.wflib.soldier.api.SoldierRole.tactics(b.role) != com.wf.wflib.soldier.api.SoldierRole.HEAVY;
         if (b.anchor == null || b.anchor.distanceToSqr(spot) > ESCORT_RADIUS * ESCORT_RADIUS * 2.25) {
             b.anchor = spot;
             b.mode = SoldierAi.Mode.HOLD;
             b.holdRadius = (int) ESCORT_RADIUS;
         }
+    }
+
+    /** Walks beside a calm owner; runs when the owner runs, when it has fallen well behind (until it has caught up), or in a fight. */
+    static boolean followSprint(boolean sprinting, double distance, boolean ownerSprinting, boolean fight) {
+        if (fight) return true;
+        if (ownerSprinting && distance > 3) return true;
+        return distance > RUN_FAR || sprinting && distance > RUN_CAUGHT_UP;
     }
 
     private static void hunt(ServerPlayer p, SoldierAi.Bot b) {

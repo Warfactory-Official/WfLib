@@ -171,6 +171,8 @@ public final class SoldierAi {
         long blockedUntil;
         Mode mode = Mode.HOLD;
         Vec3 anchor;
+        /** Following: where the owner stood at the last check and the way they were last walking. */
+        Vec3 ownerSeen, heading;
         int holdRadius = 6;
         final Deque<Vec3> path = new ArrayDeque<>();
         boolean sprint = true, crouch = true;
