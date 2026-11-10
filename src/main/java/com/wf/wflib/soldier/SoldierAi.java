@@ -674,24 +674,37 @@ public final class SoldierAi {
         b.suppression = Math.max(0, b.suppression - 0.012f);
         for (Bot other : BOTS.values()) {
             if (other.team.equals(b.team)) continue;
-            observe(p, b, server.getPlayerList().getPlayerByName(other.name), other.name.toLowerCase(Locale.ROOT), now, false);
+            observe(p, b, server.getPlayerList().getPlayerByName(other.name), other.name.toLowerCase(Locale.ROOT), now);
         }
         if (b.huntsPlayers) {
             for (ServerPlayer t : server.getPlayerList().getPlayers()) {
                 String key = t.getGameProfile().getName().toLowerCase(Locale.ROOT);
                 if (scripted(t) || BOTS.containsKey(key)) continue;
-                observe(p, b, t.isSpectator() || t.isCreative() ? null : t, key, now, true);
+                observe(p, b, t.isSpectator() || t.isCreative() ? null : t, key, now);
             }
         }
         b.threats.values().removeIf(th -> BotPolicy.forgotten(now, th.seen, th.confirmed));
     }
 
-    /** Updates {@code b}'s memory of one enemy. {@code spare} = a real player: a downed one is no longer a target. */
-    private static void observe(ServerPlayer p, Bot b, ServerPlayer t, String enemy, long now, boolean spare) {
+    /**
+     * Updates {@code b}'s memory of one enemy. An enemy that is dead, gone or downed is no longer a contact at all: its
+     * remembered position goes with it, so nobody keeps firing at where a body lies.
+     */
+    static void observe(ServerPlayer p, Bot b, ServerPlayer t, String enemy, long now) {
         Threat th = b.threats.get(enemy);
         Threat glimpse = b.glimpses.get(enemy);
-        boolean seeable = t != null && t.isAlive() && t.level() == p.level() && t.distanceTo(p) <= b.range
-                && !(spare && BotMedical.condition(t).downed());
+        boolean gone = t == null || !t.isAlive();
+        boolean down = !gone && BotMedical.condition(t).downed();
+        if (gone || down) {
+            if (down && th != null && !th.downReported && !SoldierVoices.ids().isEmpty()) {
+                th.downReported = true;
+                SoldierVoices.say(p, b, "enemy_down");
+            }
+            b.threats.remove(enemy);
+            b.glimpses.remove(enemy);
+            return;
+        }
+        boolean seeable = t.level() == p.level() && t.distanceTo(p) <= b.range;
         Vec3 seen = seeable && BotSenses.inView(p.getEyePosition(), p.getLookAngle(), t.getEyePosition()) ? seen(p, t) : null;
         if (seen == null) {
             if (th != null) {
@@ -728,10 +741,6 @@ public final class SoldierAi {
         th.sound = false;                                  // seen with their own eyes: nothing left to go and look at
         th.eye = t.getEyePosition();
         th.seen = now;
-        if (!th.downReported && now % 10 == 0 && !SoldierVoices.ids().isEmpty() && BotMedical.condition(t).downed()) {
-            th.downReported = true;
-            SoldierVoices.say(p, b, "enemy_down");
-        }
         BotSquad.report(p.server, BOTS, b, enemy, th, now);
     }
 

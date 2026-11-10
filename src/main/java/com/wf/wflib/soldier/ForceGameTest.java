@@ -300,4 +300,37 @@ public class ForceGameTest {
             clearTeam("garrison_test");
         }
     }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aKilledEnemyIsForgottenAtOnceNotFiredAtForAMinute(GameTestHelper h) {
+        var level = h.getLevel();
+        var friend = Soldiers.spawn(level, h.absoluteVec(new Vec3(1, 2, 1)), 0, new SoldierSpec("kill_a", "KillA", false, null, List.of(), Map.of(), 0), null);
+        var foe = Soldiers.spawn(level, h.absoluteVec(new Vec3(6, 2, 1)), 0, new SoldierSpec("kill_b", "KillB", true, null, List.of(), Map.of(), 0), null);
+        h.assertTrue(friend != null && foe != null, "could not spawn the test soldiers");
+        try {
+            var bot = SoldierAi.botOf(friend.getGameProfile().getName());
+            String key = foe.getGameProfile().getName().toLowerCase(java.util.Locale.ROOT);
+            long now = level.getGameTime();
+            var threat = SoldierAi.Threat.told();
+            threat.confirmed = true;
+            threat.seen = now;
+            threat.eye = foe.getEyePosition();
+            bot.threats.put(key, threat);
+            foe.hurt(foe.damageSources().genericKill(), 1000f);
+            h.assertTrue(!foe.isAlive(), "the foe did not die");
+            SoldierAi.observe(friend, bot, foe, key, now + 2);
+            h.assertTrue(bot.threats.isEmpty(), "still remembers where the dead enemy lay: " + bot.threats.keySet());
+            bot.threats.put(key, threat);
+            SoldierAi.observe(friend, bot, null, key, now + 3);          // the body is gone from the world altogether
+            h.assertTrue(bot.threats.isEmpty(), "still remembers an enemy that left the world");
+            h.succeed();
+        } finally {
+            Soldiers.remove(friend);
+            if (server(level).getPlayerList().getPlayer(foe.getUUID()) != null) Soldiers.remove(foe);
+        }
+    }
+
+    private static net.minecraft.server.MinecraftServer server(net.minecraft.server.level.ServerLevel level) {
+        return level.getServer();
+    }
 }
