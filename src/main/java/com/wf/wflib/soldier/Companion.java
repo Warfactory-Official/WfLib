@@ -45,8 +45,8 @@ public final class Companion {
 
     /** A profile-name-safe callsign: a soldier's name is {@code <callsign>_<n>} and a player name has 16 characters. */
     static String clean(String name) {
-        String safe = name == null ? "" : name.replaceAll("[^A-Za-z0-9]", "");
-        return safe.isEmpty() ? "Soldier" : safe.substring(0, Math.min(safe.length(), 10));
+        String safe = name == null ? "" : name.replaceAll("[^A-Za-z0-9_]", "");
+        return safe.isEmpty() ? "Soldier" : safe.substring(0, Math.min(safe.length(), 13));
     }
 
     public SoldierSpec spec() {

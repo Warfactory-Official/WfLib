@@ -66,7 +66,7 @@ public final class SoldierEditor {
         var s=level.getServer(); var r=SoldierRoster.get(s); var u=r.units().get(id);
         if (u==null || !r.factions().containsKey(u.faction())) throw new IllegalArgumentException("This saved variant or faction no longer exists");
         var c=catalogue(s); c.validate(u);
-        var f=r.factions().get(u.faction()); var spec=new SoldierSpec(f.id(),u.name(),f.hostile(),ResourceLocation.parse(u.gun()),
+        var f=r.factions().get(u.faction()); var spec=new SoldierSpec(f.id(),com.wf.wflib.soldier.api.SoldierNames.random(new java.util.Random(),f.hostile()),f.hostile(),ResourceLocation.parse(u.gun()),
                 u.grenades().stream().map(ResourceLocation::parse).toList(),Map.of(),u.spares(),u.role());
         var p=Soldiers.spawn(level,feet,yaw,spec,owner);
         for (var e:u.armour().entrySet()) p.setItemSlot(SoldierCatalogue.slot(e.getKey()),c.get(e.getValue()).stack().copy());
