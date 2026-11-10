@@ -30,13 +30,15 @@ import java.util.List;
 public final class SquadClient {
     private static final String CATEGORY = "key.categories.wflib";
     static final KeyMapping WHEEL = key("squad_wheel", GLFW.GLFW_KEY_G), QUICK = key("squad_move", GLFW.GLFW_KEY_X),
-            NEXT = key("squad_group", GLFW.GLFW_KEY_V);
+            NEXT = key("squad_group", GLFW.GLFW_KEY_V), MANAGE = key("squad_manage", GLFW.GLFW_KEY_B);
     /** How long an order's marker and labels stay up (ticks). */
     static final int SHOWN = 120;
     static final double AIM_RANGE = 128;
 
     /** The roster the server last sent, and the selected group (-1: everyone, else a fire team). */
     static volatile List<SquadPackets.Member> members = List.of();
+    /** The world's territories as the server last listed them (the management screen asks for them when it opens). */
+    static volatile SquadPackets.Territories world = new SquadPackets.Territories(false, List.of(), List.of());
     static int group = -1;
     private static final List<Marker> MARKERS = new ArrayList<>();
     static String toast = "";
@@ -56,6 +58,7 @@ public final class SquadClient {
             e.register(WHEEL);
             e.register(QUICK);
             e.register(NEXT);
+            e.register(MANAGE);
         });
         modBus.addListener(RegisterGuiLayersEvent.class, e ->
                 e.registerAboveAll(ResourceLocation.fromNamespaceAndPath("wflib", "squad_hud"), (LayeredDraw.Layer) new SquadHud()));
@@ -67,6 +70,15 @@ public final class SquadClient {
         members = List.copyOf(list);
         if (group >= 0 && list.stream().noneMatch(m -> m.team() == group)) group = -1;
         if (list.isEmpty()) MARKERS.clear();
+    }
+
+    public static void territories(SquadPackets.Territories packet) {
+        world = packet;
+    }
+
+    /** Asks the server to do something with the soldiers picked on the management screen (it checks they are the player's). */
+    static void manage(String action, java.util.Collection<java.util.UUID> soldiers, String kind, String region, String units, int n, int m) {
+        PacketDistributor.sendToServer(new SquadPackets.Manage(action, List.copyOf(soldiers), kind, region, units, n, m));
     }
 
     public static void echo(SquadPackets.Echo echo) {
@@ -121,7 +133,9 @@ public final class SquadClient {
         }
         long now = mc.level.getGameTime();
         MARKERS.removeIf(m -> now - m.born() > SHOWN);
-        if (mc.screen != null || members.isEmpty()) return;
+        if (mc.screen != null) return;
+        while (MANAGE.consumeClick()) mc.setScreen(new SquadScreen());
+        if (members.isEmpty()) return;
         while (NEXT.consumeClick()) cycleGroup();
         while (QUICK.consumeClick()) {
             Vec3 at = aim();

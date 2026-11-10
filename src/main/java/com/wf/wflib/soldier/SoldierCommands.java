@@ -30,7 +30,7 @@ final class SoldierCommands {
                 .then(Commands.literal("spawn").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("side", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(SoldierServices.sides(), b))
-                                .then(Commands.argument("count", IntegerArgumentType.integer(1, Soldiers.CAP))
+                                .then(Commands.argument("count", IntegerArgumentType.integer(1))
                                         .executes(c -> spawn(c.getSource(), StringArgumentType.getString(c, "side"),
                                                 IntegerArgumentType.getInteger(c, "count"), 12))
                                         .then(Commands.argument("radius", IntegerArgumentType.integer(2, 64))

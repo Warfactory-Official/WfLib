@@ -28,11 +28,16 @@ final class SquadHud implements LayeredDraw.Layer {
         int y = TOP;
         for (int team = 0; team < Companion.TEAMS.length; team++) {
             int t = team;
-            List<Member> row = all.stream().filter(m -> m.team() == t).toList();
-            if (row.isEmpty()) continue;
+            List<Member> whole = all.stream().filter(m -> m.team() == t).toList();
+            if (whole.isEmpty()) continue;
+            // a big squad does not run off the screen: the cards that fit, then how many more there are (the screen lists them all)
+            int fit = Math.max(3, (int) (g.guiWidth() * 0.6 - LEFT - LABEL) / (CARD + GAP));
+            List<Member> row = whole.size() <= fit ? whole : whole.subList(0, fit - 1);
+            int more = whole.size() - row.size();
+            int cells = row.size() + (more > 0 ? 1 : 0);
             boolean selected = SquadClient.group == team;
             boolean everyone = SquadClient.group < 0;
-            g.fill(LEFT, y, LEFT + LABEL + row.size() * (CARD + GAP) + GAP, y + ROW, PANEL);
+            g.fill(LEFT, y, LEFT + LABEL + cells * (CARD + GAP) + GAP, y + ROW, PANEL);
             g.drawString(mc.font, Companion.TEAMS[team].substring(0, 1), LEFT + 4, y + 4, selected || everyone ? 0xFFFFFFFF : DIM, true);
             if (selected) g.fill(LEFT + 2, y + 15, LEFT + LABEL - 2, y + 17, RED);       // the red bar of the selected group
             int x = LEFT + LABEL;
@@ -40,7 +45,8 @@ final class SquadHud implements LayeredDraw.Layer {
                 card(g, mc, m, x + GAP, y + 3, selected);
                 x += CARD + GAP;
             }
-            if (selected) frame(g, LEFT, y, LEFT + LABEL + row.size() * (CARD + GAP) + GAP, y + ROW, RED);
+            if (more > 0) g.drawCenteredString(mc.font, "+" + more, x + GAP + CARD / 2, y + 10, 0xFFFFFFFF);
+            if (selected) frame(g, LEFT, y, LEFT + LABEL + cells * (CARD + GAP) + GAP, y + ROW, RED);
             y += ROW + 2;
         }
         long age = mc.level == null ? Long.MAX_VALUE : mc.level.getGameTime() - SquadClient.toastAt;

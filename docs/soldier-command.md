@@ -4,6 +4,14 @@ Part of the `soldier` system ([soldiers.md](soldiers.md)). Everything here sits 
 gave it ("move there") or a map-maker assigned it ("patrol the north gate"). The squad AI carries it out, the HUD shows it, the
 soldier acknowledges it by voice.
 
+## Limits and persistence
+
+There is no cap on soldiers, on a squad's size or on a garrison: each soldier is a chunk-loading player with a full AI tick, so
+the server's tick time is the limit. Soldiers that belong to no roster are saved with the world (`PostBook`): the state of each
+(side, kit, worn armour, position, post, order, owner, garrison) is written down every 30 s and when the server stops, and put
+back a few per tick on the next start, loading each one's chunk to receive it. A crash loses at most the last 30 s. Companions
+are in their owner's `SquadBook` instead and come back with them. Nothing is saved on a server the harness films on.
+
 ## Orders
 
 `SoldierOrder` (api): `follow`, `regroup` (run back, then follow), `hold`, `move`, `attack` (move, then hold), `suppress` (put fire
@@ -21,13 +29,23 @@ waypoints. Saved with the world (`TerritoryBook`).
 |---|---|
 | `/soldiers territory create <id> <radius> [team]` | around you |
 | `/soldiers territory waypoint add <id>` / `clear` | route stops, at your feet, in order |
-| `/soldiers territory list` / `remove <id>` | |
+| `/soldiers territory list` / `remove <id>` | `list` shows each garrison's living / target size |
+| `/soldiers territory garrison <id> <count> <patrol\|guard> <reinforce seconds> [variant,variant]` / `garrison <id> clear` | the territory raises and keeps up its own garrison |
 | `/soldiers assign <team\|soldier> patrol <id>` / `guard <id>` / `hold` / `follow` | standing orders for soldiers nobody owns |
 
 A **patrol** walks the route in order and loops; without a route it picks points inside the cylinder, never right next to the last
 one. At each stop the soldier halts 3-10 s and looks about. A **guard** stands at a point and wanders at most 8 blocks between
 stops of 15-35 s. A stop that takes more than 60 s to reach is abandoned. Deleting a territory sends its patrols back to following
 their owner.
+
+### Garrisons
+
+A territory with a `Garrison` raises its own force. Every five seconds it counts the soldiers it has raised (alive, or still waiting
+to come back after a restart), and recruits the shortfall at random free ground inside itself (five a pass), each from the next saved
+variant in turn (all saved variants, or only the ones named). The new soldiers patrol or guard the territory. A loss is replaced no
+sooner than the reinforcement delay after it. Lower the size and the surplus is sent home; clear the garrison and the soldiers stay,
+as loose soldiers. Which side they fight for is their variant's faction. A territory whose centre chunk is not loaded raises nothing,
+so a garrison fills when somebody comes near, and a soldier is a chunk-loading player, so a garrison also keeps its own ground loaded.
 
 ## Depots (resupply)
 
@@ -64,6 +82,13 @@ Four fire teams, Alpha to Delta, up to 24 soldiers per player; new recruits go t
 
 ## The squad UI (client)
 
+* **Management screen** (`B`): every soldier by fire team with health, ammunition, role and order. Tick soldiers one by one, a
+  whole team with its header, or "Select all" (the search box filters by name, role and order), then Follow / Hold / Regroup /
+  Resupply, Patrol or Guard a territory picked with the cycling button, move them to Alpha-Delta, or dismiss them (twice to
+  confirm). The **Territories** tab lists each territory with its garrison; operators can resize it (shift: x10), flip patrol / guard,
+  change the reinforcement delay, cycle the variant it raises, create a territory where they stand and remove one. The server checks
+  that every soldier named is the player's own and that edits come from an operator.
+
 * **HUD strip** (top left): a row per fire team, a card per soldier: face, health, ammunition and spare magazines, and a corner
   letter for its order (F H M A S P G R). The selected group has a red bar under its letter and a red frame. Orange frame: in a
   fight. Blue frame: on a resupply trip. Red X: downed.
@@ -94,10 +119,10 @@ New callout events (pack format `voices.json`, `tools/voices/convert.py`, [VOICE
   a real fight; the stand-in contact a suppress order keeps fresh is the part most worth watching.
 * The client UI (HUD, wheel, markers) compiles but has not been run on a client.
 * `low_ammo` is defined but nothing says it yet; soldiers do not yet *ask* for a resupply by voice.
-* A territory cannot garrison itself (spawn its own soldiers when a player comes near); soldiers nobody owns are still not saved
-  with the world.
-* No management screen (rename, reorder, per-soldier orders): `/squad` covers it. The reference for one is STALKER GAMMA's
-  companion list; Steve's Army has a squad command screen with a friend-or-foe tab.
+* The management screen has not been run on a client either, and it has no rename, reorder or per-soldier kit editing (re-kit is
+  `/squad kit`).
+* A garrison keeps its ground loaded (its soldiers are players) and never stands down when nobody is near; a garrison of hundreds
+  is a server-load decision for the map-maker.
 * Voice packs themselves: the installed packs were converted before this and have none of the new lines. Re-run `convert.py` (it
   now maps the STALKER `talk/`, `reactions/`, `states/meet`, `states/loot`, `fight/post_combat_wait`, `alife/` folders and the Trepang2
   `Spawn/` and `SusMode/` banter) to new pack ids, then install them next to the old ones.

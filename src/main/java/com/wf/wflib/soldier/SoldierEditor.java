@@ -53,18 +53,22 @@ public final class SoldierEditor {
         return new Loadout(u,f,spec,armour);
     }
     public static ServerPlayer spawn(ServerPlayer owner,String id,Vec3 feet,float yaw) {
-        require(owner); var s=owner.getServer(); var r=SoldierRoster.get(s); var u=r.units().get(id);
-        if (u==null || !r.factions().containsKey(u.faction())) throw new IllegalArgumentException("This saved variant or faction no longer exists");
-        var c=catalogue(s); c.validate(u);
+        require(owner);
         var box=new AABB(feet.x-.3,feet.y,feet.z-.3,feet.x+.3,feet.y+1.8,feet.z+.3);
         if (!owner.serverLevel().noCollision(box) || !owner.serverLevel().getWorldBorder().isWithinBounds(BlockPos.containing(feet)))
             throw new IllegalArgumentException("The soldier needs two clear blocks inside the world border");
         if (!owner.serverLevel().hasChunkAt(BlockPos.containing(feet)) || feet.y<owner.level().getMinBuildHeight() || feet.y+2>=owner.level().getMaxBuildHeight())
             throw new IllegalArgumentException("Choose a loaded position within build height");
+        return place(owner.serverLevel(),owner,id,feet,yaw);
+    }
+    /** Puts a saved variant into the world at {@code feet}, kitted and named; no permission or space checks (callers make them). {@code owner} may be null. */
+    static ServerPlayer place(net.minecraft.server.level.ServerLevel level,ServerPlayer owner,String id,Vec3 feet,float yaw) {
+        var s=level.getServer(); var r=SoldierRoster.get(s); var u=r.units().get(id);
+        if (u==null || !r.factions().containsKey(u.faction())) throw new IllegalArgumentException("This saved variant or faction no longer exists");
+        var c=catalogue(s); c.validate(u);
         var f=r.factions().get(u.faction()); var spec=new SoldierSpec(f.id(),u.name(),f.hostile(),ResourceLocation.parse(u.gun()),
                 u.grenades().stream().map(ResourceLocation::parse).toList(),Map.of(),u.spares(),u.role());
-        var p=Soldiers.spawn(owner.serverLevel(),feet,yaw,spec,owner);
-        if (p==null) throw new IllegalArgumentException("Soldier limit reached ("+Soldiers.CAP+")");
+        var p=Soldiers.spawn(level,feet,yaw,spec,owner);
         for (var e:u.armour().entrySet()) p.setItemSlot(SoldierCatalogue.slot(e.getKey()),c.get(e.getValue()).stack().copy());
         if (u.role()==SoldierRole.HEAVY) {
             p.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40);
@@ -76,21 +80,18 @@ public final class SoldierEditor {
         return p;
     }
     public static int spawnFaction(ServerPlayer p,String faction,int count) {
-        require(p); if(count<1 || count>Soldiers.CAP)throw new IllegalArgumentException("Count must be 1–"+Soldiers.CAP);
+        require(p); if(count<1)throw new IllegalArgumentException("Count must be at least 1");
         var units=SoldierRoster.get(p.getServer()).units().values().stream().filter(u->u.faction().equals(faction)).toList();
         if(units.isEmpty())throw new IllegalArgumentException("Save at least one variant in this faction first");
         for(var u:units)catalogue(p.getServer()).validate(u);
-        int capacity=Soldiers.CAP-SoldierAi.soldiers(); if(capacity<=0)throw new IllegalArgumentException("Soldier limit reached");
-        int made=0; for(int i=0;i<Math.min(count,capacity);i++)made+=spawnNear(p,units.get(i%units.size()).id(),1);
+        int made=0; for(int i=0;i<count;i++)made+=spawnNear(p,units.get(i%units.size()).id(),1);
         return made;
     }
     /** GUI/command spawning stays on the caller's storey and verifies feet support, rather than using the roof heightmap. */
     public static int spawnNear(ServerPlayer p,String id,int count) {
-        require(p); if (count<1 || count>Soldiers.CAP) throw new IllegalArgumentException("Count must be 1–"+Soldiers.CAP);
-        count=Math.min(count,Soldiers.CAP-SoldierAi.soldiers());
-        if (count<=0) throw new IllegalArgumentException("Soldier limit reached ("+Soldiers.CAP+")");
-        int made=0;
-        for (int ring=1;ring<=5 && made<count;ring++) for (int dx=-ring;dx<=ring && made<count;dx++) for (int dz=-ring;dz<=ring && made<count;dz++) {
+        require(p); if (count<1) throw new IllegalArgumentException("Count must be at least 1");
+        int made=0, rings=Math.max(5,(int)Math.ceil(Math.sqrt(count)));          // a ring holds 8r spots: widen until the whole squad fits
+        for (int ring=1;ring<=rings && made<count;ring++) for (int dx=-ring;dx<=ring && made<count;dx++) for (int dz=-ring;dz<=ring && made<count;dz++) {
             if (Math.max(Math.abs(dx),Math.abs(dz))!=ring) continue;
             BlockPos at=p.blockPosition().offset(dx*2,0,dz*2);
             if (!p.serverLevel().hasChunkAt(at)) continue;

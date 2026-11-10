@@ -106,4 +106,30 @@ class ForceTest {
         assertNull(b.suppressAt);
         assertFalse(b.threats.containsKey(SoldierBrain.SUPPRESS_KEY));
     }
+
+    @Test void aGarrisonSurvivesItsJsonAndRaisesFromWhatExists() {
+        var g = new Garrison(5, List.of("rifle", "medic"), SoldierOrder.Kind.GUARD, 90);
+        var t = gate(List.of()).withGarrison(g);
+        assertEquals(t, Territory.read(t.json()));
+        assertNull(Territory.read(gate(List.of()).json()).garrison(), "a territory without a garrison reads back without one");
+        assertEquals("rifle", g.unitFor(0, List.of("rifle", "medic", "mg")));
+        assertEquals("medic", g.unitFor(3, List.of("rifle", "medic", "mg")));
+        assertNull(g.unitFor(0, List.of("mg")), "none of its variants exist any more");
+        assertEquals("mg", new Garrison(1, List.of(), SoldierOrder.Kind.PATROL, 0).unitFor(5, List.of("rifle", "mg")), "no list means every variant in turn");
+    }
+
+    @Test void aGarrisonRejectsWhatItCannotDo() {
+        assertThrows(IllegalArgumentException.class, () -> new Garrison(-1, List.of(), SoldierOrder.Kind.PATROL, 0));
+        assertThrows(IllegalArgumentException.class, () -> new Garrison(1, List.of(), SoldierOrder.Kind.MOVE, 0));
+        assertThrows(IllegalArgumentException.class, () -> new Garrison(1, List.of("Bad Id"), SoldierOrder.Kind.GUARD, 0));
+        assertThrows(IllegalArgumentException.class, () -> new Garrison(1, List.of(), SoldierOrder.Kind.GUARD, -5));
+    }
+
+    @Test void anOrderSurvivesTheTagItIsSavedIn() {
+        for (var o : List.of(SoldierOrder.FOLLOW, SoldierOrder.at(SoldierOrder.Kind.MOVE, new Vec3(1.5, 64, -3)), SoldierOrder.in(SoldierOrder.Kind.GUARD, "gate")))
+            assertEquals(o, Tags.order(Tags.order(o)));
+        var junk = new net.minecraft.nbt.CompoundTag();
+        junk.putString("kind", "dance");
+        assertEquals(SoldierOrder.FOLLOW, Tags.order(junk), "an order that no longer exists reads as follow");
+    }
 }

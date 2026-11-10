@@ -59,7 +59,6 @@ public final class Squads {
         var level = owner.serverLevel();
         Vec3 at = clearSpot(owner, c.callsign.hashCode() + c.id.hashCode());
         var p = Soldiers.spawn(level, at, owner.getYRot(), c.spec(), owner);
-        if (p == null) return null;
         for (var e : c.armour.entrySet()) p.setItemSlot(e.getKey(), e.getValue().copy());
         if (c.role == SoldierRole.HEAVY) {
             p.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40);
@@ -104,7 +103,7 @@ public final class Squads {
         var out = deployed(owner.getUUID());
         for (Companion c : SquadBook.get(owner.getServer()).of(owner.getUUID())) {
             if (out.stream().anyMatch(b -> c.id.equals(b.companion))) continue;
-            if (deploy(owner, c) == null) break;                 // the server's soldier cap
+            deploy(owner, c);
         }
     }
 
@@ -192,8 +191,12 @@ public final class Squads {
      * @return the soldiers that took it
      */
     public static List<SoldierAi.Bot> order(ServerPlayer owner, Target target, SoldierOrder order) {
+        return order(owner, select(owner.getUUID(), target), order);
+    }
+
+    /** The same, for soldiers picked one by one (the management screen). */
+    public static List<SoldierAi.Bot> order(ServerPlayer owner, List<SoldierAi.Bot> members, SoldierOrder order) {
         var server = owner.getServer();
-        var members = select(owner.getUUID(), target);
         if (members.isEmpty()) throw new IllegalArgumentException("No soldiers answer to that");
         if (order.kind().needsRegion && TerritoryBook.get(server).get(order.region()) == null)
             throw new IllegalArgumentException("Unknown territory: " + order.region());

@@ -137,7 +137,9 @@ final class SquadCommands {
             if (all.isEmpty()) return "No territories";
             StringBuilder s = new StringBuilder();
             all.forEach(t -> s.append(t.id()).append(" (").append(t.team().isEmpty() ? "anyone" : t.team()).append(", r").append(t.radius())
-                    .append(", ").append(t.route().size()).append(" waypoints)\n"));
+                    .append(", ").append(t.route().size()).append(" waypoints")
+                    .append(t.garrison() == null ? "" : ", garrison " + Garrisons.alive(c.getSource().getServer(), t.id()).size() + "/" + t.garrison().count())
+                    .append(")\n"));
             return s.toString().stripTrailing();
         })));
         territory.then(Commands.literal("create").then(Commands.argument("id", StringArgumentType.word())
@@ -153,6 +155,20 @@ final class SquadCommands {
         territory.then(Commands.literal("waypoint")
                 .then(Commands.literal("add").then(id.executes(c -> run(c.getSource(), () -> waypoint(c.getSource(), StringArgumentType.getString(c, "id"), true)))))
                 .then(Commands.literal("clear").then(id.executes(c -> run(c.getSource(), () -> waypoint(c.getSource(), StringArgumentType.getString(c, "id"), false))))));
+        // /soldiers territory garrison <id> clear | <count> <patrol|guard> <reinforcement seconds> [variant,variant,...]
+        var garrisonUnits = Commands.argument("units", StringArgumentType.word()).suggests((c, b) ->
+                SharedSuggestionProvider.suggest(SoldierRoster.get(c.getSource().getServer()).units().keySet(), b));
+        territory.then(Commands.literal("garrison").then(id
+                .then(Commands.literal("clear").executes(c -> run(c.getSource(), () -> garrison(c.getSource(), StringArgumentType.getString(c, "id"), null))))
+                .then(Commands.argument("count", IntegerArgumentType.integer(0, Garrison.MAX_COUNT))
+                        .then(Commands.argument("mode", StringArgumentType.word()).suggests((c, b) -> SharedSuggestionProvider.suggest(List.of("patrol", "guard"), b))
+                                .then(Commands.argument("reinforce", IntegerArgumentType.integer(0, 86_400))
+                                        .executes(c -> run(c.getSource(), () -> garrison(c.getSource(), StringArgumentType.getString(c, "id"),
+                                                IntegerArgumentType.getInteger(c, "count"), StringArgumentType.getString(c, "mode"),
+                                                IntegerArgumentType.getInteger(c, "reinforce"), "")))
+                                        .then(garrisonUnits.executes(c -> run(c.getSource(), () -> garrison(c.getSource(), StringArgumentType.getString(c, "id"),
+                                                IntegerArgumentType.getInteger(c, "count"), StringArgumentType.getString(c, "mode"),
+                                                IntegerArgumentType.getInteger(c, "reinforce"), StringArgumentType.getString(c, "units"))))))))));
         root.then(territory);
 
         var depot = Commands.literal("depot").requires(s -> s.hasPermission(2));
@@ -206,12 +222,28 @@ final class SquadCommands {
         root.then(assign.then(who));
     }
 
+    private static String garrison(CommandSourceStack s, String id, Garrison g) {
+        var book = TerritoryBook.get(s.getServer());
+        Territory t = book.get(id);
+        if (t == null) throw new IllegalArgumentException("Unknown territory: " + id);
+        book.put(t.withGarrison(g));
+        return g == null ? id + " raises no garrison; its soldiers stay as they are" : id + " keeps " + g.count() + " soldiers (" + g.mode().id + ")";
+    }
+
+    private static String garrison(CommandSourceStack s, String id, int count, String mode, int reinforce, String units) {
+        var kind = SoldierOrder.Kind.of(mode);
+        List<String> list = units.isEmpty() ? List.of() : Arrays.asList(units.split(","));
+        var known = SoldierRoster.get(s.getServer()).units().keySet();
+        for (String u : list) if (!known.contains(u)) throw new IllegalArgumentException("Unknown saved variant: " + u);
+        return garrison(s, id, new Garrison(count, list, kind, reinforce));
+    }
+
     private static int create(CommandSourceStack s, String id, int radius, String team) {
         return run(s, () -> {
             Vec3 at = s.getPosition();
             var level = s.getLevel();
             var t = new Territory(id, id, team, level.dimension().location().toString(), at, radius,
-                    level.getMinBuildHeight(), level.getMaxBuildHeight(), List.of());
+                    level.getMinBuildHeight(), level.getMaxBuildHeight(), List.of(), null);
             TerritoryBook.get(s.getServer()).put(t);
             return "Territory " + id + ": radius " + radius + " around " + BlockPos.containing(at).toShortString();
         });

@@ -152,6 +152,8 @@ public final class SoldierAi {
         /** The player's roster entry this soldier is (null: not a companion) and its fire team. */
         UUID companion;
         int fireTeam;
+        /** The territory that raised this soldier (empty: none); it is replaced when it falls. */
+        String garrison = "";
         /** What it was issued (captured once armed) and the resupply trip state. */
         Kit kit;
         String depotId = "";
@@ -275,6 +277,11 @@ public final class SoldierAi {
     /** Every soldier under AI control (not the Carpet filming bots). */
     static List<Bot> soldierBots() {
         return BOTS.values().stream().filter(b -> b.soldier).toList();
+    }
+
+    /** True where the harness films with scripted bots: nothing there is meant to outlive the run. */
+    static boolean filming(MinecraftServer server) {
+        return filming.test(server);
     }
 
     public static int soldiers() {

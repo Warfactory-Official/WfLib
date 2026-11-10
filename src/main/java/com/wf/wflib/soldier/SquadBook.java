@@ -15,8 +15,6 @@ import java.util.UUID;
 
 /** Every player's companions, saved with the world. */
 public final class SquadBook extends SavedData {
-    /** One player's squad: four fire teams of up to this many soldiers each at most (the server's global cap still applies). */
-    public static final int MAX_PER_OWNER = 24;
     private final Map<UUID, List<Companion>> squads = new HashMap<>();
 
     public static SquadBook get(MinecraftServer s) {
@@ -30,7 +28,6 @@ public final class SquadBook extends SavedData {
 
     public void add(UUID owner, Companion c) {
         List<Companion> list = squads.computeIfAbsent(owner, k -> new ArrayList<>());
-        if (list.size() >= MAX_PER_OWNER) throw new IllegalArgumentException("A squad is at most " + MAX_PER_OWNER + " soldiers");
         list.add(c);
         setDirty();
     }

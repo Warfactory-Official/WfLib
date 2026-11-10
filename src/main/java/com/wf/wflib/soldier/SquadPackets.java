@@ -30,7 +30,9 @@ public final class SquadPackets {
     static void register(PayloadRegistrar registrar) {
         registrar.playToClient(Roster.TYPE, Roster.CODEC, Roster::handle);
         registrar.playToClient(Echo.TYPE, Echo.CODEC, Echo::handle);
+        registrar.playToClient(Territories.TYPE, Territories.CODEC, Territories::handle);
         registrar.playToServer(Command.TYPE, Command.CODEC, Command::handle);
+        registrar.playToServer(Manage.TYPE, Manage.CODEC, Manage::handle);
     }
 
     public static boolean canReceive(ServerPlayer p) {
@@ -156,6 +158,161 @@ public final class SquadPackets {
         }
     }
 
+    /** One territory as the management screen lists it. {@code garrison} is the target size (-1: raises none); {@code mine} how many of the player's soldiers are assigned to it. */
+    public record TerritoryInfo(String id, String name, String dimension, int x, int y, int z, int radius, int garrison, String mode, int respawn,
+                                String units, int alive, int mine) {
+        static TerritoryInfo read(FriendlyByteBuf b) {
+            return new TerritoryInfo(b.readUtf(32), b.readUtf(48), b.readUtf(128), b.readInt(), b.readInt(), b.readInt(), b.readVarInt(), b.readVarInt() - 1,
+                    b.readUtf(16), b.readVarInt(), b.readUtf(256), b.readVarInt(), b.readVarInt());
+        }
+
+        void write(FriendlyByteBuf b) {
+            b.writeUtf(id, 32);
+            b.writeUtf(name, 48);
+            b.writeUtf(dimension, 128);
+            b.writeInt(x);
+            b.writeInt(y);
+            b.writeInt(z);
+            b.writeVarInt(radius);
+            b.writeVarInt(garrison + 1);
+            b.writeUtf(mode, 16);
+            b.writeVarInt(respawn);
+            b.writeUtf(units, 256);
+            b.writeVarInt(alive);
+            b.writeVarInt(mine);
+        }
+    }
+
+    /** The world's territories and the saved variants a garrison can be raised from; {@code canEdit} says whether this player may change them. */
+    public record Territories(boolean canEdit, List<String> variants, List<TerritoryInfo> list) implements CustomPacketPayload {
+        public static final Type<Territories> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "squad_territories"));
+        static final StreamCodec<FriendlyByteBuf, Territories> CODEC = CustomPacketPayload.codec(
+                (p, b) -> {
+                    b.writeBoolean(p.canEdit);
+                    b.writeCollection(p.variants, (buf, v) -> buf.writeUtf(v, 64));
+                    b.writeCollection(p.list, (buf, t) -> t.write(buf));
+                },
+                b -> new Territories(b.readBoolean(), b.readList(buf -> buf.readUtf(64)), b.readList(TerritoryInfo::read)));
+
+        @Override public Type<Territories> type() { return TYPE; }
+
+        static void handle(Territories packet, IPayloadContext context) {
+            context.enqueueWork(() -> com.wf.wflib.soldier.client.SquadClient.territories(packet));
+        }
+    }
+
+    /**
+     * A request from the management screen. {@code action}: list, order, team, dismiss (acting on {@code soldiers}); garrison,
+     * territory_new, territory_delete (map-maker only, naming {@code region}). {@code kind}/{@code n}/{@code m}/{@code units} are the action's arguments.
+     */
+    public record Manage(String action, List<java.util.UUID> soldiers, String kind, String region, String units, int n, int m) implements CustomPacketPayload {
+        public static final Type<Manage> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "squad_manage"));
+        static final StreamCodec<FriendlyByteBuf, Manage> CODEC = CustomPacketPayload.codec(
+                (p, b) -> {
+                    b.writeUtf(p.action, 16);
+                    b.writeCollection(p.soldiers, (buf, u) -> buf.writeUUID(u));
+                    b.writeUtf(p.kind, 16);
+                    b.writeUtf(p.region, 32);
+                    b.writeUtf(p.units, 256);
+                    b.writeVarInt(p.n);
+                    b.writeVarInt(p.m);
+                },
+                b -> {
+                    String action = b.readUtf(16);
+                    int count = b.readVarInt();
+                    if (count < 0 || count > b.readableBytes() / 16) throw new io.netty.handler.codec.DecoderException("More soldiers than the packet holds");
+                    List<java.util.UUID> ids = new ArrayList<>(count);
+                    for (int i = 0; i < count; i++) ids.add(b.readUUID());
+                    return new Manage(action, ids, b.readUtf(16), b.readUtf(32), b.readUtf(256), b.readVarInt(), b.readVarInt());
+                });
+
+        @Override public Type<Manage> type() { return TYPE; }
+
+        static void handle(Manage m, IPayloadContext context) {
+            context.enqueueWork(() -> {
+                if (context.player() instanceof ServerPlayer p && !SoldierAi.scripted(p)) manage(p, m);
+            });
+        }
+    }
+
+    /** The player's soldiers a request names; anything that is not one of theirs is ignored. */
+    private static List<SoldierAi.Bot> mine(ServerPlayer p, List<java.util.UUID> ids) {
+        java.util.Set<java.util.UUID> want = new java.util.HashSet<>(ids);
+        List<SoldierAi.Bot> out = new ArrayList<>();
+        for (var b : Squads.deployed(p.getUUID())) {
+            var sp = Squads.player(p.getServer(), b);
+            if (sp != null && want.contains(sp.getUUID())) out.add(b);
+        }
+        return out;
+    }
+
+    /** Carries out a management request. The client only asks: ownership and permission are checked here. */
+    static void manage(ServerPlayer p, Manage m) {
+        try {
+            var server = p.getServer();
+            switch (m.action()) {
+                case "list" -> { }
+                case "order" -> {
+                    var kind = SoldierOrder.Kind.of(m.kind());
+                    if (kind == null || kind.needsPos) throw new IllegalArgumentException("Point at the target with the wheel for that order");
+                    var order = kind.needsRegion ? SoldierOrder.in(kind, m.region()) : SoldierOrder.of(kind);
+                    var taken = Squads.order(p, mine(p, m.soldiers()), order);
+                    p.displayClientMessage(Component.literal(order.label() + ": " + taken.size()), true);
+                }
+                case "team" -> {
+                    for (var b : mine(p, m.soldiers())) Squads.setFireTeam(p, b.name, m.n());
+                }
+                case "dismiss" -> {
+                    for (var b : mine(p, m.soldiers())) Squads.dismiss(p, b.name);
+                }
+                case "garrison", "territory_new", "territory_delete" -> {
+                    if (!p.hasPermissions(2)) throw new IllegalArgumentException("Only operators edit territories");
+                    edit(p, m);
+                }
+                default -> throw new IllegalArgumentException("Unknown request");
+            }
+        } catch (IllegalArgumentException e) {
+            p.displayClientMessage(Component.literal(e.getMessage()), true);
+        }
+        PacketDistributor.sendToPlayer(p, territories(p));
+    }
+
+    private static void edit(ServerPlayer p, Manage m) {
+        var book = TerritoryBook.get(p.getServer());
+        switch (m.action()) {
+            case "territory_delete" -> book.remove(m.region());
+            case "territory_new" -> {
+                String id = m.region();
+                for (int i = 1; id.isEmpty() || book.get(id) != null; i++) id = "territory_" + i;
+                var level = p.serverLevel();
+                book.put(new Territory(id, id, "", level.dimension().location().toString(), p.position(), Math.max(2, Math.min(Territory.MAX_RADIUS, m.n())),
+                        level.getMinBuildHeight(), level.getMaxBuildHeight(), List.of()));
+            }
+            default -> {
+                Territory t = book.get(m.region());
+                if (t == null) throw new IllegalArgumentException("Unknown territory: " + m.region());
+                List<String> units = m.units().isEmpty() ? List.of() : java.util.Arrays.asList(m.units().split(","));
+                var known = SoldierRoster.get(p.getServer()).units().keySet();
+                for (String u : units) if (!known.contains(u)) throw new IllegalArgumentException("Unknown saved variant: " + u);
+                book.put(t.withGarrison(m.n() <= 0 && m.kind().isEmpty() ? null : new Garrison(m.n(), units, SoldierOrder.Kind.of(m.kind()), m.m())));
+            }
+        }
+    }
+
+    static Territories territories(ServerPlayer p) {
+        var server = p.getServer();
+        List<TerritoryInfo> out = new ArrayList<>();
+        var squad = Squads.deployed(p.getUUID());
+        for (Territory t : TerritoryBook.get(server).all().values()) {
+            var g = t.garrison();
+            int assigned = (int) squad.stream().filter(b -> b.order.region().equals(t.id())).count();
+            out.add(new TerritoryInfo(t.id(), t.name(), t.dimension(), (int) t.centre().x, (int) t.centre().y, (int) t.centre().z, t.radius(),
+                    g == null ? -1 : g.count(), g == null ? "" : g.mode().id, g == null ? 0 : g.respawnSeconds(), g == null ? "" : String.join(",", g.units()),
+                    Garrisons.alive(server, t.id()).size(), assigned));
+        }
+        return new Territories(p.hasPermissions(2), new ArrayList<>(SoldierRoster.get(server).units().keySet()), out);
+    }
+
     /** What the HUD shows for the player's soldiers. */
     static Roster snapshot(ServerPlayer owner) {
         List<Member> out = new ArrayList<>();
@@ -173,7 +330,7 @@ public final class SquadPackets {
             int flags = (b.health.downed() ? Member.DOWNED : 0) | (!b.threats.isEmpty() ? Member.FIGHTING : 0)
                     | (b.order.kind() == SoldierOrder.Kind.RESUPPLY ? Member.RESUPPLYING : 0);
             out.add(new Member(p.getUUID(), b.name, b.fireTeam, b.role, Math.max(0, Math.min(100, Math.round(p.getHealth() / p.getMaxHealth() * 100))),
-                    ammo, mags, b.order.kind().id, flags));
+                    ammo, mags, b.order.label(), flags));
         }
         return new Roster(out);
     }

@@ -63,6 +63,9 @@ public final class SoldierSystem implements WFSystem {
         modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> SquadPackets.register(e.registrar("soldier-squad-1").optional()));
         NeoForge.EVENT_BUS.addListener(SquadSync::onServerTick);
+        NeoForge.EVENT_BUS.addListener(Posts::onServerTick);
+        NeoForge.EVENT_BUS.addListener(Garrisons::onServerTick);
+        NeoForge.EVENT_BUS.addListener(ServerStartedEvent.class, e -> Posts.start(e.getServer()));
         NeoForge.EVENT_BUS.addListener(ServerStartedEvent.class,
                 e -> VoiceDelivery.start(e.getServer()));
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class,
@@ -82,13 +85,17 @@ public final class SoldierSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(LivingDeathEvent.class, e -> {
             if (e.getEntity() instanceof ServerPlayer p && SoldierAi.scripted(p)) {
                 var bot = SoldierAi.botOf(p.getGameProfile().getName());
-                if (bot != null) SoldierVoices.say(p, bot, "death");
+                if (bot != null) {
+                    SoldierVoices.say(p, bot, "death");
+                    Garrisons.lost(bot, p.level().getGameTime());
+                }
                 Squads.fell(p);
             }
         });
         NeoForge.EVENT_BUS.addListener(SoldierAi::onServerTick);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, SoldierAi::onGrenadeSound);
         NeoForge.EVENT_BUS.addListener(ServerStoppingEvent.class, e -> {
+            Posts.stop(e.getServer());                       // write the unowned soldiers down before they are taken out
             Squads.stowAll(e.getServer());
             Soldiers.removeAll(e.getServer());
             SoldierJobs.shutdown();

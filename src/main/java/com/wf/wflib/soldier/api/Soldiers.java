@@ -29,8 +29,9 @@ import java.util.UUID;
 
 /** Puts AI soldiers into the world as players and takes them out again. Server thread only. */
 public final class Soldiers {
-    /** A soldier is a loaded chunk-loading player and a full AI tick; this many at once is plenty. */
-    public static final int CAP = 40;
+    /** No limit any more (each soldier is a chunk-loading player and a full AI tick, so the server's tick rate is the limit); kept so callers compile. */
+    @Deprecated
+    public static final int CAP = Integer.MAX_VALUE;
 
     private Soldiers() {
     }
@@ -44,11 +45,10 @@ public final class Soldiers {
      * Spawns a soldier standing at {@code at}.
      *
      * @param owner (nullable) who a friendly follows
-     * @return the soldier, or null when the cap is reached
+     * @return the soldier
      */
     public static ServerPlayer spawn(ServerLevel level, Vec3 at, float yaw, SoldierSpec spec, ServerPlayer owner) {
         MinecraftServer server = level.getServer();
-        if (SoldierAi.soldiers() >= CAP) return null;
         String name = freeName(server, spec.namePrefix());
         GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(("wflib:soldier:" + name).getBytes(StandardCharsets.UTF_8)), name);
         forgetFiles(server, profile.getId());                       // leftovers of an earlier soldier of that name

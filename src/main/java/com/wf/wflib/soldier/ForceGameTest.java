@@ -194,4 +194,108 @@ public class ForceGameTest {
             Soldiers.remove(owner);
         }
     }
+
+    private static void clearTeam(String team) {
+        for (var b : SoldierAi.soldierBots()) {
+            if (!b.team.equals(team)) continue;
+            var p = b.server.getPlayerList().getPlayerByName(b.name);
+            if (p != null) Soldiers.remove(p);
+        }
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void anUnownedSoldierComesBackFromTheBookWithItsKitPostAndOrder(GameTestHelper h) {
+        var level = h.getLevel();
+        var server = level.getServer();
+        var enemy = new SoldierSpec("post_test", "PostTest", true, null, List.of(), Map.of(), 0);
+        var p = Soldiers.spawn(level, h.absoluteVec(new Vec3(2, 2, 2)), 90, enemy, null);
+        h.assertTrue(p != null, "could not spawn test soldier");
+        try {
+            var helmet = new ItemStack(Items.IRON_HELMET);
+            helmet.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Lucky"));
+            p.setItemSlot(EquipmentSlot.HEAD, helmet);
+            Vec3 watch = h.absoluteVec(new Vec3(6, 2, 2));
+            var bot = SoldierAi.botOf(p.getGameProfile().getName());
+            Orders.apply(bot, p.position(), SoldierOrder.at(SoldierOrder.Kind.HOLD, watch));
+            bot.garrison = "somewhere";
+
+            var mine = Posts.snapshot(server).stream().filter(x -> x.team().equals("post_test")).toList();
+            h.assertTrue(mine.size() == 1, "the book did not capture exactly the one soldier: " + mine.size());
+            var regs = server.registryAccess();
+            var book = new PostBook();
+            book.replace(mine);
+            var read = PostBook.load(book.save(new net.minecraft.nbt.CompoundTag(), regs), regs).posts();
+            h.assertTrue(read.size() == 1, "the post did not survive its save");
+
+            Soldiers.remove(p);
+            h.assertTrue(SoldierAi.soldierBots().stream().noneMatch(b -> b.team.equals("post_test") && server.getPlayerList().getPlayerByName(b.name) != null),
+                    "the soldier was not taken out");
+            Posts.restore(server, read.get(0));
+
+            var back = SoldierAi.soldierBots().stream().filter(b -> b.team.equals("post_test") && server.getPlayerList().getPlayerByName(b.name) != null).findFirst().orElse(null);
+            h.assertTrue(back != null, "nobody came back");
+            var body = server.getPlayerList().getPlayerByName(back.name);
+            h.assertTrue(back.huntsPlayers && back.ownerId == null, "came back on the wrong side");
+            h.assertTrue(back.order.kind() == SoldierOrder.Kind.HOLD && back.order.pos() != null && back.order.pos().distanceTo(watch) < 1e-9, "came back without its order: " + back.order);
+            h.assertTrue(back.garrison.equals("somewhere"), "forgot which garrison raised it");
+            h.assertTrue(ItemStack.matches(body.getItemBySlot(EquipmentSlot.HEAD), helmet), "came back without its helmet");
+            h.assertTrue(body.position().distanceTo(p.position()) < 1.5, "came back somewhere else: " + body.position());
+            h.succeed();
+        } finally {
+            clearTeam("post_test");
+        }
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aTerritoryRaisesItsGarrisonReplacesLossesAndLetsItGo(GameTestHelper h) {
+        var level = h.getLevel();
+        var server = level.getServer();
+        var book = TerritoryBook.get(server);
+        var oldRaiser = Garrisons.raiser;
+        var oldVariants = Garrisons.variants;
+        Garrisons.variants = s -> List.of("test_variant");
+        Garrisons.raiser = (lvl, unit, at, yaw) -> Soldiers.spawn(lvl, at, yaw, new SoldierSpec("garrison_test", "Garr", false, null, List.of(), Map.of(), 0), null);
+        try {
+            for (int x = 0; x < 9; x++) for (int z = 0; z < 9; z++) h.setBlock(new BlockPos(x, 1, z), Blocks.STONE);
+            Vec3 centre = h.absoluteVec(new Vec3(4.5, 2, 4.5));
+            var t = new Territory("force_test_garrison", "Keep", "", level.dimension().location().toString(), centre, 3,
+                    level.getMinBuildHeight(), level.getMaxBuildHeight(), List.of());
+            book.put(t.withGarrison(new Garrison(3, List.of(), SoldierOrder.Kind.PATROL, 60)));
+
+            Garrisons.pass(server);
+            var raised = Garrisons.alive(server, "force_test_garrison");
+            h.assertTrue(raised.size() == 3, "raised " + raised.size() + " of 3");
+            for (var p : raised) {
+                var b = SoldierAi.botOf(p.getGameProfile().getName());
+                h.assertTrue(b.order.kind() == SoldierOrder.Kind.PATROL && b.order.region().equals("force_test_garrison"), "not patrolling its territory: " + b.order);
+                h.assertTrue(t.contains(p.position()), "raised outside the territory: " + p.position());
+            }
+            Garrisons.pass(server);
+            h.assertTrue(Garrisons.alive(server, "force_test_garrison").size() == 3, "a full garrison grew");
+
+            var fallen = raised.get(0);
+            Garrisons.lost(SoldierAi.botOf(fallen.getGameProfile().getName()), level.getGameTime());
+            Soldiers.remove(fallen);
+            Garrisons.pass(server);
+            h.assertTrue(Garrisons.alive(server, "force_test_garrison").size() == 2, "replaced a loss before the reinforcement delay");
+
+            book.put(t.withGarrison(new Garrison(3, List.of(), SoldierOrder.Kind.PATROL, 0)));
+            Garrisons.pass(server);
+            h.assertTrue(Garrisons.alive(server, "force_test_garrison").size() == 3, "did not replace the loss");
+
+            book.put(t.withGarrison(new Garrison(1, List.of(), SoldierOrder.Kind.GUARD, 0)));
+            Garrisons.pass(server);
+            h.assertTrue(Garrisons.alive(server, "force_test_garrison").size() == 1, "did not send the surplus home");
+
+            book.put(t);                                          // no garrison any more: the last one is its own man
+            Garrisons.pass(server);
+            h.assertTrue(Garrisons.alive(server, "force_test_garrison").isEmpty(), "still counted as a garrison");
+            h.succeed();
+        } finally {
+            Garrisons.raiser = oldRaiser;
+            Garrisons.variants = oldVariants;
+            if (book.get("force_test_garrison") != null) book.remove("force_test_garrison");
+            clearTeam("garrison_test");
+        }
+    }
 }

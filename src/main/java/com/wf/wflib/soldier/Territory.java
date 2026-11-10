@@ -3,6 +3,7 @@ package com.wf.wflib.soldier;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.util.RandomSource;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -10,10 +11,11 @@ import java.util.List;
 
 /**
  * A named region a force holds: a vertical cylinder, optionally with a patrol route through it. {@code team} is the side
- * that owns it (empty: anyone's). Soldiers patrol it, guard it, and know when they are standing in it.
+ * that owns it (empty: anyone's). Soldiers patrol it, guard it, and know when they are standing in it. A {@link Garrison},
+ * if it has one, is raised and kept up by the territory itself.
  */
 public record Territory(String id, String name, String team, String dimension, Vec3 centre, int radius,
-                        int minY, int maxY, List<Vec3> route) {
+                        int minY, int maxY, List<Vec3> route, @Nullable Garrison garrison) {
     public static final int MAX_RADIUS = 256, MAX_ROUTE = 32;
 
     public Territory {
@@ -29,17 +31,25 @@ public record Territory(String id, String name, String team, String dimension, V
         route = List.copyOf(route);
     }
 
+    public Territory(String id, String name, String team, String dimension, Vec3 centre, int radius, int minY, int maxY, List<Vec3> route) {
+        this(id, name, team, dimension, centre, radius, minY, maxY, route, null);
+    }
+
     public boolean contains(Vec3 p) {
         double dx = p.x - centre.x, dz = p.z - centre.z;
         return dx * dx + dz * dz <= (double) radius * radius && p.y >= minY && p.y <= maxY;
     }
 
     public Territory withRoute(List<Vec3> waypoints) {
-        return new Territory(id, name, team, dimension, centre, radius, minY, maxY, waypoints);
+        return new Territory(id, name, team, dimension, centre, radius, minY, maxY, waypoints, garrison);
+    }
+
+    public Territory withGarrison(@Nullable Garrison g) {
+        return new Territory(id, name, team, dimension, centre, radius, minY, maxY, route, g);
     }
 
     public Territory withTeam(String owner) {
-        return new Territory(id, name, owner, dimension, centre, radius, minY, maxY, route);
+        return new Territory(id, name, owner, dimension, centre, radius, minY, maxY, route, garrison);
     }
 
     /** A point to walk to: the next waypoint of the route, or a random one in the disc of {@code wander} blocks around the centre. */
@@ -68,6 +78,7 @@ public record Territory(String id, String name, String team, String dimension, V
         JsonArray r = new JsonArray();
         route.forEach(v -> r.add(point(v)));
         j.add("route", r);
+        if (garrison != null) j.add("garrison", garrison.json());
         return j;
     }
 
@@ -76,7 +87,8 @@ public record Territory(String id, String name, String team, String dimension, V
         j.getAsJsonArray("route").forEach(e -> route.add(vec(e.getAsJsonArray())));
         return new Territory(j.get("id").getAsString(), j.get("name").getAsString(), j.get("team").getAsString(),
                 j.get("dimension").getAsString(), vec(j.getAsJsonArray("centre")), j.get("radius").getAsInt(),
-                j.get("minY").getAsInt(), j.get("maxY").getAsInt(), route);
+                j.get("minY").getAsInt(), j.get("maxY").getAsInt(), route,
+                j.has("garrison") ? Garrison.read(j.getAsJsonObject("garrison")) : null);
     }
 
     private static JsonArray point(Vec3 v) {
