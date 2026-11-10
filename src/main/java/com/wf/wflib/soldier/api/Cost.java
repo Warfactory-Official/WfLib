@@ -69,7 +69,7 @@ public interface Cost {
 
             @Override public String describe() {
                 var w = Recruiting.wallet();
-                return amount + " " + (w == null ? "credits" : w.unit());
+                return w == null ? amount + " credits" : w.format(amount);
             }
         };
     }

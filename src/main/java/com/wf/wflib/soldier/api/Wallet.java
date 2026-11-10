@@ -9,6 +9,11 @@ public interface Wallet {
 
     boolean has(ServerPlayer player, int amount);
 
+    /** An amount as the economy writes it: "50 credits", "$50". */
+    default String format(long amount) {
+        return amount + " " + unit();
+    }
+
     /** The player's balance for the PDA to show; negative when the economy cannot say. */
     default long balance(ServerPlayer player) {
         return -1;

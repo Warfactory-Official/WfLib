@@ -23,7 +23,9 @@ final class SquadInteraction {
             if (b.companion == null) {
                 String source = b.garrison.isEmpty() ? "rescue" : "garrison";
                 if (!com.wf.wflib.soldier.api.Recruiting.enabled(source)) throw new IllegalArgumentException("Recruiting soldiers that way is switched off here");
-                var price = b.garrison.isEmpty() ? com.wf.wflib.soldier.api.Cost.FREE : RecruitConfig.garrisonCost();
+                var price = b.garrison.isEmpty() ? com.wf.wflib.soldier.api.Cost.FREE : com.wf.wflib.soldier.api.Cost.all(java.util.List.of(RecruitConfig.garrisonCost(),
+                        com.wf.wflib.soldier.api.Recruiting.pricing() == null ? com.wf.wflib.soldier.api.Cost.FREE
+                                : com.wf.wflib.soldier.api.Cost.currency(com.wf.wflib.soldier.api.Recruiting.pricing().garrison(com.wf.wflib.soldier.api.SoldierRole.tactics(b.role)))));
                 if (!price.affordable(player)) throw new IllegalArgumentException("Hiring " + soldier.getGameProfile().getName() + " costs " + price.describe());
                 Companion c = Squads.recruit(player, soldier);
                 price.charge(player);

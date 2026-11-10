@@ -17,6 +17,7 @@ public final class Recruiting {
     private static final List<RecruitSource> SOURCES = new CopyOnWriteArrayList<>();
     private static final List<BarracksType> BARRACKS = new CopyOnWriteArrayList<>();
     private static volatile Wallet wallet;
+    private static volatile Pricing pricing;
 
     private Recruiting() {}
 
@@ -64,10 +65,16 @@ public final class Recruiting {
         return com.wf.wflib.soldier.RecruitConfig.enabled(sourceId);
     }
 
+    /** The economy's price for hiring this variant (free without a {@link Pricing}). */
+    public static Cost hireCost(String variant, SoldierRole role) {
+        var p = pricing;
+        return p == null ? Cost.FREE : Cost.currency(p.hire(variant, role));
+    }
+
     /** An offer for each saved variant that fights for a friendly faction. */
     public static List<Offer> variants(MinecraftServer server, Cost cost, int delaySeconds) {
         return com.wf.wflib.soldier.Recruits.friendlyVariants(server).stream()
-                .map(v -> new Offer(v.id(), v.name(), v.id(), cost, delaySeconds)).toList();
+                .map(v -> new Offer(v.id(), v.name(), v.id(), Cost.all(List.of(cost, hireCost(v.id(), v.role()))), delaySeconds)).toList();
     }
 
     /** The currency hiring and wages can be priced in (null: none installed). */
@@ -77,5 +84,14 @@ public final class Recruiting {
 
     public static Wallet wallet() {
         return wallet;
+    }
+
+    /** What an economy mod charges (null: nothing beyond the config's own prices). */
+    public static void pricing(Pricing impl) {
+        pricing = impl;
+    }
+
+    public static Pricing pricing() {
+        return pricing;
     }
 }

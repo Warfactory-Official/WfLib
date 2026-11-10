@@ -39,8 +39,8 @@ final class HireScreen extends Screen {
         super.render(g, mx, my, pt);
         var offers = RecruitClient.barracks();
         g.drawString(font, "Barracks", px + 8, py + 8, 0xFFFFFFFF, false);
-        if (!offers.header().isEmpty()) g.drawString(font, offers.header().replace(" ON THE WAY", " on the way").toLowerCase(), px + 70, py + 8, 0xFF8A8A8A, false);
-        int top = py + 24, bottom = py + ph - 22;
+        if (!offers.header().isEmpty()) g.drawString(font, font.plainSubstrByWidth(offers.header().toLowerCase(), pw - 16), px + 8, py + 20, 0xFF8A8A8A, false);
+        int top = py + 34, bottom = py + ph - 22;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, offers.list().size() * ROW - (bottom - top))));
         hits.clear();
         g.enableScissor(px + 8, top, px + pw - 8, bottom);

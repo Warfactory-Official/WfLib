@@ -39,7 +39,7 @@ public final class RecruitConfig {
         GARRISON_CURRENCY = b.defineInRange("costCurrency", 0, 0, 1_000_000);
         b.pop().push("wages");
         WAGES = b.comment("Soldiers draw a wage once per in-game day, taken from whoever hired them. Off by default.").define("enabled", false);
-        WAGE_ITEM = b.comment("Item paid per soldier per day (empty: none).").define("item", "minecraft:emerald");
+        WAGE_ITEM = b.comment("Item paid per soldier per day (empty: none). An economy mod adds its own currency wage on top.").define("item", "");
         WAGE_COUNT = b.defineInRange("itemCount", 1, 1, 1000);
         WAGE_CURRENCY = b.comment("Currency paid per soldier per day; 0 for none.").defineInRange("currency", 0, 0, 1_000_000);
         DEFECTION = b.comment("A soldier whose wage goes unpaid may turn hostile instead of just leaving.").define("defection", true);
@@ -80,7 +80,7 @@ public final class RecruitConfig {
     }
 
     public static Cost wage() {
-        return cost(get(WAGE_ITEM::get, "minecraft:emerald"), get(WAGE_COUNT::get, 1), get(WAGE_CURRENCY::get, 0));
+        return cost(get(WAGE_ITEM::get, ""), get(WAGE_COUNT::get, 1), get(WAGE_CURRENCY::get, 0));
     }
 
     public static boolean defection() {

@@ -21,7 +21,7 @@ final class Wages {
     }
 
     static void tick(MinecraftServer server, long now) {
-        if (!RecruitConfig.wages()) return;
+        if (!Recruits.wagesOn()) return;
         var book = SquadBook.get(server);
         long day = now / DAY;
         for (ServerPlayer owner : server.getPlayerList().getPlayers()) {
@@ -34,16 +34,22 @@ final class Wages {
                 continue;
             }
             book.wageDay(owner.getUUID(), day);
-            settle(owner, squad, RecruitConfig.wage(), RecruitConfig.defection(), RecruitConfig.defectionPercent(), RNG);
+            settle(owner, squad, b -> Recruits.upkeep(com.wf.wflib.soldier.api.SoldierRole.tactics(b.role)), RecruitConfig.defection(), RecruitConfig.defectionPercent(), RNG);
         }
     }
 
     /** Pays each of the owner's soldiers {@code wage}; one that cannot be paid leaves, or turns hostile by the dice. Returns how many were paid. */
     static int settle(ServerPlayer owner, java.util.List<SoldierAi.Bot> squad, com.wf.wflib.soldier.api.Cost wage, boolean defection, double percent, RandomSource rng) {
-        int paid = 0;
+        return settle(owner, squad, b -> wage, defection, percent, rng);
+    }
+
+    /** The same with a wage per soldier (a heavy costs more than a rifleman). */
+    static int settle(ServerPlayer owner, java.util.List<SoldierAi.Bot> squad, java.util.function.Function<SoldierAi.Bot, com.wf.wflib.soldier.api.Cost> wage,
+                      boolean defection, double percent, RandomSource rng) {
+        java.util.List<com.wf.wflib.soldier.api.SoldierRole> paidRoles = new java.util.ArrayList<>();
         for (var b : squad) {
-            if (wage.charge(owner)) {
-                paid++;
+            if (wage.apply(b).charge(owner)) {
+                paidRoles.add(com.wf.wflib.soldier.api.SoldierRole.tactics(b.role));
                 continue;
             }
             boolean hostile = defects(defection, percent, rng.nextDouble());
@@ -51,7 +57,9 @@ final class Wages {
             Squads.walkOut(owner, b, hostile);
             owner.sendSystemMessage(Component.literal(name + (hostile ? " was not paid and has turned on you!" : " was not paid and has left.")));
         }
-        if (paid > 0) owner.sendSystemMessage(Component.literal("Paid " + paid + (paid == 1 ? " soldier: " : " soldiers: ") + wage.describe() + " each"));
+        int paid = paidRoles.size();
+        String text = Recruits.upkeepText(paidRoles);
+        if (paid > 0) owner.sendSystemMessage(Component.literal("Paid " + paid + (paid == 1 ? " soldier" : " soldiers") + (text.isEmpty() ? "" : ": " + text)));
         return paid;
     }
 }

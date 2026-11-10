@@ -123,7 +123,7 @@ for an absent hirer.
 **For other mods** (`com.wf.wflib.soldier.api`): `Recruiting.barracks("mymod:barracks", state -> state.is(MyBlocks.BARRACKS), Cost.items(Items.EMERALD, 3), 20)`
 makes a block a barracks; a multiblock implements `BarracksType` (`matches` says whether the clicked position is a working one,
 `offers` what it has). `Recruiting.source(RecruitSource)` adds a whole new source (listed in the config by its id).
-`Recruiting.wallet(Wallet)` lets hiring and wages be priced in an economy mod's currency. WFLib supplies the menu, the payment and
+`Recruiting.wallet(Wallet)` and `Recruiting.pricing(Pricing)` let an economy mod take payment and set the prices: `Pricing` gives the hire price per variant and role, the daily upkeep per role and whether upkeep is collected; WFLib adds them to the config's item prices. **Pluginless** does this when both mods are installed (prices `soldierHirePrice`, `soldierDailyWage`, `soldierUpkeep` and a role multiplier table in `pluginless.toml`: heavy x3, sniper x2, mg and medic x1.5, grenadier x1.25), money going to its server account; without an economy mod the PDA shows no prices at all. WFLib supplies the menu, the payment and
 the arrival.
 
 ## Voices

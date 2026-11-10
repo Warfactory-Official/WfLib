@@ -3,6 +3,7 @@ package com.wf.wflib.soldier;
 import com.wf.wflib.pda.api.Pda;
 import com.wf.wflib.soldier.api.Offer;
 import com.wf.wflib.soldier.api.RecruitSource;
+import com.wf.wflib.soldier.api.SoldierRole;
 import com.wf.wflib.soldier.api.Recruiting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -85,6 +86,31 @@ public final class Recruits {
         return offer.title() + " is on the way: " + offer.delaySeconds() + " s";
     }
 
+    /** Whether wages are collected: the config says so, or the economy's pricing does. */
+    static boolean wagesOn() {
+        var pricing = Recruiting.pricing();
+        return RecruitConfig.wages() || pricing != null && pricing.upkeepOn();
+    }
+
+    /** What a soldier of this role costs per day: the config's wage plus the economy's upkeep. */
+    static com.wf.wflib.soldier.api.Cost upkeep(SoldierRole role) {
+        var pricing = Recruiting.pricing();
+        return com.wf.wflib.soldier.api.Cost.all(List.of(RecruitConfig.wage(),
+                pricing == null ? com.wf.wflib.soldier.api.Cost.FREE : com.wf.wflib.soldier.api.Cost.currency(pricing.upkeep(role))));
+    }
+
+    /** A day's upkeep for soldiers of these roles as text: the economy's total, and the config's item wage each; empty when it is free. */
+    static String upkeepText(List<SoldierRole> roles) {
+        var pricing = Recruiting.pricing();
+        var wallet = Recruiting.wallet();
+        List<String> parts = new java.util.ArrayList<>();
+        long money = pricing == null ? 0 : roles.stream().mapToLong(pricing::upkeep).sum();
+        if (money > 0) parts.add(wallet == null ? money + " credits" : wallet.format(money));
+        var item = RecruitConfig.wage();
+        if (item != com.wf.wflib.soldier.api.Cost.FREE) parts.add(item.describe() + (roles.size() == 1 ? "" : " each"));
+        return String.join(" + ", parts);
+    }
+
     /** A saved variant's gun, magazines and range as a menu line: "M4A1 - 5 mags - 80 m". */
     static String kit(SoldierTemplate u) {
         return itemName(u.gun()) + " - " + (u.spares() + 1) + " mags - " + u.range() + " m";
@@ -110,12 +136,13 @@ public final class Recruits {
         parts.add(squad + (squad == 1 ? " SOLDIER" : " SOLDIERS"));
         int coming = arriving(server, p.getUUID());
         if (coming > 0) parts.add(coming + " ON THE WAY");
-        if (RecruitConfig.wages() && squad > 0) {
+        if (wagesOn() && squad > 0) {
             long left = (Wages.DAY - server.overworld().getGameTime() % Wages.DAY) / 20;
-            parts.add("UPKEEP " + RecruitConfig.wage().describe() + " X" + squad + " / DAY, DUE IN " + left / 60 + "M");
+            String each = upkeepText(Squads.deployed(p.getUUID()).stream().map(b -> SoldierRole.tactics(b.role)).toList());
+            if (!each.isEmpty()) parts.add("UPKEEP " + each + " / DAY, DUE IN " + left / 60 + "M");
         }
         var wallet = Recruiting.wallet();
-        if (wallet != null && wallet.balance(p) >= 0) parts.add("BALANCE " + wallet.balance(p) + " " + wallet.unit());
+        if (wallet != null && wallet.balance(p) >= 0) parts.add("BALANCE " + wallet.format(wallet.balance(p)));
         return String.join("  -  ", parts);
     }
 

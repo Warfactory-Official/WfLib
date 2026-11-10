@@ -139,14 +139,14 @@ public final class RecruitPackets {
         boolean on = where.equals("pda") ? Recruiting.enabled("pda") : Recruiting.enabled("barracks");
         var server = p.getServer();
         var roster = SoldierRoster.get(server);
-        var wage = RecruitConfig.wages() ? RecruitConfig.wage() : com.wf.wflib.soldier.api.Cost.FREE;
-        String upkeep = wage == com.wf.wflib.soldier.api.Cost.FREE ? "" : wage.describe() + " / day";
+        boolean wages = Recruits.wagesOn();
         List<View> views = new ArrayList<>();
         for (Offer o : resolve(p, where)) {
             var unit = roster.units().get(o.variant());
             String cost = o.cost() == com.wf.wflib.soldier.api.Cost.FREE ? "" : o.cost().describe();
+            String upkeep = !wages || unit == null ? "" : Recruits.upkeepText(List.of(unit.role()));
             views.add(new View(o.id(), o.title(), unit == null ? "" : unit.role().title, unit == null ? "" : Recruits.kit(unit), unit == null ? "" : Recruits.gear(unit),
-                    cost, upkeep, o.delaySeconds(), o.cost().affordable(p)));
+                    cost, upkeep.isEmpty() ? "" : upkeep + " / day", o.delaySeconds(), o.cost().affordable(p)));
         }
         PacketDistributor.sendToPlayer(p, new Offers(where, open, on, Recruits.arriving(server, p.getUUID()), Recruits.header(p), note, views));
     }

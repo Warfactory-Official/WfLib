@@ -53,8 +53,8 @@ public final class HireApp implements PdaApp {
                 : forces ? "TAP HOLD / FOLLOW TO ORDER, RELEASE TO LET GO" : "TAP A SOLDIER TO CALL THEM IN");
         Signals.text(OFFER, "label", 44, v -> v.title() + "  " + v.role());
         Signals.text(OFFER, "kit", 70, View::kit);
-        Signals.text(OFFER, "gear", 90, v -> v.gear() + (v.delay() > 0 ? "  -  ARRIVES IN " + v.delay() + "S" : "")
-                + (v.upkeep().isEmpty() ? "" : "  -  UPKEEP " + v.upkeep()));
+        Signals.text(OFFER, "gear", 90, v -> v.gear() + (v.delay() > 0 ? "  -  ARRIVES IN " + v.delay() + "S" : ""));
+        Signals.text(OFFER, "upkeep", 30, v -> v.upkeep().isEmpty() ? "" : "UPKEEP " + v.upkeep().toUpperCase());
         Signals.text(OFFER, "cost", 20, v -> v.cost().isEmpty() ? "FREE" : v.cost());
         Signals.bool(OFFER, "ok", View::affordable);
         Signals.text(FORCE, "title", 40, m -> m.name() + "  " + Companion.TEAMS[Math.floorMod(m.team(), Companion.TEAMS.length)] + "  " + m.role());
@@ -107,11 +107,12 @@ public final class HireApp implements PdaApp {
         float listH = h - 32 - 18;
         WidgetDef offer = new Button(i -> RecruitClient.hire("pda", ((View) i).id()), "pda_hire_offer.ok", PdaShell.PANEL, PdaShell.HOVER,
                 PdaShell.PRESS, PdaShell.EDGE, 1, 0, 0, 0, rowW, 38, Point.TOP_LEFT,
-                stack(at("4", "3", clip(rowW - 100, 12, text("{pda_hire_offer.label}", PdaShell.TEXT))),
-                        at("4", "14", clip(rowW - 8, 12, text("{pda_hire_offer.kit}", PdaShell.DIM))),
+                stack(at("4", "3", clip(rowW - 160, 12, text("{pda_hire_offer.label}", PdaShell.TEXT))),
+                        at("4", "14", clip(rowW - 160, 12, text("{pda_hire_offer.kit}", PdaShell.DIM))),
                         at("4", "25", clip(rowW - 8, 12, text("{pda_hire_offer.gear}", PdaShell.DIM))),
-                        at(Float.toString(rowW - 90), "3", clip(86, 12, text("{pda_hire_offer.cost}",
-                                "pda_hire_offer.ok ? " + PdaShell.ACCENT + " : " + PdaShell.ALERT)))));
+                        at(Float.toString(rowW - 150), "3", clip(146, 12, text("{pda_hire_offer.cost}",
+                                "pda_hire_offer.ok ? " + PdaShell.ACCENT + " : " + PdaShell.ALERT))),
+                        at(Float.toString(rowW - 150), "14", clip(146, 12, text("{pda_hire_offer.upkeep}", PdaShell.DIM)))));
         WidgetDef force = stack(
                 at("0", "0", rect(rowW, 28, PdaShell.PANEL)),
                 at("4", "3", clip(rowW - 150, 12, text("{pda_force.title}", PdaShell.TEXT))),

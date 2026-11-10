@@ -216,8 +216,10 @@ final class SquadCommands {
             StringBuilder out = new StringBuilder("Ways to get soldiers (wflib-recruiting.toml, \"sources\"):");
             for (var src : com.wf.wflib.soldier.api.Recruiting.sources())
                 out.append("\n  ").append(src.id()).append(" - ").append(src.title()).append(": ").append(RecruitConfig.enabled(src.id()) ? "on" : "off");
+            out.append("\nEconomy: ").append(com.wf.wflib.soldier.api.Recruiting.pricing() == null ? "none" : "pricing installed (wallet: "
+                    + (com.wf.wflib.soldier.api.Recruiting.wallet() == null ? "none" : com.wf.wflib.soldier.api.Recruiting.wallet().unit()) + ")");
             out.append("\nPDA hire: ").append(RecruitConfig.callinCost().describe()).append(", ").append(RecruitConfig.callinDelay()).append(" s")
-                    .append("\nWages: ").append(RecruitConfig.wages() ? RecruitConfig.wage().describe() + " per soldier per day; unpaid soldiers turn hostile "
+                    .append("\nWages: ").append(Recruits.wagesOn() ? "per soldier per day (" + (Recruits.upkeepText(java.util.List.of(com.wf.wflib.soldier.api.SoldierRole.RIFLEMAN)).isEmpty() ? "free" : Recruits.upkeepText(java.util.List.of(com.wf.wflib.soldier.api.SoldierRole.RIFLEMAN)) + " for a rifleman") + "); unpaid soldiers turn hostile "
                             + (RecruitConfig.defection() ? RecruitConfig.defectionPercent() + "% of the time" : "never") : "off");
             return out.toString();
         })));
