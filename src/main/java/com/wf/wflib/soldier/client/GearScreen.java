@@ -63,6 +63,8 @@ public final class GearScreen extends Screen {
     private List<Row> rows = List.of();
     private String rowsFor = "";
     private EditBox search, nameBox;
+    /** One piece of real equipment per category, drawn at random each time the screen opens; a vanilla stand-in where nothing is installed. */
+    private ItemStack[] icons;
     private int px, py, pw, ph;
 
     // ---- opening and talking to the server
@@ -182,8 +184,21 @@ public final class GearScreen extends Screen {
 
     // ---- layout
 
+    private ItemStack[] pickIcons() {
+        ItemStack[] stand = {new ItemStack(Items.CROSSBOW), new ItemStack(Items.FIRE_CHARGE), new ItemStack(Items.IRON_HELMET),
+                new ItemStack(Items.IRON_CHESTPLATE), new ItemStack(Items.IRON_LEGGINGS), new ItemStack(Items.IRON_BOOTS), new ItemStack(Items.BOOK)};
+        var random = new java.util.Random();
+        for (int i = 0; i < RAIL.length - 1; i++) {
+            String slot = RAIL[i];
+            List<SoldierCatalogue.Choice> of = catalogue.all().stream().filter(c -> c.slot().equals(slot)).toList();
+            if (!of.isEmpty()) stand[i] = of.get(random.nextInt(of.size())).stack();
+        }
+        return stand;
+    }
+
     @Override
     protected void init() {
+        if (icons == null) icons = pickIcons();
         pw = Math.min(width - 16, 520);
         ph = Math.min(height - 16, 300);
         px = (width - pw) / 2;
@@ -278,8 +293,6 @@ public final class GearScreen extends Screen {
     }
 
     private void rail(GuiGraphics g, int mx, int my) {
-        ItemStack[] icons = {new ItemStack(Items.CROSSBOW), new ItemStack(Items.FIRE_CHARGE), new ItemStack(Items.IRON_HELMET),
-                new ItemStack(Items.IRON_CHESTPLATE), new ItemStack(Items.IRON_LEGGINGS), new ItemStack(Items.IRON_BOOTS), new ItemStack(Items.BOOK)};
         for (int i = 0; i < RAIL.length; i++) {
             int x0 = px + 4, y0 = py + TOP + 4 + i * (RAIL_W + 2);
             boolean on = i == rail, over = mx >= x0 && mx < x0 + RAIL_W && my >= y0 && my < y0 + RAIL_W;
