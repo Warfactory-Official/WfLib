@@ -10,7 +10,7 @@ import java.util.List;
 
 /** The barracks menu: what can be hired, what it costs and how long it takes. Click a row to hire. */
 final class HireScreen extends Screen {
-    private static final int ROW = 22;
+    private static final int ROW = 34;
     private int px, py, pw, ph;
     private double scroll;
     private final List<int[]> hits = new ArrayList<>();
@@ -39,10 +39,7 @@ final class HireScreen extends Screen {
         super.render(g, mx, my, pt);
         var offers = RecruitClient.barracks();
         g.drawString(font, "Barracks", px + 8, py + 8, 0xFFFFFFFF, false);
-        if (offers.arriving() > 0) {
-            String on = offers.arriving() + " on the way";
-            g.drawString(font, on, px + pw - 8 - font.width(on), py + 8, 0xFF58C458, false);
-        }
+        if (!offers.header().isEmpty()) g.drawString(font, offers.header().replace(" ON THE WAY", " on the way").toLowerCase(), px + 70, py + 8, 0xFF8A8A8A, false);
         int top = py + 24, bottom = py + ph - 22;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, offers.list().size() * ROW - (bottom - top))));
         hits.clear();
@@ -52,10 +49,12 @@ final class HireScreen extends Screen {
             int y = top + i * ROW - (int) scroll;
             boolean over = mx >= px + 8 && mx < px + pw - 8 && my >= Math.max(y, top) && my < Math.min(y + ROW - 2, bottom);
             g.fill(px + 8, y, px + pw - 8, y + ROW - 2, !v.affordable() ? 0x33802020 : over ? 0x66FFFFFF : 0x33FFFFFF);
-            g.drawString(font, v.title(), px + 14, y + 3, v.affordable() ? 0xFFFFFFFF : 0xFFA06060, false);
-            g.drawString(font, v.role() + (v.delay() > 0 ? "  arrives in " + v.delay() + " s" : ""), px + 14, y + 12, 0xFF8A8A8A, false);
-            String cost = v.cost();
-            g.drawString(font, cost, px + pw - 14 - font.width(cost), y + 7, v.affordable() ? 0xFF58C458 : 0xFFD83A3A, false);
+            g.drawString(font, v.title() + "  " + v.role(), px + 14, y + 3, v.affordable() ? 0xFFFFFFFF : 0xFFA06060, false);
+            g.drawString(font, v.kit(), px + 14, y + 13, 0xFF9A9A9A, false);
+            g.drawString(font, v.gear() + (v.delay() > 0 ? "  -  arrives in " + v.delay() + " s" : ""), px + 14, y + 23, 0xFF7A7A7A, false);
+            String cost = v.cost().isEmpty() ? "free" : v.cost();
+            g.drawString(font, cost, px + pw - 14 - font.width(cost), y + 3, v.affordable() ? 0xFF58C458 : 0xFFD83A3A, false);
+            if (!v.upkeep().isEmpty()) g.drawString(font, "upkeep " + v.upkeep(), px + pw - 14 - font.width("upkeep " + v.upkeep()), y + 13, 0xFFE0B040, false);
             hits.add(new int[]{px + 8, Math.max(y, top), px + pw - 8, Math.min(y + ROW - 2, bottom), i});
         }
         g.disableScissor();

@@ -109,7 +109,7 @@ Interchangeable **sources**, switched on in `wflib-recruiting.toml` (`sources = 
 
 | Source | How |
 |---|---|
-| `pda` | The **Reinforcements** app on the PDA lists every friendly saved variant; pick one, pay, and they appear 28-44 blocks away and walk to you after `callin.delaySeconds` (default 45). Needs a PDA carried. The default way. |
+| `pda` | The **Forces** app on the PDA: its HIRE tab lists every friendly saved variant (role, gun, mags, gear, price, upkeep, delay; price and upkeep only show when there are some, from the config or a mod wallet such as Pluginless), pick one, pay, and they appear 28-44 blocks away and walk to you after `callin.delaySeconds` (default 45). Its FORCES tab lists your soldiers (team, order, health, ammo) with hold, follow and release buttons. Needs a PDA carried. The default way. `/wfpda open wflib:reinforcements [forces]` opens it directly. |
 | `barracks` | Use (right-click, not sneaking) a barracks block: a menu of what it has for hire. `/soldiers barracks add` marks the block you look at (any block); `remove`, `list`. Mods register their own, below. |
 | `rescue` | Sneak and use an unowned friendly soldier with an empty hand (what existed before). |
 | `garrison` | The same on a territory garrison's soldier, at `garrison.cost*`; the territory raises a replacement. Off by default. |

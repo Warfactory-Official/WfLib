@@ -154,6 +154,8 @@ public final class SoldierAi {
         int fireTeam;
         /** The territory that raised this soldier (empty: none); it is replaced when it falls. */
         String garrison = "";
+        /** Ticks until the soldier is brought to full health: worn armour that adds maximum health only counts a tick after it is put on. */
+        int topUp = 5;
         /** What it was issued (captured once armed) and the resupply trip state. */
         Kit kit;
         String depotId = "";
@@ -553,6 +555,7 @@ public final class SoldierAi {
                 continue;
             }
             if (!scripted(p)) continue;                        // never a real player
+            if (b.topUp > 0 && --b.topUp == 0) p.setHealth(p.getMaxHealth());
             if (b.soldier) SoldierBrain.tick(server, p, b);
             if (b.dead > 0) {
                 b.dead = 0;

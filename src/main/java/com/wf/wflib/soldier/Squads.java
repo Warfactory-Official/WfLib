@@ -370,6 +370,7 @@ public final class Squads {
             b.spreadDeg = loadout.unit().spread();
             b.range = loadout.unit().range();
             b.arm = true;                                    // the AI arms it on its next tick and captures the new kit
+            b.topUp = 5;
             b.kit = null;
             c.role = spec.role();
             c.gun = spec.gun();

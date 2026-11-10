@@ -85,6 +85,40 @@ public final class Recruits {
         return offer.title() + " is on the way: " + offer.delaySeconds() + " s";
     }
 
+    /** A saved variant's gun, magazines and range as a menu line: "M4A1 - 5 mags - 80 m". */
+    static String kit(SoldierTemplate u) {
+        return itemName(u.gun()) + " - " + (u.spares() + 1) + " mags - " + u.range() + " m";
+    }
+
+    /** Armour pieces and grenades: "3 armour - 2 grenades". */
+    static String gear(SoldierTemplate u) {
+        return u.armour().size() + (u.armour().size() == 1 ? " armour piece" : " armour pieces") + " - " + u.grenades().size() + (u.grenades().size() == 1 ? " grenade" : " grenades");
+    }
+
+    private static String itemName(String id) {
+        var rl = net.minecraft.resources.ResourceLocation.tryParse(id);
+        if (rl != null && net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(rl))
+            return net.minecraft.core.registries.BuiltInRegistries.ITEM.get(rl).getDescription().getString();
+        return rl == null ? id : rl.getPath();
+    }
+
+    /** The PDA's summary line: the squad, hires on the way, what the wage costs a day and when it falls due, and the wallet's balance. */
+    static String header(ServerPlayer p) {
+        var server = p.getServer();
+        int squad = Squads.deployed(p.getUUID()).size();
+        List<String> parts = new java.util.ArrayList<>();
+        parts.add(squad + (squad == 1 ? " SOLDIER" : " SOLDIERS"));
+        int coming = arriving(server, p.getUUID());
+        if (coming > 0) parts.add(coming + " ON THE WAY");
+        if (RecruitConfig.wages() && squad > 0) {
+            long left = (Wages.DAY - server.overworld().getGameTime() % Wages.DAY) / 20;
+            parts.add("UPKEEP " + RecruitConfig.wage().describe() + " X" + squad + " / DAY, DUE IN " + left / 60 + "M");
+        }
+        var wallet = Recruiting.wallet();
+        if (wallet != null && wallet.balance(p) >= 0) parts.add("BALANCE " + wallet.balance(p) + " " + wallet.unit());
+        return String.join("  -  ", parts);
+    }
+
     /** How many of the player's hires have not arrived yet. */
     public static int arriving(MinecraftServer server, java.util.UUID owner) {
         return (int) SquadBook.get(server).pending().stream().filter(p -> p.owner().equals(owner)).count();

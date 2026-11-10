@@ -35,23 +35,26 @@ public final class RecruitPackets {
     }
 
     /** One offer as a menu shows it. */
-    public record View(String id, String title, String role, String cost, int delay, boolean affordable) {
+    public record View(String id, String title, String role, String kit, String gear, String cost, String upkeep, int delay, boolean affordable) {
         static View read(FriendlyByteBuf b) {
-            return new View(b.readUtf(64), b.readUtf(48), b.readUtf(24), b.readUtf(64), b.readVarInt(), b.readBoolean());
+            return new View(b.readUtf(64), b.readUtf(48), b.readUtf(24), b.readUtf(96), b.readUtf(96), b.readUtf(64), b.readUtf(64), b.readVarInt(), b.readBoolean());
         }
 
         void write(FriendlyByteBuf b) {
             b.writeUtf(id, 64);
             b.writeUtf(title, 48);
             b.writeUtf(role, 24);
+            b.writeUtf(kit, 96);
+            b.writeUtf(gear, 96);
             b.writeUtf(cost, 64);
+            b.writeUtf(upkeep, 64);
             b.writeVarInt(delay);
             b.writeBoolean(affordable);
         }
     }
 
     /** What the player can hire from {@code where}; {@code open} asks the client to show the barracks screen. {@code on}: the source is switched on. */
-    public record Offers(String where, boolean open, boolean on, int arriving, String note, List<View> list) implements CustomPacketPayload {
+    public record Offers(String where, boolean open, boolean on, int arriving, String header, String note, List<View> list) implements CustomPacketPayload {
         public static final Type<Offers> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "recruit_offers"));
         static final StreamCodec<FriendlyByteBuf, Offers> CODEC = CustomPacketPayload.codec(
                 (p, b) -> {
@@ -59,10 +62,11 @@ public final class RecruitPackets {
                     b.writeBoolean(p.open);
                     b.writeBoolean(p.on);
                     b.writeVarInt(p.arriving);
+                    b.writeUtf(p.header, 120);
                     b.writeUtf(p.note, 120);
                     b.writeCollection(p.list, (buf, v) -> v.write(buf));
                 },
-                b -> new Offers(b.readUtf(64), b.readBoolean(), b.readBoolean(), b.readVarInt(), b.readUtf(120), b.readList(View::read)));
+                b -> new Offers(b.readUtf(64), b.readBoolean(), b.readBoolean(), b.readVarInt(), b.readUtf(120), b.readUtf(120), b.readList(View::read)));
 
         @Override public Type<Offers> type() { return TYPE; }
 
@@ -133,13 +137,18 @@ public final class RecruitPackets {
 
     static void send(ServerPlayer p, String where, String note, boolean open) {
         boolean on = where.equals("pda") ? Recruiting.enabled("pda") : Recruiting.enabled("barracks");
-        var roster = SoldierRoster.get(p.getServer());
+        var server = p.getServer();
+        var roster = SoldierRoster.get(server);
+        var wage = RecruitConfig.wages() ? RecruitConfig.wage() : com.wf.wflib.soldier.api.Cost.FREE;
+        String upkeep = wage == com.wf.wflib.soldier.api.Cost.FREE ? "" : wage.describe() + " / day";
         List<View> views = new ArrayList<>();
         for (Offer o : resolve(p, where)) {
             var unit = roster.units().get(o.variant());
-            views.add(new View(o.id(), o.title(), unit == null ? "" : unit.role().title, o.cost().describe(), o.delaySeconds(), o.cost().affordable(p)));
+            String cost = o.cost() == com.wf.wflib.soldier.api.Cost.FREE ? "" : o.cost().describe();
+            views.add(new View(o.id(), o.title(), unit == null ? "" : unit.role().title, unit == null ? "" : Recruits.kit(unit), unit == null ? "" : Recruits.gear(unit),
+                    cost, upkeep, o.delaySeconds(), o.cost().affordable(p)));
         }
-        PacketDistributor.sendToPlayer(p, new Offers(where, open, on, Recruits.arriving(p.getServer(), p.getUUID()), note, views));
+        PacketDistributor.sendToPlayer(p, new Offers(where, open, on, Recruits.arriving(server, p.getUUID()), Recruits.header(p), note, views));
     }
 
     /** Using a barracks block opens its hire menu (not while sneaking, so building against one still works). */

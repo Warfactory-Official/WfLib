@@ -9,6 +9,11 @@ public interface Wallet {
 
     boolean has(ServerPlayer player, int amount);
 
+    /** The player's balance for the PDA to show; negative when the economy cannot say. */
+    default long balance(ServerPlayer player) {
+        return -1;
+    }
+
     /** Takes {@code amount}; false (and nothing taken) when the player does not have it. */
     boolean take(ServerPlayer player, int amount);
 }

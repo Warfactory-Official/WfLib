@@ -1,7 +1,9 @@
 package com.wf.wflib.soldier;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.logging.LogUtils;
 import com.wf.wflib.core.api.WFSystem;
+import com.wf.wflib.pda.api.client.PdaClient;
 import com.wf.wflib.soldier.api.SoldierPlayer;
 import com.wf.wflib.soldier.api.Soldiers;
 import com.wf.wflib.soldier.client.HireApp;
@@ -9,10 +11,13 @@ import com.wf.wflib.soldier.client.SoldierEditorScreen;
 import com.wf.wflib.soldier.client.SoldierLightClient;
 import com.wf.wflib.soldier.client.SquadClient;
 import java.io.IOException;
+import net.minecraft.commands.Commands;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -45,6 +50,15 @@ public final class SoldierSystem implements WFSystem {
     public void registerClient(IEventBus modBus) {
         SoldierLightClient.register(modBus);
         SquadClient.register(modBus);
+        // /wfpda open <app id> [tab]: raises the carried PDA straight onto an app (testing, and key-less setups)
+        NeoForge.EVENT_BUS.addListener(RegisterClientCommandsEvent.class, e -> e.getDispatcher().register(
+                Commands.literal("wfpda").then(Commands.literal("open")
+                        .then(Commands.argument("app", StringArgumentType.greedyString())
+                                .executes(c -> {
+                                    String[] words = StringArgumentType.getString(c, "app").split(" ");
+                                    HireApp.tab(words.length > 1 && words[1].equals("forces"));
+                                    return PdaClient.openCarried(ResourceLocation.parse(words[0])) ? 1 : 0;
+                                })))));
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(HireApp::register));
         SoldierEditorScreen.registerNameTags();
     }

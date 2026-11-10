@@ -8,8 +8,8 @@ import java.util.List;
 
 /** What the server last said can be hired (from the PDA, and from the barracks that was last used). */
 public final class RecruitClient {
-    private static volatile RecruitPackets.Offers pda = new RecruitPackets.Offers("pda", false, true, 0, "", List.of());
-    private static volatile RecruitPackets.Offers barracks = new RecruitPackets.Offers("", false, true, 0, "", List.of());
+    private static volatile RecruitPackets.Offers pda = new RecruitPackets.Offers("pda", false, true, 0, "", "", List.of());
+    private static volatile RecruitPackets.Offers barracks = new RecruitPackets.Offers("", false, true, 0, "", "", List.of());
 
     private RecruitClient() {}
 
