@@ -80,6 +80,7 @@ public final class Squads {
         b.range = c.range;
         b.spreadDeg = c.spread;
         b.voice = c.voice;
+        b.want = c.want;
         b.squad = squadId(owner, c.fireTeam);
         Orders.apply(b, p.position(), validOrder(owner.getServer(), c.order));
         return p;

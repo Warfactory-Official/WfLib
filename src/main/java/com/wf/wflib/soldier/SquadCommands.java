@@ -51,6 +51,10 @@ final class SquadCommands {
 
     static LiteralArgumentBuilder<CommandSourceStack> squad() {
         var root = Commands.literal("squad");
+        root.then(Commands.literal("gear").executes(c -> run(c.getSource(), () -> {
+            GearPackets.open(c.getSource().getPlayerOrException());
+            return "Opening the gear screen";
+        })));
         root.then(Commands.literal("list").executes(c -> run(c.getSource(), () -> list(c.getSource().getPlayerOrException()))));
         var order = Commands.literal("order");
         var target = Commands.argument("target", StringArgumentType.word()).suggests((c, b) -> {

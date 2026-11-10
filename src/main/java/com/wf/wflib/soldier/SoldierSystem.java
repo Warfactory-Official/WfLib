@@ -83,6 +83,8 @@ public final class SoldierSystem implements WFSystem {
         Recruits.register();
         modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
                 e -> RecruitPackets.register(e.registrar("soldier-recruit-1").optional()));
+        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+                e -> GearPackets.register(e.registrar("soldier-gear-1").optional()));
         NeoForge.EVENT_BUS.addListener(Recruits::onServerTick);
         NeoForge.EVENT_BUS.addListener(RecruitPackets::onUseBlock);
         NeoForge.EVENT_BUS.addListener(SquadSync::onServerTick);
@@ -125,6 +127,8 @@ public final class SoldierSystem implements WFSystem {
             SoldierJobs.shutdown();
             SoldierEditor.forget(e.getServer());
             SoldierEditorPackets.forget();
+            GearPackets.forget();
+            Stockpile.forget();
             VoiceDelivery.stop();
         });
         NeoForge.EVENT_BUS.addListener(SoldierCommands::onRegisterCommands);

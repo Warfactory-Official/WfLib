@@ -279,7 +279,10 @@ final class SquadScreen extends Screen {
             tiles.add(new Tile(z, o[0], "", o[1]));
             y += 20;
         }
-        y += 4;
+        Zone gearZone = new Zone(x0, y, x1, y + 18);
+        tile(g, gearZone, "Gear...", mx, my);
+        acts.add(new Act(gearZone, () -> GearScreen.open(ordered(selected.isEmpty() ? roster().stream().map(Member::uuid).collect(java.util.stream.Collectors.toSet()) : selected))));
+        y += 24;
         g.drawString(font, "Missions", x0, y + 3, DIM, false);
         Zone pz = new Zone(x1 - 84, y, x1 - 42, y + 12), gz = new Zone(x1 - 42, y, x1, y + 12);
         segment(g, pz, "Patrol", patrol, mx, my);

@@ -10,6 +10,24 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ForceTest {
+    @Test void wantedGearAndPresetsSurviveTheirJson() {
+        var want = new Want("tac:ak", List.of("tac:frag", "tac:frag", "tac:smoke"), java.util.Map.of("head", "pack/helmet", "chest", "pack/vest"));
+        var read = Want.read(want.json());
+        assertEquals(want, read);
+        var preset = new GearBook.Preset("  Assault kit ", want, "assault", 6);
+        assertEquals("Assault kit", preset.name());
+        assertEquals(preset, GearBook.Preset.read(preset.json()));
+        assertTrue(Want.NONE.isEmpty() && !want.isEmpty());
+    }
+
+    @Test void wantedGearAndPresetsRefuseWhatCannotBeSaved() {
+        assertThrows(IllegalArgumentException.class, () -> new Want("", List.of(), java.util.Map.of("hands", "x")));
+        assertThrows(IllegalArgumentException.class, () -> new Want("", java.util.Collections.nCopies(9, "g"), java.util.Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> new GearBook.Preset("", Want.NONE, "", -1));
+        assertThrows(IllegalArgumentException.class, () -> new GearBook.Preset("x".repeat(33), Want.NONE, "", -1));
+        assertThrows(IllegalArgumentException.class, () -> new GearBook.Preset("ok", Want.NONE, "", 13));
+    }
+
     @Test void aFollowerWalksUntilItIsFarBehindTheOwnerRunsOrAFightStarts() {
         assertFalse(SoldierBrain.followSprint(false, 4, false, false), "close and calm: walk");
         assertFalse(SoldierBrain.followSprint(false, 12, false, false), "a gap that is not far yet: walk");

@@ -444,4 +444,54 @@ public class ForceGameTest {
             Soldiers.remove(owner);
         }
     }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aSoldierToldToGetArmourWalksToStorageSwapsItAndTheStockCountsIt(GameTestHelper h) {
+        var level = h.getLevel();
+        var server = level.getServer();
+        var p = Soldiers.spawn(level, h.absoluteVec(new Vec3(1, 2, 1)), 0, spec(), null);
+        h.assertTrue(p != null, "could not spawn test soldier");
+        BlockPos chest = h.absolutePos(new BlockPos(2, 2, 1));
+        var depots = DepotBook.get(server);
+        java.util.UUID owner = java.util.UUID.randomUUID();
+        try {
+            h.setBlock(new BlockPos(2, 2, 1), Blocks.CHEST);
+            Container box = Resupply.containerAt(level, chest);
+            ItemStack worn = new ItemStack(Items.IRON_HELMET);
+            worn.setDamageValue(30);                                   // a battered one is still that helmet
+            box.setItem(0, worn);
+            box.setItem(1, new ItemStack(Items.IRON_HELMET));
+            depots.put(new Depot("gear_test_chest", TEAM, level.dimension().location().toString(), chest, false));
+            Stockpile.forget();
+            var stock = Stockpile.of(server, owner, TEAM);
+            h.assertTrue(stock.count(new ItemStack(Items.IRON_HELMET)) == 2, "stock counted " + stock.count(new ItemStack(Items.IRON_HELMET)) + " of 2 helmets");
+            h.assertTrue(stock.count(new ItemStack(Items.DIAMOND_HELMET)) == 0, "counted helmets that are not there");
+
+            var bot = SoldierAi.botOf(p.getGameProfile().getName());
+            bot.companion = java.util.UUID.randomUUID();
+            bot.ownerId = owner;
+            p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+            bot.want = new Want("", java.util.List.of(), java.util.Map.of("head", "minecraft:iron_helmet"));
+            long now = level.getGameTime();
+            bot.nextRequisition = 0;
+            Requisition.tick(server, p, bot, now);
+            h.assertTrue(bot.order.kind() == SoldierOrder.Kind.RESUPPLY && chest.equals(bot.reqPos), "it did not set off for the chest: " + bot.order + " " + bot.reqPos);
+
+            Resupply.tick(server, p, bot, now + 10);                   // in reach: the exchange
+            h.assertTrue(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).is(Items.IRON_HELMET), "it is not wearing the iron helmet");
+            h.assertTrue(Kit.count(box, Items.LEATHER_HELMET) == 1, "what it wore was not left in the chest");
+            h.assertTrue(Kit.count(box, Items.IRON_HELMET) == 1, "the chest was not drawn down by one helmet");
+            h.assertTrue(bot.order.kind() == SoldierOrder.Kind.FOLLOW && bot.reqPos == null, "it did not go back to its order: " + bot.order);
+
+            bot.want = new Want("", java.util.List.of(), java.util.Map.of("head", "minecraft:netherite_helmet"));   // storage has none
+            bot.nextRequisition = 0;
+            Requisition.tick(server, p, bot, now + 20);
+            h.assertTrue(bot.order.kind() == SoldierOrder.Kind.FOLLOW && bot.nextRequisition >= now + 20 + Requisition.RETRY, "it went looking for what storage lacks");
+            h.succeed();
+        } finally {
+            depots.remove("gear_test_chest");
+            Stockpile.forget();
+            Soldiers.remove(p);
+        }
+    }
 }

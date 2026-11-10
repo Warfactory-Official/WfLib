@@ -34,6 +34,8 @@ public final class Companion {
     public float spread = 2f;
     public final Map<EquipmentSlot, ItemStack> armour = new EnumMap<>(EquipmentSlot.class);
     public SoldierOrder order = SoldierOrder.FOLLOW;
+    /** Gear it has been told to get from storage; see {@link Requisition}. */
+    public Want want = Want.NONE;
 
     public Companion(UUID id, String callsign, String side, SoldierRole role, ResourceLocation gun) {
         this.id = id;
@@ -68,6 +70,7 @@ public final class Companion {
         t.putFloat("spread", spread);
         t.put("armour", Tags.armour(armour, registries));
         t.put("order", Tags.order(order));
+        if (!want.isEmpty()) t.putString("want", want.json().toString());
         return t;
     }
 
@@ -82,6 +85,13 @@ public final class Companion {
         c.spread = t.getFloat("spread");
         c.armour.putAll(Tags.armour(t.getCompound("armour"), registries));
         c.order = Tags.order(t.getCompound("order"));
+        if (t.contains("want")) {
+            try {
+                c.want = Want.read(com.google.gson.JsonParser.parseString(t.getString("want")).getAsJsonObject());
+            } catch (RuntimeException ignored) {
+                // an unreadable want is dropped: the soldier keeps what it wears
+            }
+        }
         return c;
     }
 

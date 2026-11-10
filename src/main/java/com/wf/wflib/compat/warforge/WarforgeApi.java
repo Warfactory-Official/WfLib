@@ -30,6 +30,11 @@ public final class WarforgeApi {
         return WarforgeAPI.factionOf(playerId);
     }
 
+    /** Every chunk the faction has claimed, by dimension, as packed {@link ChunkPos#toLong} values. */
+    public static Map<net.minecraft.resources.ResourceKey<Level>, it.unimi.dsi.fastutil.longs.LongSet> claimedChunks(UUID faction) {
+        return WarforgeAPI.claimedChunks(faction);
+    }
+
     public static UUID factionClaiming(Level level, BlockPos pos) {
         return WarforgeAPI.ownerOf(level.dimension(), new ChunkPos(pos));
     }

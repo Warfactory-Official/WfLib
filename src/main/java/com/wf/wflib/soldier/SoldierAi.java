@@ -161,6 +161,11 @@ public final class SoldierAi {
         String depotId = "";
         final java.util.Set<String> triedDepots = new java.util.HashSet<>();
         long resupplyStart, nextResupply, nextCatchUp;
+        /** Gear it is to fetch from storage (see {@link Requisition}), the container it is walking to for it, when to look again, and what was last reported missing. */
+        Want want = Want.NONE;
+        BlockPos reqPos;
+        long nextRequisition;
+        String reqMissing = "";
         /** Game tick the owner was last within greeting distance (a greeting follows a long absence). */
         long ownerNear = Long.MIN_VALUE / 2;
         int reports, heardShots, stalls, yieldTicks, treatments, revives, reviveAttempts, careCount;

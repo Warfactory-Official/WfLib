@@ -75,7 +75,8 @@ final class Resupply {
     /** Every brain tick: an unprompted trip when the kit is low, and the trip itself while one is under way. */
     static void tick(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b, long now) {
         if (b.order.kind() == SoldierOrder.Kind.RESUPPLY) {
-            trip(server, p, b, now);
+            if (b.reqPos != null) Requisition.trip(server, p, b, now);
+            else trip(server, p, b, now);
             return;
         }
         if (b.kit == null || now < b.nextResupply || !b.threats.isEmpty() || b.hunting) return;
@@ -120,7 +121,8 @@ final class Resupply {
         finish(b, p, !moved.isEmpty());
     }
 
-    private static void finish(SoldierAi.Bot b, ServerPlayer p, boolean gotSomething) {
+    static void finish(SoldierAi.Bot b, ServerPlayer p, boolean gotSomething) {
+        b.reqPos = null;
         SoldierOrder back = b.resume != null ? b.resume : SoldierOrder.FOLLOW;
         b.resume = null;
         b.resupplyStart = 0;

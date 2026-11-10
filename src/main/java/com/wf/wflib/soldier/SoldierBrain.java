@@ -36,6 +36,7 @@ final class SoldierBrain {
         if (p.tickCount % 10 != 0) return;
         long now = p.level().getGameTime();
         Resupply.tick(server, p, b, now);
+        Requisition.tick(server, p, b, now);
         switch (b.order.kind()) {
             case FOLLOW, REGROUP -> {
                 Squads.catchUp(server, p, b, now);
