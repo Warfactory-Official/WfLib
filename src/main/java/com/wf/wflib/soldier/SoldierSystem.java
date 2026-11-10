@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.soldier.api.SoldierPlayer;
 import com.wf.wflib.soldier.api.Soldiers;
+import com.wf.wflib.soldier.client.HireApp;
 import com.wf.wflib.soldier.client.SoldierEditorScreen;
 import com.wf.wflib.soldier.client.SoldierLightClient;
 import com.wf.wflib.soldier.client.SquadClient;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -36,13 +38,14 @@ public final class SoldierSystem implements WFSystem {
 
     @Override
     public Set<String> requires() {
-        return Set.of("grenade", "audio", "armor");
+        return Set.of("grenade", "audio", "armor", "pda");
     }
 
     @Override
     public void registerClient(IEventBus modBus) {
         SoldierLightClient.register(modBus);
         SquadClient.register(modBus);
+        modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(HireApp::register));
         SoldierEditorScreen.registerNameTags();
     }
 
@@ -62,6 +65,12 @@ public final class SoldierSystem implements WFSystem {
                 e -> SoldierLights.register(e.registrar("soldier-lights-1").optional()));
         modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> SquadPackets.register(e.registrar("soldier-squad-1").optional()));
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, RecruitConfig.SPEC, "wflib-recruiting.toml");
+        Recruits.register();
+        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+                e -> RecruitPackets.register(e.registrar("soldier-recruit-1").optional()));
+        NeoForge.EVENT_BUS.addListener(Recruits::onServerTick);
+        NeoForge.EVENT_BUS.addListener(RecruitPackets::onUseBlock);
         NeoForge.EVENT_BUS.addListener(SquadSync::onServerTick);
         NeoForge.EVENT_BUS.addListener(Posts::onServerTick);
         NeoForge.EVENT_BUS.addListener(Garrisons::onServerTick);

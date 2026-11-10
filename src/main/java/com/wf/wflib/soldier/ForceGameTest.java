@@ -333,4 +333,80 @@ public class ForceGameTest {
     private static net.minecraft.server.MinecraftServer server(net.minecraft.server.level.ServerLevel level) {
         return level.getServer();
     }
+
+    private static ServerPlayer body(net.minecraft.server.level.ServerLevel level, GameTestHelper h, String team, double x) {
+        return Soldiers.spawn(level, h.absoluteVec(new Vec3(x, 2, 1)), 0, new SoldierSpec(team, "Wage", false, null, List.of(), Map.of(), 0), null);
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void unpaidSoldiersLeaveOrTurnOnTheirOwnerByTheDice(GameTestHelper h) {
+        var level = h.getLevel();
+        var server = level.getServer();
+        var owner = body(level, h, "wage_owner", 1);
+        var book = SquadBook.get(server);
+        var recruits = new java.util.ArrayList<ServerPlayer>();
+        try {
+            for (int i = 0; i < 3; i++) {
+                var s = body(level, h, "friendly", 2 + i);
+                SoldierAi.botOf(s.getGameProfile().getName()).ownerId = owner.getUUID();
+                Squads.recruit(owner, s);
+                recruits.add(s);
+            }
+            var wage = com.wf.wflib.soldier.api.Cost.items(Items.EMERALD, 1);
+            owner.getInventory().add(new ItemStack(Items.EMERALD, 1));                   // one wage in the pocket for three soldiers
+            var squad = Squads.deployed(owner.getUUID());
+            h.assertTrue(squad.size() == 3, "expected three deployed soldiers, got " + squad.size());
+            int paid = Wages.settle(owner, squad, wage, true, 100.0, net.minecraft.util.RandomSource.create(1));
+            h.assertTrue(paid == 1, "paid " + paid + " of 1 affordable");
+            h.assertTrue(book.of(owner.getUUID()).size() == 1, "the unpaid two stayed on the roster: " + book.of(owner.getUUID()).size());
+            long hostile = recruits.stream().map(s -> SoldierAi.botOf(s.getGameProfile().getName())).filter(b -> b != null && b.huntsPlayers).count();
+            h.assertTrue(hostile == 2, "with 100% defection both unpaid should be hostile, " + hostile + " were");
+            var rest = Squads.deployed(owner.getUUID());
+            h.assertTrue(rest.size() == 1, "one soldier should remain loyal");
+            int before = SoldierAi.soldierBots().size();
+            int paid2 = Wages.settle(owner, rest, wage, false, 100.0, net.minecraft.util.RandomSource.create(1));   // defection off: it just leaves
+            h.assertTrue(paid2 == 0 && Squads.deployed(owner.getUUID()).isEmpty(), "the unpaid soldier did not leave");
+            h.assertTrue(book.of(owner.getUUID()).isEmpty(), "the roster still holds a soldier who left");
+            h.succeed();
+        } finally {
+            for (var s : recruits) if (server.getPlayerList().getPlayer(s.getUUID()) != null) Soldiers.remove(s);
+            for (var c : new java.util.ArrayList<>(book.of(owner.getUUID()))) book.remove(owner.getUUID(), c.id);
+            Soldiers.remove(owner);
+        }
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aPaidHireArrivesWhenItsTimeComesAndWaitsForAnAbsentHirer(GameTestHelper h) {
+        var level = h.getLevel();
+        var server = level.getServer();
+        var owner = body(level, h, "hire_owner", 1);
+        var book = SquadBook.get(server);
+        var oldHirer = Recruits.hirer;
+        var arrived = new java.util.ArrayList<String>();
+        Recruits.hirer = (who, variant, afar) -> {
+            arrived.add(variant + (afar ? "/walking" : "/here"));
+            return new Companion(java.util.UUID.randomUUID(), "Late", "friendly", com.wf.wflib.soldier.api.SoldierRole.RIFLEMAN, null);
+        };
+        long now = level.getGameTime();
+        var soon = new SquadBook.Pending(owner.getUUID(), "rifle", now + 100);
+        var away = new SquadBook.Pending(java.util.UUID.randomUUID(), "medic", now - 5);
+        try {
+            book.addPending(soon);
+            book.addPending(away);
+            Recruits.arrivals(server, now);
+            h.assertTrue(arrived.isEmpty(), "arrived before its time or for an absent hirer: " + arrived);
+            Recruits.arrivals(server, now + 100);
+            h.assertTrue(arrived.equals(List.of("rifle/walking")), "the due hire did not arrive walking: " + arrived);
+            h.assertTrue(book.pending().contains(away) && !book.pending().contains(soon), "pending list wrong: " + book.pending());
+            h.assertTrue(Recruits.arriving(server, owner.getUUID()) == 0, "still counted as on the way");
+            var copy = SquadBook.load(book.save(new net.minecraft.nbt.CompoundTag(), server.registryAccess()), server.registryAccess());
+            h.assertTrue(copy.pending().contains(away), "a pending hire did not survive the save");
+            h.succeed();
+        } finally {
+            Recruits.hirer = oldHirer;
+            book.removePending(soon);
+            book.removePending(away);
+            Soldiers.remove(owner);
+        }
+    }
 }

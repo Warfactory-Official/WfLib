@@ -150,4 +150,23 @@ class ForceTest {
         names = book.of(owner).stream().map(c -> c.callsign + c.fireTeam).toList();
         assertEquals(List.of("S40", "S20", "S31", "S01", "S11"), names);
     }
+
+    @Test void anUnpaidSoldierTurnsHostileOnlyWhenEnabledAndByThePercentage() {
+        assertFalse(Wages.defects(false, 100, 0.0), "off means never");
+        assertFalse(Wages.defects(true, 0, 0.0), "0 percent means never");
+        assertTrue(Wages.defects(true, 100, 0.999));
+        assertTrue(Wages.defects(true, 2.0, 0.0199));
+        assertFalse(Wages.defects(true, 2.0, 0.02));
+    }
+
+    @Test void offersAndCostsRejectOrDefaultWhatIsUnusable() {
+        assertThrows(IllegalArgumentException.class, () -> new com.wf.wflib.soldier.api.Offer("", "x", "rifle", null, 0));
+        assertThrows(IllegalArgumentException.class, () -> new com.wf.wflib.soldier.api.Offer("a", "x", "", null, 0));
+        var o = new com.wf.wflib.soldier.api.Offer("a", null, "rifle", null, -3);
+        assertEquals("rifle", o.title());
+        assertSame(com.wf.wflib.soldier.api.Cost.FREE, o.cost());
+        assertEquals(0, o.delaySeconds());
+        assertSame(com.wf.wflib.soldier.api.Cost.FREE, com.wf.wflib.soldier.api.Cost.all(List.of(com.wf.wflib.soldier.api.Cost.FREE, com.wf.wflib.soldier.api.Cost.currency(0))));
+        assertFalse(com.wf.wflib.soldier.api.Cost.currency(5).affordable(null), "currency with no wallet installed is not affordable");
+    }
 }

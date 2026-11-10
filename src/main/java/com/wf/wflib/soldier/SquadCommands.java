@@ -203,6 +203,25 @@ final class SquadCommands {
                 }))));
         root.then(depot);
 
+        // /soldiers barracks add|remove|list: mark any block as a barracks (right-click opens the hire menu); mods register their own
+        var barracks = Commands.literal("barracks").requires(s -> s.hasPermission(2));
+        barracks.then(Commands.literal("add").executes(c -> run(c.getSource(), () -> markBarracks(c.getSource(), true))));
+        barracks.then(Commands.literal("remove").executes(c -> run(c.getSource(), () -> markBarracks(c.getSource(), false))));
+        barracks.then(Commands.literal("list").executes(c -> run(c.getSource(), () -> {
+            var types = com.wf.wflib.soldier.api.Recruiting.barracks().stream().map(t -> t.id()).toList();
+            return BarracksBook.get(c.getSource().getServer()).size() + " marked blocks; barracks types: " + types;
+        })));
+        root.then(barracks);
+        root.then(Commands.literal("recruiting").requires(s -> s.hasPermission(2)).executes(c -> run(c.getSource(), () -> {
+            StringBuilder out = new StringBuilder("Ways to get soldiers (wflib-recruiting.toml, \"sources\"):");
+            for (var src : com.wf.wflib.soldier.api.Recruiting.sources())
+                out.append("\n  ").append(src.id()).append(" - ").append(src.title()).append(": ").append(RecruitConfig.enabled(src.id()) ? "on" : "off");
+            out.append("\nPDA hire: ").append(RecruitConfig.callinCost().describe()).append(", ").append(RecruitConfig.callinDelay()).append(" s")
+                    .append("\nWages: ").append(RecruitConfig.wages() ? RecruitConfig.wage().describe() + " per soldier per day; unpaid soldiers turn hostile "
+                            + (RecruitConfig.defection() ? RecruitConfig.defectionPercent() + "% of the time" : "never") : "off");
+            return out.toString();
+        })));
+
         // /soldiers assign <team|name> <order> [territory]: standing orders for soldiers nobody owns (garrisons, enemy patrols)
         var assign = Commands.literal("assign").requires(s -> s.hasPermission(2));
         var who = Commands.argument("who", StringArgumentType.word()).suggests((c, b) ->
@@ -220,6 +239,18 @@ final class SquadCommands {
             who.then(node);
         }
         root.then(assign.then(who));
+    }
+
+    private static String markBarracks(CommandSourceStack s, boolean add) throws CommandSyntaxException {
+        ServerPlayer p = s.getPlayerOrException();
+        var hit = p.pick(8, 1f, false);
+        if (!(hit instanceof net.minecraft.world.phys.BlockHitResult block) || hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS)
+            throw new IllegalArgumentException("Look at a block within 8 blocks");
+        var book = BarracksBook.get(s.getServer());
+        String dim = p.level().dimension().location().toString();
+        boolean changed = add ? book.add(dim, block.getBlockPos()) : book.remove(dim, block.getBlockPos());
+        if (!changed) throw new IllegalArgumentException(add ? "Already a barracks" : "Not a marked barracks");
+        return (add ? "Barracks at " : "Barracks removed at ") + block.getBlockPos().toShortString();
     }
 
     private static String garrison(CommandSourceStack s, String id, Garrison g) {

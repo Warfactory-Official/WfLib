@@ -281,6 +281,61 @@ public final class Squads {
         p.connection.resetPosition();
     }
 
+    /**
+     * Hires a saved variant onto the owner's roster, as soldiers hired from the PDA or a barracks are: no editor permission.
+     *
+     * @param fromAfar the soldier appears a little way off and walks to the owner, instead of beside them
+     */
+    public static Companion hire(ServerPlayer owner, String variant, boolean fromAfar) {
+        var loadout = SoldierEditor.loadout(owner.getServer(), variant);
+        if (loadout.faction().hostile()) throw new IllegalArgumentException("That variant belongs to a hostile faction");
+        Vec3 at = fromAfar ? arrivalSpot(owner, variant.hashCode()) : clearSpot(owner, variant.hashCode());
+        var p = SoldierEditor.place(owner.serverLevel(), owner, variant, at, owner.getYRot());
+        Companion c = recruit(owner, p);
+        SoldierVoices.say(p, SoldierAi.botOf(p.getGameProfile().getName()), "greet");
+        return c;
+    }
+
+    /** Somewhere on the ground 28-44 blocks from the owner in loaded chunks; the owner's side when there is nowhere. */
+    private static Vec3 arrivalSpot(ServerPlayer owner, int seed) {
+        var level = owner.serverLevel();
+        var rng = net.minecraft.util.RandomSource.create(seed ^ level.getGameTime());
+        for (int i = 0; i < 16; i++) {
+            double angle = rng.nextDouble() * Math.PI * 2, dist = 28 + rng.nextDouble() * 16;
+            double x = owner.getX() + Math.cos(angle) * dist, z = owner.getZ() + Math.sin(angle) * dist;
+            var column = net.minecraft.core.BlockPos.containing(x, 0, z);
+            if (!level.hasChunkAt(column) || !level.getWorldBorder().isWithinBounds(column)) continue;
+            var top = level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
+            if (Math.abs(top.getY() - owner.getY()) > 24 || !level.getBlockState(top.below()).isCollisionShapeFullBlock(level, top.below())) continue;
+            Vec3 stand = Vec3.atBottomCenterOf(top);
+            if (level.noCollision(new AABB(stand.x - .3, stand.y, stand.z - .3, stand.x + .3, stand.y + 1.8, stand.z + .3))) return stand;
+        }
+        return clearSpot(owner, seed);
+    }
+
+    /** A soldier leaves its owner's roster: it goes (and is removed), or, when {@code hostile}, turns on them where it stands. */
+    static void walkOut(ServerPlayer owner, SoldierAi.Bot b, boolean hostile) {
+        var server = owner.getServer();
+        var p = player(server, b);
+        SquadBook.get(server).remove(owner.getUUID(), b.companion);
+        b.companion = null;
+        b.ownerId = null;
+        if (p == null) return;
+        if (!hostile) {
+            Soldiers.remove(p);
+            return;
+        }
+        var roster = SoldierRoster.get(server);
+        b.team = roster.factions().values().stream().filter(SoldierRoster.Faction::hostile).map(SoldierRoster.Faction::id).findFirst().orElse("enemy");
+        b.huntsPlayers = true;
+        b.threats.clear();
+        b.glimpses.clear();
+        b.spawn = p.position();
+        Orders.apply(b, p.position(), SoldierOrder.FOLLOW);
+        b.anchor = p.position();
+        b.holdRadius = 8;
+    }
+
     /** Spawns a saved variant beside the owner and puts it on their roster (editor permission, like the eggs). */
     public static Companion enlist(ServerPlayer owner, String variant) {
         SoldierEditor.require(owner);

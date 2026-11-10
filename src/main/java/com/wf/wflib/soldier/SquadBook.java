@@ -16,6 +16,34 @@ import java.util.UUID;
 /** Every player's companions, saved with the world. */
 public final class SquadBook extends SavedData {
     private final Map<UUID, List<Companion>> squads = new HashMap<>();
+    /** A hire on its way: who it is for, which saved variant, and the game time it arrives. */
+    public record Pending(UUID owner, String variant, long due) {}
+
+    private final List<Pending> pending = new ArrayList<>();
+    /** The in-game day each owner's soldiers were last paid. */
+    private final Map<UUID, Long> wageDay = new HashMap<>();
+
+    public List<Pending> pending() {
+        return pending;
+    }
+
+    public void addPending(Pending p) {
+        pending.add(p);
+        setDirty();
+    }
+
+    public void removePending(Pending p) {
+        if (pending.remove(p)) setDirty();
+    }
+
+    public Long wageDay(UUID owner) {
+        return wageDay.get(owner);
+    }
+
+    public void wageDay(UUID owner, long day) {
+        wageDay.put(owner, day);
+        setDirty();
+    }
 
     public static SquadBook get(MinecraftServer s) {
         return s.overworld().getDataStorage().computeIfAbsent(
@@ -90,6 +118,12 @@ public final class SquadBook extends SavedData {
             for (Tag t : all.getList(key, Tag.TAG_COMPOUND)) list.add(Companion.read((CompoundTag) t, registries));
             book.squads.put(UUID.fromString(key), list);
         }
+        for (Tag t : tag.getList("pending", Tag.TAG_COMPOUND)) {
+            CompoundTag c = (CompoundTag) t;
+            book.pending.add(new Pending(c.getUUID("owner"), c.getString("variant"), c.getLong("due")));
+        }
+        CompoundTag wages = tag.getCompound("wages");
+        for (String key : wages.getAllKeys()) book.wageDay.put(UUID.fromString(key), wages.getLong(key));
         return book;
     }
 
@@ -102,6 +136,18 @@ public final class SquadBook extends SavedData {
             all.put(owner.toString(), l);
         });
         tag.put("squads", all);
+        ListTag arriving = new ListTag();
+        for (Pending p : pending) {
+            CompoundTag c = new CompoundTag();
+            c.putUUID("owner", p.owner());
+            c.putString("variant", p.variant());
+            c.putLong("due", p.due());
+            arriving.add(c);
+        }
+        tag.put("pending", arriving);
+        CompoundTag wages = new CompoundTag();
+        wageDay.forEach((owner, day) -> wages.putLong(owner.toString(), day));
+        tag.put("wages", wages);
         return tag;
     }
 }

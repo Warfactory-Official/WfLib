@@ -21,7 +21,13 @@ final class SquadInteraction {
         e.setCancellationResult(InteractionResult.SUCCESS);
         try {
             if (b.companion == null) {
+                String source = b.garrison.isEmpty() ? "rescue" : "garrison";
+                if (!com.wf.wflib.soldier.api.Recruiting.enabled(source)) throw new IllegalArgumentException("Recruiting soldiers that way is switched off here");
+                var price = b.garrison.isEmpty() ? com.wf.wflib.soldier.api.Cost.FREE : RecruitConfig.garrisonCost();
+                if (!price.affordable(player)) throw new IllegalArgumentException("Hiring " + soldier.getGameProfile().getName() + " costs " + price.describe());
                 Companion c = Squads.recruit(player, soldier);
+                price.charge(player);
+                b.garrison = "";                                                   // the territory raises a replacement
                 SoldierVoices.say(soldier, b, "greet");
                 player.displayClientMessage(Component.literal("Recruited " + soldier.getGameProfile().getName() + " to " + Companion.TEAMS[c.fireTeam]), true);
             } else if (player.getUUID().equals(b.ownerId)) {
