@@ -82,17 +82,18 @@ Four fire teams, Alpha to Delta, up to 24 soldiers per player; new recruits go t
 
 ## The squad UI (client)
 
-* **Management screen** (`Home`): every soldier by fire team with health, ammunition, role and order. Tick soldiers one by one, a
-  whole team with its header, or "Select all" (the search box filters by name, role and order), then Follow / Hold / Regroup /
-  Resupply, Patrol or Guard a territory picked with the cycling button, move them to Alpha-Delta, or dismiss them (twice to
-  confirm). The **Territories** tab lists each territory with its garrison; operators can resize it (shift: x10), flip patrol / guard,
-  change the reinforcement delay, cycle the variant it raises, create a territory where they stand and remove one. The server checks
-  that every soldier named is the player's own and that edits come from an operator.
-
+* **Management screen** (`Home`): four fire-team columns of soldiers (face, name, order, health) on the left, what they can be told
+  to do on the right. Click selects (a team's name selects the team; shift or ctrl adds; ctrl+A everyone). Everything else is a
+  drag: drop soldiers on another column to change their fire team (the line shows where they land, so it also reorders), on an
+  order (Follow me, Hold here, Regroup, Resupply) or a territory (Patrol or Guard, by the switch above the list) to give it, on
+  the red strip to discharge them. Clicking an order with nothing selected gives it to everyone. The **Territories** tab is the
+  map-maker's: each territory has a card with its garrison size, patrol or guard, reinforcement delay and variant, edited in place
+  (shift: x10), and a "new territory where you stand". The server checks every soldier named is the player's and that edits come
+  from an operator.
 * **HUD strip** (top left): a row per fire team, a card per soldier: face, health, ammunition and spare magazines, and a corner
   letter for its order (F H M A S P G R). The selected group has a red bar under its letter and a red frame. Orange frame: in a
   fight. Blue frame: on a resupply trip. Red X: downed.
-* **Command wheel:** hold `G`, move to an order, let go. Scroll or `1`-`5` (everyone, Alpha..Delta) change group. Orders that need a
+* **Command wheel:** hold `G`, move to an order, let go; you keep walking while it is open (the mouse chooses, the camera stays still). Scroll or `1`-`5` (everyone, Alpha..Delta) change group. Orders that need a
   point are greyed out when the crosshair was not on anything. Patrol and guard use the territory under the point (or under you).
 * **`X`** sends the selected group to the crosshair; **`Insert`** cycles the group.
 * **Feedback:** a pulsing ring and a post at the ordered point, a line to it from every soldier that took the order, the order's name

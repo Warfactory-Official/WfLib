@@ -41,8 +41,44 @@ final class CommandWheel extends Screen {
         return usable(ORDERS[i]) ? i : -1;
     }
 
+    /** A screen releases every key and stops reading them; the wheel hands the movement keys back so you can keep walking while you choose. */
+    private static void keepMoving() {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        var o = mc.options;
+        for (var k : new net.minecraft.client.KeyMapping[]{o.keyUp, o.keyDown, o.keyLeft, o.keyRight, o.keyJump, o.keySprint, o.keyShift}) {
+            var key = k.getKey();
+            if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM)     // setDown on the mapping itself: the key table points at whichever binding registered last
+                k.setDown(com.mojang.blaze3d.platform.InputConstants.isKeyDown(mc.getWindow().getWindow(), key.getValue()));
+        }
+    }
+
+    private static boolean down(net.minecraft.client.KeyMapping k) {
+        var key = k.getKey();
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        return key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM
+                && com.mojang.blaze3d.platform.InputConstants.isKeyDown(mc.getWindow().getWindow(), key.getValue());
+    }
+
+    /** Fills the player's movement input from the keys as they are held, since a screen's input handling leaves it empty. */
+    static void drive(net.minecraft.client.player.Input in) {
+        var o = net.minecraft.client.Minecraft.getInstance().options;
+        in.up = down(o.keyUp);
+        in.down = down(o.keyDown);
+        in.left = down(o.keyLeft);
+        in.right = down(o.keyRight);
+        in.jumping = down(o.keyJump);
+        in.shiftKeyDown = down(o.keyShift);
+        in.forwardImpulse = (in.up ? 1f : 0f) - (in.down ? 1f : 0f);
+        in.leftImpulse = (in.left ? 1f : 0f) - (in.right ? 1f : 0f);
+        if (in.shiftKeyDown) {
+            in.forwardImpulse *= 0.3f;
+            in.leftImpulse *= 0.3f;
+        }
+    }
+
     @Override
     public void tick() {
+        keepMoving();
         if (!SquadClient.wheelHeld()) {                                      // let go: do what is hovered
             if (hovered >= 0) SquadClient.send(ORDERS[hovered].id, ORDERS[hovered].needsPos ? aim : null);
             onClose();

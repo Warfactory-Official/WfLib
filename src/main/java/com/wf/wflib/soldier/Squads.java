@@ -47,6 +47,13 @@ public final class Squads {
     static List<SoldierAi.Bot> deployed(UUID owner) {
         List<SoldierAi.Bot> out = new ArrayList<>();
         for (SoldierAi.Bot b : SoldierAi.soldierBots()) if (owner.equals(b.ownerId) && b.companion != null) out.add(b);
+        if (out.size() > 1) {                                  // in the order of the roster, which the player can rearrange
+            var roster = SquadBook.get(out.get(0).server).of(owner);
+            out.sort(Comparator.comparingInt(b -> {
+                for (int i = 0; i < roster.size(); i++) if (roster.get(i).id.equals(b.companion)) return i;
+                return Integer.MAX_VALUE;
+            }));
+        }
         return out;
     }
 
@@ -173,6 +180,16 @@ public final class Squads {
         b.fireTeam = c.fireTeam;
         b.squad = squadId(owner, c.fireTeam);
         book.setDirty();
+    }
+
+    /** Puts the soldiers into a fire team, before that team's {@code index}-th member (the management screen's drag and drop). */
+    public static void move(ServerPlayer owner, List<SoldierAi.Bot> bots, int team, int index) {
+        if (team < 0 || team >= Companion.TEAMS.length) throw new IllegalArgumentException("No such fire team");
+        SquadBook.get(owner.getServer()).place(owner.getUUID(), bots.stream().map(b -> b.companion).toList(), team, index);
+        for (SoldierAi.Bot b : bots) {
+            b.fireTeam = team;
+            b.squad = squadId(owner, team);
+        }
     }
 
     /** The owner's deployed soldiers a target names. */

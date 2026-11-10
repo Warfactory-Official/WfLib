@@ -44,6 +44,30 @@ public final class SquadBook extends SavedData {
         return null;
     }
 
+    /**
+     * Moves companions into a fire team, to sit before that team's {@code index}-th member (past its last when {@code index} is
+     * too big). The moved ones keep their order among themselves.
+     */
+    public void place(UUID owner, List<UUID> ids, int team, int index) {
+        List<Companion> list = squads.get(owner);
+        if (list == null) return;
+        List<Companion> moved = new ArrayList<>();
+        for (Companion c : list) if (ids.contains(c.id)) moved.add(c);
+        if (moved.isEmpty()) return;
+        list.removeAll(moved);
+        moved.forEach(c -> c.fireTeam = team);
+        int seen = 0, at = list.size();
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).fireTeam != team) continue;
+            if (seen++ == Math.max(0, index)) {
+                at = i;
+                break;
+            }
+        }
+        list.addAll(at, moved);
+        setDirty();
+    }
+
     /** The fire team with the fewest soldiers: where a recruit goes unless told otherwise. */
     public int emptiestTeam(UUID owner) {
         int[] n = new int[Companion.TEAMS.length];

@@ -132,4 +132,22 @@ class ForceTest {
         junk.putString("kind", "dance");
         assertEquals(SoldierOrder.FOLLOW, Tags.order(junk), "an order that no longer exists reads as follow");
     }
+
+    @Test void dragAndDropRearrangesTheRosterByTeamAndPosition() {
+        var book = new SquadBook();
+        var owner = java.util.UUID.randomUUID();
+        var ids = new java.util.ArrayList<java.util.UUID>();
+        for (int i = 0; i < 5; i++) {
+            var c = new Companion(java.util.UUID.randomUUID(), "S" + i, "friendly", com.wf.wflib.soldier.api.SoldierRole.RIFLEMAN, null);
+            c.fireTeam = i < 3 ? 0 : 1;
+            book.add(owner, c);
+            ids.add(c.id);
+        }
+        book.place(owner, List.of(ids.get(4)), 0, 1);                 // the last of Bravo goes second in Alpha
+        var names = book.of(owner).stream().map(c -> c.callsign + c.fireTeam).toList();
+        assertEquals(List.of("S00", "S40", "S10", "S20", "S31"), names);
+        book.place(owner, List.of(ids.get(0), ids.get(1)), 1, 99);   // far past the end: last in Bravo, in their own order
+        names = book.of(owner).stream().map(c -> c.callsign + c.fireTeam).toList();
+        assertEquals(List.of("S40", "S20", "S31", "S01", "S11"), names);
+    }
 }

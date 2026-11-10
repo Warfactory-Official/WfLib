@@ -63,6 +63,9 @@ public final class SquadClient {
         modBus.addListener(RegisterGuiLayersEvent.class, e ->
                 e.registerAboveAll(ResourceLocation.fromNamespaceAndPath("wflib", "squad_hud"), (LayeredDraw.Layer) new SquadHud()));
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, SquadClient::onTick);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.MovementInputUpdateEvent.class, e -> {
+            if (Minecraft.getInstance().screen instanceof CommandWheel) CommandWheel.drive(e.getInput());     // walk while choosing an order
+        });
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent.class, OrderMarkers::onRenderLevel);
     }
 

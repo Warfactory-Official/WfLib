@@ -202,7 +202,7 @@ public final class SquadPackets {
     }
 
     /**
-     * A request from the management screen. {@code action}: list, order, team, dismiss (acting on {@code soldiers}); garrison,
+     * A request from the management screen. {@code action}: list, order, move (into fire team {@code n} before its {@code m}-th member), team, dismiss (acting on {@code soldiers}); garrison,
      * territory_new, territory_delete (map-maker only, naming {@code region}). {@code kind}/{@code n}/{@code m}/{@code units} are the action's arguments.
      */
     public record Manage(String action, List<java.util.UUID> soldiers, String kind, String region, String units, int n, int m) implements CustomPacketPayload {
@@ -259,6 +259,7 @@ public final class SquadPackets {
                     var taken = Squads.order(p, mine(p, m.soldiers()), order);
                     p.displayClientMessage(Component.literal(order.label() + ": " + taken.size()), true);
                 }
+                case "move" -> Squads.move(p, mine(p, m.soldiers()), m.n(), m.m());
                 case "team" -> {
                     for (var b : mine(p, m.soldiers())) Squads.setFireTeam(p, b.name, m.n());
                 }
