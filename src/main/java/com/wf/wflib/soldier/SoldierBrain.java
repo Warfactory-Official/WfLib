@@ -19,6 +19,8 @@ final class SoldierBrain {
     private static final double ARRIVED = 4;
     /** Following: beyond this many blocks a soldier runs, and keeps running until it is within {@code RUN_CAUGHT_UP}. */
     static final double RUN_FAR = 14, RUN_CAUGHT_UP = 8;
+    /** Following: the owner counts as moving above this many blocks per check (half a second); how far a slot must shift to re-pick it. */
+    private static final double MOVING = 0.5, TRACK_REANCHOR = 1.5, IDLE_REANCHOR = 3.5;
     /** A contact seen this recently (game ticks) means a fight is on. */
     private static final long FIGHT_TICKS = 100;
 
@@ -75,7 +77,7 @@ final class SoldierBrain {
         t.value = 1f;
     }
 
-    private static void escort(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
+    static void escort(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
         ServerPlayer owner = b.ownerId == null ? null : server.getPlayerList().getPlayer(b.ownerId);
         if (owner == null || !owner.isAlive() || owner.level() != p.level() || !owner.onGround()
                 || owner.distanceTo(p) > FOLLOW_RANGE) return;                 // out of reach: hold the last spot
@@ -89,11 +91,15 @@ final class SoldierBrain {
         boolean fight = b.threats.values().stream().anyMatch(t -> now - t.seen < FIGHT_TICKS);
         b.sprint = followSprint(b.sprint, owner.distanceTo(p), owner.isSprinting(), fight)
                 && com.wf.wflib.soldier.api.SoldierRole.tactics(b.role) != com.wf.wflib.soldier.api.SoldierRole.HEAVY;
-        if (b.anchor == null || b.anchor.distanceToSqr(spot) > ESCORT_RADIUS * ESCORT_RADIUS * 2.25) {
+        // While the owner is going somewhere the slot is chased closely (the spot is re-picked every check, stood on exactly);
+        // once they stop the soldier settles loosely within a few blocks of a slot and is left in peace.
+        b.tracking = moved.lengthSqr() > MOVING * MOVING || owner.distanceTo(p) > ESCORT_RADIUS * 2;
+        double reanchor = b.tracking ? TRACK_REANCHOR : IDLE_REANCHOR;
+        if (b.anchor == null || b.anchor.distanceToSqr(spot) > reanchor * reanchor) {
             b.anchor = spot;
             b.mode = SoldierAi.Mode.HOLD;
-            b.holdRadius = (int) ESCORT_RADIUS;
         }
+        b.holdRadius = b.tracking ? 2 : (int) ESCORT_RADIUS;
     }
 
     /** Walks beside a calm owner; runs when the owner runs, when it has fallen well behind (until it has caught up), or in a fight. */

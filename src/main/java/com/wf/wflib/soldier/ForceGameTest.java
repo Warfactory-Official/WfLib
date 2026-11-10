@@ -409,4 +409,39 @@ public class ForceGameTest {
             Soldiers.remove(owner);
         }
     }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aFollowerChasesTheSlotBesideAnOwnerOnTheMoveAndSettlesWhenTheyStop(GameTestHelper h) {
+        var level = h.getLevel();
+        var server = level.getServer();
+        var owner = Soldiers.spawn(level, h.absoluteVec(new Vec3(1, 2, 1)), 0, new SoldierSpec("owner_test", "OwnerTest", false, null, List.of(), Map.of(), 0), null);
+        h.assertTrue(owner != null, "could not spawn the stand-in owner");
+        var follower = Soldiers.spawn(level, h.absoluteVec(new Vec3(1, 2, 3)), 0, spec(), owner);
+        h.assertTrue(follower != null, "could not spawn test soldier");
+        try {
+            var bot = SoldierAi.botOf(follower.getGameProfile().getName());
+            Orders.apply(bot, follower.position(), SoldierOrder.FOLLOW);
+            owner.setOnGround(true);
+            SoldierBrain.escort(server, follower, bot);
+            h.assertTrue(bot.anchor != null && !bot.tracking, "a still owner is not chased: tracking " + bot.tracking);
+            // the owner runs 6 blocks east in half a second, again and again; the slot must be re-picked beside where they are now
+            for (int i = 1; i <= 4; i++) {
+                Vec3 to = h.absoluteVec(new Vec3(1 + 6 * i, 2, 1));
+                owner.setPos(to);
+                owner.setOnGround(true);
+                SoldierBrain.escort(server, follower, bot);
+                h.assertTrue(bot.tracking, "a running owner is not being followed");
+                h.assertTrue(bot.anchor.distanceTo(owner.position()) < 6, "the slot lags the owner: " + bot.anchor.distanceTo(owner.position()) + " blocks");
+                h.assertTrue(bot.holdRadius <= 2, "it stops short of the slot: radius " + bot.holdRadius);
+            }
+            Vec3 beside = owner.position().add(-3, 0, 0);         // it caught up, and they stopped
+            follower.setPos(beside);
+            SoldierBrain.escort(server, follower, bot);
+            h.assertTrue(!bot.tracking && bot.holdRadius == 5, "it does not settle when the owner stops");
+            h.succeed();
+        } finally {
+            Soldiers.remove(follower);
+            Soldiers.remove(owner);
+        }
+    }
 }

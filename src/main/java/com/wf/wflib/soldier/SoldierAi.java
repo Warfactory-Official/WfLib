@@ -173,6 +173,8 @@ public final class SoldierAi {
         Vec3 anchor;
         /** Following: where the owner stood at the last check and the way they were last walking. */
         Vec3 ownerSeen, heading;
+        /** Following an owner who is on the move: stand exactly on the slot, no wall to rest by. */
+        boolean tracking;
         int holdRadius = 6;
         final Deque<Vec3> path = new ArrayDeque<>();
         boolean sprint = true, crouch = true;
@@ -1043,7 +1045,7 @@ public final class SoldierAi {
         if (b.cover != null && !b.peek.hidden()) return null;
         if (eyes.isEmpty()) {
             // quiet: ADVANCE walks on; HOLD waits by a wall near its anchor, not in the middle of the street
-            if (b.mode == Mode.HOLD) {
+            if (b.mode == Mode.HOLD && !b.tracking) {
                 Vec3 rest = restSpot(p, b);
                 if (rest != null) return at(p, rest, 0.7) ? null : rest;
             }
