@@ -136,6 +136,8 @@ public final class SoldierAi {
         Vec3 careShelter;
         float watchYaw;
         long lastBound = -1000, progressAt, lastShot = -1000, careRetry;
+        /** Game tick something last threatened this soldier (-1: not yet seen a tick); how long it has been quiet. */
+        long lastThreat = -1;
         int reports, heardShots, stalls, yieldTicks, treatments, revives, reviveAttempts, careCount;
         String carePatient = "", careAction = "";
         SoldierMedical.Plan carePlan;
@@ -265,6 +267,19 @@ public final class SoldierAi {
 
     private static Bot bot(String name) {
         return BOTS.computeIfAbsent(name.toLowerCase(Locale.ROOT), k -> new Bot(name));
+    }
+
+    /** What an idle line may depend on, read when the cadence lets this soldier speak (not every tick). */
+    static IdleVoice.Context idleContext(ServerPlayer p, Bot b, long now) {
+        var level = p.level();
+        boolean mate = false;
+        for (Bot other : BOTS.values()) {
+            if (other == b || !other.soldier || !other.team.equals(b.team) || other.server != b.server) continue;
+            ServerPlayer o = b.server.getPlayerList().getPlayerByName(other.name);
+            if (o != null && o.isAlive() && o.level() == level && o.distanceToSqr(p) < 36) { mate = true; break; }
+        }
+        return new IdleVoice.Context(level.isNight(), level.isRainingAt(p.blockPosition()),
+                p.getHealth() < p.getMaxHealth() * 0.5f, mate, b.lastThreat < 0 ? 0 : now - b.lastThreat);
     }
 
     /** Merge {@code a} into the named bot's order; only the given keys change. */
@@ -775,6 +790,7 @@ public final class SoldierAi {
         boolean caring = medical(server, p, b, now);
         SoldierProfiler.end("medical", t0);
         if (caring) return;
+        if (!b.threats.isEmpty() || b.lastThreat < 0) b.lastThreat = now;
         if (b.hunting) SoldierVoices.say(p, b, "search");
         else if (b.threats.isEmpty()) SoldierVoices.say(p, b, "idle");
         else if (b.suppression > 0.75f) SoldierVoices.say(p, b, "retreat");

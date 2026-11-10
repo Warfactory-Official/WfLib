@@ -14,7 +14,12 @@ import subprocess
 import tempfile
 import zipfile
 
-EVENTS = frozenset('contact lost_contact search attack covering flank retreat grenade throw_grenade reload wounded help treat revive revived enemy_down idle death'.split())
+EVENTS = frozenset(('contact lost_contact search attack covering flank retreat grenade throw_grenade reload wounded help treat revive '
+                   'revived enemy_down idle death '
+                   # idle variants: the game picks one by situation and falls back to plain `idle`; acknowledgements of orders
+                   'idle_alert idle_hurt idle_night idle_rain idle_chat idle_bored '
+                   'ack_follow ack_hold ack_move ack_attack ack_suppress ack_patrol ack_resupply ack_regroup ack_refuse '
+                   'low_ammo resupplied').split())
 FACTIONS = {'bandit': 'bandit', 'monolith': 'monolith', 'military': 'military',
             'duty': 'dolg', 'freedom': 'freedom', 'loner': 'stalker', 'mercenary': 'killer'}
 # X-Ray's m_stalker.ltx distinguishes grenade_ready (our throw) from grenade (incoming).

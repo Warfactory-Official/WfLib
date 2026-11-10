@@ -145,9 +145,17 @@ Events supported by the pack format:
 | `enemy_down` | Visually confirmed downed enemy |
 | `retreat` | Heavily suppressed |
 | `idle`, `death` | No threats / actual death |
+| `idle_alert` | Idle, but a fight ended less than a minute ago |
+| `idle_hurt`, `idle_night`, `idle_rain` | Idle while below half health / at night / standing in rain |
+| `idle_chat` | Idle with a squadmate within 6 blocks |
+| `idle_bored` | Idle for five minutes without anything happening |
+| `ack_follow`, `ack_hold`, `ack_move`, `ack_attack`, `ack_suppress`, `ack_patrol`, `ack_resupply`, `ack_regroup` | A player's order was accepted (one soldier of the group answers; `ack_refuse` when it cannot be carried out) |
+| `low_ammo`, `resupplied` | Down to the last magazine / refilled at a supply container |
 | `flank` | Available for explicit preview; the current AI has no distinct flank order |
 
-Missing events stay silent. The sample STALKER packs do **not** invent medic/reload lines; supply
+Idle is one family: when a soldier is quiet the game picks among the idle variants the speaker has, by situation (weighted),
+and always keeps plain `idle` in the running; a pack with only `idle` behaves as before, and one with none stays silent. All idle
+variants share one 30-second cooldown, so a soldier is never chatty twice. Missing events stay silent. The sample STALKER packs do **not** invent medic/reload lines; supply
 those in custom packs. Each soldier selects a stable speaker from its pack using its UUID. Playback
 is audible within 40 blocks using WFLib's radio audio volume slider. Variants don't immediately
 repeat. Actor speech cannot overlap itself. Squads share a speech gate; an urgent grenade warning

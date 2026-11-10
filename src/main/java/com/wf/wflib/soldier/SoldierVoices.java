@@ -161,10 +161,14 @@ final class SoldierVoices {
         var pinned = slash < 0 ? null : pack.speakers().get(binding.substring(slash + 1));
         var speakers = List.copyOf(pack.speakers().values());
         var speaker = pinned != null ? pinned : speakers.get(Math.floorMod(p.getUUID().hashCode(), speakers.size()));
+        if (event.equals("idle")) {   // the plain event stands for "say something idle": the situation picks which
+            event = IdleVoice.pick(speaker.keySet(), SoldierAi.idleContext(p, b, now), p.getRandom().nextInt());
+            if (event == null) return false;
+        }
         var clips = speaker.get(event);
         if (clips == null) return false; // Missing lines remain silent; never substitute a misleading callout.
         String squad = p.level().dimension().location() + "/" + b.team + "/" + b.squad;
-        boolean urgent = event.equals("grenade") || event.equals("death");
+        boolean urgent = event.equals("grenade") || event.equals("death") || event.startsWith("ack_");
         VoiceCadence conversation = squads.computeIfAbsent(squad, k -> new VoiceCadence());
         if (!conversation.ready(event, now, urgent)) return false;
         int variant = b.voiceCadence.variant(event, clips.size(), p.getRandom().nextInt());
