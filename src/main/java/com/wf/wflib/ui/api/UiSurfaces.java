@@ -93,6 +93,12 @@ public final class UiSurfaces {
         return surface.id;
     }
 
+    /** Current texture width of {@code key}'s surface; 0 while it has none. */
+    public static int pixelWidth(Object key) {
+        Surface surface = SURFACES.get(key);
+        return surface == null ? 0 : surface.target.width();
+    }
+
     /** Pointer input of {@code key}'s surface (enabled on first call); null while it has none. */
     public static UiInput input(Object key) {
         Surface surface = SURFACES.get(key);

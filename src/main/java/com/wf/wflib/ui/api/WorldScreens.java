@@ -13,12 +13,15 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Layouts on surfaces in the world (gun computers, instrument panels): one {@link UiSurfaces} texture per key.
  * {@link #texture} serves a screen whose geometry is a model mesh; {@link #draw} also adds the quad. A layout with a
- * design size is fitted into the surface (bars where the aspect differs), else it fills it. Beyond {@link #RANGE}
- * nothing is requested => surface freed after {@link UiSurfaces} idle frames.
+ * design size is fitted into the surface (bars where the aspect differs), else it fills it. Resolution = integer px per
+ * unit >= projected size (rounding down magnifies => blur; fractional => uneven font texels), long side <=
+ * {@link #MAX_PIXELS}. Beyond {@link #RANGE} nothing is requested => surface freed after {@link UiSurfaces} idle frames.
  */
 public final class WorldScreens {
     public static final float RANGE = 24;
-    public static final int MAX_PIXELS_PER_UNIT = 4;
+    public static final int MAX_PIXELS = 2048;
+    /** Kept px per unit may exceed the projected size by this much before shrinking; resize = realloc. */
+    private static final float SHRINK_SLACK = 1.5f;
     private static final int FULL_BRIGHT = 0xF000F0;
 
     private WorldScreens() {
@@ -40,7 +43,7 @@ public final class WorldScreens {
         float aspect = width / height;
         float unitsW = Math.max(contentW, contentH * aspect);
         float unitsH = unitsW / aspect;
-        int pixelsPerUnit = pixelsPerUnit(distance, width, unitsW);
+        int pixelsPerUnit = pixelsPerUnit(key, distance, width, unitsW, unitsH);
         return UiSurfaces.request(key, layout, context, Math.round(unitsW * pixelsPerUnit),
                 Math.round(unitsH * pixelsPerUnit), unitsW, unitsH, contentW, contentH, maxFps, 0xFF000000);
     }
@@ -67,10 +70,12 @@ public final class WorldScreens {
         return true;
     }
 
-    /** Projected width in framebuffer px / layout units, rounded. */
-    private static int pixelsPerUnit(float distance, float width, float unitsWidth) {
+    private static int pixelsPerUnit(Object key, float distance, float width, float unitsWidth, float unitsHeight) {
         float ndcHalf = RenderSystem.getProjectionMatrix().m00() * width / 2 / Math.max(distance, 0.05f);
-        float pixels = ndcHalf * Minecraft.getInstance().getWindow().getWidth();
-        return Math.clamp(Math.round(pixels / unitsWidth), 1, MAX_PIXELS_PER_UNIT);
+        float wanted = ndcHalf * Minecraft.getInstance().getWindow().getWidth() / unitsWidth;
+        int max = Math.max(1, (int) (MAX_PIXELS / Math.max(unitsWidth, unitsHeight)));
+        int current = Math.round(UiSurfaces.pixelWidth(key) / unitsWidth);
+        int ppu = current >= wanted && current <= wanted + SHRINK_SLACK ? current : (int) Math.ceil(wanted);
+        return Math.clamp(ppu, 1, max);
     }
 }
