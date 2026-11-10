@@ -157,6 +157,8 @@ public final class SoldierAi {
         String depotId = "";
         final java.util.Set<String> triedDepots = new java.util.HashSet<>();
         long resupplyStart, nextResupply, nextCatchUp;
+        /** Game tick the owner was last within greeting distance (a greeting follows a long absence). */
+        long ownerNear = Long.MIN_VALUE / 2;
         int reports, heardShots, stalls, yieldTicks, treatments, revives, reviveAttempts, careCount;
         String carePatient = "", careAction = "";
         SoldierMedical.Plan carePlan;
@@ -297,7 +299,9 @@ public final class SoldierAi {
     static IdleVoice.Context idleContext(ServerPlayer p, Bot b, long now) {
         var level = p.level();
         boolean mate = false;
-        for (Bot other : BOTS.values()) {
+        ServerPlayer owner = b.ownerId == null ? null : b.server.getPlayerList().getPlayer(b.ownerId);
+        if (owner != null && owner.level() == level && owner.distanceToSqr(p) < 36) mate = true;   // company for a chat
+        if (!mate) for (Bot other : BOTS.values()) {
             if (other == b || !other.soldier || !other.team.equals(b.team) || other.server != b.server) continue;
             ServerPlayer o = b.server.getPlayerList().getPlayerByName(other.name);
             if (o != null && o.isAlive() && o.level() == level && o.distanceToSqr(p) < 36) { mate = true; break; }

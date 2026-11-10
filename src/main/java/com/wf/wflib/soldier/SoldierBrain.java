@@ -33,6 +33,7 @@ final class SoldierBrain {
         switch (b.order.kind()) {
             case FOLLOW, REGROUP -> {
                 Squads.catchUp(server, p, b, now);
+                Squads.greet(server, p, b, now);
                 if (b.huntsPlayers) hunt(p, b);
                 else escort(server, p, b);
                 if (b.order.kind() == com.wf.wflib.soldier.api.SoldierOrder.Kind.REGROUP && b.anchor != null

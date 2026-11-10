@@ -27,7 +27,9 @@ record VoicePack(String id, Path file, Map<String, Map<String, List<Clip>>> spea
             // idle variants (see IdleVoice), order acknowledgements (SoldierVoices.ack) and supply calls
             "idle_alert", "idle_hurt", "idle_night", "idle_rain", "idle_chat", "idle_bored",
             "ack_follow", "ack_hold", "ack_move", "ack_attack", "ack_suppress", "ack_patrol", "ack_resupply",
-            "ack_regroup", "ack_refuse", "low_ammo", "resupplied");
+            "ack_regroup", "ack_refuse", "low_ammo", "resupplied",
+            // not combat: meeting the owner again, and being spoken to by them
+            "greet", "talk");
 
     record Clip(ResourceLocation sound, int ticks) {}
 

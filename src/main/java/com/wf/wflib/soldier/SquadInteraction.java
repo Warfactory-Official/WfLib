@@ -22,8 +22,10 @@ final class SquadInteraction {
         try {
             if (b.companion == null) {
                 Companion c = Squads.recruit(player, soldier);
+                SoldierVoices.say(soldier, b, "greet");
                 player.displayClientMessage(Component.literal("Recruited " + soldier.getGameProfile().getName() + " to " + Companion.TEAMS[c.fireTeam]), true);
             } else if (player.getUUID().equals(b.ownerId)) {
+                SoldierVoices.say(soldier, b, "talk");
                 player.displayClientMessage(Component.literal(soldier.getGameProfile().getName() + " (" + Companion.TEAMS[b.fireTeam] + "): " + b.order.label()), true);
             }
         } catch (IllegalArgumentException ex) {

@@ -37,6 +37,8 @@ public final class Squads {
     /** A soldier too far from its owner to follow is brought to them: this far (blocks), and no sooner than this often (ticks). */
     static final double CATCH_UP = 96;
     static final int CATCH_UP_EVERY = 100;
+    /** Apart this long (ticks) and a soldier greets its owner on their return. */
+    static final int GREET_AFTER = 1200;
     private static final String[] SLOTS = {"head", "chest", "legs", "feet"};
 
     private Squads() {}
@@ -313,5 +315,14 @@ public final class Squads {
         var hit = owner.pick(range, 1f, false);
         if (hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS) throw new IllegalArgumentException("Look at a spot within " + (int) range + " blocks");
         return hit.getLocation();
+    }
+
+    /** A soldier says hello when its owner turns up again after a minute or more apart (and on being deployed beside them). */
+    static void greet(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b, long now) {
+        if (b.ownerId == null) return;
+        ServerPlayer owner = server.getPlayerList().getPlayer(b.ownerId);
+        if (owner == null || owner.level() != p.level() || owner.distanceToSqr(p) > 36) return;
+        if (now - b.ownerNear > GREET_AFTER && b.threats.isEmpty()) SoldierVoices.say(p, b, "greet");
+        b.ownerNear = now;
     }
 }

@@ -19,7 +19,7 @@ EVENTS = frozenset(('contact lost_contact search attack covering flank retreat g
                    # idle variants: the game picks one by situation and falls back to plain `idle`; acknowledgements of orders
                    'idle_alert idle_hurt idle_night idle_rain idle_chat idle_bored '
                    'ack_follow ack_hold ack_move ack_attack ack_suppress ack_patrol ack_resupply ack_regroup ack_refuse '
-                   'low_ammo resupplied').split())
+                   'low_ammo resupplied greet talk').split())
 FACTIONS = {'bandit': 'bandit', 'monolith': 'monolith', 'military': 'military',
             'duty': 'dolg', 'freedom': 'freedom', 'loner': 'stalker', 'mercenary': 'killer'}
 # X-Ray's m_stalker.ltx distinguishes grenade_ready (our throw) from grenade (incoming).
@@ -38,6 +38,23 @@ STALKER = [
     (r'help/combat/[^/]+', 'help'),
     (r'fight/enemy_down/enemy_down_[^/]+', 'enemy_down'),
     (r'states/idle/idle_[^/]+', 'idle'),
+    # Not combat: what the characters say between fights. Folder and file names say what each is for; nothing is guessed
+    # from listening. Conversation (jokes, stories, music and the listeners' reactions) is `idle_chat`; `greet` is meeting
+    # someone; `talk` is being spoken to. Unmapped on purpose: trading, sleeping/breathing, the "stop / drop your weapon"
+    # warnings, panic, and alife task chatter whose meaning is not in its name.
+    (r'talk/intros/intro_[^/]+', 'idle_chat'),
+    (r'talk/jokes/joke_[^/]+', 'idle_chat'),
+    (r'reactions/(joke|music|story)/[^/]+', 'idle_chat'),
+    (r'states/meet/meet_hello_[^/]+', 'greet'),
+    (r'talk/use/no_default_[^/]+', 'talk'),
+    (r'fight/post_combat_wait/(relax|ok)_[^/]+', 'idle_alert'),
+    (r'states/loot/loot_begin_[^/]+', 'ack_resupply'),
+    (r'states/loot/loot_good_[^/]+', 'resupplied'),
+    (r'states/loot/loot_bad_[^/]+', 'ack_refuse'),
+    (r'alife/attack/(attack_begin|attack_ready|begin_reply|start_fight)_[^/]+', 'ack_attack'),
+    (r'alife/counter_attack/counter_attack_begin_[^/]+', 'ack_attack'),
+    (r'alife/attack/prepare_attack_[^/]+', 'ack_move'),
+    (r'alife/patrol/(walk|run|sneak)_[^/]+', 'ack_patrol'),
     (r'fight/death/death_[^/]+', 'death'),
 ]
 # Trepang2 NPC VO: Content/Sounds/VO/NPCs/<faction>/<voice>/<category>/<event>-NNN. The folder names say what each line is
@@ -61,12 +78,20 @@ TREPANG = {
     'revived': ['Damage/RecoveredYouOkay'],
     'enemy_down': ['TargetKilled/TargetKilledSoldier'],
     'idle': ['SusMode/SusRelief'],
+    # Not combat: the soldiers' exchanges and how they take a post. Hostage chatter is left out (it is about hostages).
+    'idle_chat': ['Spawn/BeCareful', 'Spawn/BeCarefulReplies', 'SusMode/WhatsYourStatus'],
+    'idle_alert': ['SusMode/SusAlert', 'SusMode/Alerted'],
+    'ack_hold': ['Spawn/DefendThisPosition'],
+    'ack_attack': ['Spawn/GetReady'],
+    'ack_move': ['Spawn/Deployed'],
     'death': ['Damage/DeathGunshot', 'Damage/DeathMelee', 'Damage/DeathFire', 'Damage/Death'],
 }
 TREPANG_EXACT = {name: event for event, names in TREPANG.items() for name in names if not name.endswith('*')}
 TREPANG_PREFIX = [(name[:-1], event) for event, names in TREPANG.items() for name in names if name.endswith('*')]
 TREPANG_ROOT = 'CPPFPS/Content/Sounds/VO/NPCs/'
 NOTICE = 'Audio supplied by the pack author; source rights are unchanged.'
+# A callout may run at most 30 s (600 ticks); a longer clip (a joke, a story) is skipped and reported, not fatal.
+MAX_CLIP_SECONDS = 29
 AUDIO = {'.ogg', '.wav', '.flac', '.mp3', '.m4a', '.opus'}
 
 
@@ -179,14 +204,24 @@ def convert(root, destination, pack_id, groups, unmapped, limit, normalize, noti
         raise FileExistsError(f'Refusing to overwrite {destination}; move it or choose a new output directory')
     destination.parent.mkdir(parents=True, exist_ok=True)
     report = {'pack': pack_id, 'source': str(root.resolve()), 'selected': [], 'unmapped': unmapped,
-              'missing_events': {}, 'normalization': normalize}
+              'missing_events': {}, 'too_long': [], 'normalization': normalize}
     with tempfile.TemporaryDirectory(prefix='wf-voice-') as temp:
         stage = Path(temp)
         speakers = {}
         sounds = {}
         jobs = []
         for (speaker, event), sources in sorted(groups.items()):
-            selected = sources[:limit] if limit else sources
+            selected = []
+            for source in sources:
+                if limit and len(selected) >= limit:
+                    break
+                try:
+                    if duration(source) > MAX_CLIP_SECONDS:
+                        raise ValueError('too long')
+                except ValueError:
+                    report['too_long'].append(source.relative_to(root).as_posix())
+                    continue
+                selected.append(source)
             if len(selected) > 128:
                 raise ValueError(f'{speaker}/{event} exceeds 128 variants; set --max-per-event')
             for source in selected:

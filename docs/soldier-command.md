@@ -81,8 +81,9 @@ territory exists. The channel is optional: without WFLib's UI a client commands 
 
 New callout events (pack format `voices.json`, `tools/voices/convert.py`, [VOICE_PACKS.md](../VOICE_PACKS.md)):
 
-* **Idle variants** `idle_alert` (a fight ended under a minute ago), `idle_hurt`, `idle_night`, `idle_rain`, `idle_chat` (a squadmate
-  within 6 blocks), `idle_bored` (five quiet minutes). A quiet soldier picks among the variants its speaker has, weighted by
+* **Non-combat lines** both the STALKER and Trepang2 voice sets carry plenty of speech that is not combat (jokes and stories, greetings, replies when talked to, looting, bantering at a post); the converter maps those by folder and file name (see below). `greet` is said when the owner returns after a minute or more, `talk` when they sneak-use the soldier.
+* **Idle variants** `idle_alert` (a fight ended under a minute ago), `idle_hurt`, `idle_night`, `idle_rain`, `idle_chat` (a squadmate or the owner
+  within 6 blocks; the conversation lines), `idle_bored` (five quiet minutes). A quiet soldier picks among the variants its speaker has, weighted by
   situation, with plain `idle` always in the running; one shared 30 s cooldown. Packs with only `idle` behave as before.
 * **Acknowledgements** `ack_follow ack_hold ack_move ack_attack ack_suppress ack_patrol ack_resupply ack_regroup ack_refuse`, and
   `low_ammo`, `resupplied`.
@@ -97,5 +98,6 @@ New callout events (pack format `voices.json`, `tools/voices/convert.py`, [VOICE
   with the world.
 * No management screen (rename, reorder, per-soldier orders): `/squad` covers it. The reference for one is STALKER GAMMA's
   companion list; Steve's Army has a squad command screen with a friend-or-foe tab.
-* Voice packs themselves: `convert.py` knows the new events, but the sample STALKER/Trepang2 packs have no idle variants or
-  acknowledgements, so those stay silent until a pack supplies them.
+* Voice packs themselves: the installed packs were converted before this and have none of the new lines. Re-run `convert.py` (it
+  now maps the STALKER `talk/`, `reactions/`, `states/meet`, `states/loot`, `fight/post_combat_wait`, `alife/` folders and the Trepang2
+  `Spawn/` and `SusMode/` banter) to new pack ids, then install them next to the old ones.
