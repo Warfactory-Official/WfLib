@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier;
 
 import com.wf.wflib.soldier.api.SoldierOrder;
+import com.wf.wflib.soldier.api.SoldierRole;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -29,7 +30,9 @@ final class Patrols {
             Orders.apply(b, p.position(), SoldierOrder.FOLLOW);     // the territory is gone: back to the owner
             return;
         }
-        if (!b.threats.isEmpty() || b.hunting) return;
+        boolean calm = b.threats.isEmpty() && !b.hunting;
+        b.sprint = !calm && SoldierRole.tactics(b.role) != SoldierRole.HEAVY;   // a patrol walks between its stops; it runs only in a fight
+        if (!calm) return;
         boolean guard = b.order.kind() == SoldierOrder.Kind.GUARD;
         if (b.patrolPoint != null && now - b.patrolSince > STALL) b.patrolPoint = null;
         if (b.patrolPoint == null) {

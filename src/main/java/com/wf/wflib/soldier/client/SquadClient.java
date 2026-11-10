@@ -30,7 +30,7 @@ import java.util.List;
 public final class SquadClient {
     private static final String CATEGORY = "key.categories.wflib";
     static final KeyMapping WHEEL = key("squad_wheel", GLFW.GLFW_KEY_G), QUICK = key("squad_move", GLFW.GLFW_KEY_X),
-            NEXT = key("squad_group", GLFW.GLFW_KEY_V), MANAGE = key("squad_manage", GLFW.GLFW_KEY_B);
+            NEXT = key("squad_group", GLFW.GLFW_KEY_INSERT), MANAGE = key("squad_manage", GLFW.GLFW_KEY_HOME);
     /** How long an order's marker and labels stay up (ticks). */
     static final int SHOWN = 120;
     static final double AIM_RANGE = 128;

@@ -85,7 +85,8 @@ final class SquadScreen extends Screen {
         int n = pairs.length / 2, gap = 3, w = (lw - gap * (n - 1)) / n;
         for (int i = 0; i < n; i++) {
             Runnable action = (Runnable) pairs[i * 2 + 1];
-            addRenderableWidget(Button.builder(Component.literal((String) pairs[i * 2]), b -> action.run()).bounds(lx + i * (w + gap), y, w, 16).build());
+            String text = font.plainSubstrByWidth((String) pairs[i * 2], w - 8);      // a long territory name must not spill out of its button
+            addRenderableWidget(Button.builder(Component.literal(text), b -> action.run()).bounds(lx + i * (w + gap), y, w, 16).build());
         }
     }
 
@@ -98,7 +99,7 @@ final class SquadScreen extends Screen {
                 "Follow", (Runnable) () -> order("follow", ""), "Hold", (Runnable) () -> order("hold", ""),
                 "Regroup", (Runnable) () -> order("regroup", ""), "Resupply", (Runnable) () -> order("resupply", ""));
         List<TerritoryInfo> land = SquadClient.world.list();
-        String label = territory.isEmpty() ? (land.isEmpty() ? "No territory" : "Pick territory") : territory;
+        String label = territory.isEmpty() ? (land.isEmpty() ? "None" : "Zone") : territory;
         row(top() + 20, label + " >", (Runnable) this::nextTerritory, "Patrol", (Runnable) () -> order("patrol", territory),
                 "Guard", (Runnable) () -> order("guard", territory),
                 "Alpha", (Runnable) () -> team(0), "Bravo", (Runnable) () -> team(1), "Charlie", (Runnable) () -> team(2), "Delta", (Runnable) () -> team(3),

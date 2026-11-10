@@ -30,6 +30,7 @@ final class Posts {
     /** How often the world's soldiers are written down (ticks), and how many come back per tick. */
     static final int CAPTURE_EVERY = 600, RESTORE_PER_TICK = 8;
     private static final Deque<PostBook.Post> PENDING = new ArrayDeque<>();
+    private static final org.slf4j.Logger LOG = com.mojang.logging.LogUtils.getLogger();
     private static MinecraftServer running;
 
     private Posts() {}
@@ -38,10 +39,15 @@ final class Posts {
         PENDING.clear();
         PENDING.addAll(PostBook.get(server).posts());
         running = server;
+        if (!PENDING.isEmpty()) LOG.info("Bringing back {} unowned soldiers", PENDING.size());
     }
 
     static void stop(MinecraftServer server) {
-        if (running == server) capture(server);                 // before the soldiers are removed with the server
+        if (running == server) {
+            capture(server);                                     // before the soldiers are removed with the server
+            LOG.info("Saved {} unowned soldiers ({} soldiers known, {} players online)", PostBook.get(server).posts().size(),
+                    SoldierAi.soldierBots().size(), server.getPlayerList().getPlayerCount());
+        }
         PENDING.clear();
         running = null;
     }
@@ -62,8 +68,10 @@ final class Posts {
 
     /** The soldiers still to come back plus every unowned one in the world now, written to the book. */
     static void capture(MinecraftServer server) {
-        if (SoldierAi.filming(server)) return;
-        PostBook.get(server).replace(snapshot(server));
+        var now = snapshot(server);
+        var book = PostBook.get(server);
+        if (now.isEmpty() && book.posts().isEmpty()) return;      // nothing to write: a world that never had soldiers stays untouched
+        book.replace(now);
     }
 
     static List<PostBook.Post> snapshot(MinecraftServer server) {
@@ -71,7 +79,10 @@ final class Posts {
         for (SoldierAi.Bot b : SoldierAi.soldierBots()) {
             if (b.server != server || b.companion != null) continue;
             ServerPlayer p = server.getPlayerList().getPlayerByName(b.name);
-            if (p == null || !p.isAlive() || !SoldierAi.scripted(p)) continue;
+            if (p == null || !p.isAlive() || !SoldierAi.scripted(p)) {
+                LOG.debug("Not saving {}: {}", b.name, p == null ? "not in the player list" : p.isAlive() ? "not scripted" : "dead");
+                continue;
+            }
             out.add(of(p, b));
         }
         return out;

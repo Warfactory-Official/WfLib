@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier;
 
 import com.wf.wflib.soldier.api.SoldierOrder;
+import com.wf.wflib.soldier.api.SoldierRole;
 import net.minecraft.world.phys.Vec3;
 
 /** Turns an order into what {@link SoldierAi} already understands: a mode, an anchor and a hold radius. */
@@ -20,6 +21,7 @@ final class Orders {
         b.depotId = "";
         b.triedDepots.clear();
         b.hunting = false;
+        b.sprint = SoldierRole.tactics(b.role) != SoldierRole.HEAVY;      // each order below says if it runs
         switch (o.kind()) {
             case FOLLOW, REGROUP -> {                  // the escort brain re-anchors on the owner within a second
                 b.anchor = null;
@@ -49,6 +51,7 @@ final class Orders {
                 b.anchor = here;
                 b.mode = o.kind() == SoldierOrder.Kind.PATROL ? SoldierAi.Mode.ADVANCE : SoldierAi.Mode.HOLD;
                 b.holdRadius = 2;
+                b.sprint = false;                      // walking: Patrols lets it run when a fight starts
             }
             case RESUPPLY -> {
                 b.anchor = here;

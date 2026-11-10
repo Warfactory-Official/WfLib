@@ -114,6 +114,7 @@ public class ForceGameTest {
             long now = level.getGameTime();
             Patrols.tick(server, p, bot, now);
             h.assertTrue(a.equals(bot.patrolPoint) && a.equals(bot.anchor), "first stop is not the first waypoint: " + bot.patrolPoint);
+            h.assertTrue(!bot.sprint, "a calm patrol runs between its stops");
 
             p.teleportTo(a.x, a.y, a.z);                         // arrived
             Patrols.tick(server, p, bot, now + 10);
@@ -128,6 +129,7 @@ public class ForceGameTest {
             bot.patrolPoint = null;
             Patrols.tick(server, p, bot, now + 710);
             h.assertTrue(bot.patrolPoint == null && before != null, "kept planning stops under fire");
+            h.assertTrue(bot.sprint, "a patrol in a fight does not run for cover");
 
             book.remove("force_test_gate");                      // the territory goes: back to the owner
             bot.threats.clear();

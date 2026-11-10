@@ -10,7 +10,7 @@ There is no cap on soldiers, on a squad's size or on a garrison: each soldier is
 the server's tick time is the limit. Soldiers that belong to no roster are saved with the world (`PostBook`): the state of each
 (side, kit, worn armour, position, post, order, owner, garrison) is written down every 30 s and when the server stops, and put
 back a few per tick on the next start, loading each one's chunk to receive it. A crash loses at most the last 30 s. Companions
-are in their owner's `SquadBook` instead and come back with them. Nothing is saved on a server the harness films on.
+are in their owner's `SquadBook` instead and come back with them.
 
 ## Orders
 
@@ -82,7 +82,7 @@ Four fire teams, Alpha to Delta, up to 24 soldiers per player; new recruits go t
 
 ## The squad UI (client)
 
-* **Management screen** (`B`): every soldier by fire team with health, ammunition, role and order. Tick soldiers one by one, a
+* **Management screen** (`Home`): every soldier by fire team with health, ammunition, role and order. Tick soldiers one by one, a
   whole team with its header, or "Select all" (the search box filters by name, role and order), then Follow / Hold / Regroup /
   Resupply, Patrol or Guard a territory picked with the cycling button, move them to Alpha-Delta, or dismiss them (twice to
   confirm). The **Territories** tab lists each territory with its garrison; operators can resize it (shift: x10), flip patrol / guard,
@@ -94,7 +94,7 @@ Four fire teams, Alpha to Delta, up to 24 soldiers per player; new recruits go t
   fight. Blue frame: on a resupply trip. Red X: downed.
 * **Command wheel:** hold `G`, move to an order, let go. Scroll or `1`-`5` (everyone, Alpha..Delta) change group. Orders that need a
   point are greyed out when the crosshair was not on anything. Patrol and guard use the territory under the point (or under you).
-* **`X`** sends the selected group to the crosshair; **`V`** cycles the group.
+* **`X`** sends the selected group to the crosshair; **`Insert`** cycles the group.
 * **Feedback:** a pulsing ring and a post at the ordered point, a line to it from every soldier that took the order, the order's name
   floating over each of them, and a line of text above the hotbar ("Alpha: Move (3)"). One soldier (the nearest that has the line)
   answers by voice.

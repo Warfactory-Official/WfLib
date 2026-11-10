@@ -77,6 +77,7 @@ public final class SoldierSystem implements WFSystem {
                 });
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedOutEvent.class, e -> {
             if (e.getEntity() instanceof ServerPlayer p && !(p instanceof SoldierPlayer)) {
+                if (p.getServer().isSingleplayerOwner(p.getGameProfile())) Posts.stop(p.getServer());   // the host leaving ends the game: the shutdown takes every soldier out before it announces itself
                 Squads.stow(p.getServer(), p.getUUID());
                 SquadSync.forget(p.getUUID());
             }
