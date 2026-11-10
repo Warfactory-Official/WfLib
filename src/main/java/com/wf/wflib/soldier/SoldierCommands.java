@@ -65,7 +65,9 @@ final class SoldierCommands {
                             return 1;
                         })));
         SoldierEditorCommands.add(root);
+        SquadCommands.admin(root);
         event.getDispatcher().register(root);
+        event.getDispatcher().register(SquadCommands.squad());
     }
 
     private static int light(CommandSourceStack source, String mode) {

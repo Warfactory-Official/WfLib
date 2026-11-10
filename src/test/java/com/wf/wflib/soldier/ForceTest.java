@@ -1,0 +1,109 @@
+package com.wf.wflib.soldier;
+
+import com.wf.wflib.soldier.api.SoldierOrder;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.phys.Vec3;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ForceTest {
+    private static Territory gate(List<Vec3> route) {
+        return new Territory("gate", "North gate", "friendly", "minecraft:overworld", new Vec3(100, 64, 100), 20, 40, 120, route);
+    }
+
+    @Test void aTerritoryIsACylinder() {
+        var t = gate(List.of());
+        assertTrue(t.contains(new Vec3(110, 70, 110)));
+        assertFalse(t.contains(new Vec3(121, 70, 100)));
+        assertFalse(t.contains(new Vec3(100, 130, 100)), "above its ceiling");
+        assertFalse(t.contains(new Vec3(100, 30, 100)), "below its floor");
+    }
+
+    @Test void territoryRejectsWhatCannotBeSaved() {
+        assertThrows(IllegalArgumentException.class, () -> new Territory("Bad Id", "x", "", "minecraft:overworld", Vec3.ZERO, 10, 0, 10, List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new Territory("a", "x", "", "minecraft:overworld", Vec3.ZERO, 1, 0, 10, List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new Territory("a", "x", "", "minecraft:overworld", Vec3.ZERO, 10, 10, 0, List.of()));
+        assertThrows(IllegalArgumentException.class, () -> new Territory("a", "x", "", "minecraft:overworld", new Vec3(Double.NaN, 0, 0), 10, 0, 10, List.of()));
+    }
+
+    @Test void territorySurvivesItsJson() {
+        var t = gate(List.of(new Vec3(95, 64, 95), new Vec3(105, 64, 105)));
+        assertEquals(t, Territory.read(t.json()));
+    }
+
+    @Test void aRoutePatrolIsWalkedInOrderAndWraps() {
+        var t = gate(List.of(new Vec3(1, 64, 1), new Vec3(2, 64, 2), new Vec3(3, 64, 3)));
+        var rng = RandomSource.create(1);
+        assertEquals(new Vec3(1, 64, 1), t.patrolPoint(0, null, rng, 99));
+        assertEquals(new Vec3(3, 64, 3), t.patrolPoint(2, null, rng, 99));
+        assertEquals(new Vec3(1, 64, 1), t.patrolPoint(3, null, rng, 99));
+        assertEquals(new Vec3(3, 64, 3), t.patrolPoint(-1, null, rng, 99));
+    }
+
+    @Test void aRoutelessPatrolStaysInsideAndMovesOn() {
+        var t = gate(List.of());
+        var rng = RandomSource.create(5);
+        Vec3 last = t.centre();
+        for (int i = 0; i < 200; i++) {
+            Vec3 next = t.patrolPoint(i, last, rng, 99);
+            assertTrue(t.contains(next), "point " + next);
+            last = next;
+        }
+        for (int i = 0; i < 100; i++) assertTrue(t.patrolPoint(i, null, rng, 3).distanceTo(t.centre()) <= 3.0001, "a guard strays no further than its wander");
+    }
+
+    @Test void ordersNeedWhatTheyAreAbout() {
+        assertThrows(IllegalArgumentException.class, () -> SoldierOrder.of(SoldierOrder.Kind.MOVE));
+        assertThrows(IllegalArgumentException.class, () -> SoldierOrder.of(SoldierOrder.Kind.PATROL));
+        assertThrows(IllegalArgumentException.class, () -> SoldierOrder.at(SoldierOrder.Kind.MOVE, new Vec3(0, Double.POSITIVE_INFINITY, 0)));
+        assertEquals("Patrol gate", SoldierOrder.in(SoldierOrder.Kind.PATROL, "gate").label());
+        assertEquals(SoldierOrder.Kind.GUARD, SoldierOrder.Kind.of("Guard"));
+        assertNull(SoldierOrder.Kind.of("dance"));
+    }
+
+    @Test void orderIdsAreUniqueAndEveryKindHasAnAckThePackFormatKnows() {
+        var ids = new java.util.HashSet<String>();
+        for (var k : SoldierOrder.Kind.values()) {
+            assertTrue(ids.add(k.id), k.id);
+            assertTrue(VoicePack.EVENTS.contains(k.ack), k.ack);
+        }
+    }
+
+    @Test void ordersTranslateToWhatTheAiUnderstands() {
+        var b = new SoldierAi.Bot("Wolf_1");
+        Vec3 here = new Vec3(1, 64, 1), there = new Vec3(40, 64, 40);
+        Orders.apply(b, here, SoldierOrder.at(SoldierOrder.Kind.MOVE, there));
+        assertEquals(SoldierAi.Mode.ADVANCE, b.mode);
+        assertEquals(there, b.anchor);
+        Orders.apply(b, here, SoldierOrder.of(SoldierOrder.Kind.HOLD));
+        assertEquals(SoldierAi.Mode.HOLD, b.mode);
+        assertEquals(here, b.anchor);
+        assertEquals(here, b.order.pos(), "a hold remembers its spot so a resupply trip can come back to it");
+        Orders.apply(b, here, SoldierOrder.FOLLOW);
+        assertNull(b.anchor, "the escort brain picks the slot beside the owner");
+        Orders.apply(b, here, SoldierOrder.in(SoldierOrder.Kind.PATROL, "gate"));
+        assertEquals(SoldierAi.Mode.ADVANCE, b.mode);
+        Orders.apply(b, here, SoldierOrder.in(SoldierOrder.Kind.GUARD, "gate"));
+        assertEquals(SoldierAi.Mode.HOLD, b.mode);
+    }
+
+    @Test void aNewOrderEndsTheLastOnesLeftovers() {
+        var b = new SoldierAi.Bot("Wolf_1");
+        b.patrolPoint = new Vec3(5, 5, 5);
+        b.dwell = 100;
+        b.depotId = "d1";
+        b.triedDepots.add("d1");
+        Orders.apply(b, Vec3.ZERO, SoldierOrder.at(SoldierOrder.Kind.SUPPRESS, new Vec3(9, 64, 9)));
+        assertNotNull(b.suppressAt);
+        Orders.apply(b, Vec3.ZERO, SoldierOrder.FOLLOW);
+        assertNull(b.patrolPoint);
+        assertEquals(-1, b.dwell);
+        assertEquals("", b.depotId);
+        assertTrue(b.triedDepots.isEmpty());
+        assertNull(b.suppressAt);
+        assertFalse(b.threats.containsKey(SoldierBrain.SUPPRESS_KEY));
+    }
+}

@@ -138,6 +138,25 @@ public final class SoldierAi {
         long lastBound = -1000, progressAt, lastShot = -1000, careRetry;
         /** Game tick something last threatened this soldier (-1: not yet seen a tick); how long it has been quiet. */
         long lastThreat = -1;
+        /** What it has been told to do (see {@link SoldierBrain#tick}); a freshly spawned friendly follows its owner. */
+        com.wf.wflib.soldier.api.SoldierOrder order = com.wf.wflib.soldier.api.SoldierOrder.FOLLOW;
+        /** The order to go back to after a resupply trip. */
+        com.wf.wflib.soldier.api.SoldierOrder resume;
+        /** Patrol: the stop being walked to, the next route index, ticks left looking about (-1: not stopped), when it set off. */
+        Vec3 patrolPoint;
+        int patrolIndex, dwell = -1;
+        long patrolSince;
+        /** Suppress order: the point, and until when (-1: set on the first brain tick). */
+        Vec3 suppressAt;
+        long suppressUntil = -1;
+        /** The player's roster entry this soldier is (null: not a companion) and its fire team. */
+        UUID companion;
+        int fireTeam;
+        /** What it was issued (captured once armed) and the resupply trip state. */
+        Kit kit;
+        String depotId = "";
+        final java.util.Set<String> triedDepots = new java.util.HashSet<>();
+        long resupplyStart, nextResupply, nextCatchUp;
         int reports, heardShots, stalls, yieldTicks, treatments, revives, reviveAttempts, careCount;
         String carePatient = "", careAction = "";
         SoldierMedical.Plan carePlan;
@@ -249,6 +268,11 @@ public final class SoldierAi {
 
     static Bot botOf(String name) {
         return BOTS.get(name.toLowerCase(Locale.ROOT));
+    }
+
+    /** Every soldier under AI control (not the Carpet filming bots). */
+    static List<Bot> soldierBots() {
+        return BOTS.values().stream().filter(b -> b.soldier).toList();
     }
 
     public static int soldiers() {
@@ -417,6 +441,7 @@ public final class SoldierAi {
         o.addProperty("burst_pause", b.pause);
         o.addProperty("aim_spread", b.spreadDeg);
         o.addProperty("sight_range", b.range);
+        o.addProperty("order", b.order.label());
         o.addProperty("squad", b.squad);
         o.addProperty("squad_task", b.squadTask);
         o.addProperty("patient", b.patient);
@@ -541,6 +566,7 @@ public final class SoldierAi {
                 arm(p, b.gun, b.mags, b.grenades);
                 issue(b, b.grenades);
                 BotMedical.kit(p, b.role.equals("medic"));
+                b.kit = Kit.of(p.getInventory());
             }
             long healthStart = SoldierProfiler.begin();
             b.health = BotMedical.condition(p);

@@ -21,10 +21,53 @@ final class SoldierBrain {
     private SoldierBrain() {
     }
 
+    /** The key of the stand-in contact a suppress order keeps fresh at the ordered point. */
+    static final String SUPPRESS_KEY = "~suppress";
+    /** How long a suppress order keeps firing at its point (game ticks). */
+    static final int SUPPRESS_TICKS = 600;
+
     static void tick(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
         if (p.tickCount % 10 != 0) return;
-        if (b.huntsPlayers) hunt(p, b);
-        else escort(server, p, b);
+        long now = p.level().getGameTime();
+        Resupply.tick(server, p, b, now);
+        switch (b.order.kind()) {
+            case FOLLOW, REGROUP -> {
+                Squads.catchUp(server, p, b, now);
+                if (b.huntsPlayers) hunt(p, b);
+                else escort(server, p, b);
+                if (b.order.kind() == com.wf.wflib.soldier.api.SoldierOrder.Kind.REGROUP && b.anchor != null
+                        && p.position().distanceToSqr(b.anchor) < ESCORT_RADIUS * ESCORT_RADIUS * 4) {
+                    b.order = com.wf.wflib.soldier.api.SoldierOrder.FOLLOW;           // back with the owner
+                }
+            }
+            case PATROL, GUARD -> {
+                if (b.huntsPlayers) hunt(p, b);
+                Patrols.tick(server, p, b, now);
+            }
+            case MOVE, ATTACK -> {                                                    // arrived: it holds where it stands
+                if (b.anchor != null && b.threats.isEmpty() && Patrols.horizontal(p.position(), b.anchor) <= 3 + b.holdRadius) {
+                    Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, p.position()));
+                }
+            }
+            case SUPPRESS -> suppress(p, b, now);
+            case HOLD, RESUPPLY -> { }                                                // the AI mode / Resupply carry these out
+        }
+    }
+
+    /** Keeps a stand-in contact at the ordered point so the AI lays suppressing fire on it, for {@link #SUPPRESS_TICKS}. */
+    private static void suppress(ServerPlayer p, SoldierAi.Bot b, long now) {
+        if (b.suppressAt == null) return;
+        if (b.suppressUntil < 0) b.suppressUntil = now + SUPPRESS_TICKS;
+        if (now >= b.suppressUntil) {
+            Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, p.position()));
+            return;
+        }
+        SoldierAi.Threat t = b.threats.computeIfAbsent(SUPPRESS_KEY, k -> new SoldierAi.Threat());
+        t.eye = b.suppressAt.add(0, 1.6, 0);
+        t.seen = now;
+        t.visible = 0;
+        t.confirmed = true;
+        t.value = 1f;
     }
 
     private static void escort(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {

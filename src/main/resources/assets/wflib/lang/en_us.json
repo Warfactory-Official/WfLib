@@ -548,5 +548,11 @@
   "wflib.voices.speaker": "Speaker",
   "wflib.voices.sample": "Play",
   "wflib.voices.none_installed": "No voice packs installed (wflib/voices/packs)",
-  "item.wflib.soldier_spawn_egg": "Soldier Editor"
+  "item.wflib.soldier_spawn_egg": "Soldier Editor",
+  "key.wflib.squad_wheel": "Squad: hold for the command wheel",
+  "key.wflib.squad_move": "Squad: send the selected group to the crosshair",
+  "key.wflib.squad_group": "Squad: next group",
+  "wflib.squad.wheel": "Squad orders",
+  "wflib.squad.wheel_hint": "Release to give the order - scroll or 1-5 to change group",
+  "wflib.squad.no_point": "Look at a spot to send your squad there"
 }

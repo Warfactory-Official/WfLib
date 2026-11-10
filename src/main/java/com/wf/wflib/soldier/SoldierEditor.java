@@ -39,6 +39,19 @@ public final class SoldierEditor {
         }
         return n;
     }
+    /** A saved variant resolved against what is installed: who it fights for, what it is issued, what it wears. */
+    public record Loadout(SoldierTemplate unit,SoldierRoster.Faction faction,SoldierSpec spec,Map<EquipmentSlot,net.minecraft.world.item.ItemStack> armour) {}
+    public static Loadout loadout(MinecraftServer s,String id) {
+        var r=SoldierRoster.get(s); var u=r.units().get(id);
+        if (u==null || !r.factions().containsKey(u.faction())) throw new IllegalArgumentException("This saved variant or faction no longer exists");
+        var c=catalogue(s); c.validate(u);
+        var f=r.factions().get(u.faction());
+        var spec=new SoldierSpec(f.id(),u.name(),f.hostile(),ResourceLocation.parse(u.gun()),
+                u.grenades().stream().map(ResourceLocation::parse).toList(),Map.of(),u.spares(),u.role());
+        var armour=new EnumMap<EquipmentSlot,net.minecraft.world.item.ItemStack>(EquipmentSlot.class);
+        for (var e:u.armour().entrySet()) armour.put(SoldierCatalogue.slot(e.getKey()),c.get(e.getValue()).stack().copy());
+        return new Loadout(u,f,spec,armour);
+    }
     public static ServerPlayer spawn(ServerPlayer owner,String id,Vec3 feet,float yaw) {
         require(owner); var s=owner.getServer(); var r=SoldierRoster.get(s); var u=r.units().get(id);
         if (u==null || !r.factions().containsKey(u.faction())) throw new IllegalArgumentException("This saved variant or faction no longer exists");
