@@ -32,9 +32,13 @@ final class SoldierBrain {
     /** How long a suppress order keeps firing at its point (game ticks). */
     static final int SUPPRESS_TICKS = 600;
 
+    /** A move or regroup order is obeyed through a fight for this long (game ticks) before the soldier gives up reaching it. */
+    static final int RELOCATE_TICKS = 600;
+
     static void tick(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
         if (p.tickCount % 10 != 0) return;
         long now = p.level().getGameTime();
+        relocation(p, b, now);
         Resupply.tick(server, p, b, now);
         Requisition.tick(server, p, b, now);
         switch (b.order.kind()) {
@@ -46,6 +50,7 @@ final class SoldierBrain {
                 if (b.order.kind() == com.wf.wflib.soldier.api.SoldierOrder.Kind.REGROUP && b.anchor != null
                         && p.position().distanceToSqr(b.anchor) < ESCORT_RADIUS * ESCORT_RADIUS * 4) {
                     b.order = com.wf.wflib.soldier.api.SoldierOrder.FOLLOW;           // back with the owner
+                    b.relocating = false;
                 }
             }
             case PATROL, GUARD -> {
@@ -59,6 +64,18 @@ final class SoldierBrain {
             }
             case SUPPRESS -> suppress(p, b, now);
             case HOLD, RESUPPLY -> { }                                                // the AI mode / Resupply carry these out
+        }
+    }
+
+    /** Ends a relocation on arrival (a move then holds where it stands) or when it has taken too long (a regroup ends when it is back with the owner). */
+    private static void relocation(ServerPlayer p, SoldierAi.Bot b, long now) {
+        if (!b.relocating) return;
+        if (b.relocateUntil < 0) b.relocateUntil = now + RELOCATE_TICKS;
+        boolean move = b.order.kind() == com.wf.wflib.soldier.api.SoldierOrder.Kind.MOVE;
+        if (move && b.anchor != null && Patrols.horizontal(p.position(), b.anchor) <= 3 + b.holdRadius) {
+            Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, p.position()));
+        } else if (now >= b.relocateUntil) {
+            b.relocating = false;
         }
     }
 

@@ -279,6 +279,12 @@ final class SquadScreen extends Screen {
             tiles.add(new Tile(z, o[0], "", o[1]));
             y += 20;
         }
+        var lampers = (selected.isEmpty() ? roster() : roster().stream().filter(m -> selected.contains(m.uuid())).toList());
+        boolean lampsOn = lampers.stream().anyMatch(m -> (m.flags() & Member.LAMP) != 0);
+        Zone lampZone = new Zone(x0, y, x1, y + 18);
+        tile(g, lampZone, lampsOn ? "Headlamp: on" : "Headlamp: off", mx, my);
+        acts.add(new Act(lampZone, () -> SquadClient.manage("lamp", ordered(selected.isEmpty() ? roster().stream().map(Member::uuid).collect(java.util.stream.Collectors.toSet()) : selected), "", "", "", lampsOn ? 0 : 1, 0)));
+        y += 20;
         Zone gearZone = new Zone(x0, y, x1, y + 18);
         tile(g, gearZone, "Gear...", mx, my);
         acts.add(new Act(gearZone, () -> GearScreen.open(ordered(selected.isEmpty() ? roster().stream().map(Member::uuid).collect(java.util.stream.Collectors.toSet()) : selected))));

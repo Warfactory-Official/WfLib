@@ -36,6 +36,8 @@ public final class Companion {
     public SoldierOrder order = SoldierOrder.FOLLOW;
     /** Gear it has been told to get from storage; see {@link Requisition}. */
     public Want want = Want.NONE;
+    /** Whether it wears its headlamp. */
+    public boolean lamp = true;
 
     public Companion(UUID id, String callsign, String side, SoldierRole role, ResourceLocation gun) {
         this.id = id;
@@ -71,6 +73,7 @@ public final class Companion {
         t.put("armour", Tags.armour(armour, registries));
         t.put("order", Tags.order(order));
         if (!want.isEmpty()) t.putString("want", want.json().toString());
+        if (!lamp) t.putBoolean("noLamp", true);
         return t;
     }
 
@@ -85,6 +88,7 @@ public final class Companion {
         c.spread = t.getFloat("spread");
         c.armour.putAll(Tags.armour(t.getCompound("armour"), registries));
         c.order = Tags.order(t.getCompound("order"));
+        c.lamp = !t.getBoolean("noLamp");
         if (t.contains("want")) {
             try {
                 c.want = Want.read(com.google.gson.JsonParser.parseString(t.getString("want")).getAsJsonObject());

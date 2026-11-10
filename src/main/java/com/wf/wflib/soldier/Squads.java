@@ -81,6 +81,7 @@ public final class Squads {
         b.spreadDeg = c.spread;
         b.voice = c.voice;
         b.want = c.want;
+        b.lamp = c.lamp;
         b.squad = squadId(owner, c.fireTeam);
         Orders.apply(b, p.position(), validOrder(owner.getServer(), c.order));
         return p;
@@ -180,6 +181,17 @@ public final class Squads {
         c.fireTeam = Math.floorMod(team, Companion.TEAMS.length);
         b.fireTeam = c.fireTeam;
         b.squad = squadId(owner, c.fireTeam);
+        book.setDirty();
+    }
+
+    /** Has the soldiers wear their headlamps, or take them off (the squad screen's toggle). */
+    public static void lamp(ServerPlayer owner, List<SoldierAi.Bot> bots, boolean on) {
+        var book = SquadBook.get(owner.getServer());
+        for (var b : bots) {
+            Companion c = book.find(owner.getUUID(), b.companion);
+            if (c != null) c.lamp = on;
+            b.lamp = on;
+        }
         book.setDirty();
     }
 

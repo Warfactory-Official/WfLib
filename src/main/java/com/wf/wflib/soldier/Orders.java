@@ -21,6 +21,8 @@ final class Orders {
         b.depotId = "";
         b.triedDepots.clear();
         b.hunting = false;
+        b.relocating = o.kind() == SoldierOrder.Kind.MOVE || o.kind() == SoldierOrder.Kind.REGROUP;
+        b.relocateUntil = -1;
         b.sprint = SoldierRole.tactics(b.role) != SoldierRole.HEAVY;      // each order below says if it runs
         switch (o.kind()) {
             case FOLLOW, REGROUP -> {                  // the escort brain re-anchors on the owner within a second

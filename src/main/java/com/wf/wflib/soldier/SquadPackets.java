@@ -41,7 +41,7 @@ public final class SquadPackets {
 
     /** One of the player's soldiers, as the HUD shows it. {@code health} and {@code ammo} are percent (ammo -1: unarmed). */
     public record Member(java.util.UUID uuid, String name, int team, String role, int health, int ammo, int mags, String order, int flags) {
-        public static final int DOWNED = 1, FIGHTING = 2, RESUPPLYING = 4;
+        public static final int DOWNED = 1, FIGHTING = 2, RESUPPLYING = 4, LAMP = 8;
 
         static Member read(FriendlyByteBuf b) {
             return new Member(b.readUUID(), b.readUtf(32), b.readByte(), b.readUtf(16), b.readByte() & 0xFF, b.readByte(), b.readByte() & 0xFF,
@@ -202,7 +202,7 @@ public final class SquadPackets {
     }
 
     /**
-     * A request from the management screen. {@code action}: list, order, move (into fire team {@code n} before its {@code m}-th member), team, dismiss (acting on {@code soldiers}); garrison,
+     * A request from the management screen. {@code action}: list, order, lamp (headlamp on when {@code n} is 1), move (into fire team {@code n} before its {@code m}-th member), team, dismiss (acting on {@code soldiers}); garrison,
      * territory_new, territory_delete (map-maker only, naming {@code region}). {@code kind}/{@code n}/{@code m}/{@code units} are the action's arguments.
      */
     public record Manage(String action, List<java.util.UUID> soldiers, String kind, String region, String units, int n, int m) implements CustomPacketPayload {
@@ -259,6 +259,7 @@ public final class SquadPackets {
                     var taken = Squads.order(p, mine(p, m.soldiers()), order);
                     p.displayClientMessage(Component.literal(order.label() + ": " + taken.size()), true);
                 }
+                case "lamp" -> Squads.lamp(p, mine(p, m.soldiers()), m.n() != 0);
                 case "move" -> Squads.move(p, mine(p, m.soldiers()), m.n(), m.m());
                 case "team" -> {
                     for (var b : mine(p, m.soldiers())) Squads.setFireTeam(p, b.name, m.n());
@@ -329,7 +330,7 @@ public final class SquadPackets {
                 }
             }
             int flags = (b.health.downed() ? Member.DOWNED : 0) | (!b.threats.isEmpty() ? Member.FIGHTING : 0)
-                    | (b.order.kind() == SoldierOrder.Kind.RESUPPLY ? Member.RESUPPLYING : 0);
+                    | (b.order.kind() == SoldierOrder.Kind.RESUPPLY ? Member.RESUPPLYING : 0) | (b.lamp ? Member.LAMP : 0);
             out.add(new Member(p.getUUID(), b.name, b.fireTeam, b.role, Math.max(0, Math.min(100, Math.round(p.getHealth() / p.getMaxHealth() * 100))),
                     ammo, mags, b.order.label(), flags));
         }

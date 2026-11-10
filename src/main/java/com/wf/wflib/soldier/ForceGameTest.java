@@ -330,6 +330,41 @@ public class ForceGameTest {
         }
     }
 
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aMoveOrderIsObeyedInsideAFightAndEndsInAHoldOnArrival(GameTestHelper h) {
+        var level = h.getLevel();
+        var soldier = Soldiers.spawn(level, h.absoluteVec(new Vec3(1, 2, 1)), 0, new SoldierSpec("move_a", "MoveA", false, null, List.of(), Map.of(), 0), null);
+        h.assertTrue(soldier != null, "could not spawn the test soldier");
+        try {
+            var bot = SoldierAi.botOf(soldier.getGameProfile().getName());
+            long now = level.getGameTime();
+            var threat = SoldierAi.Threat.told();
+            threat.confirmed = true;
+            threat.seen = now;
+            threat.visible = 3;
+            threat.eye = h.absoluteVec(new Vec3(1, 3.6, 12));
+            bot.threats.put("foe_x", threat);
+            Vec3 point = h.absoluteVec(new Vec3(14, 2, 1));
+            Orders.apply(bot, soldier.position(), SoldierOrder.at(SoldierOrder.Kind.MOVE, point));
+            h.assertTrue(bot.relocating, "a move order does not relocate");
+            h.assertTrue(point.equals(SoldierAi.goal(level.getServer(), soldier, bot, now)), "a soldier in a fight is not heading for the ordered point");
+            Orders.apply(bot, soldier.position(), SoldierOrder.at(SoldierOrder.Kind.HOLD, soldier.position()));
+            h.assertTrue(!bot.relocating, "a hold relocates");
+            Orders.apply(bot, soldier.position(), SoldierOrder.at(SoldierOrder.Kind.MOVE, point));
+            soldier.setPos(point.add(-2, 0, 0));
+            SoldierBrain.tick(level.getServer(), soldier, bot);          // the brain runs on tick multiples of 10
+            soldier.tickCount = 10;
+            SoldierBrain.tick(level.getServer(), soldier, bot);
+            h.assertTrue(bot.order.kind() == SoldierOrder.Kind.HOLD && !bot.relocating, "it does not hold on arriving in a fight: " + bot.order.label());
+            bot.lamp = false;
+            bot.light = "on";
+            h.assertTrue(!SoldierAi.wantsLight(soldier, bot), "a soldier without its headlamp lights up");
+            h.succeed();
+        } finally {
+            Soldiers.remove(soldier);
+        }
+    }
+
     private static net.minecraft.server.MinecraftServer server(net.minecraft.server.level.ServerLevel level) {
         return level.getServer();
     }

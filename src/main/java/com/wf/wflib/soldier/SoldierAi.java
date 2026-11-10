@@ -180,6 +180,11 @@ public final class SoldierAi {
         Vec3 ownerSeen, heading;
         /** Following an owner who is on the move: stand exactly on the slot, no wall to rest by. */
         boolean tracking;
+        /** A move or regroup order is being obeyed through a fight: no cover, no standing and shooting, until it arrives or {@code relocateUntil} (-1: not yet set). */
+        boolean relocating;
+        long relocateUntil = -1;
+        /** Whether the soldier wears its headlamp (the squad screen's toggle). */
+        boolean lamp = true;
         int holdRadius = 6;
         final Deque<Vec3> path = new ArrayDeque<>();
         boolean sprint = true, crouch = true;
@@ -819,7 +824,7 @@ public final class SoldierAi {
     }
 
     static boolean wantsLight(ServerPlayer p, Bot b) {
-        if (!Headlamp.worn(p)) return false;
+        if (!b.lamp || !Headlamp.worn(p)) return false;
         return switch (b.light) {
             case "on" -> true;
             case "off" -> false;
@@ -895,8 +900,10 @@ public final class SoldierAi {
             b.arrived = now;
             b.watchYaw = b.rest != null && b.threats.isEmpty() && at(p, b.rest, 1.0) ? b.restYaw : p.getYRot();
         }
-        boolean sprinting = b.moving && !workingCover && b.sprint && !pinned && !b.health.sprint()
-                && (target == null || b.mode == Mode.ADVANCE && !inCover(p, b) && p.distanceTo(target) > 35);
+        // Told to relocate and still far from the point: run for it, shooting or pinned, and shoot again on arrival.
+        boolean dash = b.relocating && b.anchor != null && BotTactics.horizontal(p.position(), b.anchor) > 8;
+        boolean sprinting = b.moving && !workingCover && b.sprint && !b.health.sprint()
+                && (dash || !pinned && (target == null || b.mode == Mode.ADVANCE && !inCover(p, b) && p.distanceTo(target) > 35));
 
         // aim: target chest/head, else suppress a fresh last-seen position, else face the route
         Vec3 aim = null;
@@ -917,7 +924,7 @@ public final class SoldierAi {
         boolean peek = b.peek.exposed() && !sprinting;
         boolean low = BotPolicy.crouch(b.soldier, hasThreat || b.suppression > 0.1f, peek, b.moving, workingCover, b.crouch);
         Vec3 dir = step;
-        boolean crawl = b.moving && !workingCover && (b.suppression > 0.45f || b.health.legs());
+        boolean crawl = b.moving && !workingCover && (b.suppression > 0.45f && !dash || b.health.legs());
         walk(p, b, dir, sprinting, low || crawl, !workingCover);
 
         Posture posture = crawl ? Posture.PRONE : peek && workingCover ? b.cover.peek().posture()
@@ -1001,6 +1008,12 @@ public final class SoldierAi {
     static Vec3 goal(MinecraftServer server, ServerPlayer p, Bot b, long now) {
         if (b.anchor == null) return null;
         if (b.squadTask.equals("rescue-cover") && b.cover == null && b.threats.isEmpty()) return null;
+        // A move or regroup order is carried out first, fight or not: straight to the point, then the usual cover work there.
+        if (b.relocating && !b.medicalRetreat) {
+            b.cover = null;
+            b.probe = null;
+            return at(p, b.anchor, Math.max(2, b.holdRadius)) ? null : b.anchor;
+        }
         List<Vec3> eyes = threatEyes(b, p.getEyePosition());
         BlockPos feet = feet(p);
         // Healing, reloading or out of ammunition with the enemy about: back off from the corner first, then do it.
