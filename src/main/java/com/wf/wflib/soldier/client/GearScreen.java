@@ -12,6 +12,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -63,6 +68,12 @@ public final class GearScreen extends Screen {
     private List<Row> rows = List.of();
     private String rowsFor = "";
     private EditBox search, nameBox;
+    /** The model beside the list: wears the loadout and whatever is hovered, and turns when dragged. */
+    private RemotePlayer preview;
+    private float yaw = -20;
+    private boolean turning;
+    private SoldierCatalogue.Choice hovered;
+    private String previewSig = "";
     /** One piece of real equipment per category, drawn at random each time the screen opens; a vanilla stand-in where nothing is installed. */
     private ItemStack[] icons;
     private int px, py, pw, ph;
@@ -199,7 +210,7 @@ public final class GearScreen extends Screen {
     @Override
     protected void init() {
         if (icons == null) icons = pickIcons();
-        pw = Math.min(width - 16, 520);
+        pw = Math.min(width - 16, 660);
         ph = Math.min(height - 16, 300);
         px = (width - pw) / 2;
         py = (height - ph) / 2;
@@ -225,8 +236,17 @@ public final class GearScreen extends Screen {
         return px + pw - rightW() - 6;
     }
 
+    /** The model needs room: below a certain width it is left out and the list keeps the space. */
+    private int modelW() {
+        return pw >= 600 ? 150 : 0;
+    }
+
+    private int modelX() {
+        return rightX() - 6 - modelW();
+    }
+
     private int listW() {
-        return rightX() - 6 - (px + RAIL_W + 8);
+        return (modelW() > 0 ? modelX() : rightX()) - 6 - (px + RAIL_W + 8);
     }
 
     private int listY() {
@@ -279,8 +299,12 @@ public final class GearScreen extends Screen {
         rail(g, mx, my);
         boolean presetsTab = RAIL[rail].equals("presets");
         search.visible = !presetsTab;
-        if (presetsTab) presetList(g, mx, my);
+        if (presetsTab) {
+            hovered = null;
+            presetList(g, mx, my);
+        }
         else itemList(g, mx, my);
+        if (modelW() > 0) model(g);
         loadout(g, mx, my);
         bar(g, mx, my);
     }
@@ -320,6 +344,7 @@ public final class GearScreen extends Screen {
         if (list.isEmpty()) g.drawCenteredString(font, "Nothing installed for this slot", (x0 + x1) / 2, y0 + 12, DIM);
         g.enableScissor(x0, y0, x1, y1);
         ItemStack hover = null;
+        hovered = null;
         for (int i = 0; i < list.size(); i++) {
             int ry = y0 + i * ROW_H - scroll;
             if (ry + ROW_H < y0 || ry > y1) continue;
@@ -334,7 +359,10 @@ public final class GearScreen extends Screen {
             String label = font.plainSubstrByWidth(c.label(), x1 - x0 - 64 - (count > 0 ? 24 : 6));
             g.drawString(font, label, x0 + 64, ry + 6, r.qty() > 0 ? INK : DIM, false);
             if (count > 0) g.drawString(font, "x" + count, x1 - 4 - font.width("x" + count), ry + 6, ACCENT, false);
-            if (over) hover = c.stack();
+            if (over) {
+                hover = c.stack();
+                hovered = c;
+            }
             if (ry + ROW_H > y0 && ry < y1) {
                 acts.add(new Act(x0, Math.max(ry, y0), x1, Math.min(ry + ROW_H, y1), () -> pick(c, true), () -> pick(c, false)));
             }
@@ -394,6 +422,60 @@ public final class GearScreen extends Screen {
         if (!p.want().armour().isEmpty()) bits.add(p.want().armour().size() + " armour");
         if (!p.role().isEmpty()) bits.add(p.role());
         return bits.isEmpty() ? "empty" : String.join(", ", bits);
+    }
+
+    /** A player-shaped figure wearing the loadout, with the hovered item tried on in place of what it covers. */
+    private void model(GuiGraphics g) {
+        int x0 = modelX(), x1 = x0 + modelW(), y0 = py + TOP + 4, y1 = py + ph - BOTTOM - 4;
+        g.fill(x0, y0, x1, y1, PANEL);
+        g.drawString(font, "Preview", x0 + 6, y0 + 4, ACCENT, false);
+        String hint = "drag to turn";
+        g.drawString(font, hint, x1 - 6 - font.width(hint), y0 + 4, 0xFF5E6B78, false);
+        if (minecraft == null || minecraft.level == null) return;
+        if (preview == null) {
+            var team = new net.minecraft.world.scores.PlayerTeam(new net.minecraft.world.scores.Scoreboard(), "gear_preview");
+            team.setNameTagVisibility(net.minecraft.world.scores.Team.Visibility.NEVER);
+            preview = new RemotePlayer(minecraft.level, new com.mojang.authlib.GameProfile(UUID.nameUUIDFromBytes("wflib:gear_preview".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "GearPreview")) {
+                @Override
+                public net.minecraft.world.scores.PlayerTeam getTeam() {
+                    return team;
+                }
+            };
+        }
+        dress(hovered);
+        preview.yBodyRot = 180 + yaw;
+        preview.setYRot(180 + yaw);
+        preview.yHeadRot = 180 + yaw;
+        preview.yHeadRotO = preview.yHeadRot;
+        preview.setXRot(0);
+        int top = y0 + 16;
+        g.enableScissor(x0, top, x1, y1);
+        InventoryScreen.renderEntityInInventory(g, (x0 + x1) / 2f, (top + y1) / 2f + 6, Math.min((x1 - x0) * 0.62f, (y1 - top) / 2.15f),
+                new Vector3f(0, 1f, 0), new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(), preview);
+        g.disableScissor();
+    }
+
+    private void dress(SoldierCatalogue.Choice candidate) {
+        String sig = gun + "|" + armour + "|" + (candidate == null ? "" : candidate.key() + candidate.slot());
+        if (sig.equals(previewSig)) return;
+        previewSig = sig;
+        for (var s : new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) preview.setItemSlot(s, ItemStack.EMPTY);
+        var weapon = choice(gun);
+        if (weapon != null) preview.setItemSlot(EquipmentSlot.MAINHAND, weapon.stack().copy());
+        armour.forEach((slot, key) -> {
+            var c = choice(key);
+            if (c != null) preview.setItemSlot(SoldierCatalogue.slot(slot), c.stack().copy());
+        });
+        if (candidate == null || candidate.slot().equals("grenade")) return;
+        if (candidate.slot().equals("gun")) {
+            preview.setItemSlot(EquipmentSlot.MAINHAND, candidate.stack().copy());
+            return;
+        }
+        armour.forEach((slot, key) -> {                         // a piece that covers the same body parts comes off to show it
+            var old = choice(key);
+            if (old != null && !java.util.Collections.disjoint(old.covers(), candidate.covers())) preview.setItemSlot(SoldierCatalogue.slot(slot), ItemStack.EMPTY);
+        });
+        preview.setItemSlot(SoldierCatalogue.slot(candidate.slot()), candidate.stack().copy());
     }
 
     private void loadout(GuiGraphics g, int mx, int my) {
@@ -526,6 +608,10 @@ public final class GearScreen extends Screen {
     @Override
     public boolean mouseClicked(double x, double y, int button) {
         if (super.mouseClicked(x, y, button)) return true;
+        if (modelW() > 0 && button == 0 && x >= modelX() && x < modelX() + modelW() && y >= py + TOP + 4 && y < py + ph - BOTTOM - 4) {
+            turning = true;
+            return true;
+        }
         for (int i = acts.size() - 1; i >= 0; i--) {
             Act a = acts.get(i);
             if (!a.has(x, y)) continue;
@@ -535,6 +621,21 @@ public final class GearScreen extends Screen {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+        if (turning) {
+            yaw += (float) dx * 1.6f;
+            return true;
+        }
+        return super.mouseDragged(x, y, button, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(double x, double y, int button) {
+        turning = false;
+        return super.mouseReleased(x, y, button);
     }
 
     @Override
