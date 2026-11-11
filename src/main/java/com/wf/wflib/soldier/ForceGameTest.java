@@ -365,33 +365,6 @@ public class ForceGameTest {
         }
     }
 
-    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
-    public static void aDownedEnemyTalkedIntoSwitchingSidesJoinsTheSquadAndANeutralOneIsOnlyAskedToJoin(GameTestHelper h) {
-        var level = h.getLevel();
-        var owner = Soldiers.spawn(level, h.absoluteVec(new Vec3(1, 2, 1)), 0, new SoldierSpec("talk_owner", "TalkOwner", false, null, List.of(), Map.of(), 0), null);
-        var foe = Soldiers.spawn(level, h.absoluteVec(new Vec3(3, 2, 1)), 0, new SoldierSpec("talk_foe", "TalkFoe", true, null, List.of(), Map.of(), 0), null);
-        var stranger = Soldiers.spawn(level, h.absoluteVec(new Vec3(5, 2, 1)), 0, new SoldierSpec("talk_friend", "TalkFriend", false, null, List.of(), Map.of(), 0), null);
-        h.assertTrue(owner != null && foe != null && stranger != null, "could not spawn the test soldiers");
-        try {
-            var foeBot = SoldierAi.botOf(foe.getGameProfile().getName());
-            var strangerBot = SoldierAi.botOf(stranger.getGameProfile().getName());
-            h.assertTrue(Dialogue.mood(owner, foeBot) == null, "an enemy on its feet can be talked to");
-            foeBot.health = new com.wf.wflib.soldier.api.SoldierMedical.Condition(true, false, false, false, 1, 0, 0);
-            h.assertTrue(Dialogue.mood(owner, foeBot) == Dialogue.Mood.DOWNED, "a downed enemy cannot be talked to");
-            h.assertTrue(Dialogue.mood(owner, strangerBot) == Dialogue.Mood.NEUTRAL, "an unowned friendly is not neutral");
-            Squads.turn(owner, foe);
-            h.assertTrue(!foeBot.huntsPlayers && foeBot.companion != null && owner.getUUID().equals(foeBot.ownerId), "the turned soldier did not join");
-            h.assertTrue(!foeBot.team.equals("talk_foe") || foeBot.team.equals(SoldierAi.botOf(owner.getGameProfile().getName()).team), "it still fights for its old side");
-            h.assertTrue(Dialogue.mood(owner, foeBot) == Dialogue.Mood.PARTY, "a soldier of yours is not party");
-            h.assertTrue(Dialogue.persuades(60, 0.59) && !Dialogue.persuades(60, 0.60) && !Dialogue.persuades(0, 0.0) && Dialogue.persuades(100, 0.999), "persuasion odds are off");
-            h.succeed();
-        } finally {
-            Soldiers.remove(owner);
-            Soldiers.remove(foe);
-            Soldiers.remove(stranger);
-        }
-    }
-
     private static net.minecraft.server.MinecraftServer server(net.minecraft.server.level.ServerLevel level) {
         return level.getServer();
     }

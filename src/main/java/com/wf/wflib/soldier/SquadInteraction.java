@@ -7,21 +7,15 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
-/** Use a soldier with an empty hand: talk to it (see {@link Dialogue}); a client without the dialogue channel falls back to sneak-use recruiting or asking one of yours what it is doing. */
+/** Sneak and use with an empty hand: recruit a friendly soldier, or ask one of yours what it is doing. */
 final class SquadInteraction {
     private SquadInteraction() {}
 
     static void onInteract(PlayerInteractEvent.EntityInteract e) {
         if (e.getLevel().isClientSide() || e.getHand() != InteractionHand.MAIN_HAND) return;
         if (!(e.getEntity() instanceof ServerPlayer player) || player instanceof SoldierPlayer || !(e.getTarget() instanceof SoldierPlayer soldier)) return;
-        if (!player.getMainHandItem().isEmpty()) return;
+        if (!player.isShiftKeyDown() || !player.getMainHandItem().isEmpty()) return;
         SoldierAi.Bot b = SoldierAi.botOf(soldier.getGameProfile().getName());
-        if (b != null && b.soldier && Dialogue.open(player, soldier, b)) {              // talk: the dialogue does everything below
-            e.setCanceled(true);
-            e.setCancellationResult(InteractionResult.SUCCESS);
-            return;
-        }
-        if (!player.isShiftKeyDown()) return;
         if (b == null || !b.soldier || b.huntsPlayers) return;
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);

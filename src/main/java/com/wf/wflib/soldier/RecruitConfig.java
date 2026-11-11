@@ -14,8 +14,8 @@ public final class RecruitConfig {
     static final ModConfigSpec SPEC;
     static final List<String> DEFAULT_SOURCES = List.of("rescue", "pda", "barracks");
     private static final ModConfigSpec.ConfigValue<List<? extends String>> SOURCES;
-    private static final ModConfigSpec.IntValue PERSUADE_COUNT, PERSUADE_CURRENCY, PERSUADE_CHANCE, CALLIN_DELAY, CALLIN_COUNT, CALLIN_CURRENCY, GARRISON_COUNT, GARRISON_CURRENCY, WAGE_COUNT, WAGE_CURRENCY;
-    private static final ModConfigSpec.ConfigValue<String> PERSUADE_ITEM, CALLIN_ITEM, GARRISON_ITEM, WAGE_ITEM;
+    private static final ModConfigSpec.IntValue CALLIN_DELAY, CALLIN_COUNT, CALLIN_CURRENCY, GARRISON_COUNT, GARRISON_CURRENCY, WAGE_COUNT, WAGE_CURRENCY;
+    private static final ModConfigSpec.ConfigValue<String> CALLIN_ITEM, GARRISON_ITEM, WAGE_ITEM;
     private static final ModConfigSpec.BooleanValue WAGES, DEFECTION;
     private static final ModConfigSpec.DoubleValue DEFECT_CHANCE;
 
@@ -37,11 +37,6 @@ public final class RecruitConfig {
         GARRISON_ITEM = b.comment("Item paid to hire a garrison soldier (empty: none).").define("costItem", "");
         GARRISON_COUNT = b.defineInRange("costItemCount", 1, 1, 1000);
         GARRISON_CURRENCY = b.defineInRange("costCurrency", 0, 0, 1_000_000);
-        b.pop().push("persuasion");
-        PERSUADE_ITEM = b.comment("Talking a downed enemy soldier into joining you: the valuables offered (empty: that offer is not made).").define("costItem", "minecraft:diamond");
-        PERSUADE_COUNT = b.defineInRange("costItemCount", 2, 1, 1000);
-        PERSUADE_CURRENCY = b.comment("Currency offered instead (from a mod's wallet); 0 uses twice the garrison price the economy sets, or no money offer without one.").defineInRange("costCurrency", 0, 0, 1_000_000);
-        PERSUADE_CHANCE = b.comment("Percent chance a persuasion works; nothing is paid when it does not, but that soldier will not listen again for two minutes.").defineInRange("chancePercent", 60, 0, 100);
         b.pop().push("wages");
         WAGES = b.comment("Soldiers draw a wage once per in-game day, taken from whoever hired them. Off by default.").define("enabled", false);
         WAGE_ITEM = b.comment("Item paid per soldier per day (empty: none). An economy mod adds its own currency wage on top.").define("item", "");
@@ -78,23 +73,6 @@ public final class RecruitConfig {
 
     public static Cost garrisonCost() {
         return cost(get(GARRISON_ITEM::get, ""), get(GARRISON_COUNT::get, 1), get(GARRISON_CURRENCY::get, 0));
-    }
-
-    /** The valuables a downed enemy is offered to switch sides; free (and so not an offer) when none are set. */
-    public static Cost persuadeItems() {
-        String item = get(PERSUADE_ITEM::get, "minecraft:diamond");
-        ResourceLocation id = item.isBlank() ? null : ResourceLocation.tryParse(item);
-        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return Cost.FREE;
-        return Cost.items(BuiltInRegistries.ITEM.get(id), get(PERSUADE_COUNT::get, 2));
-    }
-
-    /** The money fixed for a persuasion in the config (0: the economy's pricing decides). */
-    public static int persuadeCurrency() {
-        return get(PERSUADE_CURRENCY::get, 0);
-    }
-
-    public static int persuadeChance() {
-        return get(PERSUADE_CHANCE::get, 60);
     }
 
     public static boolean wages() {
