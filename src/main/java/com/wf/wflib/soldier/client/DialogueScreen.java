@@ -78,7 +78,7 @@ final class DialogueScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         float fade = Math.min(1f, (age + pt) / 8f);
-        g.fillGradient(0, 0, width, height, 0xFF101310, 0xFF030403);
+        g.fillGradient(0, 0, width, height, 0xB0101310, 0xD0030403);          // the world still shows through, darkened
         portrait(g, pt);
         g.fillGradient(0, height / 2, width, height, 0x00000000, 0xE6000000);
         g.fillGradient(0, 0, width, 40, 0xAA000000, 0x00000000);
@@ -124,15 +124,20 @@ final class DialogueScreen extends Screen {
         if (level == null || !(level.getEntity(entity) instanceof LivingEntity who)) return;
         float body = who.yBodyRot, bodyO = who.yBodyRotO, head = who.yHeadRot, headO = who.yHeadRotO, yRot = who.getYRot(), xRot = who.getXRot(), yO = who.yRotO, xO = who.xRotO;
         Pose pose = who.getPose();
+        boolean tag = who.isCustomNameVisible();
+        who.setCustomNameVisible(false);                                         // no giant name over the face
         who.setPose(Pose.STANDING);
         who.yBodyRot = who.yBodyRotO = who.yHeadRot = who.yHeadRotO = 180;
         who.setYRot(180);
         who.yRotO = 180;
         who.setXRot(0);
         who.xRotO = 0;
-        float scale = height * 0.72f;
-        InventoryScreen.renderEntityInInventory(g, width / 2f, height * 0.36f + 0.85f * scale, scale, new Vector3f(0, 1f, 0),
+        float scale = height * 0.56f;
+        InventoryScreen.renderEntityInInventory(g, width / 2f, height * 0.30f + 0.85f * scale, scale, new Vector3f(0, 1f, 0),
                 new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(), who);
+        g.flush();
+        com.mojang.blaze3d.systems.RenderSystem.clear(org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT, net.minecraft.client.Minecraft.ON_OSX);   // the 3D body must not hide what is drawn after it
+        who.setCustomNameVisible(tag);
         who.setPose(pose);
         who.yBodyRot = body;
         who.yBodyRotO = bodyO;
