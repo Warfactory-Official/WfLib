@@ -162,6 +162,18 @@ public final class Squads {
         return c;
     }
 
+    /** A downed enemy soldier changes sides and joins the owner: it takes a friendly faction, stops hunting players, then is recruited. */
+    public static Companion turn(ServerPlayer owner, ServerPlayer soldier) {
+        SoldierAi.Bot b = SoldierAi.botOf(soldier.getGameProfile().getName());
+        if (b == null || !b.soldier || b.companion != null) throw new IllegalArgumentException("Not a soldier you can turn");
+        var friendly = SoldierRoster.get(owner.getServer()).factions().values().stream().filter(f -> !f.hostile()).map(SoldierRoster.Faction::id).findFirst();
+        b.team = deployed(owner.getUUID()).stream().map(x -> x.team).findFirst().orElse(friendly.orElse("friendly"));
+        b.huntsPlayers = false;
+        b.threats.clear();
+        b.glimpses.clear();
+        return recruit(owner, soldier);
+    }
+
     /** Takes a soldier off the roster; it stays where it stands, holding, and belongs to no one. */
     public static void dismiss(ServerPlayer owner, String soldierName) {
         SoldierAi.Bot b = SoldierAi.botOf(soldierName);

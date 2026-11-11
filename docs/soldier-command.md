@@ -150,3 +150,13 @@ New callout events (pack format `voices.json`, `tools/voices/convert.py`, [VOICE
 * Voice packs themselves: the installed packs were converted before this and have none of the new lines. Re-run `convert.py` (it
   now maps the STALKER `talk/`, `reactions/`, `states/meet`, `states/loot`, `fight/post_combat_wait`, `alife/` folders and the Trepang2
   `Spawn/` and `SusMode/` banter) to new pack ids, then install them next to the old ones.
+
+## Dialogue
+
+Use a soldier with an empty hand to talk to it (a client without WFLib's `soldier-dialogue-1` channel keeps the old sneak-use gestures). The server runs the conversation and sends each node (a line and the answers); the client's STALKER 2-style box shows it and reports the pick.
+
+- **Yours:** quick orders (follow, hold), a headlamp toggle, how it is holding up, trading (click a stack to move it between your inventory and theirs, soldier's worn armour included) and letting it go.
+- **Nobody's (and not hostile):** ask it to join (free for a rescue, the garrison price for a garrison's soldier), what it is doing, who it is.
+- **Downed enemy:** talk it into switching sides, paying valuables (`wflib-recruiting.toml` `[persuasion]` `costItem`/`costItemCount`) or money (`costCurrency`, else twice the economy's garrison price). `chancePercent` (60) is the chance it works; nothing is paid on a refusal and it will not listen again for two minutes.
+
+Not built yet: bartering with a soldier that is not yours.
