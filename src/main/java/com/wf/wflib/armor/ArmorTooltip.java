@@ -42,6 +42,7 @@ public final class ArmorTooltip {
         tooltip.add(Component.literal("Condition ").withStyle(ChatFormatting.GRAY)
                 .append(bar(fraction, 10))
                 .append(Component.literal(" " + percent(fraction)).withStyle(conditionColor(fraction))));
+        power(stack, tooltip);
         if (stack.getItem() instanceof ArmorPieceItem piece && !piece.preset().occupies().isEmpty()) {
             tooltip.add(Component.literal("Suit: also covers " + String.join(", ", piece.preset().occupies().stream()
                     .map(EquipmentSlot::getName).toList())).withStyle(ChatFormatting.GRAY));
@@ -119,6 +120,34 @@ public final class ArmorTooltip {
         if (spec.wornFloor() > 0.0D) {
             tooltip.add(legend("Spent", "keeps " + percent(spec.wornFloor()) + " of its protection"));
         }
+    }
+
+    /** An exoskeleton's battery: charge bar, the amount in the configured unit and how long it lasts at the rated draw. */
+    private static void power(ItemStack stack, List<Component> tooltip) {
+        com.wf.wflib.armor.api.exo.ExoSpec exo = com.wf.wflib.armor.api.exo.ExoProfiles.of(stack);
+        if (exo == null || !exo.battery()) {
+            return;
+        }
+        ItemStack battery = com.wf.wflib.armor.api.exo.ExoStacks.battery(stack);
+        if (battery.isEmpty()) {
+            tooltip.add(Component.literal("Power ").withStyle(ChatFormatting.GRAY)
+                    .append(Component.literal("no battery").withStyle(ChatFormatting.RED)));
+            return;
+        }
+        com.wf.wflib.armor.api.exo.ExoConfig.Values cfg = com.wf.wflib.armor.api.exo.ExoConfig.get();
+        double fraction = com.wf.wflib.armor.api.exo.ArmorBattery.fraction(battery);
+        double unit = cfg.toFe(1);
+        long stored = Math.round(com.wf.wflib.armor.api.exo.ArmorBattery.stored(battery) / unit);
+        long capacity = Math.round(com.wf.wflib.armor.api.exo.ArmorBattery.capacity(battery) / unit);
+        MutableComponent line = Component.literal("Power ").withStyle(ChatFormatting.GRAY)
+                .append(bar(fraction, 10))
+                .append(Component.literal(" " + percent(fraction)).withStyle(conditionColor(fraction)))
+                .append(Component.literal("  " + stored + " / " + capacity + " " + cfg.unit().name()).withStyle(ChatFormatting.DARK_GRAY));
+        if (exo.drawPerSecond() > 0.0D && stored > 0) {
+            long seconds = Math.round(stored / exo.drawPerSecond());
+            line.append(Component.literal("  ~" + seconds / 60 + "m " + seconds % 60 + "s").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        tooltip.add(line);
     }
 
     private static Component stat(String sep, String label, String value) {
