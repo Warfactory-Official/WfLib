@@ -1,7 +1,9 @@
 package com.wf.wflib.ammo.api;
 
 import com.google.gson.JsonObject;
+import com.wf.wflib.damage.api.Penetrator;
 import com.wf.wflib.damage.api.ThreatKind;
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.round.api.ImpactTrigger;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -13,19 +15,33 @@ import java.util.List;
  * {@code drag} fraction per tick, {@code blockPen} / {@code armorPenMm} mm. {@code tracer} / {@code tip} rgb, -1 =
  * none. {@code look} = override onto the per-shape defaults in {@link ProjectileLook#resolve}. {@code threat}: null =>
  * derived from the warhead / pen ({@code Rounds.threat}). {@code patternDeg}: pellet cone half-angle about the shot
- * line, 0 => every pellet draws the gun's cone. {@code coneMul}: x gun cone, 1 = service ball. {@code light}: point light carried in flight, range blocks, 0 = none.
+ * line, 0 => every pellet draws the gun's cone. {@code penExponent}: armour pen x {@code (v / v0)^n}, {@link Penetrator}; {@code ricochetDeg} /
+ * {@code slopeExp} / {@code overmatchTD}: NaN => {@link ThreatKind} default; {@code fillerKg}: APHE burst, 0 = none. {@code coneMul}: x gun cone, 1 = service ball. {@code light}: point light carried in flight, range blocks, 0 = none.
  */
 public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String name, float speed,
                           float projectileMassKg, float drag, float quadraticDrag, float gravity, float damagePerKJ,
                           int pellets, float patternDeg, float coneMul, int tracer, int tip, float light, @Nullable Pierce pierce,
                           @Nullable Explosive explosive, @Nullable Motor motor, float blockPen, float armorPenMm,
-                          List<Effect> effects, ProjectileLook.Override look, @Nullable ThreatKind threat) {
+                          List<Effect> effects, ProjectileLook.Override look, @Nullable ThreatKind threat,
+                          float penExponent, float ricochetDeg, float slopeExp, float overmatchTD, float fillerKg) {
 
     public static final int NONE = -1;
     public static final float MIN_CONE_MUL = 0.5f;
     public static final float MAX_CONE_MUL = 2f;
     /** Unset {@code armorPenMm}, no explosive => {@code blockPen} x this. Estimate. */
     public static final float RHA_PER_BLOCK_PEN = 0.5f;
+
+    /** Small-arms class: exponent 2, {@link ThreatKind} defaults. */
+    public AmmoVariant(ResourceLocation id, ResourceLocation calibre, String name, float speed,
+                       float projectileMassKg, float drag, float quadraticDrag, float gravity, float damagePerKJ,
+                       int pellets, float patternDeg, float coneMul, int tracer, int tip, float light,
+                       @Nullable Pierce pierce, @Nullable Explosive explosive, @Nullable Motor motor, float blockPen,
+                       float armorPenMm, List<Effect> effects, ProjectileLook.Override look,
+                       @Nullable ThreatKind threat) {
+        this(id, calibre, name, speed, projectileMassKg, drag, quadraticDrag, gravity, damagePerKJ, pellets,
+                patternDeg, coneMul, tracer, tip, light, pierce, explosive, motor, blockPen, armorPenMm, effects, look,
+                threat, Penetrator.SMALL_ARMS.penExponent, Float.NaN, Float.NaN, Float.NaN, 0);
+    }
 
     public AmmoVariant {
         effects = List.copyOf(effects);
@@ -44,6 +60,11 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         }
         if (!(coneMul >= MIN_CONE_MUL && coneMul <= MAX_CONE_MUL)) {
             throw new IllegalArgumentException(id + ": coneMul " + coneMul + " not " + MIN_CONE_MUL + ".." + MAX_CONE_MUL);
+        }
+        if (!(penExponent > 0) || ricochetDeg <= 0 || ricochetDeg > 90 || slopeExp <= 0 || overmatchTD < 0
+                || !(fillerKg >= 0)) {
+            throw new IllegalArgumentException(id + ": penExponent " + penExponent + " / ricochetDeg " + ricochetDeg
+                    + " / slopeExp " + slopeExp + " / overmatchTD " + overmatchTD + " / fillerKg " + fillerKg);
         }
         if (tracer == 0) {
             throw new IllegalArgumentException(id + ": tracer 0 (WFLib none); use -1");
@@ -64,8 +85,11 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
     public record Pierce(float dt, float dr) {
     }
 
-    /** {@code size <= 0} => warhead's own. */
-    public record Explosive(ResourceLocation warhead, float size) {
+    /** {@code size <= 0} => warhead's own. {@code payload} null => derived in {@link AmmoPresets}. */
+    public record Explosive(ResourceLocation warhead, float size, @Nullable BlastPayload payload) {
+        public Explosive(ResourceLocation warhead, float size) {
+            this(warhead, size, null);
+        }
     }
 
     /** accel m/s^2, burn s. */
@@ -105,6 +129,13 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         private ProjectileLook.Override look = ProjectileLook.Override.NONE;
         @Nullable
         private ThreatKind threat;
+        private float penExponent = Penetrator.SMALL_ARMS.penExponent;
+        private float ricochetDeg = Float.NaN;
+        private float slopeExp = Float.NaN;
+        private float overmatchTD = Float.NaN;
+        private float fillerKg;
+        @Nullable
+        private BlastPayload payload;
 
         private Builder(ResourceLocation id, ResourceLocation calibre, String name) {
             this.id = id;
@@ -174,6 +205,12 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
             return this;
         }
 
+        /** Explicit payload over the one derived from warhead, size and pen; needs {@link #explosive}. */
+        public Builder payload(BlastPayload payload) {
+            this.payload = payload;
+            return this;
+        }
+
         public Builder motor(float accel, float burn) {
             this.motor = new Motor(accel, burn);
             return this;
@@ -204,12 +241,31 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
             return this;
         }
 
+        public Builder penetrator(Penetrator p) {
+            this.penExponent = p.penExponent;
+            this.ricochetDeg = p.ricochetDeg;
+            this.slopeExp = p.slopeExp;
+            this.overmatchTD = p.overmatchTD;
+            return this;
+        }
+
+        public Builder filler(float kg) {
+            this.fillerKg = kg;
+            return this;
+        }
+
         public AmmoVariant build() {
+            if (payload != null) {
+                if (explosive == null) {
+                    throw new IllegalArgumentException(id + ": payload without explosive");
+                }
+                explosive = new Explosive(explosive.warhead(), explosive.size(), payload);
+            }
             float armor = armorPenMm > 0 || explosive != null ? armorPenMm
                     : Math.round(blockPen * RHA_PER_BLOCK_PEN * 2) / 2f;
             return new AmmoVariant(id, calibre, name, speed, mass, drag, quadraticDrag, gravity, damagePerKJ,
                     pellets, pattern, coneMul, tracer, tip, light, pierce, explosive, motor, blockPen, armor, effects, look,
-                    threat);
+                    threat, penExponent, ricochetDeg, slopeExp, overmatchTD, fillerKg);
         }
     }
 }

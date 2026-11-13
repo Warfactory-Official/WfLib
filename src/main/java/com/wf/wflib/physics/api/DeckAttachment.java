@@ -56,6 +56,7 @@ public final class DeckAttachment {
     final Vector3d scratchAnim = new Vector3d();
     final double[] scratchOut = new double[3];
     private float[] scratchNear = new float[8 * 6];
+    private float[] scratchNearFrames = new float[8 * DeckSnapshot.FRAME];
 
     /** Grown as needed for the hull. */
     float[] nearBuffer(int boxCount) {
@@ -63,6 +64,13 @@ public final class DeckAttachment {
             scratchNear = new float[boxCount * 6];
         }
         return scratchNear;
+    }
+
+    float[] nearFrames(int boxCount) {
+        if (scratchNearFrames.length < boxCount * DeckSnapshot.FRAME) {
+            scratchNearFrames = new float[boxCount * DeckSnapshot.FRAME];
+        }
+        return scratchNearFrames;
     }
 
     public DeckAttachment(DeckBody vehicle) {

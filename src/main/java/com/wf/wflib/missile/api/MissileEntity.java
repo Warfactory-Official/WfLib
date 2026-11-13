@@ -37,6 +37,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import com.wf.wflib.explosion.api.BlastPayload;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
 import org.joml.Quaternionf;
@@ -323,6 +324,12 @@ public class MissileEntity extends Projectile implements OBBEntity, InterceptTar
     /** Sweep/proximity target filter. */
     public boolean isHitCandidate(Entity target) {
         return this.canHitEntity(target);
+    }
+
+    @Nullable
+    @Override
+    public BlastPayload payload() {
+        return this.fuze.payload();
     }
 
     @Override

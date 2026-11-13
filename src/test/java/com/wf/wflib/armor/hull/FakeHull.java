@@ -12,7 +12,7 @@ import org.joml.Vector3f;
 
 import java.util.List;
 
-/** Main box + yawed turret box far from the origin; node 0 = hull, 1 = turret ({@link #TURRET}); turret roof = 25 mm plate. */
+/** Main box + yawed turret box far from the origin; node 0 = hull, 1 = turret ({@link #TURRET}); turret roof = plate {@code roof} when the profile declares it, all strikes = {@link #plate} when set. */
 public final class FakeHull implements HullBody, HullMesh {
     public static final String TURRET = "turret";
     public static final double PX = 1000.3, PY = 64.2, PZ = -2000.7;
@@ -27,6 +27,15 @@ public final class FakeHull implements HullBody, HullMesh {
     @Nullable
     public HullProfile profile;
     public boolean mesh = true;
+    @Nullable
+    public String plate;
+    /** Bricks {@code plate:cell} that are spent; the rest live. */
+    public final java.util.Set<String> spent = new java.util.HashSet<>();
+
+    @Override
+    public boolean eraLive(String plateId, int cell) {
+        return !spent.contains(plateId + ":" + cell);
+    }
 
     private OBB box(Vector3f rest, Vector3f extents, Quaternionf rot) {
         Vector3f c = rotation.transform(new Vector3f(rest));
@@ -36,8 +45,13 @@ public final class FakeHull implements HullBody, HullMesh {
     }
 
     /** One surface crossing, shaped like the mesh strike. */
-    public record Hit(int node, Vec3 point, Vector3f normal, float armor) implements HullMesh.Strike {
+    public record Hit(int node, Vec3 point, Vector3f normal, @Nullable String plate, boolean entering)
+            implements HullMesh.Crossing {
     }
+
+    /** When set, {@link #surfaces} returns these instead of the box crossings. */
+    @Nullable
+    public List<Hit> script;
 
     public Vec3 world(float x, float y, float z) {
         Vector3f v = rotation.transform(new Vector3f(x, y, z));
@@ -85,8 +99,42 @@ public final class FakeHull implements HullBody, HullMesh {
         }
         int node = h.obb() == main ? 0 : 1;
         Vector3f n = h.obb().faceNormal(h.point());
-        float armor = node == 1 && n.dot(turretWorld.transform(new Vector3f(0, 1, 0))) > 0.9F ? 25 : 0;
-        return new Hit(node, h.point(), n, armor);
+        String id = plate;
+        if (id == null && node == 1 && profile != null && profile.plates.containsKey("roof")
+                && n.dot(turretWorld.transform(new Vector3f(0, 1, 0))) > 0.9F) {
+            id = "roof";
+        }
+        return new Hit(node, h.point(), n, id, true);
+    }
+
+    /** Entry and exit of both boxes, nearest first; the roof plate rule of {@link #surface} on the entries. */
+    @Override
+    public int surfaces(Vec3 from, Vec3 to, List<HullMesh.Crossing> out) {
+        if (script != null) {
+            out.addAll(script);
+            return script.size();
+        }
+        List<Hit> found = new java.util.ArrayList<>();
+        for (int node = 0; node < 2; node++) {
+            OBB box = node == 0 ? main : turret;
+            Vec3 in = box.clip(from, to), leave = box.clip(to, from);
+            if (in == null || leave == null) {
+                continue;
+            }
+            String id = null;
+            Vector3f n = box.faceNormal(in);
+            if (node == 1 && profile != null && profile.plates.containsKey("roof")
+                    && n.dot(turretWorld.transform(new Vector3f(0, 1, 0))) > 0.9F) {
+                id = plate == null ? "roof" : plate;
+            } else if (plate != null) {
+                id = plate;
+            }
+            found.add(new Hit(node, in, n, id, true));
+            found.add(new Hit(node, leave, box.faceNormal(leave), plate, false));
+        }
+        found.sort(java.util.Comparator.comparingDouble(h -> h.point().distanceToSqr(from)));
+        out.addAll(found);
+        return found.size();
     }
 
     @Override

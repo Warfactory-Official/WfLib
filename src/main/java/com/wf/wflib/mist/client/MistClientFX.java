@@ -50,6 +50,8 @@ public final class MistClientFX {
             int c = effect.color(mist);
             if (c != -1) return c & 0xFFFFFF;
         }
+        var payload = com.wf.wflib.mist.spray.SprayPayloads.get(mist.getFluid());
+        if (payload != null && payload.color() != -1) return payload.color() & 0xFFFFFF;
         return fluidTint(mist.getFluid());
     }
 

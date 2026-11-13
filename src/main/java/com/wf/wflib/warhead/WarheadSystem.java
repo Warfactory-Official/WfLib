@@ -4,6 +4,8 @@ import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.warhead.api.BombletEntity;
 import com.wf.wflib.warhead.api.BombletWarhead;
 import com.wf.wflib.warhead.api.EMPWarhead;
+import com.wf.wflib.explosion.api.BlastPayload;
+import com.wf.wflib.explosion.api.BlockAllocatorShapedCharge;
 import com.wf.wflib.warhead.api.Warheads;
 import com.wf.wflib.warhead.client.WarheadClient;
 import net.minecraft.core.registries.Registries;
@@ -36,16 +38,6 @@ public final class WarheadSystem implements WFSystem {
                     .updateInterval(1)
                     .fireImmune()
                     .build("bomblet")
-            );
-
-    public static final DeferredHolder<EntityType<?>, EntityType<AgentOrangeEntity>> AGENT_ORANGE =
-            ENTITY_TYPES.register("agent_orange", () -> EntityType.Builder.<AgentOrangeEntity>of(AgentOrangeEntity::new,
-                            MobCategory.MISC)
-                    .sized(1.0F, 1.0F)
-                    .clientTrackingRange(10)
-                    .updateInterval(20)
-                    .noSummon()
-                    .build("agent_orange")
             );
 
     @Override
@@ -98,5 +90,12 @@ public final class WarheadSystem implements WFSystem {
         Catalogue.blast(ThermobaricWarhead.ID, ThermobaricWarhead.SIZE);
         Catalogue.blast(AgentOrangeWarhead.ID, AgentOrangeWarhead.RADIUS);
         Catalogue.blast(rl("shaped_charge"), Warheads.SHAPED_CHARGE_SIZE);
+
+        Catalogue.payload(standard, BlastPayload.ofSize(Warheads.STANDARD_BLAST_SIZE));
+        Catalogue.payload(rl("shaped_charge"), BlastPayload.ofSize(Warheads.SHAPED_CHARGE_SIZE)
+                .withJet(Warheads.SHAPED_CHARGE_JET_MM, BlockAllocatorShapedCharge.DEFAULT_HALF_ANGLE_DEG));
+        Catalogue.payload(ThermobaricWarhead.ID, BlastPayload.ofSize(ThermobaricWarhead.SIZE)
+                .withThermal(ThermobaricWarhead.SIZE));
+        Catalogue.payload(FireWarhead.ID, BlastPayload.ofSize(8F).withThermal(8F));
     }
 }

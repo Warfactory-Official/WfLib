@@ -113,6 +113,7 @@ public class WFLibMod {
                 com.wf.wflib.round.gametest.RicochetGameTest.register();
                 com.wf.wflib.round.gametest.RocketGameTest.register();
                 com.wf.wflib.round.gametest.RoundHitGameTest.register();
+                com.wf.wflib.round.gametest.RoundThroughGameTest.register();
                 com.wf.wflib.round.gametest.VirtualFlightGameTest.register();
             }
             if (com.wf.wflib.core.api.WFSystems.enabled("packs")) {

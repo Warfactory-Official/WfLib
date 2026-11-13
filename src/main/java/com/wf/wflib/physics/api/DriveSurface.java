@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 
 /**
  * Per-level cache of {@link SurfaceBake} sections. A section is rebaked when any of the 27 collision snapshots it read
- * changed (identity; rechecked only after {@link ChunkCollisionCache#epoch()} moves). Bake = one virtual thread per
+ * changed (identity; rechecked only after {@link ChunkCollisionCache#neighbourhoodVersion} of its columns moves). Bake = one virtual thread per
  * section, one in flight per section; snapshots prepared on the caller, boxes collected + merged on the bake thread.
  * Sections within {@link #PREFETCH} of a view queued ahead; stale section served for the queue tick of its rebake; view
  * joins a section never baked. Tick / client thread only; {@link View} is what island tasks read.
@@ -29,8 +29,10 @@ public final class DriveSurface {
         SectionCollision[] pendingInputs;
         /** Game tick the pending bake was queued. */
         long pendingTick;
-        /** Cache epoch at which inputs last matched; equal => no recheck. */
-        long checked = -1;
+        /** Cache epoch at which inputs last matched; equal => nothing changed anywhere, no recheck. */
+        long checkedEpoch = -1;
+        /** 3x3 column version at which inputs last matched; equal => no recheck. */
+        long checkedVersion = -1;
 
         Entry(SurfaceSection section, SectionCollision[] inputs) {
             this.section = section;
@@ -88,23 +90,33 @@ public final class DriveSurface {
         // One bake in flight per section; still stale when it lands => next refresh resubmits. Queueing per change
         // FORBIDDEN: block churn queued one bake per tick (box copies), suite OOMed at 16 GB.
         long epoch = cache.epoch();
-        if (entry.pending != null || entry.checked == epoch) {
+        if (entry.pending != null || entry.checkedEpoch == epoch) {
             return entry;
         }
         int sx = SectionPos.x(key), sy = SectionPos.y(key), sz = SectionPos.z(key);
+        long version = cache.neighbourhoodVersion(sx, sz);
+        if (entry.checkedVersion == version) {
+            entry.checkedEpoch = epoch;
+            return entry;
+        }
         if (entry.inputs != null && same(entry.inputs, inputs(sx, sy, sz))) {
-            entry.checked = epoch;
+            entry.checkedEpoch = epoch;
+            entry.checkedVersion = version;
             return entry;
         }
         int pad = SurfaceBake.PAD, padY = SurfaceBake.PAD_Y;
         AABB bounds = new AABB(sx * 16 - pad, sy * 16 - padY, sz * 16 - pad, sx * 16 + 16 + pad, sy * 16 + 16 + padY,
                 sz * 16 + 16 + pad);
         cache.prepare(level, bounds);
+        // epoch, then version, both before inputs(): a bump in between only forces a recheck, never hides a change.
+        epoch = cache.epoch();
+        version = cache.neighbourhoodVersion(sx, sz);
         SectionCollision[] inputs = inputs(sx, sy, sz);
+        entry.checkedEpoch = epoch;
+        entry.checkedVersion = version;
         if (allEmpty(inputs)) {
             entry.section = SurfaceSection.empty(sx, sy, sz);
             entry.inputs = inputs;
-            entry.checked = epoch;
             return entry;
         }
         entry.pendingInputs = inputs;

@@ -7,14 +7,15 @@ public enum HullOutcome {
     RICOCHET,
     /** Stopped by the plate; a little energy arrives as spall. */
     ABSORBED,
-    /** Through, but much of the energy went into getting there. */
+    /** Stopped, but only just: hull damage ramps up, nothing behind the armour is reached. */
     PARTIAL,
     /** Through cleanly. */
     PENETRATION,
     /** Through as if the plate were not there. */
     OVERMATCH;
 
+    /** Residual penetration left: crew and modules behind the armour are reachable. */
     public boolean isThrough() {
-        return this == PARTIAL || this == PENETRATION || this == OVERMATCH;
+        return this == PENETRATION || this == OVERMATCH;
     }
 }

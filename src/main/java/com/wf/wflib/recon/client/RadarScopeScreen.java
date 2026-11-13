@@ -1,6 +1,6 @@
 package com.wf.wflib.recon.client;
 
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;

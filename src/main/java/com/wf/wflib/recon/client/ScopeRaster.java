@@ -2,7 +2,7 @@ package com.wf.wflib.recon.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.wf.wflib.recon.api.ContactClass;
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import com.wf.wflib.recon.api.IffState;
 import com.wf.wflib.recon.api.TrackQuality;
 import net.minecraft.client.Minecraft;

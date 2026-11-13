@@ -37,6 +37,8 @@
   "item.wflib.missile.warhead": "Warhead: %s",
   "item.wflib.kerosene_bucket": "Kerosene Bucket",
   "fluid_type.wflib.kerosene": "Kerosene",
+  "fluid_type.wflib.agent_orange": "Defoliant",
+  "item.wflib.agent_orange_bucket": "Defoliant Bucket",
   "block.wflib.drone_pad": "Drone Pad",
   "entity.wflib.drone": "Delivery Drone",
   "entity.wflib.crate": "Cargo Crate",

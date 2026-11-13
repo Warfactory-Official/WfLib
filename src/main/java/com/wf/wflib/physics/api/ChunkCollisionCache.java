@@ -1,5 +1,6 @@
 package com.wf.wflib.physics.api;
 
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -104,7 +105,14 @@ public final class ChunkCollisionCache implements SectionSource {
     private final Long2ObjectOpenHashMap<Column> columns = new Long2ObjectOpenHashMap<>();
     /** Drive surface baked from this cache; same lifetime. */
     public final DriveSurface surface = new DriveSurface(this);
+    /** Global bump counter; each column's version is the value it took at its last bump, so versions never repeat. */
     private volatile long epoch;
+    /**
+     * Column key -> version. Absent == 0. Outlives the Column (chunk unload drops the Column, the bump must stay
+     * visible); pruned in evict() once older than a sweep. Guarded by sectionsLock.
+     */
+    private final Long2LongOpenHashMap versions = new Long2LongOpenHashMap();
+    private long sweepEpoch;
     private final StampedLock sectionsLock = new StampedLock();
     private volatile int tick;
 
@@ -209,7 +217,7 @@ public final class ChunkCollisionCache implements SectionSource {
             }
             SectionCollision previous = column.bySection[slot];
             column.bySection[slot] = snapshot;
-            epoch++;
+            bump(columnKey);
             column.stale[slot] = false;
             column.presentMask |= 1L << slot;
             if (snapshot.isEmpty()) {
@@ -228,6 +236,11 @@ public final class ChunkCollisionCache implements SectionSource {
         }
     }
 
+    /** Under the write lock. */
+    private void bump(long columnKey) {
+        versions.put(columnKey, ++epoch);
+    }
+
     /** Cheap enough per block update. Stale snapshot stays readable: skipped-prepare reader sees old geometry, never air. */
     public static void invalidate(Level level, BlockPos pos) {
         ChunkCollisionCache cache = CACHES.get(level);
@@ -240,12 +253,13 @@ public final class ChunkCollisionCache implements SectionSource {
         }
         long stamp = cache.sectionsLock.writeLock();
         try {
-            Column column = cache.columns.get(SectionPos.asLong(
-                    SectionPos.blockToSectionCoord(pos.getX()), 0, SectionPos.blockToSectionCoord(pos.getZ())));
+            long columnKey = SectionPos.asLong(
+                    SectionPos.blockToSectionCoord(pos.getX()), 0, SectionPos.blockToSectionCoord(pos.getZ()));
+            Column column = cache.columns.get(columnKey);
             if (column != null && column.bySection[slot] != null) {
                 column.stale[slot] = true;
                 column.presentMask &= ~(1L << slot);
-                cache.epoch++;
+                cache.bump(columnKey);
             }
         } finally {
             cache.sectionsLock.unlockWrite(stamp);
@@ -260,9 +274,10 @@ public final class ChunkCollisionCache implements SectionSource {
         }
         long stamp = cache.sectionsLock.writeLock();
         try {
-            Column removed = cache.columns.remove(SectionPos.asLong(chunkPos.x, 0, chunkPos.z));
+            long columnKey = SectionPos.asLong(chunkPos.x, 0, chunkPos.z);
+            Column removed = cache.columns.remove(columnKey);
             if (removed != null) {
-                cache.epoch++;
+                cache.bump(columnKey);
                 cache.retained -= removed.solidCount();
             }
         } finally {
@@ -386,6 +401,10 @@ public final class ChunkCollisionCache implements SectionSource {
         long stamp = sectionsLock.writeLock();
         try {
             columns.values().removeIf(column -> column.lastUseTick < cutoff);
+            long pruneBefore = sweepEpoch;
+            sweepEpoch = epoch;
+            versions.long2LongEntrySet().removeIf(
+                    entry -> entry.getLongValue() < pruneBefore && !columns.containsKey(entry.getLongKey()));
             retained = countRetained();
             if (retained > MAX_SECTIONS) {
                 Column[] idle = columns.values().stream()
@@ -635,12 +654,56 @@ public final class ChunkCollisionCache implements SectionSource {
         out.accept(x0, y0, z0, x1, y1, z1);
     }
 
-    /** Debug overlay only; physics should go through a Cursor. */
-    @Nullable
     /** Bumped under the write lock by every snapshot write, invalidation, column drop. */
     public long epoch() {
         return epoch;
     }
+
+    /**
+     * Version of one chunk column; rises on any snapshot write, invalidation or drop in it. Compare for
+     * inequality, not order across pruning. Safe from any thread.
+     */
+    public long columnVersion(int chunkX, int chunkZ) {
+        return maxVersion(chunkX, chunkZ, 0);
+    }
+
+    /** Max {@link #columnVersion} over the 3x3 columns centred on (chunkX, chunkZ), one consistent read. */
+    public long neighbourhoodVersion(int chunkX, int chunkZ) {
+        return maxVersion(chunkX, chunkZ, 1);
+    }
+
+    private long maxVersion(int chunkX, int chunkZ, int radius) {
+        long stamp = sectionsLock.tryOptimisticRead();
+        long max;
+        try {
+            max = scanVersions(chunkX, chunkZ, radius);
+        } catch (RuntimeException raced) {
+            max = 0;
+            stamp = 0;
+        }
+        if (!sectionsLock.validate(stamp)) {
+            stamp = sectionsLock.readLock();
+            try {
+                max = scanVersions(chunkX, chunkZ, radius);
+            } finally {
+                sectionsLock.unlockRead(stamp);
+            }
+        }
+        return max;
+    }
+
+    private long scanVersions(int chunkX, int chunkZ, int radius) {
+        long max = 0;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                max = Math.max(max, versions.get(SectionPos.asLong(chunkX + dx, 0, chunkZ + dz)));
+            }
+        }
+        return max;
+    }
+
+    /** Debug overlay only; physics should go through a Cursor. */
+    @Nullable
 
     public SectionCollision snapshotAt(long sectionKey) {
         return read(sectionKey);

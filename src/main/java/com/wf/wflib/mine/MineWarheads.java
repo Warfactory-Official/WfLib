@@ -1,5 +1,6 @@
 package com.wf.wflib.mine;
 
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.explosion.api.ExplosionAEF;
 import com.wf.wflib.explosion.api.BlockAllocatorShapedCharge;
 import com.wf.wflib.explosion.api.BlockAllocatorStandard;
@@ -125,6 +126,14 @@ public final class MineWarheads {
         Warheads.register(DISPENSE_AT,
                 (source, pos) -> dispense(source, pos, MinePresets.rl("scatter_at")));
 
+        // TODO estimates, TNT-eq kg: AP blast mine, bounding sleeve, claymore, HEAT mine, naval charge
+        Warheads.declarePayload(BLAST, BlastPayload.blast(0.2f));
+        Warheads.declarePayload(FRAG, BlastPayload.blast(0.5f).withFragments(FRAG_MINIMUM, 1.0f, 1200f));
+        Warheads.declarePayload(DIRECTIONAL, BlastPayload.blast(0.9f)
+                .withFragments(DIRECTIONAL_MINIMUM, 0.75f, 1200f));
+        Warheads.declarePayload(HEAT, BlastPayload.ofSize(HEAT_SIZE)
+                .withJet(250f, BlockAllocatorShapedCharge.DEFAULT_HALF_ANGLE_DEG));
+        Warheads.declarePayload(NAVAL, BlastPayload.blast(150f));
         Warheads.declarePeakDamage(BLAST, Math.round(BLAST_PEAK));
         Warheads.declarePeakDamage(DISPENSE_AP, 0);
         Warheads.declarePeakDamage(DISPENSE_AT, 0);
@@ -224,6 +233,7 @@ public final class MineWarheads {
                 .makeShapedCharge(axis, source.blastHalfAngleDeg(),
                         BlockAllocatorShapedCharge.DEFAULT_JET_POWER)
                 .igniterFaction(source.igniterFactionId())
+                .payload(Warheads.payloadFor(source, HEAT))
                 .explode();
 
         double half = Math.toRadians(Math.max(1.0f, source.blastHalfAngleDeg()));

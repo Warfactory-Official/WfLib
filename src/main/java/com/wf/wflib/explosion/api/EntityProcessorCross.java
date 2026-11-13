@@ -79,6 +79,7 @@ public class EntityProcessorCross implements IEntityProcessor {
         Map<Entity, Float> damageMap = new HashMap<>();
         Map<Entity, Vec3> pushes = new HashMap<>();
         Map<Entity, Vec3> aims = new HashMap<>();
+        List<BlastTarget> selfResolving = null;
         for (Entity entity : list) {
             double distanceScaled = nearestSurfaceDistanceScaled(entity, x, y, z, size);
             if (distanceScaled > 1.0D) {
@@ -110,8 +111,15 @@ public class EntityProcessorCross implements IEntityProcessor {
 
             double knockback = (1.0D - distanceScaled) * density;
             float dmg = calculateDamage(distanceScaled, density, knockback, size);
-            damageMap.merge(entity, dmg, Math::max);
-            aims.put(entity, aim);
+            if (entity instanceof BlastTarget target) {
+                if (selfResolving == null) {
+                    selfResolving = new java.util.ArrayList<>();
+                }
+                selfResolving.add(target);
+            } else {
+                damageMap.merge(entity, dmg, Math::max);
+                aims.put(entity, aim);
+            }
             com.wf.wflib.explosion.debug.ExplosionTrace.victim(entity,
                     com.wf.wflib.explosion.debug.ExplosionTrace.Verdict.HIT, dmg);
 
@@ -120,7 +128,7 @@ public class EntityProcessorCross implements IEntityProcessor {
                     : knockback;
 
             pushes.put(entity, new Vec3(deltaX * enchKnockback, deltaY * enchKnockback, deltaZ * enchKnockback));
-            if (shouldDealKnockback(entity)) {
+            if (shouldDealKnockback(entity) && !(entity instanceof BlastTarget t && !t.pushedByBlast())) {
                 entity.setDeltaMovement(entity.getDeltaMovement().add(
                         deltaX * enchKnockback * knockbackMult,
                         deltaY * enchKnockback * knockbackMult,
@@ -136,6 +144,14 @@ public class EntityProcessorCross implements IEntityProcessor {
         }
 
         BlastDamageHooks.damage(this, explosion, level, x, y, z, size);
+
+        if (selfResolving != null) {
+            BlastPayload payload = explosion.payload();
+            Vec3 centre = new Vec3(x, y, z);
+            for (BlastTarget target : selfResolving) {
+                target.blast(explosion, payload, centre);
+            }
+        }
 
         // pass 2: deal damage + any custom payload
         for (Map.Entry<Entity, Float> entry : damageMap.entrySet()) {

@@ -12,10 +12,14 @@ import com.wf.wflib.physics.rigid.ConvexContacts;
 import com.wf.wflib.physics.rigid.NarrowNative;
 import com.wf.wflib.physics.rigid.Polytope;
 import com.wf.wflib.physics.rigid.RigidSolver;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -29,10 +33,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,6 +51,9 @@ public final class RigidStep {
     static final boolean DEBUG = Boolean.getBoolean("wflib.physics.debug");
     private static final Map<ServerLevel, RigidStep> LEVELS = new WeakHashMap<>();
     private static volatile ExecutorService pool;
+    private static volatile int poolSize;
+    private static final int BATCH = 4;
+    private static final double SWEEP_SLACK = 1.0e-3;
     private static final ThreadLocal<Scratch> SCRATCH = ThreadLocal.withInitial(Scratch::new);
 
     /** Pair's last contacts: anchor in the lower id's hull frame, world normal, impulses (n, t1, t2). */
@@ -66,12 +72,13 @@ public final class RigidStep {
 
     private static final class Island {
         final List<StepBody> members = new ArrayList<>();
-        /** Member index pairs. */
-        final List<int[]> pairs = new ArrayList<>();
+        /** Member slot pairs, flattened (a, b), a < b, ascending by (a, b). */
+        final IntArrayList pairs = new IntArrayList();
         final List<PairCache> caches = new ArrayList<>();
         boolean live;
         int contacts;
-        Future<?> future;
+        /** Set by the claiming thread, read after the job's latch. */
+        Throwable failure;
     }
 
     /** Bench counters, tick thread; off unless {@link #stats}. */
@@ -95,8 +102,48 @@ public final class RigidStep {
     private final List<PhysicsBody> near = new ArrayList<>();
     private final Long2ObjectOpenHashMap<PairCache> pairCaches = new Long2ObjectOpenHashMap<>();
     private long tick;
+    private final LongArrayList pairKeys = new LongArrayList();
+    private double[] bounds = new double[0];
+    private double[] lo = new double[0], hi = new double[0];
+    private float[] margins = new float[0];
+    private int[] order = new int[0];
 
     private RigidStep() {}
+
+    /**
+     * Islands claimed through an atomic cursor by pool workers and the tick thread; each unit is one multi-body island
+     * or up to {@link #BATCH} consecutive single-body islands. Per-tick object: a late worker finds the cursor spent.
+     */
+    private static final class Job implements Runnable {
+        final Island[] claim;
+        final int[] unitStart;
+        final int units;
+        final PhysicsSettings settings;
+        final AtomicInteger cursor = new AtomicInteger();
+        final CountDownLatch done;
+
+        Job(Island[] claim, int[] unitStart, int units, PhysicsSettings settings) {
+            this.claim = claim;
+            this.unitStart = unitStart;
+            this.units = units;
+            this.settings = settings;
+            this.done = new CountDownLatch(units);
+        }
+
+        @Override
+        public void run() {
+            for (int unit; (unit = cursor.getAndIncrement()) < units; ) {
+                for (int k = unitStart[unit], end = unitStart[unit + 1]; k < end; k++) {
+                    try {
+                        solve(claim[k], settings);
+                    } catch (Throwable failed) {
+                        claim[k].failure = failed;
+                    }
+                }
+                done.countDown();
+            }
+        }
+    }
 
     /** Body's tick: steps at this level's {@link #tick}. */
     public static void register(PhysicsBody body) {
@@ -194,27 +241,11 @@ public final class RigidStep {
             }
         }
         List<Island> islands = islands(steps);
-        for (Island island : islands) {
-            if (!island.live && async) {
-                try {
-                    island.future = pool(settings).submit(() -> solve(island, settings));
-                } catch (RejectedExecutionException shuttingDown) {
-                    island.future = null;
-                }
-            }
-        }
-        for (Island island : islands) {
-            if (island.future == null) {
+        if (async) {
+            solveShared(islands, settings);
+        } else {
+            for (Island island : islands) {
                 solve(island, settings);
-                continue;
-            }
-            try {
-                island.future.get();
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                hold(island, interrupted);
-            } catch (ExecutionException failed) {
-                hold(island, failed.getCause());
             }
         }
         // Carriers before riders: a rider's deck carry reads its carrier's flushed snapshot.
@@ -239,6 +270,64 @@ public final class RigidStep {
             statBodies += steps.size();
             for (Island island : islands) {
                 statContacts += island.contacts;
+            }
+        }
+    }
+
+    /** Live islands stay on the tick thread; the rest are claimed by workers and the tick thread. */
+    private static void solveShared(List<Island> islands, PhysicsSettings settings) {
+        int count = islands.size();
+        Island[] claim = new Island[count];
+        int[] unitStart = new int[count + 1];
+        int claimed = 0, units = 0, batch = 0;
+        boolean anyLive = false;
+        for (int i = 0; i < count; i++) {
+            Island island = islands.get(i);
+            if (island.live) {
+                anyLive = true;
+                continue;
+            }
+            boolean single = island.members.size() == 1;
+            if (!single || batch == 0 || batch == BATCH) {
+                unitStart[units++] = claimed;
+                batch = 0;
+            }
+            claim[claimed++] = island;
+            batch = single ? batch + 1 : 0;
+        }
+        unitStart[units] = claimed;
+        Job job = new Job(claim, unitStart, units, settings);
+        if (units > 0) {
+            ExecutorService workers = pool(settings);
+            for (int h = Math.min(units - (anyLive ? 0 : 1), poolSize); h > 0; h--) {
+                try {
+                    workers.execute(job);
+                } catch (RejectedExecutionException shuttingDown) {
+                    break;
+                }
+            }
+        }
+        for (Island island : islands) {
+            if (island.live) {
+                solve(island, settings);
+            }
+        }
+        job.run();
+        boolean interrupted = false;
+        while (true) {
+            try {
+                job.done.await();
+                break;
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        for (Island island : islands) {
+            if (island.failure != null) {
+                hold(island, island.failure);
             }
         }
     }
@@ -272,35 +361,21 @@ public final class RigidStep {
         step.active = false;
     }
 
-    /** Swept bounds meeting + hull contact allowed => same island. */
+    /** Swept bounds meeting + hull contact allowed => same island. Island root = lowest member index. */
     private List<Island> islands(List<StepBody> steps) {
         int n = steps.size();
         int[] parent = new int[n];
         for (int i = 0; i < n; i++) {
             parent[i] = i;
+            steps.get(i).index = i;
         }
-        List<int[]> pairs = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             StepBody towed = steps.get(i);
             if (towed.coupling != null && StepBody.active(towed.coupling.tractor())) {
-                int j = steps.indexOf(StepBody.peek(towed.coupling.tractor()));
-                int ra = root(parent, i), rb = root(parent, j);
-                parent[Math.max(ra, rb)] = Math.min(ra, rb);
+                union(parent, i, StepBody.peek(towed.coupling.tractor()).index);
             }
         }
-        for (int i = 0; i < n; i++) {
-            StepBody a = steps.get(i);
-            for (int j = i + 1; j < n; j++) {
-                StepBody b = steps.get(j);
-                double reach = a.margin + b.margin;
-                if (!a.gather.inflate(reach).intersects(b.gather) || !a.owner.collidesWith(b.owner)) {
-                    continue;
-                }
-                pairs.add(new int[]{i, j});
-                int ra = root(parent, i), rb = root(parent, j);
-                parent[Math.max(ra, rb)] = Math.min(ra, rb);
-            }
-        }
+        sweep(steps, parent);
         List<Island> islands = new ArrayList<>();
         int[] islandOf = new int[n];
         int[] slot = new int[n];
@@ -317,15 +392,84 @@ public final class RigidStep {
             island.members.add(steps.get(i));
             island.live |= steps.get(i).live;
         }
-        for (int[] pair : pairs) {
-            Island island = islands.get(islandOf[pair[0]]);
-            island.pairs.add(new int[]{slot[pair[0]], slot[pair[1]]});
-            PairCache cache = pairCaches.computeIfAbsent(key(steps.get(pair[0]).owner, steps.get(pair[1]).owner),
+        for (int p = 0, size = pairKeys.size(); p < size; p++) {
+            long key = pairKeys.getLong(p);
+            int i = (int) (key >>> 32), j = (int) key;
+            Island island = islands.get(islandOf[i]);
+            island.pairs.add(slot[i]);
+            island.pairs.add(slot[j]);
+            PairCache cache = pairCaches.computeIfAbsent(key(steps.get(i).owner, steps.get(j).owner),
                     k -> new PairCache());
             cache.used = tick;
             island.caches.add(cache);
         }
         return islands;
+    }
+
+    /**
+     * {@link #pairKeys} ascending (i << 32 | j), i < j: pair order = contact order in the solve. Sweep = candidate
+     * filter only; exact test bitwise {@code a.gather.inflate(a.margin + b.margin).intersects(b.gather)}, a = lower index.
+     */
+    private void sweep(List<StepBody> steps, int[] parent) {
+        int n = steps.size();
+        if (order.length < n) {
+            int capacity = Math.max(n, order.length * 2);
+            order = new int[capacity];
+            lo = new double[capacity];
+            hi = new double[capacity];
+            margins = new float[capacity];
+            bounds = new double[capacity * 6];
+        }
+        double[] lo = this.lo, hi = this.hi, bounds = this.bounds;
+        float[] margins = this.margins;
+        int[] order = this.order;
+        for (int i = 0; i < n; i++) {
+            StepBody body = steps.get(i);
+            AABB box = body.gather;
+            int o = i * 6;
+            bounds[o] = box.minX;
+            bounds[o + 1] = box.minY;
+            bounds[o + 2] = box.minZ;
+            bounds[o + 3] = box.maxX;
+            bounds[o + 4] = box.maxY;
+            bounds[o + 5] = box.maxZ;
+            margins[i] = body.margin;
+            lo[i] = box.minX - body.margin - SWEEP_SLACK;
+            hi[i] = box.maxX + body.margin + SWEEP_SLACK;
+            order[i] = i;
+        }
+        IntArrays.quickSort(order, 0, n, (x, y) -> {
+            int c = Double.compare(lo[x], lo[y]);
+            return c != 0 ? c : Integer.compare(x, y);
+        });
+        pairKeys.clear();
+        for (int p = 0; p < n; p++) {
+            int s = order[p];
+            double limit = hi[s];
+            for (int q = p + 1; q < n; q++) {
+                int t = order[q];
+                if (lo[t] >= limit) {
+                    break;
+                }
+                int i = Math.min(s, t), j = Math.max(s, t);
+                double reach = margins[i] + margins[j];
+                int a = i * 6, b = j * 6;
+                if (!(bounds[a] - reach < bounds[b + 3] && bounds[a + 3] + reach > bounds[b]
+                        && bounds[a + 1] - reach < bounds[b + 4] && bounds[a + 4] + reach > bounds[b + 1]
+                        && bounds[a + 2] - reach < bounds[b + 5] && bounds[a + 5] + reach > bounds[b + 2])
+                        || !steps.get(i).owner.collidesWith(steps.get(j).owner)) {
+                    continue;
+                }
+                pairKeys.add((long) i << 32 | j);
+                union(parent, i, j);
+            }
+        }
+        java.util.Arrays.sort(pairKeys.elements(), 0, pairKeys.size());
+    }
+
+    private static void union(int[] parent, int a, int b) {
+        int ra = root(parent, a), rb = root(parent, b);
+        parent[Math.max(ra, rb)] = Math.min(ra, rb);
     }
 
     /** Island task. */
@@ -345,11 +489,12 @@ public final class RigidStep {
             member.worldContacts(solver, scratch.narrow, settings.nativeNarrowphase() ? scratch.nativeNarrow : null,
                     scratch.buffer);
         }
-        int[] pairFrom = new int[island.pairs.size()];
-        for (int p = 0, size = island.pairs.size(); p < size; p++) {
-            int[] pair = island.pairs.get(p);
+        int pairCount = island.caches.size();
+        int[] pairFrom = new int[pairCount];
+        for (int p = 0; p < pairCount; p++) {
             pairFrom[p] = solver.contactCount();
-            hullContacts(solver, scratch, island.members.get(pair[0]), island.members.get(pair[1]), island.caches.get(p));
+            hullContacts(solver, scratch, island.members.get(island.pairs.getInt(p * 2)),
+                    island.members.get(island.pairs.getInt(p * 2 + 1)), island.caches.get(p));
         }
         island.contacts = solver.contactCount();
         for (StepBody member : island.members) {
@@ -372,10 +517,10 @@ public final class RigidStep {
                 }
             }
         }
-        for (int p = 0, size = island.pairs.size(); p < size; p++) {
-            int to = p + 1 < size ? pairFrom[p + 1] : solver.contactCount();
-            int[] pair = island.pairs.get(p);
-            store(solver, island.members.get(pair[0]), island.members.get(pair[1]), island.caches.get(p), pairFrom[p], to);
+        for (int p = 0; p < pairCount; p++) {
+            int to = p + 1 < pairCount ? pairFrom[p + 1] : solver.contactCount();
+            store(solver, island.members.get(island.pairs.getInt(p * 2)), island.members.get(island.pairs.getInt(p * 2 + 1)),
+                    island.caches.get(p), pairFrom[p], to);
         }
         for (StepBody member : island.members) {
             member.finish(solver);
@@ -534,6 +679,7 @@ public final class RigidStep {
                         thread.setPriority(Thread.NORM_PRIORITY - 1);
                         return thread;
                     });
+                    poolSize = size;
                     pool = current;
                 }
             }

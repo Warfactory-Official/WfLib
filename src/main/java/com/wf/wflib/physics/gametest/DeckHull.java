@@ -119,7 +119,7 @@ final class DeckHull extends Marker implements DeckBody {
     @Override public boolean collides() { return true; }
     @Override public SoundType deckSoundType() { return SoundType.METAL; }
     @Override public void support(Entity entity) { }
-    @Override @Nullable public DeckCarrier mountedOn() { return null; }
+    @Override @Nullable public DeckCarrier carriedBy() { return null; }
     @Override public Vec3 carrierCenterOffset() { return Vec3.ZERO; }
     @Override public double lerpTargetX() { return getX(); }
     @Override public double lerpTargetY() { return getY(); }

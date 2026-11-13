@@ -80,7 +80,7 @@ public final class CarrierDecks {
 
     /**
      * Most overlap first. Tick thread only; returned list is reused, valid only until the next call.
-     * Excludes vehicle and anything parked on it (a parked carrier must not become its parent's floor).
+     * Excludes vehicle and anything it carries, directly or down a chain (carry cycle => pair floats, each moved by the other).
      */
     public static List<DeckBody> overlapping(DeckBody vehicle, AABB region) {
         List<DeckBody> carriers = in(vehicle.level());
@@ -91,7 +91,7 @@ public final class CarrierDecks {
             DeckBody carrier = carriers.get(i);
             if (carrier == vehicle || carrier.isRemoved() || !carrier.collides()
                     || carrier.level() != vehicle.level()
-                    || carrier.mountedOn() == vehicle) {
+                    || rides(carrier, vehicle)) {
                 continue;
             }
             double overlap = overlapVolume(carrier.getBoundingBox(), region);
@@ -113,6 +113,21 @@ public final class CarrierDecks {
             out.set(at, carrier);
         }
         return out;
+    }
+
+    /** Hop cap: a cycle already formed elsewhere must not hang the walk. */
+    private static final int MAX_CHAIN = 16;
+
+    /** Whether body is carried by base, directly or through the bodies it rides: binding base onto it => carry cycle. */
+    private static boolean rides(DeckBody body, DeckBody base) {
+        DeckCarrier above = body.carriedBy();
+        for (int hop = 0; above != null && hop < MAX_CHAIN; hop++) {
+            if (above == base) {
+                return true;
+            }
+            above = above instanceof DeckBody next ? next.carriedBy() : null;
+        }
+        return false;
     }
 
     // Client and server tick threads differ in single player.

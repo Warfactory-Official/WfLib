@@ -1,6 +1,7 @@
 package com.wf.wflib.warhead;
 
 import com.wf.wflib.core.api.WFRegistry;
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.warhead.api.Warheads.Detonation;
 import com.wf.wflib.warhead.api.Warheads.InterceptDetonation;
 import net.minecraft.resources.ResourceLocation;
@@ -16,6 +17,7 @@ public final class Catalogue {
     private static final WFRegistry<Detonation> DETONATIONS = WFRegistry.create("warhead", "warhead catalogue");
     private static final WFRegistry<InterceptDetonation> INTERCEPTS = WFRegistry.create("warhead", "warhead catalogue intercepts");
     private static final WFRegistry<Float> BLAST = WFRegistry.create("warhead", "warhead catalogue blast");
+    private static final WFRegistry<BlastPayload> PAYLOAD = WFRegistry.create("warhead", "warhead catalogue payload");
     /** Spawned sub-munition warheads: live with the parent. */
     private static final WFRegistry<ResourceLocation> CHILD = WFRegistry.create("warhead", "warhead catalogue children");
 
@@ -37,6 +39,16 @@ public final class Catalogue {
 
     public static void blast(ResourceLocation id, float size) {
         BLAST.register(id, size);
+    }
+
+    /** Declared beside {@link #blast}; read whether or not the warhead is live. */
+    public static void payload(ResourceLocation id, BlastPayload payload) {
+        PAYLOAD.register(id, payload);
+    }
+
+    @Nullable
+    public static BlastPayload payload(ResourceLocation id) {
+        return PAYLOAD.get(id);
     }
 
     public static void child(ResourceLocation parent, ResourceLocation child) {

@@ -5,7 +5,7 @@ import com.wf.wflib.recon.PdaRadarPacket;
 import com.wf.wflib.recon.PdaRadarSubscribePacket;
 import com.wf.wflib.pda.api.Uplink;
 import com.wf.wflib.recon.api.Band;
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import com.wf.wflib.recon.api.IffState;
 import com.wf.wflib.ui.api.Binder;
 import com.wf.wflib.ui.api.Signals;

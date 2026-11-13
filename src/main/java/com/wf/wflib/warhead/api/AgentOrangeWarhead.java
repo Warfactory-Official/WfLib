@@ -9,9 +9,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.Vec3;
 import com.wf.wflib.core.api.WFLib;
-import com.wf.wflib.warhead.AgentOrangeEntity;
+import com.wf.wflib.mist.api.WFFluids;
+import com.wf.wflib.mist.spray.SprayCurtainEntity;
 
-/** Defoliant: releases an {@link AgentOrangeEntity} spray; blast size = footprint radius, blocks. */
+/** Defoliant: releases a {@link SprayCurtainEntity} of {@link WFFluids#AGENT_ORANGE}; blast size = footprint radius, blocks. */
 public final class AgentOrangeWarhead {
 
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "agent_orange");
@@ -29,7 +30,8 @@ public final class AgentOrangeWarhead {
             return;
         }
         float size = source.blastSize();
-        AgentOrangeEntity.spawn(level, pos, Math.round(size > 0 ? size : RADIUS), source.igniterFactionId());
+        SprayCurtainEntity.spawn(level, WFFluids.AGENT_ORANGE.get(), pos, Math.round(size > 0 ? size : RADIUS), 1,
+                source.igniterFactionId());
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.BLOCKS, 3.0f,
                 0.5f);
     }

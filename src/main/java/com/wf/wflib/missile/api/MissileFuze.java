@@ -5,6 +5,7 @@ import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.damage.api.DamageClass;
 import com.wf.wflib.damage.api.WFDamageSources;
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -120,7 +121,7 @@ public final class MissileFuze {
                     this.missile.damage().dropAsDud();
                     return;
                 }
-                case PROCEED -> {
+                case PROCEED, STOP, THROUGH -> {
                     if (strike.detonation() != null) {
                         at = strike.detonation();
                     }
@@ -140,6 +141,13 @@ public final class MissileFuze {
         float caliber = this.caliber > 0.0f ? this.caliber
                 : (float) MissileModels.dimensions(this.missile.getModelId()).x * 1000.0f;
         return new Threat(kind, caliber, this.penetration);
+    }
+
+    /** The warhead's declared payload under this fuze's blast size and, for a shaped charge, its pen. */
+    @Nullable
+    public BlastPayload payload() {
+        float pen = this.threatKind != null && this.threatKind.isShapedCharge() ? this.penetration : 0.0f;
+        return BlastPayload.resolve(Warheads.payload(this.detonationId), this.blastSize, pen);
     }
 
     public float getBlastSize() {

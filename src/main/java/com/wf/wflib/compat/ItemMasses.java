@@ -50,7 +50,7 @@ public final class ItemMasses {
             Map.entry("phantom_star", 4.09), Map.entry("sun", 3.29), Map.entry("tapeworm", 0.83),
             Map.entry("scar", 1.3),
             Map.entry("headlamp", 0.12), Map.entry("detector_echo", 0.44), Map.entry("detector_bear", 0.36),
-            Map.entry("detector_veles", 0.29), Map.entry("bolt", 0.05), Map.entry("cigarette", 0.001), Map.entry("kerosene_bucket", 4.2),
+            Map.entry("detector_veles", 0.29), Map.entry("bolt", 0.05), Map.entry("cigarette", 0.001), Map.entry("kerosene_bucket", 4.2), Map.entry("agent_orange_bucket", 4.5),
             Map.entry("nvg_gen1", 2.0), Map.entry("nvg_pvs7", 0.68), Map.entry("nvg_pvs14", 0.4),
             Map.entry("nvg_pvs31", 0.85), Map.entry("nvg_gpnvg18", 0.5),
             Map.entry("plate_carrier", 2.0), Map.entry("ceramic_plate", 2.0), Map.entry("steel_plate", 3.2),

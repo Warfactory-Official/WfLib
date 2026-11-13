@@ -22,6 +22,13 @@ public final class StepResult {
     public Quaternionf dq;
     /** Spring load, upward-contact load (impulse units). */
     public float wheelLoad, bellyLoad;
+    /**
+     * Per suspension row slot (the {@code SpringRows} order of this step), first {@link #springRows} valid: the solver's
+     * last evaluation of {@code compression - ratio * (dp + dq r - r) . axis}, blocks, positive = compressed, measured
+     * from the step-start ground sample; NaN for ungrounded rows. Valid from {@link PhysicsBody#integrate} on.
+     */
+    public float[] springCompression = new float[0];
+    public int springRows;
     /** Load-weighted spring anchor height; NaN none. */
     public double groundY;
     /** |dv| the contacts cost beyond free flight, blocks/tick. */

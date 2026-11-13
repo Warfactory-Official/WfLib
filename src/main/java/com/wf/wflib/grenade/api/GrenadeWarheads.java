@@ -2,6 +2,7 @@ package com.wf.wflib.grenade.api;
 
 import com.wf.wflib.recon.api.Interference;
 import com.wf.wflib.recon.api.Band;
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.explosion.api.ExplosionAEF;
 import com.wf.wflib.explosion.api.EntityProcessorCross;
 import com.wf.wflib.explosion.api.PlayerProcessorStandard;
@@ -143,6 +144,8 @@ public final class GrenadeWarheads {
                 }
             });
         }
+        // TODO estimates: M67, 0.23 kg comp B ~ 0.3 kg TNT-eq, ~0.3 g steel fragments
+        Warheads.declarePayload(FRAG, BlastPayload.blast(0.3f).withFragments(FRAG_RAYS, 0.3f, 1500f));
         Warheads.declarePeakDamage(FRAG, Math.round(FRAG_PER_HIT * 40));
         Warheads.declarePeakDamage(FLASHBANG, Math.round(CONCUSSION_PEAK));
         Warheads.declarePeakDamage(THERMITE, Math.round(THERMITE_BODY));
@@ -178,6 +181,7 @@ public final class GrenadeWarheads {
                 .setEntityProcessor(new EntityProcessorCross())
                 .setPlayerProcessor(new PlayerProcessorStandard())
                 .igniterFaction(source.igniterFactionId())
+                .payload(Warheads.payloadFor(source, FRAG))
                 .explode();
         ExplosionCreator.composeEffectSmall(level, pos.x, pos.y, pos.z);
     }

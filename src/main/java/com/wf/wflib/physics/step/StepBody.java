@@ -63,6 +63,8 @@ public final class StepBody {
     final StepResult result = new StepResult();
     private final SpringRows rows = new SpringRows();
     boolean active;
+    /** Position in the tick's step list; tick thread. */
+    int index;
 
     // BodyState scalars, copied at capture; reference fields alias it.
     boolean live;
@@ -194,6 +196,7 @@ public final class StepBody {
         result.failed = false;
         result.grounded = false;
         result.touched.clear();
+        result.springRows = 0;
         BodyState s = state;
         s.predicting = predicting;
         owner.capture(s, async);
@@ -796,6 +799,14 @@ public final class StepBody {
             groundWeight += load;
             groundY += load * (s.anchor.y + b.com.y + origin[1]);
         }
+        int springRows = sprung ? rows.size() : 0;
+        if (r.springCompression.length < springRows) {
+            r.springCompression = new float[Math.max(springRows, r.springCompression.length * 2)];
+        }
+        for (int slot = 0, spring = springFrom; slot < springRows; slot++) {
+            r.springCompression[slot] = rows.grounded(slot) ? solver.spring(spring++).lastCompression : Float.NaN;
+        }
+        r.springRows = springRows;
         float bellyLoad = 0;
         for (int k = contactFrom; k < contactTo; k++) {
             RigidSolver.Contact c = solver.contact(k);

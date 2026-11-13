@@ -39,6 +39,8 @@ public class RocketEntity extends Entity implements InterceptTarget, ThreatSourc
 
     private KineticPreset preset;
     private int age;
+    /** Entity a THROUGH rocket is still inside, else -1. */
+    private int passing = -1;
     private float health;
     @Nullable
     private Entity shooter;
@@ -124,20 +126,50 @@ public class RocketEntity extends Entity implements InterceptTarget, ThreatSourc
         Vec3 to = from.add(v);
         BlockHitResult block = Rounds.clipLoaded(level, from, to);
         Vec3 end = block.getType() == HitResult.Type.MISS ? to : block.getLocation();
+        boolean inside = false;
         for (Rounds.EntityHit eh : Rounds.entityHits(level, from, end, canHit, RoundDamageSource.LIVE)) {
+            if (eh.entity.getId() == this.passing) {
+                inside = true;
+                continue;
+            }
             ProjectileStrikeEvent strike = Rounds.strike(level, this.preset, this, this, eh, from, end, v,
                     this.shooter, this.faction, 1.0f, false, false);
             if (this.isRemoved()) {
                 return;
             }
-            if (strike.outcome() == ProjectileStrikeEvent.Outcome.DUD) {
+            ProjectileStrikeEvent.Outcome outcome = strike.outcome();
+            if (outcome == ProjectileStrikeEvent.Outcome.DUD) {
                 this.discard();
                 return;
             }
-            if (strike.outcome() == ProjectileStrikeEvent.Outcome.PROCEED && this.preset.detonateOnEntity()) {
+            if (outcome == ProjectileStrikeEvent.Outcome.PROCEED && this.preset.detonateOnEntity()) {
                 this.detonate(level, strike.detonation() != null ? strike.detonation() : eh.at);
                 return;
             }
+            if (outcome == ProjectileStrikeEvent.Outcome.STOP) {
+                if (this.preset.detonateOnEntity() && !this.preset.postPen()) {
+                    this.detonate(level, strike.detonation() != null ? strike.detonation() : eh.at);
+                } else {
+                    this.discard();
+                }
+                return;
+            }
+            if (outcome == ProjectileStrikeEvent.Outcome.THROUGH) {
+                Vec3 out = strike.through();
+                if (this.preset.postPen()) {
+                    this.detonate(level, strike.detonation() != null ? strike.detonation()
+                            : eh.at.add(out.normalize()));
+                    return;
+                }
+                this.passing = eh.entity.getId();
+                this.setPos(eh.at);
+                this.setDeltaMovement(out);
+                this.face(out);
+                return;
+            }
+        }
+        if (!inside) {
+            this.passing = -1;
         }
         if (block.getType() == HitResult.Type.BLOCK) {
             NeoForge.EVENT_BUS.post(new RoundImpactEvent(level, this.preset, block, v));

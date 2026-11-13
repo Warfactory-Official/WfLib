@@ -1,6 +1,6 @@
 package com.wf.wflib.recon.client;
 
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;

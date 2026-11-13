@@ -42,6 +42,8 @@ final class RoundBatch {
     byte[] ricochets = new byte[64];
     /** Tick fraction already elapsed at launch; first step flies {@code 1 - lead}. */
     float[] lead = new float[64];
+    /** Entity id of the body a {@code THROUGH} round is still inside, else -1: not struck again until it is clear. */
+    int[] passing = new int[64];
 
     int add(long key, KineticPreset preset, double x, double y, double z, double vx, double vy, double vz,
             int shooter, @Nullable UUID faction, float damageScale, int rewind, int seq, float lead) {
@@ -69,6 +71,7 @@ final class RoundBatch {
             this.dark = Arrays.copyOf(this.dark, n);
             this.ricochets = Arrays.copyOf(this.ricochets, n);
             this.lead = Arrays.copyOf(this.lead, n);
+            this.passing = Arrays.copyOf(this.passing, n);
         }
         int i = this.size++;
         this.key[i] = key;
@@ -93,6 +96,7 @@ final class RoundBatch {
         this.dark[i] = false;
         this.ricochets[i] = 0;
         this.lead[i] = lead;
+        this.passing[i] = -1;
         return i;
     }
 
@@ -121,6 +125,7 @@ final class RoundBatch {
             this.dark[i] = this.dark[last];
             this.ricochets[i] = this.ricochets[last];
             this.lead[i] = this.lead[last];
+            this.passing[i] = this.passing[last];
         }
         this.preset[last] = null;
         this.faction[last] = null;

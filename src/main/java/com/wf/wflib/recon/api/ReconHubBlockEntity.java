@@ -1,7 +1,6 @@
 package com.wf.wflib.recon.api;
 
 import com.wf.wflib.recon.ScopeFramePacket;
-import com.wf.wflib.recon.scope.ScopeFrame;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;

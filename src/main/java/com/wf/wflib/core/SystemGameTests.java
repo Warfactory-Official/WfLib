@@ -25,6 +25,7 @@ public final class SystemGameTests {
                     com.wf.wflib.round.gametest.RicochetGameTest.class,
                     com.wf.wflib.round.gametest.RocketGameTest.class,
                     com.wf.wflib.round.gametest.RoundHitGameTest.class,
+                    com.wf.wflib.round.gametest.RoundThroughGameTest.class,
                     com.wf.wflib.round.gametest.RoundLabGameTest.class,
                     com.wf.wflib.round.api.RoundSweepBench.class)),
             Map.entry("missile", List.of(
@@ -40,6 +41,7 @@ public final class SystemGameTests {
                     com.wf.wflib.warhead.gametest.AgentOrangeGameTest.class,
                     com.wf.wflib.warhead.gametest.ThermobaricGameTest.class,
                     com.wf.wflib.warhead.gametest.ShapedChargeGameTest.class,
+                    com.wf.wflib.warhead.gametest.BlastTargetGameTest.class,
                     com.wf.wflib.warhead.gametest.ClusterSlopeGameTest.class,
                     com.wf.wflib.warhead.gametest.BlastAhfGameTest.class)),
             Map.entry("grenade", List.of(com.wf.wflib.grenade.gametest.GrenadeGameTest.class)),

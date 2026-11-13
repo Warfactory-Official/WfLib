@@ -2,6 +2,7 @@ package com.wf.wflib.warhead.api;
 
 import com.wf.wflib.core.api.WFRegistry;
 import com.wf.wflib.warhead.Catalogue;
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.explosion.api.ExplosionAEF;
 import com.wf.wflib.explosion.api.MiniNuke;
 import com.wf.wflib.explosion.api.BlockAllocatorShapedCharge;
@@ -46,6 +47,7 @@ public final class Warheads {
         xnt.setEntityProcessor(new EntityProcessorCross());
         xnt.setPlayerProcessor(new PlayerProcessorStandard());
         xnt.igniterFaction(source.igniterFactionId());
+        xnt.payload(source.payload());
         xnt.explode();
         if (size >= STANDARD_BLAST_SIZE * 0.5f) {
             ExplosionCreator.composeEffectLarge(level, pos.x, pos.y, pos.z);
@@ -62,6 +64,8 @@ public final class Warheads {
     };
 
     public static final float SHAPED_CHARGE_SIZE = 6F;
+    /** TODO estimate: jet pen of the catalogue shaped charge; a round's own {@code armorPen} replaces it. */
+    public static final float SHAPED_CHARGE_JET_MM = 300F;
 
     /**
      * Shaped charge (HEAT): fires a tight jet along the carrier's impact heading ({@link WarheadCarrier#angle()}),
@@ -75,7 +79,8 @@ public final class Warheads {
         var xnt = new ExplosionAEF(level, pos.x, pos.y, pos.z, sizeFor(source, SHAPED_CHARGE_SIZE), source.exploder())
                 .makeShapedCharge(source.angle(), source.blastHalfAngleDeg(),
                         BlockAllocatorShapedCharge.DEFAULT_JET_POWER)
-                .igniterFaction(source.igniterFactionId());
+                .igniterFaction(source.igniterFactionId())
+                .payload(source.payload());
         if (!source.breaksBlocks()) {
             xnt.setBlockAllocator(null);
         }
@@ -111,6 +116,7 @@ public final class Warheads {
 
     private static final ResourceLocation DEFAULT_ID = rl("standard");
     private static final WFRegistry<Own> OWN = WFRegistry.create("warhead", "warheads");
+    private static final WFRegistry<BlastPayload> OWN_PAYLOAD = WFRegistry.create("warhead", "warhead payloads");
     private static final WFRegistry<Integer> PEAK_DAMAGE = WFRegistry.create("warhead", "warhead peak damage");
 
     private record Own(Detonation detonation, @Nullable InterceptDetonation intercept) {
@@ -183,6 +189,25 @@ public final class Warheads {
 
     public static float blastSize(ResourceLocation id) {
         return Catalogue.blastSize(id);
+    }
+
+    /** Payload of an own ({@link #register}ed) warhead; catalogue warheads declare theirs in {@link Catalogue}. */
+    public static void declarePayload(ResourceLocation id, BlastPayload payload) {
+        OWN_PAYLOAD.register(id, payload);
+    }
+
+    /** The carrier's own payload, else {@code id}'s declared one under the carrier's size override. */
+    @Nullable
+    public static BlastPayload payloadFor(WarheadCarrier source, ResourceLocation id) {
+        BlastPayload own = source.payload();
+        return own != null ? own : BlastPayload.resolve(payload(id), source.blastSize(), 0f);
+    }
+
+    /** Declared payload of {@code id}, own or catalogue; {@code null} = none declared. */
+    @Nullable
+    public static BlastPayload payload(ResourceLocation id) {
+        BlastPayload own = OWN_PAYLOAD.get(id);
+        return own != null ? own : Catalogue.payload(id);
     }
 
     /** Records what {@code id} does to a person at the centre of it. */

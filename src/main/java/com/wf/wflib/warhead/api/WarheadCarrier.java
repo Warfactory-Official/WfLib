@@ -1,5 +1,6 @@
 package com.wf.wflib.warhead.api;
 
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.explosion.api.BlockAllocatorShapedCharge;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -50,5 +51,14 @@ public interface WarheadCarrier {
     /** False = entities only. Honoured by standard and shaped charge. */
     default boolean breaksBlocks() {
         return true;
+    }
+
+    /**
+     * What this carrier delivers; {@code null} => size-only ({@link com.wf.wflib.explosion.api.ExplosionAEF#payload}).
+     * Honoured by standard and shaped charge.
+     */
+    @Nullable
+    default BlastPayload payload() {
+        return null;
     }
 }

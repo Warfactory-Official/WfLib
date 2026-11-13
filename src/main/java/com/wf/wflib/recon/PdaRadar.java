@@ -3,7 +3,7 @@ package com.wf.wflib.recon;
 import com.wf.wflib.pda.api.Uplink;
 import com.wf.wflib.recon.api.ReconNet;
 import com.wf.wflib.recon.api.ReconOwners;
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;

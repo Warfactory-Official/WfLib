@@ -128,4 +128,53 @@ public final class WFFluids {
     public static final BaseFlowingFluid.Properties KEROSENE_PROPS =
             new BaseFlowingFluid.Properties(KEROSENE_TYPE, KEROSENE, FLOWING_KEROSENE).bucket(KEROSENE_BUCKET);
 
+
+    /** Defoliant concentrate; tint doubles as the spray colour. */
+    public static class DefoliantFluidType extends FluidType {
+
+        public static final int TINT = 0xFFD98A1F;
+
+        public DefoliantFluidType() {
+            super(FluidType.Properties.create()
+                    .density(1100)
+                    .viscosity(1500)
+                    .temperature(300)
+                    .canSwim(true)
+                    .canDrown(true));
+        }
+
+        @Override
+        public void initializeClient(java.util.function.Consumer<net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions> consumer) {
+            consumer.accept(new net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions() {
+                @Override
+                public int getTintColor() {
+                    return TINT;
+                }
+
+                @Override
+                public net.minecraft.resources.ResourceLocation getStillTexture() {
+                    return net.minecraft.resources.ResourceLocation.withDefaultNamespace("block/water_still");
+                }
+
+                @Override
+                public net.minecraft.resources.ResourceLocation getFlowingTexture() {
+                    return net.minecraft.resources.ResourceLocation.withDefaultNamespace("block/water_flow");
+                }
+            });
+        }
+    }
+
+    public static final DeferredHolder<FluidType, FluidType> AGENT_ORANGE_TYPE =
+            FLUID_TYPES.register("agent_orange", DefoliantFluidType::new);
+    public static final DeferredHolder<net.minecraft.world.level.material.Fluid, BaseFlowingFluid> AGENT_ORANGE =
+            FLUIDS.register("agent_orange", () -> new BaseFlowingFluid.Source(WFFluids.AGENT_ORANGE_PROPS));
+    public static final DeferredHolder<net.minecraft.world.level.material.Fluid, BaseFlowingFluid> FLOWING_AGENT_ORANGE =
+            FLUIDS.register("flowing_agent_orange", () -> new BaseFlowingFluid.Flowing(WFFluids.AGENT_ORANGE_PROPS));
+    public static final DeferredHolder<Item, Item> AGENT_ORANGE_BUCKET =
+            ITEMS.register("agent_orange_bucket", () -> new BucketItem(AGENT_ORANGE.get(),
+                    new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
+    public static final BaseFlowingFluid.Properties AGENT_ORANGE_PROPS =
+            new BaseFlowingFluid.Properties(AGENT_ORANGE_TYPE, AGENT_ORANGE, FLOWING_AGENT_ORANGE)
+                    .bucket(AGENT_ORANGE_BUCKET);
+
 }

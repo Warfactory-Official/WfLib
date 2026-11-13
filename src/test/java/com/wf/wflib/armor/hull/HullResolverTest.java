@@ -7,14 +7,18 @@ import com.wf.wflib.armor.api.hull.HullProfile;
 import com.wf.wflib.armor.api.hull.HullResolver;
 import com.wf.wflib.armor.api.hull.HullResult;
 import com.wf.wflib.armor.api.hull.HullWear;
+import com.wf.wflib.damage.api.Penetrator;
+import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HullResolverTest {
     private static FakeHull boxes(float front) {
@@ -33,7 +37,7 @@ class HullResolverTest {
     /** Head-on at the front face centre: face cos 1. */
     private static HullResult frontal(FakeHull hull, float pen, ThreatKind kind) {
         Vec3 start = hull.world(0, 1, 10), hit = hull.world(0, 1, 3);
-        return HullResolver.resolve(hull, start, hit.subtract(start), hit, pen, 100, kind);
+        return HullResolver.resolve(hull, start, hit.subtract(start), hit, new Threat(kind, 20, pen), 100);
     }
 
     @Test
@@ -61,20 +65,39 @@ class HullResolverTest {
         assertEquals(200, frontal(hull, 300, ThreatKind.HEAT).nominalThickness(), "ce 0 => ke");
     }
 
+    private static Threat dart(float caliber, float pen, Penetrator p) {
+        return new Threat(ThreatKind.KINETIC, caliber, pen, 1f, p.ricochetDeg, p.slopeExp, p.overmatchTD, 0);
+    }
+
     @Test
-    void grazingShotRicochetsUnlessOvermatched() {
+    void ricochetFollowsTheThreatNotTheHull() {
         FakeHull hull = boxes(200);
         Vec3 hit = hull.world(1.3F, 2, -1.5F), start = hull.world(1.3F, 2.6F, -5.5F);
         Vec3 dir = hit.subtract(start).normalize();
-        HullResult r = HullResolver.resolve(hull, start, dir, hit, 100, 100, ThreatKind.KINETIC);
+        HullResult r = HullResolver.resolve(hull, start, dir, hit, dart(20, 100, Penetrator.AP), 100);
         assertNotNull(r);
         assertEquals(HullOutcome.RICOCHET, r.outcome());
         assertEquals(0, r.hullDamage());
         HullResolver.Plate p = HullResolver.plate(hull, hull.profile, start, hit.add(dir.scale(0.1)), dir, false);
         assertEquals(HullFace.TOP, p.face(), "entered through the roof of the main box");
         assertEquals(0.6 / Math.hypot(0.6, 4), p.cos(), 1e-3);
-        assertEquals(HullOutcome.OVERMATCH,
-                HullResolver.resolve(hull, start, dir, hit, 400, 100, ThreatKind.KINETIC).outcome(), "overmatch overrides");
+        assertTrue(p.surfaceIncidence() > 80 && p.surfaceIncidence() < 82, "incidence " + p.surfaceIncidence());
+        assertEquals(HullOutcome.RICOCHET,
+                HullResolver.resolve(hull, start, dir, hit, dart(20, 100, Penetrator.APDS), 100).outcome());
+        assertEquals(HullOutcome.RICOCHET,
+                HullResolver.resolve(hull, start, dir, hit, new Threat(ThreatKind.HEAT, 100, 100), 100).outcome(),
+                "fuze graze 80");
+        assertNotEquals(HullOutcome.RICOCHET,
+                HullResolver.resolve(hull, start, dir, hit, dart(20, 100, Penetrator.APFSDS), 100).outcome(),
+                "dart 82 holds");
+        assertNotEquals(HullOutcome.RICOCHET,
+                HullResolver.resolve(hull, start, dir, hit, new Threat(ThreatKind.HESH, 100, 100), 100).outcome());
+        assertNotEquals(HullOutcome.RICOCHET,
+                HullResolver.resolve(hull, start, dir, hit, dart(40, 100, Penetrator.AP), 100).outcome(),
+                "caliber 40 / 30 mm roof >= 1 overmatches");
+        assertEquals(HullOutcome.RICOCHET,
+                HullResolver.resolve(hull, start, dir, hit, dart(20, 400, Penetrator.AP), 100).outcome(),
+                "pen alone no longer overmatches");
     }
 
     @Test
@@ -94,7 +117,7 @@ class HullResolverTest {
         assertNull(frontal(hull, 100, ThreatKind.KINETIC));
         FakeHull armoured = boxes(200);
         Vec3 start = armoured.world(0, 20, 10), end = armoured.world(0, 20, -10);
-        assertNull(HullResolver.resolve(armoured, start, end.subtract(start), end, 100, 100, ThreatKind.KINETIC));
+        assertNull(HullResolver.resolve(armoured, start, end.subtract(start), end, new Threat(ThreatKind.KINETIC, 20, 100), 100));
     }
 
     @Test

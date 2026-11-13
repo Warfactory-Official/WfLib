@@ -105,6 +105,8 @@ public final class RigidSolver {
         /** Compression per unit motion along axis: 1 / (strut down . -axis), strut tilted off the ground normal. */
         public float ratio;
         public float compression, min, max;
+        /** Compression at the last {@code solveSprings} evaluation, same units as {@link #compression}; output. */
+        public float lastCompression;
         /** Mass/t^2 per block, mass/t. */
         public float stiffness, damping;
         float inverseEffectiveMass;
@@ -681,6 +683,7 @@ public final class RigidSolver {
             Body body = bodies.get(s.body);
             float compression = s.compression - s.ratio * t2.set(body.dp).add(body.dq.transform(t3.set(s.anchor)))
                     .sub(s.anchor).dot(s.axis);
+            s.lastCompression = compression;
             float response = s.inverseEffectiveMass;
             float extension = s.ratio * pointVelocity(body, s.anchor, t1).dot(s.axis);
             float velocityResponse = h * (s.damping + h * s.stiffness);

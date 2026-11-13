@@ -1,6 +1,6 @@
 package com.wf.wflib.warhead.gametest;
 
-import com.wf.wflib.warhead.AgentOrangeEntity;
+import com.wf.wflib.mist.spray.SprayCurtainEntity;
 import com.wf.wflib.testkit.api.ForcedChunks;
 import com.wf.wflib.warhead.api.AgentOrangeWarhead;
 import com.wf.wflib.warhead.api.WarheadCarrier;
@@ -64,7 +64,7 @@ public class AgentOrangeGameTest {
                     full[0] = cow[0].getHealth();
                     AgentOrangeWarhead.detonate(carrier(level), Vec3.atBottomCenterOf(base.above(12)));
                 })
-                .thenWaitUntil(() -> helper.assertTrue(level.getEntitiesOfClass(AgentOrangeEntity.class,
+                .thenWaitUntil(() -> helper.assertTrue(level.getEntitiesOfClass(SprayCurtainEntity.class,
                         new AABB(base).inflate(32)).isEmpty(), "spray still falling"))
                 .thenExecute(() -> {
                     force(level, base, false);

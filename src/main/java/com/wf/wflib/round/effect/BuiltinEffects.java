@@ -126,7 +126,7 @@ public final class BuiltinEffects {
 
                 @Override
                 public Threat threat(ImpactContext ctx, Threat t) {
-                    return new Threat(t.kind(), t.caliberMm(), t.penetrationMm() + pen, t.wearFactor() * wear);
+                    return t.withPenetration(t.penetrationMm() + pen).withWearFactor(t.wearFactor() * wear);
                 }
             };
         });

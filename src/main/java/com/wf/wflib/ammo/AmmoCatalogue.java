@@ -2,6 +2,8 @@ package com.wf.wflib.ammo;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.wf.wflib.damage.api.Penetrator;
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.round.api.ImpactTrigger;
 import com.wf.wflib.warhead.api.TearGasWarhead;
@@ -55,6 +57,9 @@ public final class AmmoCatalogue {
     /** Mk 211 trades kinetic damage for its blast; value is a tuning guess. */
     static final float MK211_KINETIC = 0.8f;
     static final float TRACER_CONE = 1.10f;
+    /** Penetrator diameter / bore: dart rod, APDS core. Drag follows the penetrator, not the bore. */
+    static final float ROD_FRACTION = 0.22f;
+    static final float APDS_CORE_FRACTION = 0.55f;
     private static final ResourceLocation STANDARD = rl("standard");
     private static final ResourceLocation SHAPED = rl("shaped_charge");
 
@@ -283,11 +288,11 @@ public final class AmmoCatalogue {
         // blockPen ~2x M2 AP (34 mm at 500 m vs 23 mm at 200 m); drag from the ~6.5 mm penetrator.
         add(AmmoVariant.builder(rl("12.7x99/slap"), c50.c().id(), "M903 SLAP")
                 .flight(1200, 0.0231f, quadDrag(6.5f, 23.1f, 0.30f)).damagePerKJ(c50.dpk() * AP_DAMAGE).blockPen(120f)
-                .tip(TIP_AMBER)
+                .penetrator(Penetrator.APDS).tip(TIP_AMBER)
                 .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.DART, 48f, 6.5f)));
         add(AmmoVariant.builder(rl("12.7x99/slap_t"), c50.c().id(), "M962 SLAP-T")
                 .flight(1200, 0.0231f, quadDrag(6.5f, 23.1f, 0.30f)).damagePerKJ(c50.dpk() * AP_DAMAGE).blockPen(120f)
-                .tracer(RED).tip(TIP_RED)
+                .penetrator(Penetrator.APDS).tracer(RED).tip(TIP_RED)
                 .look(ProjectileLook.Override.NONE.withShape(ProjectileLook.Shape.DART, 48f, 6.5f)));
         smallArms(cal("12.7x108", "12.7x108mm", r, 12.98f, 107.8f, 21.75f, 13.95f, 21.75f, 147.5f, 64f, st, 130f,
                 2.33f), "57-B-541", 48f, 820, 0.28f, "BZT-44", GREEN, TIP_VIOLET, "B-32", 48.3f, 830, null, 0, 0);
@@ -409,20 +414,86 @@ public final class AmmoCatalogue {
                 0.3f);
         add(f88.variant("he", "Sprgr.Patr. L/4.5", 9400, 820, 0.30f).damagePerKJ(0.03f).explosive(STANDARD, 4f)
                 .tip(TIP_YELLOW));
-        add(f88.variant("ap", "PzGr.Patr. 39", 10200, 773, 0.28f).armorPen(160).blockPen(160).tip(TIP_BLACK));
+        add(f88.variant("ap", "PzGr.Patr. 39", 10200, 773, 0.28f).armorPen(160).blockPen(160)
+                .penetrator(Penetrator.AP).tip(TIP_BLACK));
+        // Flan's vehicle guns. Masses / velocities: Wikipedia + Tank Encyclopedia service loads; armorPen = approx RHA at 0 deg,
+        // ~100 m (same basis as 88x571r). TODO 76x585r, 75mm_type3, 57mm_type97, 47mm_sa35, 75mm_abs, 76mm_m1927,
+        // 122mm_d25, 150mm_type38 case dims + HE/AP loads estimated; AP of the three low-velocity guns nominal.
+        gun(cal("40x304r", "2-pdr", CalibreKind.TANK, 40f, 304f, 58f, 42f, 63f, 425f, 140f, br, 2400f, 0.3f),
+                "Mk I HE", 900, 792, 1.2f, "Mk IXB APCBC", 1080, 792, 80);
+        gun(cal("57x441r", "6-pdr / M1 57mm", CalibreKind.TANK, 57f, 441f, 80f, 62f, 86f, 600f, 230f, br, 5900f,
+                0.3f), "Mk 10T HE", 2720, 792, 1.8f, "Mk 9T APCBC", 2850, 823, 105);
+        gun(cal("75x350r", "75mm M3", CalibreKind.TANK, 75f, 350f, 88f, 79f, 96f, 560f, 270f, br, 8500f, 0.3f),
+                "M48 HE", 6350, 588, 3f, "M72 AP", 6330, 619, 90);
+        gun(cal("75x495r", "7.5 cm KwK 40", CalibreKind.TANK, 75f, 495f, 100f, 80f, 108f, 780f, 285f, br, 9000f,
+                0.3f), "Sprgr.Patr. 34", 5740, 590, 3.2f, "PzGr.Patr. 39", 6800, 792, 125);
+        gun(cal("85x629r", "85mm ZiS-S-53", CalibreKind.TANK, 85f, 629f, 112f, 90f, 119f, 960f, 360f, br, 14500f,
+                0.3f), "O-365K HE-Frag", 9540, 785, 3.8f, "BR-365 APHE", 9200, 792, 140, 0.16f);
+        gun(cal("122mm_d25", "122mm D-25T", CalibreKind.TANK, 122f, 385f, 150f, 140f, 160f, 1000f, 520f, br,
+                34000f, 0.3f), "OF-471 HE", 25000, 800, 5f, "BR-471 APHE", 25000, 800, 190, 0.8f);
+        gun(cal("76x385r", "76.2mm ZiS-5", CalibreKind.TANK, 76.2f, 385f, 100f, 82f, 106f, 665f, 240f, br, 8300f,
+                0.3f), "O-350A HE", 6200, 680, 3f, "BR-350A APHE", 6500, 662, 85, 0.15f);
+        gun(cal("76x636r", "76mm M1", CalibreKind.TANK, 76.2f, 636f, 106f, 86f, 112f, 965f, 300f, br, 11000f, 0.3f),
+                "M42A1 HE", 5800, 792, 3f, "M62 APC", 7000, 792, 110);
+        gun(cal("76x585r", "3-inch M7", CalibreKind.TANK, 76.2f, 585f, 106f, 86f, 112f, 915f, 300f, br, 10500f,
+                0.3f), "M42A1 HE", 5800, 792, 3f, "M62 APC", 7000, 792, 105);
+        gun(cal("37x223r", "37mm M6", CalibreKind.TANK, 37f, 223f, 52f, 40f, 57f, 340f, 120f, br, 1700f, 0.3f),
+                "M63 HE", 640, 870, 1f, "M51B1 APC", 870, 884, 75);
+        gun(cal("88x822r", "8.8 cm KwK 43", CalibreKind.TANK, 88f, 822f, 135f, 100f, 145f, 1160f, 400f, br, 21000f,
+                0.3f), "Sprgr.Patr. 43", 9400, 1000, 4f, "PzGr.Patr. 39/43", 10200, 1000, 230);
+        gun(cal("57mm_type97", "57mm Type 97", CalibreKind.TANK, 57f, 120f, 66f, 60f, 70f, 320f, 180f, br, 3200f,
+                0.3f), "Type 97 HE", 2500, 365, 1.5f, "Type 1 AP", 2300, 420, 20);
+        gun(cal("75mm_type3", "75mm Type 3", CalibreKind.TANK, 75f, 294f, 90f, 80f, 96f, 520f, 260f, br, 8300f,
+                0.3f), "Type 90 HE", 6500, 600, 3f, "Type 1 APHE", 6600, 680, 75);
+        gun(cal("47mm_sa35", "47mm SA 35", CalibreKind.TANK, 47f, 220f, 58f, 50f, 62f, 380f, 150f, br, 3000f, 0.3f),
+                "OEs Mle 1932", 1500, 580, 1.2f, "OPFK Mle 1935", 1600, 660, 50);
+        gun(cal("75mm_abs", "75mm ABS SA 35", CalibreKind.TANK, 75f, 200f, 100f, 90f, 104f, 450f, 220f, br, 8000f,
+                0.3f), "OEA Mle 1915", 6400, 220, 3f, "OPFK Mle 1915", 5950, 220, 35);
+        gun(cal("76mm_m1927", "76.2mm M1927", CalibreKind.TANK, 76.2f, 195f, 95f, 85f, 100f, 480f, 260f, br, 8000f,
+                0.3f), "OF-350 HE", 6210, 387, 3f, "BR-350A APHE", 6500, 387, 35, 0.15f);
+        // Indirect-fire shell: linear drag only, no case (see 155mm).
+        Cal h150 = cal("150mm_type38", "150mm Type 38 howitzer", CalibreKind.TANK, 150f, 1f, 150f, 150f, 150f, 800f,
+                550f, CaseMaterial.NONE, 36000f, 0.1f);
+        add(h150.variant("he", "Type 88 HE", 36000, 290, 0f).drag(0.005f).explosive(STANDARD, 6f).tip(TIP_YELLOW));
+        // Challenger 2 L30A1: separate-loading, bag charge (no case). L27A1 dart mass / velocity approximate.
+        Cal l30 = cal("120mm_l30", "120mm L30 rifled tank", CalibreKind.TANK, 120f, 1f, 120f, 120f, 120f, 900f, 600f,
+                CaseMaterial.NONE, 24000f, 0.3f);
+        add(AmmoVariant.builder(rl("120mm_l30/apfsds"), l30.c().id(), "L27A1 APFSDS")
+                .flight(1500, 4.1f, quadDrag(120f * 0.22f, 4100, 0.25f)).damagePerKJ(l30.dpk()).armorPen(600)
+                .blockPen(300).penetrator(Penetrator.APFSDS).tracer(RED));
+        add(l30.variant("he", "L31A7 HESH", 11800, 670, 0.30f).damagePerKJ(0.03f).explosive(STANDARD, 5f)
+                // TODO fill estimate
+                .payload(BlastPayload.blast(3f).withHesh(120f))
+                .threat(ThreatKind.HESH).tip(TIP_YELLOW));
+
+        autocannon(cal("20x138b", "20x138mmB", CalibreKind.AUTOCANNON, 20f, 138f, 31f, 24f, 32f, 205f, 78f, br, 330f,
+                0.5f), "Sprgr.Patr. HEI-T", 115, 900, 0.7f, "Pzgr.Patr. 40 AP-T", 100, 1050, 50, null);
+        autocannon(cal("20x99r", "20x99mmR ShVAK", CalibreKind.AUTOCANNON, 20f, 99f, 29f, 22f, 31f, 134f, 56f, br,
+                230f, 0.5f), "OZ HEI", 96, 815, 0.7f, "BZ AP", 99, 815, 30, null);
+        // TODO Type 99 AP-T mass + velocity assumed = HE's
+        autocannon(cal("20x72rb", "20x72mmRB Type 99", CalibreKind.AUTOCANNON, 20f, 72f, 29f, 22f, 31f, 110f, 48f,
+                br, 190f, 0.5f), "Type 99 HEI", 128, 600, 0.7f, "Type 99 AP-T", 128, 600, 18, null);
+        autocannon(cal("37x263b", "37x263mmB", CalibreKind.AUTOCANNON, 37f, 263f, 60f, 42f, 62f, 368f, 150f, br,
+                1500f, 0.4f), "Sprgr.Patr. HEI-T", 635, 820, 1f, "Pzgr.Patr. AP-T", 680, 800, 55, null);
+        autocannon(cal("40x311r", "40x311mmR Bofors", CalibreKind.AUTOCANNON, 40f, 311f, 83f, 60f, 86f, 450f, 150f,
+                br, 2000f, 0.33f), "HE-T", 900, 881, 1.2f, "AP-T", 900, 881, 65, null);
+        autocannon(cal("30x113b", "30x113mmB", CalibreKind.AUTOCANNON, 30f, 113f, 41f, 33f, 41f, 178f, 60f,
+                CaseMaterial.ALUMINIUM, 370f, 0.3f), "M799 HEI", 230, 805, 1f, "M789 HEDP", 233, 805, 50, null);
         Cal n127 = cal("127mm_naval", "5-inch/54 naval", CalibreKind.TANK, 127f, 835f, 150f, 128f, 160f, 1500f,
                 660f, br, 47000f, 0.105f);
         add(n127.variant("he", "Mk 64 HE-PD", 31750, 600, 0f).drag(0.005f).explosive(STANDARD, 5f).tip(TIP_YELLOW));
         // M795 on the M777: separate-loading, charge bags not modelled (no case).
         Cal h155 = cal("155mm", "155mm howitzer", CalibreKind.TANK, 155f, 1f, 155f, 155f, 155f, 900f, 620f,
                 CaseMaterial.NONE, 46700f, 0.1f);
-        add(h155.variant("he", "M795 HE", 46700, 400, 0f).drag(0.005f).explosive(STANDARD, 8f).tip(TIP_YELLOW));
+        add(h155.variant("he", "M795 HE", 46700, 400, 0f).drag(0.005f).explosive(STANDARD, 8f)
+                // TODO fill + fragment estimates
+                .payload(BlastPayload.blast(10.8f).withFragments(1800, 12f, 1500f)).tip(TIP_YELLOW));
         Cal n406 = cal("406mm_naval", "16-inch/50 naval", CalibreKind.TANK, 406f, 1f, 406f, 406f, 406f, 1850f, 1850f,
                 CaseMaterial.NONE, 862000f, 0.0102f);
         add(n406.variant("he", "Mk 13 HC", 862000, 800, 0f).drag(0.002f).explosive(STANDARD, 12f)
                 .tip(TIP_YELLOW));
         add(n406.variant("ap", "Mk 8 APC", 1225000, 762, 0f).drag(0.002f).explosive(STANDARD, 6f).armorPen(800)
-                .tip(TIP_BLACK));
+                .penetrator(Penetrator.AP).tip(TIP_BLACK));
 
         Cal rpg = cal("rpg7", "RPG-7 rocket", CalibreKind.ROCKET, 85f, 1f, 40f, 40f, 40f, 950f, 950f,
                 CaseMaterial.NONE, 2600f, 0.315f);
@@ -475,26 +546,47 @@ public final class AmmoCatalogue {
         add(javelin.variant("missile", "FGM-148", 11800, 28, 0.30f));
     }
 
+    private static void gun(Cal c, String he, float heG, float heMs, float blast, String ap, float apG, float apMs,
+                            float pen) {
+        gun(c, he, heG, heMs, blast, ap, apG, apMs, pen, 0f);
+    }
+
+    /** {@code fillerKg} > 0: APHE burst after penetration. */
+    private static void gun(Cal c, String he, float heG, float heMs, float blast, String ap, float apG, float apMs,
+                            float pen, float fillerKg) {
+        add(c.variant("he", he, heG, heMs, 0.30f).damagePerKJ(0.03f).explosive(STANDARD, blast).tip(TIP_YELLOW));
+        add(c.variant("ap", ap, apG, apMs, 0.28f).armorPen(pen).blockPen(pen).penetrator(Penetrator.AP)
+                .filler(fillerKg).tip(TIP_BLACK));
+    }
+
     private static void autocannon(Cal c, String he, float heG, float heMs, float blast, String ap, float apG,
                                    float apMs, float apPen, String tp) {
         add(c.variant("he", he, heG, heMs, 0.30f).explosive(STANDARD, blast).tip(TIP_RED)
                 .tracer(he.endsWith("-T") ? RED : AmmoVariant.NONE));
-        add(c.variant("ap", ap, apG, apMs, 0.28f).armorPen(apPen).blockPen(apPen * 2).tip(TIP_BLACK)
-                .tracer(ap.endsWith("-T") ? RED : AmmoVariant.NONE));
+        Penetrator cls = ap.contains("APFSDS") ? Penetrator.APFSDS : ap.contains("APDS") ? Penetrator.APDS
+                : Penetrator.AP;
+        AmmoVariant.Builder round = c.variant("ap", ap, apG, apMs, 0.28f).armorPen(apPen).blockPen(apPen * 2)
+                .penetrator(cls).tip(TIP_BLACK).tracer(ap.endsWith("-T") ? RED : AmmoVariant.NONE);
+        if (cls != Penetrator.AP) {
+            float rod = c.c().bulletMm() * (cls == Penetrator.APFSDS ? ROD_FRACTION : APDS_CORE_FRACTION);
+            round.flight(apMs, apG / 1000f, quadDrag(rod, apG, 0.28f));
+        }
+        add(round);
         if (tp != null) {
-            add(c.variant("tracer", tp, heG, heMs, 0.30f).blockPen(apPen).tracer(RED).tip(TIP_BLUE));
+            add(c.variant("tracer", tp, heG, heMs, 0.30f).blockPen(apPen).penetrator(Penetrator.AP).tracer(RED)
+                    .tip(TIP_BLUE));
         }
     }
 
     private static void tank(Cal c, String apfsds, float dartKg, float dartMs, float dartPen, String heat,
                              float heatKg, float heatMs, float heatPen, String he, float heKg, float heMs) {
-        float rod = c.c().bulletMm() * 0.22f;
+        float rod = c.c().bulletMm() * ROD_FRACTION;
         add(AmmoVariant.builder(rl(c.key() + "/apfsds"), c.c().id(), apfsds)
                 .flight(dartMs, dartKg, quadDrag(rod, dartKg * 1000, 0.25f)).damagePerKJ(c.dpk()).armorPen(dartPen)
-                .blockPen(300).tracer(RED));
+                .blockPen(300).penetrator(Penetrator.APFSDS).tracer(RED));
         add(c.variant("heat", heat, heatKg * 1000, heatMs, 0.30f).damagePerKJ(0.06f).explosive(SHAPED, 2.5f)
                 .armorPen(heatPen).tip(TIP_YELLOW));
         add(c.variant("he", he, heKg * 1000, heMs, 0.30f).damagePerKJ(0.03f).explosive(STANDARD, 5f)
-                .tip(TIP_YELLOW));
+                .threat(he.contains("HESH") ? ThreatKind.HESH : null).tip(TIP_YELLOW));
     }
 }

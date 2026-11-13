@@ -12,7 +12,6 @@ public final class WarheadClient {
     public static void register(IEventBus modBus) {
         modBus.addListener(EntityRenderersEvent.RegisterRenderers.class, event -> {
             event.registerEntityRenderer(WarheadSystem.BOMBLET.get(), BombletRenderer::new);
-            event.registerEntityRenderer(WarheadSystem.AGENT_ORANGE.get(), NoopRenderer::new);
         });
     }
 }

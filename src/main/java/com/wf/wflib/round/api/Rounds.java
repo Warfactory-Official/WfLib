@@ -28,6 +28,8 @@ import com.wf.wflib.sim.api.SimKind;
 import com.wf.wflib.sim.api.SimTier;
 import com.wf.wflib.sim.api.SimWorld;
 import com.wf.wflib.warhead.api.Warheads;
+import com.wf.wflib.explosion.api.BlastPayload;
+import com.wf.wflib.explosion.api.BlastTarget;
 import com.wf.wflib.explosion.api.ExplosionCreator;
 import com.wf.wflib.explosion.api.FxMute;
 import net.minecraft.core.BlockPos;
@@ -363,6 +365,9 @@ public final class Rounds implements SimKind<RoundBatch> {
         return batch(level).resolveNanos;
     }
 
+    /** {@code post_pen} round through an armour answer without a burst point: bursts this far along the line, m. */
+    private static final double POST_PEN_DEPTH = 1.0;
+
     /** Falling this far below the build range => expired (vanilla {@code Entity.checkBelowWorld} depth). */
     public static final int VOID_DEPTH = 64;
 
@@ -423,6 +428,8 @@ public final class Rounds implements SimKind<RoundBatch> {
         boolean skips = preset.blockPen() > 0.0f && preset.penetration() == 0;
         int pierced = 0;
         boolean bounced = false;
+        boolean redirected = false;
+        boolean keepPassing = false;
         while (true) {
             BlockHitResult block = clip(level, terrain, from, to);
             if (block == PENDING_HIT) {
@@ -454,31 +461,79 @@ public final class Rounds implements SimKind<RoundBatch> {
             }
             EntityHit glanced = null;
             Vec3 glance = null;
+            EntityHit passed = null;
+            Vec3 passedVelocity = null;
             for (EntityHit eh : hits) {
+                if (eh.entity.getId() == b.passing[i]) {
+                    keepPassing = true;
+                    if (struck == null) {
+                        struck = new ArrayList<>(2);
+                    }
+                    struck.add(eh.entity);
+                    continue;
+                }
                 ProjectileStrikeEvent strike = strike(level, preset, null, key, eh, from, end, velocity,
                         shooter, b.faction[i], b.damageScale[i], b.ricochets[i] < Ricochet.MAX, b.ricochets[i] > 0);
                 // Listeners may end this round (destroy => swap-remove); keys are unique.
                 if (i >= b.size || b.key[i] != key) {
                     return false;
                 }
-                if (strike.outcome() == ProjectileStrikeEvent.Outcome.DUD) {
+                ProjectileStrikeEvent.Outcome outcome = strike.outcome();
+                if (outcome == ProjectileStrikeEvent.Outcome.DUD) {
                     end(level, b, i, eh.at, RoundEnd.DUD);
                     return false;
                 }
-                if (strike.outcome() == ProjectileStrikeEvent.Outcome.PROCEED && preset.detonateOnEntity()) {
+                if (outcome == ProjectileStrikeEvent.Outcome.PROCEED && preset.detonateOnEntity()) {
                     detonate(level, b, i, strike.detonation() != null ? strike.detonation() : eh.at, shooter,
                             RoundEnd.ENTITY);
+                    return false;
+                }
+                if (outcome == ProjectileStrikeEvent.Outcome.STOP) {
+                    if (preset.detonateOnEntity() && !preset.postPen()) {
+                        detonate(level, b, i, strike.detonation() != null ? strike.detonation() : eh.at, shooter,
+                                RoundEnd.ENTITY);
+                    } else {
+                        end(level, b, i, eh.at, RoundEnd.ENTITY);
+                    }
+                    return false;
+                }
+                if (outcome == ProjectileStrikeEvent.Outcome.THROUGH && preset.postPen()) {
+                    Vec3 out = strike.through();
+                    b.vx[i] = out.x;
+                    b.vy[i] = out.y;
+                    b.vz[i] = out.z;
+                    detonate(level, b, i, strike.detonation() != null ? strike.detonation()
+                            : eh.at.add(out.normalize().scale(POST_PEN_DEPTH)), shooter, RoundEnd.ENTITY);
                     return false;
                 }
                 if (struck == null) {
                     struck = new ArrayList<>(2);
                 }
                 struck.add(eh.entity);
-                if (strike.outcome() == ProjectileStrikeEvent.Outcome.RICOCHET) {
+                if (outcome == ProjectileStrikeEvent.Outcome.RICOCHET) {
                     glanced = eh;
                     glance = strike.ricochet();
                     break;
                 }
+                if (outcome == ProjectileStrikeEvent.Outcome.THROUGH) {
+                    passed = eh;
+                    passedVelocity = strike.through();
+                    break;
+                }
+            }
+            if (passed != null) {
+                keepPassing = true;
+                double left = Math.max(0.0, from.distanceTo(to) - from.distanceTo(passed.at)) / velocity.length();
+                velocity = passedVelocity;
+                from = passed.at;
+                to = from.add(velocity.scale(left));
+                b.passing[i] = passed.entity.getId();
+                redirected = true;
+                sweep = span(level, from, to);
+                if (sweep != LOADED && terrain == null) {
+                    terrain = AsyncTerrainSource.of(level);
+                }
+                continue;
             }
             if (sweep != DARK && preset.entityContact() && RoundConfig.snapshot().nearMissRadius() > 0.0) {
                 nearMiss(level, preset, shooterRoot, from, end, velocity, struck);
@@ -608,12 +663,15 @@ public final class Rounds implements SimKind<RoundBatch> {
             detonate(level, b, i, at, shooter, RoundEnd.BLOCK);
             return false;
         }
+        if (!keepPassing) {
+            b.passing[i] = -1;
+        }
         if (fuseTripped(level, terrain, preset, new Vec3(b.x[i], b.y[i], b.z[i]),
                 new Vec3(b.vx[i], b.vy[i], b.vz[i]), canHit)) {
             detonate(level, b, i, new Vec3(b.x[i], b.y[i], b.z[i]), shooter, RoundEnd.FUSE);
             return false;
         }
-        if (pierced > 0 || bounced || partial || led) {
+        if (pierced > 0 || bounced || redirected || partial || led) {
             b.x[i] = to.x;
             b.y[i] = to.y;
             b.z[i] = to.z;
@@ -642,7 +700,7 @@ public final class Rounds implements SimKind<RoundBatch> {
         b.vy[i] = b.vy[i] * decay - gravity;
         b.vz[i] = b.vz[i] * decay;
         b.dark[i] = sweep == DARK;
-        if (pierced > 0 || bounced) {
+        if (pierced > 0 || bounced || redirected) {
             RoundNetwork.sync(level, b, i);
         }
         return true;
@@ -1121,8 +1179,7 @@ public final class Rounds implements SimKind<RoundBatch> {
                                         boolean canRicochet, boolean tumbling) {
         Threat threat = threat(preset, velocity);
         if (tumbling) {
-            threat = new Threat(threat.kind(), threat.caliberMm(), threat.penetrationMm() * Ricochet.TUMBLE_PEN,
-                    threat.wearFactor());
+            threat = threat.withPenetration(threat.penetrationMm() * Ricochet.TUMBLE_PEN);
         }
         ImpactContext ctx = null;
         List<ImpactEffect> effects = List.of();
@@ -1135,12 +1192,15 @@ public final class Rounds implements SimKind<RoundBatch> {
             }
         }
         ProjectileStrikeEvent event = new ProjectileStrikeEvent(projectile, key, eh.entity, eh.at, velocity, threat,
-                eh.parts).withShooter(shooter);
+                eh.parts).withShooter(shooter).withPenExponent(preset.penExponent());
         ProjectileStrikeEvent strike = NeoForge.EVENT_BUS.post(canRicochet ? event.allowRicochet() : event);
-        if (strike.outcome() != ProjectileStrikeEvent.Outcome.PROCEED) {
+        ProjectileStrikeEvent.Outcome answer = strike.outcome();
+        if (answer != ProjectileStrikeEvent.Outcome.PROCEED && answer != ProjectileStrikeEvent.Outcome.STOP
+                && answer != ProjectileStrikeEvent.Outcome.THROUGH) {
             return strike;
         }
-        RoundDamageSource source = source(level, preset, projectile, shooter, faction, threat, from, velocity, key,
+        RoundDamageSource source = source(level, preset, projectile, shooter, faction,
+                jetOwned(preset, eh.entity) ? threat.withPenetration(0.0f) : threat, from, velocity, key,
                 segmentEnd, eh.when, eh.parts);
         float damage = impactDamage(preset, velocity) * damageScale;
         // One hit per round: i-frames from anything else must not swallow it (MG streams).
@@ -1156,6 +1216,12 @@ public final class Rounds implements SimKind<RoundBatch> {
             e.apply(ctx);
         }
         return strike;
+    }
+
+    /** Warhead jet / EFP resolves a {@link BlastTarget}'s armour from the detonation point: the direct hit carries no penetration. */
+    private static boolean jetOwned(KineticPreset preset, Entity target) {
+        BlastPayload payload = preset.payload();
+        return target instanceof BlastTarget && payload != null && (payload.jet() != null || payload.efp() != null);
     }
 
     /** The damage source of a direct hit, as {@link #strike} builds it; {@code when} {@link RoundDamageSource#LIVE} = unrewound. */
@@ -1440,21 +1506,30 @@ public final class Rounds implements SimKind<RoundBatch> {
     }
 
     public static Threat threat(KineticPreset preset) {
-        return new Threat(kind(preset), preset.caliberMm(), preset.armorPenetrationMm());
+        return threat(preset, kind(preset), preset.armorPenetrationMm());
     }
 
     /**
-     * {@link #threat(KineticPreset)} at impact: kinetic pen x {@code |v|^2 / muzzleSpeed^2} (as {@code blockPen});
-     * shaped charge, HE and motors unscaled.
+     * {@link #threat(KineticPreset)} at impact: kinetic pen x {@code (|v| / muzzleSpeed)^penExponent}; shaped charge,
+     * HE and motors unscaled. {@code blockPen} keeps {@code v^2}.
      */
     public static Threat threat(KineticPreset preset, Vec3 velocity) {
         ThreatKind kind = kind(preset);
         float pen = preset.armorPenetrationMm();
-        if (pen > 0.0f && preset.motorAccel() <= 0.0f
+        if (pen > 0.0f && preset.motorAccel() <= 0.0f && preset.muzzleSpeed() > 0.0f
                 && (kind == ThreatKind.KINETIC || kind == ThreatKind.SMALL_ARMS)) {
-            pen = (float) BlockPen.capacity(pen, preset.muzzleSpeed(), velocity.length());
+            double ratio = velocity.length() / preset.muzzleSpeed();
+            float exp = preset.penExponent();
+            pen = (float) (pen * (exp == 2.0f ? ratio * ratio : Math.pow(ratio, exp)));
         }
-        return new Threat(kind, preset.caliberMm(), pen);
+        return threat(preset, kind, pen);
+    }
+
+    private static Threat threat(KineticPreset preset, ThreatKind kind, float pen) {
+        float ricochet = Float.isNaN(preset.ricochetDeg()) ? kind.ricochetDeg : preset.ricochetDeg();
+        float slope = Float.isNaN(preset.slopeExp()) ? kind.slopeExp : preset.slopeExp();
+        float overmatch = Float.isNaN(preset.overmatchTD()) ? kind.overmatchTD : preset.overmatchTD();
+        return new Threat(kind, preset.caliberMm(), pen, 1.0f, ricochet, slope, overmatch, preset.fillerKg());
     }
 
     private static ThreatKind kind(KineticPreset preset) {

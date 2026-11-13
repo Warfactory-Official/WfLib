@@ -265,6 +265,20 @@ decides (`ProjectileStrikeEvent`).
   `RoundObserver.ricocheted`; trigger `ricochet` (`velocity` = outgoing).
 - Gaps: unloaded / decoding spans (dark flight, `DeferredImpact`) never skip; fluids other than water none.
 
+## 29f. Strike outcomes
+
+`ProjectileStrikeEvent.Outcome`: armour owner answers, round carries out. PROCEED / STOP / THROUGH land the direct hit; DUD / PASS / RICOCHET do not.
+
+| outcome | round | warhead |
+|---|---|---|
+| PROCEED | `detonateOnEntity` => ends; else flies on, velocity unchanged, struck again every tick its segment starts inside the body (cart, 0.4 b/tick: 5 strikes; `RoundThroughGameTest`) | `detonation()` else strike point |
+| STOP | ends at the strike, `RoundEnd.ENTITY` => client trail ends | `detonateOnEntity && !postPen` only; `postPen` = never armed, lost |
+| THROUGH(v) `through(v)` | flies on from the strike at `v` (b/t, \|v\| > 0); client resync; same body not struck again until its segment is clear | `postPen`: at `detonation()` else 1 m along `v`; else none |
+
+- Missiles: STOP / THROUGH read as PROCEED. Rockets: STOP = detonate / discard, THROUGH = continue at `v`.
+- `postPen()` fuze = `KineticPreset.Builder.postPen()`; `AmmoPresets` sets it for `fillerKg > 0`.
+- Exit speed from a walk: `HullResult.exitSpeed(speed, penExponent)`.
+
 ## 29c. Impact effects
 
 `round/effect` (>= 1.6.4): preset list of `(id, on, chance, params)`, `KineticPreset.Builder.effect`, bound by
@@ -356,7 +370,7 @@ Calibre + variant registry; startup only (code, mod construction), no datapack.
   14.5x114 metric ids, e.g. `.50 BMG` = `12.7x99`): `ball` (default) + `tracer` / `ap` / `subsonic` where fielded;
   `12ga` buck (9 pellets) / slug; `40x46`, `40x53` he; `vog25`, `30x29` (VOG-17M) he; `76mm_discharger` frag (vehicle discharger, gravity 28);
   `20x102` he/ap/tracer, `23x115`, `23x152b`, `25x137`, `27x145b`, `30x165`, `30x150b`, `30x173` he/ap; `105mm`,
-  `120mm`, `125mm` apfsds/heat/he; `88x571r` he/ap; `60mm`, `81mm` he, `127mm_naval` he, `155mm` he (M795, no case), `406mm_naval` he/ap (kind `tank`, linear drag only:
+  `120mm`, `125mm` apfsds/heat/he; `88x571r` he/ap; Flan vehicle guns he/ap (`TANK`): `40x304r`, `57x441r`, `75x350r`, `75x495r`, `85x629r`, `88x822r`, `76x385r`, `76x636r`, `76x585r`, `37x223r`, `122mm_d25`, `57mm_type97`, `75mm_type3`, `47mm_sa35`, `75mm_abs`, `76mm_m1927`; `150mm_type38` he (indirect, no case); `120mm_l30` apfsds/he (HESH, no case); autocannon he/ap: `20x138b`, `20x99r`, `20x72rb`, `37x263b`, `40x311r`, `30x113b`; `60mm`, `81mm` he, `127mm_naval` he, `155mm` he (M795, no case), `406mm_naval` he/ap (kind `tank`, linear drag only:
   CombinedAssault solver exact); `rpg7` heat (PG-7V) / heat_large (PG-7VL) / tandem (PG-7VR, `TANDEM_HEAT`) / frag (OG-7V) / thermobaric (TBG-7V; models `tools/rpg_rockets.py`, also the item), `73mm_spg9` heat/frag (`RocketEntity`).
 - Tank `damagePerKJ`: apfsds 0.3, heat 0.06, he 0.03 (CombinedAssault hull balance: 125 APFSDS ~2100). Flight = MineAssault converter calibre table
   (`modular-archive-gltf/convert_mineassault.py`; its `wflib_ammo.py` mirrors this file, `tools/test_wflib_ammo.py`

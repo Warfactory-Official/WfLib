@@ -6,6 +6,7 @@ import com.wf.wflib.armor.api.hull.HullProfile;
 import com.wf.wflib.armor.api.hull.HullResolver;
 import com.wf.wflib.armor.api.hull.HullResult;
 import com.wf.wflib.armor.api.hull.HullWear;
+import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.geom.api.OBB;
 import net.minecraft.nbt.CompoundTag;
@@ -16,14 +17,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Hash recorded from the pre-consolidation hull armour copy driven through {@link FakeHull} (2026-10-30). */
+/** Hash of the resolver driven through {@link FakeHull}; rebaselined 2026-11-13: round-owned ricochet, plate ids replace the zone plate flag, layer walk (slope exponent, ordered crossings, residual in the result). */
 class HullGoldenTest {
     static final String PROFILE = """
             {"front":200,"side":80,"rear":40,"top":30,"bottom":20,"ce":{"front":500,"side":150},
-             "ricochet_angle":68,"wear_floor":0.55,
+             "wear_floor":0.55,
              "parts":{"turret":{"front":300,"side":120,"rear":60,"top":40,"ce":{"front":700}}},
-             "zones":[{"name":"lfp","face":"front","min":[-1.6,-1.0,1.5],"max":[1.6,0.9,3.3],"ke":110,"ce":0,"plate":false},
-                      {"name":"mantlet","part":"turret","min":[-0.7,1.9,0.8],"max":[0.7,2.9,2.0],"ke":150,"ce":260,"plate":true}]}""";
+             "zones":[{"name":"lfp","face":"front","min":[-1.6,-1.0,1.5],"max":[1.6,0.9,3.3],"ke":110,"ce":0},
+                      {"name":"mantlet","part":"turret","min":[-0.7,1.9,0.8],"max":[0.7,2.9,2.0],"ke":150,"ce":260}],
+             "plates":{"roof":{"curved":true,"layers":[{"mm":25,"mat":"rha"}]}}}""";
     static final float[] PEN = {5, 40, 120, 300, 900};
 
     long h = 17;
@@ -52,6 +54,7 @@ class HullGoldenTest {
     static FakeHull hull() {
         FakeHull hull = new FakeHull();
         hull.profile = new Gson().fromJson(PROFILE, HullProfile.class);
+        hull.profile.validate();
         return hull;
     }
 
@@ -86,6 +89,10 @@ class HullGoldenTest {
         f(r.penetration());
         v(r.normal());
         v(r.faceNormal());
+        f(r.residualPen());
+        f(r.walk().layers());
+        f(r.walk().defeated());
+        f(r.walk().stoppedAt());
     }
 
     private void plate(HullResolver.Plate p) {
@@ -94,7 +101,7 @@ class HullGoldenTest {
             return;
         }
         seen.add(String.valueOf(p.part()) + "/" + p.zone());
-        if (p.plate()) {
+        if (p.plateId() != null) {
             seen.add("plate");
         }
         v(p.point());
@@ -103,10 +110,11 @@ class HullGoldenTest {
         v(p.faceNormal());
         h = h * 31 + java.util.Objects.hashCode(p.part()) + 7L * java.util.Objects.hashCode(p.zone());
         f(p.nominal());
-        f(p.plate() ? 1 : 0);
+        f(p.plateId() == null ? 0 : 1);
         f(p.wear());
         f(p.cos());
         f(p.surfaceCos());
+        f(p.meshCos());
     }
 
     long run() {
@@ -118,7 +126,7 @@ class HullGoldenTest {
             for (int i = 0; i < 400; i++) {
                 Vec3[] s = shot(hull, i);
                 ThreatKind kind = ThreatKind.values()[i % ThreatKind.values().length];
-                result(HullResolver.resolve(hull, s[0], s[1], s[2], PEN[i % PEN.length], 100, kind));
+                result(HullResolver.resolve(hull, s[0], s[1], s[2], new Threat(kind, 30, PEN[i % PEN.length]), 100));
                 Vec3 dir = s[1].normalize();
                 plate(HullResolver.plate(hull, hull.profile, s[0], s[2].add(dir.scale(0.1)), dir, kind.isShapedCharge()));
                 f(HullWear.region(hull.main, s[2], i % 2 == 0 ? null : new Vector3f(0, 1, 0).rotateX(i)));
@@ -139,7 +147,7 @@ class HullGoldenTest {
     }
 
     @Test
-    void resolverIsBitIdenticalToThePreConsolidationCopy() {
+    void resolverOutputIsPinned() {
         assertEquals(GOLDEN, run());
         for (Object o : new Object[] {HullOutcome.RICOCHET, HullOutcome.ABSORBED, HullOutcome.PARTIAL,
                 HullOutcome.PENETRATION, HullOutcome.OVERMATCH, "null/null", "null/lfp", "turret/null",
@@ -148,5 +156,5 @@ class HullGoldenTest {
         }
     }
 
-    static final long GOLDEN = 0x297903725a5fe63L;
+    static final long GOLDEN = 3534270216172822281L;
 }

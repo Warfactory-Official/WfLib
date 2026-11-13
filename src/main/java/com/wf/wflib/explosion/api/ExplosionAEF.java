@@ -39,6 +39,10 @@ public class ExplosionAEF {
     private IExplosionSFX[] sfx;
     private boolean bypassClaims = false;
     private UUID igniterFaction = null;
+    @Nullable
+    private BlastPayload payload;
+    @Nullable
+    private Vec3 jetAxis;
 
     private static final ThreadLocal<ExplosionAEF> RUNNING = new ThreadLocal<>();
 
@@ -66,6 +70,26 @@ public class ExplosionAEF {
     public static ExplosionAEF running(Explosion compat) {
         ExplosionAEF current = RUNNING.get();
         return current != null && current.compat == compat ? current : null;
+    }
+
+    /** Explicit payload, else the size-only synthesis: one {@code blast} component from {@link #size}. */
+    public BlastPayload payload() {
+        if (payload == null) {
+            payload = BlastPayload.ofSize(size);
+        }
+        return payload;
+    }
+
+    /** {@code null} => {@link #payload()} synthesises. */
+    public ExplosionAEF payload(@Nullable BlastPayload payload) {
+        this.payload = payload;
+        return this;
+    }
+
+    /** Jet axis of a shaped charge ({@link #makeShapedCharge}); {@code null} otherwise. */
+    @Nullable
+    public Vec3 jetAxis() {
+        return jetAxis;
     }
 
     /** Whether the entity stage's blast shape (a shaped charge's cone) reaches {@code point}. */
@@ -190,6 +214,7 @@ public class ExplosionAEF {
      *      through blocks a same-size sphere couldn't)
      */
     public ExplosionAEF makeShapedCharge(Vec3 direction, float halfAngleDeg, float jetPower) {
+        this.jetAxis = direction == null || direction.lengthSqr() < 1.0e-8 ? new Vec3(0, -1, 0) : direction.normalize();
         this.setBlockAllocator(new BlockAllocatorShapedCharge(direction, halfAngleDeg, jetPower));
         this.setBlockProcessor(new BlockProcessorStandard().setNoDrop());
         this.setEntityProcessor(new EntityProcessorCone(direction, halfAngleDeg));

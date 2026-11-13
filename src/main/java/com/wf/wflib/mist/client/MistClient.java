@@ -12,6 +12,9 @@ public final class MistClient {
     /** Clouds draw nothing themselves: pure particle effects (see {@link MistClientFX}). */
     public static void register(IEventBus modBus) {
         modBus.addListener(EntityRenderersEvent.RegisterRenderers.class,
-                event -> event.registerEntityRenderer(MistSystem.MIST.get(), NoopRenderer::new));
+                event -> {
+                    event.registerEntityRenderer(MistSystem.MIST.get(), NoopRenderer::new);
+                    event.registerEntityRenderer(MistSystem.SPRAY_CURTAIN.get(), NoopRenderer::new);
+                });
     }
 }

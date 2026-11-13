@@ -2,7 +2,9 @@ package com.wf.wflib.round.api;
 
 import com.wf.wflib.missile.api.MissileModels;
 import com.google.gson.JsonObject;
+import com.wf.wflib.damage.api.Penetrator;
 import com.wf.wflib.damage.api.ThreatKind;
+import com.wf.wflib.explosion.api.BlastPayload;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.resources.ResourceLocation;
 
@@ -37,13 +39,21 @@ public final class KineticPreset {
     private final float blockPen;
     private final float caliberMm;
     private final float armorPenetrationMm;
+    private final float penExponent;
+    private final float ricochetDeg;
+    private final float slopeExp;
+    private final float overmatchTD;
+    private final float fillerKg;
 
     private final int fragmentCount;
     private final double airburstHeight;
     private final double proximityRadius;
     private final float blastHalfAngleDeg;
     private final boolean detonateOnEntity;
+    private final boolean postPen;
     private final float blastSize;
+    @Nullable
+    private final BlastPayload payload;
     private final boolean breaksBlocks;
 
     @Nullable
@@ -86,12 +96,19 @@ public final class KineticPreset {
         this.blockPen = b.blockPen;
         this.caliberMm = b.caliberMm;
         this.armorPenetrationMm = b.armorPenetrationMm;
+        this.penExponent = b.penExponent;
+        this.ricochetDeg = b.ricochetDeg;
+        this.slopeExp = b.slopeExp;
+        this.overmatchTD = b.overmatchTD;
+        this.fillerKg = b.fillerKg;
         this.fragmentCount = b.fragmentCount;
         this.airburstHeight = b.airburstHeight;
         this.proximityRadius = b.proximityRadius;
         this.blastHalfAngleDeg = b.blastHalfAngleDeg;
         this.detonateOnEntity = b.detonateOnEntity;
+        this.postPen = b.postPen;
         this.blastSize = b.blastSize;
+        this.payload = b.payload;
         this.breaksBlocks = b.breaksBlocks;
         this.threatKind = b.threatKind;
         this.loadsChunks = b.loadsChunks;
@@ -221,6 +238,30 @@ public final class KineticPreset {
         return armorPenetrationMm;
     }
 
+    /** Armour pen x {@code (v / muzzleSpeed)^penExponent}. */
+    public float penExponent() {
+        return penExponent;
+    }
+
+    /** NaN = the {@link ThreatKind} default; likewise {@link #slopeExp()}, {@link #overmatchTD()}. */
+    public float ricochetDeg() {
+        return ricochetDeg;
+    }
+
+    public float slopeExp() {
+        return slopeExp;
+    }
+
+    /** 0 = no overmatch. */
+    public float overmatchTD() {
+        return overmatchTD;
+    }
+
+    /** Post-penetration burst (APHE); 0 = none. */
+    public float fillerKg() {
+        return fillerKg;
+    }
+
     /** Fragments thrown by a fragmentation warhead. */
     public int fragmentCount() {
         return fragmentCount;
@@ -244,6 +285,20 @@ public final class KineticPreset {
     /** Whether hitting an entity sets the warhead off, or the shell just punches through. */
     public boolean detonateOnEntity() {
         return detonateOnEntity;
+    }
+
+    /**
+     * {@code post_pen} fuze: arms only on a defeated plate ({@code ProjectileStrikeEvent} {@code THROUGH}), goes off
+     * inside; a strike without armour answer still goes off on contact.
+     */
+    public boolean postPen() {
+        return postPen;
+    }
+
+    /** What the warhead delivers; {@code null} => size-only. */
+    @Nullable
+    public BlastPayload payload() {
+        return payload;
     }
 
     /** Warhead blast size override (vanilla explosion power); {@code <= 0} = the warhead's own. */
@@ -375,13 +430,21 @@ public final class KineticPreset {
         private float blockPen = 0.0f;
         private float caliberMm = 120.0f;
         private float armorPenetrationMm = 0.0f;
+        private float penExponent = Penetrator.SMALL_ARMS.penExponent;
+        private float ricochetDeg = Float.NaN;
+        private float slopeExp = Float.NaN;
+        private float overmatchTD = Float.NaN;
+        private float fillerKg = 0.0f;
 
         private int fragmentCount = 0;
         private double airburstHeight = 0.0;
         private double proximityRadius = 0.0;
         private float blastHalfAngleDeg = 22.5f;
         private boolean detonateOnEntity = true;
+        private boolean postPen = false;
         private float blastSize = 0.0f;
+        @Nullable
+        private BlastPayload payload;
         private boolean breaksBlocks = true;
 
         private ThreatKind threatKind;
@@ -481,6 +544,39 @@ public final class KineticPreset {
             return this;
         }
 
+        public Builder penetrator(Penetrator p) {
+            this.penExponent = p.penExponent;
+            this.ricochetDeg = p.ricochetDeg;
+            this.slopeExp = p.slopeExp;
+            this.overmatchTD = p.overmatchTD;
+            return this;
+        }
+
+        public Builder penExponent(double exponent) {
+            this.penExponent = (float) exponent;
+            return this;
+        }
+
+        public Builder ricochet(double degrees) {
+            this.ricochetDeg = (float) degrees;
+            return this;
+        }
+
+        public Builder slopeExponent(double exponent) {
+            this.slopeExp = (float) exponent;
+            return this;
+        }
+
+        public Builder overmatchTD(double ratio) {
+            this.overmatchTD = (float) ratio;
+            return this;
+        }
+
+        public Builder filler(double kg) {
+            this.fillerKg = (float) kg;
+            return this;
+        }
+
         public Builder fragments(int count) {
             this.fragmentCount = count;
             return this;
@@ -509,6 +605,12 @@ public final class KineticPreset {
             return this;
         }
 
+        /** See {@link KineticPreset#postPen}. */
+        public Builder postPen() {
+            this.postPen = true;
+            return this;
+        }
+
         /** Unloaded ground flown on its saved terrain (rockets: discarded) instead of loaded. */
         public Builder noChunkLoading() {
             this.loadsChunks = false;
@@ -532,6 +634,11 @@ public final class KineticPreset {
 
         public Builder stackSize(int size) {
             this.stackSize = size;
+            return this;
+        }
+
+        public Builder payload(@Nullable BlastPayload payload) {
+            this.payload = payload;
             return this;
         }
 

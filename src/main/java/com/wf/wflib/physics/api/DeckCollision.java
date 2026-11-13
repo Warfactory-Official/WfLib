@@ -30,6 +30,7 @@ public final class DeckCollision {
     public static Vec3 clip(Entity entity, DeckSnapshot deck, Vec3 worldMove,
                             DeckAttachment attachment) {
         float[] boxes = deck.boxes();
+        float[] frames = deck.frames();
         int count = deck.count();
         if (count == 0) {
             return worldMove;
@@ -57,14 +58,15 @@ public final class DeckCollision {
         double hz = (bounds.maxZ - bounds.minZ) * 0.5;
         // Gathered once; the axis passes below then cost what the contact is, not what the hull is.
         float[] near = attachment.nearBuffer(count);
-        int nearCount = DeckClip.narrow(boxes, count, centre.x, centre.y, centre.z, hx, hy, hz,
-                move.x, move.y, move.z, grounded.x, grounded.z, entity.maxUpStep(), near);
+        float[] nearFrames = attachment.nearFrames(count);
+        int nearCount = DeckClip.narrow(boxes, frames, count, centre.x, centre.y, centre.z, hx, hy, hz,
+                move.x, move.y, move.z, grounded.x, grounded.z, entity.maxUpStep(), near, nearFrames);
         if (nearCount == 0) {
             return worldMove;
         }
 
         double[] allowed = attachment.scratchOut;
-        boolean blockedDown = DeckClip.sweep(near, nearCount,
+        boolean blockedDown = DeckClip.sweep(near, nearFrames, nearCount,
                 centre.x, centre.y, centre.z, hx, hy, hz,
                 move.x, move.y, move.z,
                 grounded.x, grounded.z,
@@ -110,6 +112,7 @@ public final class DeckCollision {
     public static boolean supportedBelow(Entity entity, DeckSnapshot deck,
                                         DeckAttachment attachment) {
         float[] boxes = deck.boxes();
+        float[] frames = deck.frames();
         int count = deck.count();
         if (count == 0) {
             return false;
@@ -121,7 +124,7 @@ public final class DeckCollision {
                 (bounds.minZ + bounds.maxZ) * 0.5,
                 attachment.scratchCentre);
         double reach = -(DeckClip.SKIN + 0.02);
-        return DeckClip.clipY(boxes, count, centre.x, centre.y, centre.z,
+        return DeckClip.clipY(boxes, frames, count, centre.x, centre.y, centre.z,
                 (bounds.maxX - bounds.minX) * 0.5,
                 (bounds.maxY - bounds.minY) * 0.5,
                 (bounds.maxZ - bounds.minZ) * 0.5,
@@ -137,6 +140,7 @@ public final class DeckCollision {
                                          DeckAttachment attachment,
                                          double dx, double dz, double depth) {
         float[] boxes = deck.boxes();
+        float[] frames = deck.frames();
         int count = deck.count();
         if (count == 0) {
             return false;
@@ -148,7 +152,7 @@ public final class DeckCollision {
                 bounds.minY - depth * 0.5,
                 (bounds.minZ + bounds.maxZ) * 0.5 + dz,
                 attachment.scratchCentre);
-        return DeckClip.anyBoxNear(boxes, count, centre.x, centre.y, centre.z,
+        return DeckClip.anyBoxNear(boxes, frames, count, centre.x, centre.y, centre.z,
                 (bounds.maxX - bounds.minX) * 0.5,
                 depth * 0.5,
                 (bounds.maxZ - bounds.minZ) * 0.5,
@@ -162,6 +166,7 @@ public final class DeckCollision {
     public static boolean depenetrate(Entity entity, DeckSnapshot deck,
                                       DeckAttachment attachment, int maxPasses) {
         float[] boxes = deck.boxes();
+        float[] frames = deck.frames();
         int count = deck.count();
         if (count == 0) {
             return false;
@@ -180,9 +185,10 @@ public final class DeckCollision {
         double hz = (bounds.maxZ - bounds.minZ) * 0.5;
         // Grown by MAX_CORRECTION so a box the entity is pushed toward is still in the set next pass.
         float[] near = attachment.nearBuffer(count);
-        int nearCount = DeckClip.narrow(boxes, count, centre.x, centre.y, centre.z,
+        float[] nearFrames = attachment.nearFrames(count);
+        int nearCount = DeckClip.narrow(boxes, frames, count, centre.x, centre.y, centre.z,
                 hx + MAX_CORRECTION, hy + MAX_CORRECTION, hz + MAX_CORRECTION,
-                0, 0, 0, 0, 0, 0, near);
+                0, 0, 0, 0, 0, 0, near, nearFrames);
         if (nearCount == 0) {
             return false;
         }
@@ -190,7 +196,7 @@ public final class DeckCollision {
         double[] correction = attachment.scratchOut;
         // Hull overhanging a rider on terrain (dismount beside the hull): down would bury it.
         boolean mayDescend = entity.level().noCollision(entity, bounds.move(0, -DeckClip.SKIN * 2, 0));
-        if (!DeckClip.depenetrate(near, nearCount,
+        if (!DeckClip.depenetrate(near, nearFrames, nearCount,
                 centre.x, centre.y, centre.z, hx, hy, hz,
                 mayDescend, maxPasses, correction)) {
             return false;

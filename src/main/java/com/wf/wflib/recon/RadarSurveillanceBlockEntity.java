@@ -8,7 +8,7 @@ import com.wf.wflib.recon.api.SensorHandle;
 import com.wf.wflib.recon.api.SensorSpec;
 import com.wf.wflib.recon.api.Alert;
 import com.wf.wflib.recon.api.AlertTier;
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import com.wf.wflib.recon.api.Track;
 import com.wf.wflib.recon.api.TrackPicture;
 import net.minecraft.core.BlockPos;

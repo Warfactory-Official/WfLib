@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.ammo.api.Ammo;
 import com.wf.wflib.ammo.api.AmmoItems;
 import com.wf.wflib.ammo.api.AmmoPresets;
@@ -90,6 +91,12 @@ public record StrappedExplosive(ItemStack stack, float massKg) {
             @Nullable
             public UUID igniterFactionId() {
                 return faction;
+            }
+
+            @Override
+            @Nullable
+            public BlastPayload payload() {
+                return preset.payload();
             }
         }, at);
     }

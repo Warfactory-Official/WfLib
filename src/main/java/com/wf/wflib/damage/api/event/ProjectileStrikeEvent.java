@@ -25,7 +25,17 @@ public class ProjectileStrikeEvent extends Event {
         /** Nothing solid in the path after all: keep flying. */
         PASS,
         /** Skipped off the armour: no damage, flies on at {@link #ricochet()} from {@link #location}. */
-        RICOCHET
+        RICOCHET,
+        /**
+         * Armour defeated the round: damage lands, the round ends at {@link #location} and goes off there only if it
+         * detonates on entities ({@code post_pen} fuze: never armed, lost).
+         */
+        STOP,
+        /**
+         * Round came out the far side: damage lands, it flies on from {@link #location} at {@link #through()}.
+         * {@code post_pen} fuze: goes off at {@link #detonation()}, else a metre along the line.
+         */
+        THROUGH
     }
 
     @Nullable
@@ -41,10 +51,13 @@ public class ProjectileStrikeEvent extends Event {
     @Nullable
     private Vec3 detonation;
     private boolean canRicochet;
+    private float penExponent = 2.0f;
     @Nullable
     private Entity shooter;
     @Nullable
     private Vec3 ricochet;
+    @Nullable
+    private Vec3 through;
 
     public ProjectileStrikeEvent(Entity projectile, Entity target, Vec3 location, Vec3 velocity, Threat threat) {
         this(projectile, projectile, target, location, velocity, threat);
@@ -105,10 +118,13 @@ public class ProjectileStrikeEvent extends Event {
         return outcome;
     }
 
-    /** {@link Outcome#RICOCHET} => {@link #ricochet(Vec3)}. */
+    /** {@link Outcome#RICOCHET} => {@link #ricochet(Vec3)}, {@link Outcome#THROUGH} => {@link #through(Vec3)}. */
     public void setOutcome(Outcome outcome) {
         if (outcome == Outcome.RICOCHET) {
             throw new IllegalArgumentException("ricochet(velocity)");
+        }
+        if (outcome == Outcome.THROUGH) {
+            throw new IllegalArgumentException("through(velocity)");
         }
         this.outcome = outcome;
     }
@@ -120,6 +136,16 @@ public class ProjectileStrikeEvent extends Event {
 
     public ProjectileStrikeEvent allowRicochet() {
         this.canRicochet = true;
+        return this;
+    }
+
+    /** Exponent of the round's armour pen against speed ({@code pen * (v / v0)^n}); 2 unless the striker sets it. */
+    public float penExponent() {
+        return penExponent;
+    }
+
+    public ProjectileStrikeEvent withPenExponent(float exponent) {
+        this.penExponent = exponent;
         return this;
     }
 
@@ -146,6 +172,20 @@ public class ProjectileStrikeEvent extends Event {
     @Nullable
     public Vec3 ricochet() {
         return ricochet;
+    }
+
+    /** {@link Outcome#THROUGH} at {@code velocity} (blocks/tick), the round's own units; not zero. */
+    public void through(Vec3 velocity) {
+        if (velocity.lengthSqr() < 1.0e-12) {
+            throw new IllegalArgumentException("through at rest: STOP");
+        }
+        this.outcome = Outcome.THROUGH;
+        this.through = velocity;
+    }
+
+    @Nullable
+    public Vec3 through() {
+        return through;
     }
 
     /** Where the warhead functioned when a listener moved it off {@link #location} (a cage, a brick); else null. */

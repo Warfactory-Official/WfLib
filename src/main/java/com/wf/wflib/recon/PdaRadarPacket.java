@@ -1,7 +1,7 @@
 package com.wf.wflib.recon;
 
 import com.wf.wflib.pda.api.Uplink;
-import com.wf.wflib.recon.scope.ScopeFrame;
+import com.wf.wflib.recon.api.ScopeFrame;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -26,13 +26,13 @@ public record PdaRadarPacket(boolean hasNet, Uplink.Link link, @Nullable ScopeFr
         buf.writeEnum(pkt.link);
         buf.writeBoolean(pkt.frame != null);
         if (pkt.frame != null) {
-            ScopeFramePacket.write(buf, pkt.frame);
+            ScopeFrame.STREAM_CODEC.encode(buf, pkt.frame);
         }
     }
 
     private static PdaRadarPacket read(RegistryFriendlyByteBuf buf) {
         boolean hasNet = buf.readBoolean();
         Uplink.Link link = buf.readEnum(Uplink.Link.class);
-        return new PdaRadarPacket(hasNet, link, buf.readBoolean() ? ScopeFramePacket.read(buf) : null);
+        return new PdaRadarPacket(hasNet, link, buf.readBoolean() ? ScopeFrame.STREAM_CODEC.decode(buf) : null);
     }
 }

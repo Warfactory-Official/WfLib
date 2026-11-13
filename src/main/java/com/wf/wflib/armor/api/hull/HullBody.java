@@ -27,4 +27,9 @@ public interface HullBody {
 
     @Nullable
     HullProfile hullProfile();
+
+    /** Brick {@code cell} of the integral ERA array on plate {@code plateId} still live? Default: every brick. */
+    default boolean eraLive(String plateId, int cell) {
+        return true;
+    }
 }

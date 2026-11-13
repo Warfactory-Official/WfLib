@@ -1,10 +1,8 @@
-package com.wf.wflib.recon.scope;
+package com.wf.wflib.recon.api;
 
-import com.wf.wflib.recon.api.ContactClass;
-import com.wf.wflib.recon.api.IffState;
-import com.wf.wflib.recon.api.Track;
-import com.wf.wflib.recon.api.TrackPicture;
-import com.wf.wflib.recon.api.TrackQuality;
+
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +22,9 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
     public static final int MAX_BLIPS = 128;
     /** Logged events a frame carries. */
     public static final int MAX_EVENTS = 6;
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, ScopeFrame> STREAM_CODEC =
+            StreamCodec.of(ScopeFrame::write, ScopeFrame::read);
 
     public static final ScopeFrame EMPTY =
             new ScopeFrame(0L, 0.0, 0.0, 0.0, 1.0, 0L, List.of(), List.of());
@@ -65,7 +66,7 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
          */
         public String bandTag() {
             StringBuilder out = new StringBuilder(3);
-            com.wf.wflib.recon.api.Band[] all = com.wf.wflib.recon.api.Band.VALUES;
+            Band[] all = Band.VALUES;
             for (int i = 0; i < all.length; i++) {
                 if ((bands & (1 << i)) != 0) {
                     out.append(all[i].tag());
@@ -125,7 +126,7 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
      */
     public static ScopeFrame of(long netId, double originX, double originY, double originZ,
                                 double range, TrackPicture picture,
-                                List<com.wf.wflib.recon.api.SeismicFix> logged, long now) {
+                                List<SeismicFix> logged, long now) {
         List<Track> tracks = picture.tracks();
         List<Blip> blips = new ArrayList<>(Math.min(tracks.size(), MAX_BLIPS));
         for (int i = 0; i < tracks.size() && blips.size() < MAX_BLIPS; i++) {
@@ -142,7 +143,7 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
 
         List<Event> events = new ArrayList<>(Math.min(logged.size(), MAX_EVENTS));
         for (int i = 0; i < logged.size() && events.size() < MAX_EVENTS; i++) {
-            com.wf.wflib.recon.api.SeismicFix fix = logged.get(i);
+            SeismicFix fix = logged.get(i);
             events.add(new Event((float) fix.x(), (float) fix.y(), (float) fix.z(),
                     (float) fix.positionError(), (float) fix.power(),
                     (int) Math.max(0L, (now - fix.gameTime()) / 20L),
@@ -150,5 +151,70 @@ public record ScopeFrame(long netId, double originX, double originY, double orig
         }
         return new ScopeFrame(netId, originX, originY, originZ, range, picture.gameTime(),
                 List.copyOf(blips), List.copyOf(events));
+    }
+
+    private static void write(RegistryFriendlyByteBuf buf, ScopeFrame frame) {
+        buf.writeLong(frame.netId());
+        buf.writeDouble(frame.originX());
+        buf.writeDouble(frame.originY());
+        buf.writeDouble(frame.originZ());
+        buf.writeDouble(frame.range());
+        buf.writeVarLong(frame.gameTime());
+        List<ScopeFrame.Blip> blips = frame.blips();
+        buf.writeVarInt(blips.size());
+        for (int i = 0; i < blips.size(); i++) {
+            ScopeFrame.Blip blip = blips.get(i);
+            buf.writeFloat(blip.x());
+            buf.writeFloat(blip.y());
+            buf.writeFloat(blip.z());
+            buf.writeFloat(blip.error());
+            buf.writeFloat(blip.confidence());
+            buf.writeByte(blip.quality());
+            buf.writeByte(blip.kind());
+            buf.writeByte(blip.iff());
+            buf.writeShort(blip.count());
+            buf.writeShort(blip.age());
+            buf.writeByte(blip.bands());
+            buf.writeByte(blip.hops());
+        }
+        List<ScopeFrame.Event> events = frame.events();
+        buf.writeVarInt(events.size());
+        for (int i = 0; i < events.size(); i++) {
+            ScopeFrame.Event event = events.get(i);
+            buf.writeFloat(event.x());
+            buf.writeFloat(event.y());
+            buf.writeFloat(event.z());
+            buf.writeFloat(event.error());
+            buf.writeFloat(event.power());
+            buf.writeVarInt(event.ageSeconds());
+            buf.writeByte(event.stations());
+            buf.writeBoolean(event.subsurface());
+        }
+    }
+
+    private static ScopeFrame read(RegistryFriendlyByteBuf buf) {
+        long netId = buf.readLong();
+        double x = buf.readDouble();
+        double y = buf.readDouble();
+        double z = buf.readDouble();
+        double range = buf.readDouble();
+        long gameTime = buf.readVarLong();
+        int count = Math.min(buf.readVarInt(), ScopeFrame.MAX_BLIPS);
+        List<ScopeFrame.Blip> blips = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            blips.add(new ScopeFrame.Blip(buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                    buf.readFloat(), buf.readFloat(),
+                    buf.readByte(), buf.readByte(), buf.readByte(),
+                    buf.readShort(), buf.readShort(),
+                    buf.readByte(), buf.readByte()));
+        }
+        int eventCount = Math.min(buf.readVarInt(), ScopeFrame.MAX_EVENTS);
+        List<ScopeFrame.Event> events = new ArrayList<>(eventCount);
+        for (int i = 0; i < eventCount; i++) {
+            events.add(new ScopeFrame.Event(buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                    buf.readFloat(), buf.readFloat(),
+                    buf.readVarInt(), buf.readByte(), buf.readBoolean()));
+        }
+        return new ScopeFrame(netId, x, y, z, range, gameTime, List.copyOf(blips), List.copyOf(events));
     }
 }

@@ -29,7 +29,7 @@ public interface DeckBody extends DeckCarrier, PhysicsBody {
     /** Non-body entity pushed against the hull: resolve it out, or onto the deck. */
     void support(Entity entity);
 
-    /** Carrier this body is mounted on; never its own deck's floor. */
+    /** Carrier this body rides now: parked/mounted, else the deck under it while awake. */
     @Nullable
-    DeckCarrier mountedOn();
+    DeckCarrier carriedBy();
 }

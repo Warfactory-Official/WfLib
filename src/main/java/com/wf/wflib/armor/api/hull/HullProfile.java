@@ -9,13 +9,10 @@ import java.util.Objects;
 
 /**
  * Hull faces, slope included. All-zero => unarmoured. {@code parts}: a part's own faces in its frame (turret).
- * {@code zones}: boxes overriding both (weak spots, real plates).
+ * {@code zones}: boxes overriding both (weak spots). {@code plates}: named plates bound by the mesh
+ * ({@link HullMesh.Strike#plate}), overriding zones.
  */
 public class HullProfile extends HullFaces {
-
-    /** Degrees from surface normal past which a shot ricochets; overmatch overrides. */
-    @SerializedName("ricochet_angle")
-    public float ricochetAngle = 70;
 
     /** Thickness fraction a fully worn {@link HullWear} region keeps. */
     @SerializedName("wear_floor")
@@ -25,23 +22,35 @@ public class HullProfile extends HullFaces {
     @SerializedName("parts")
     public Map<String, HullFaces> parts = Map.of();
 
+    @Override
+    public boolean isDefined() {
+        return super.isDefined() || !plates.isEmpty();
+    }
+
+    /** Compiles every plate; an invalid one => {@link IllegalStateException} naming it. */
+    public void validate() {
+        plates.forEach((id, spec) -> spec.compile(id));
+    }
+
+    /** Plate id -> plate; call {@link #validate} after loading. */
+    @SerializedName("plates")
+    public Map<String, PlateSpec> plates = Map.of();
+
     /** First match wins. */
     @SerializedName("zones")
     public List<Zone> zones = List.of();
 
     /**
-     * Box in model coordinates at rest ({@code part}: that part's rest pose, moves with it).
+     * Box in model coordinates at rest ({@code part}: that part's rest pose, moves with it). RHAe, slope included,
+     * incidence vs the face.
      *
-     * @param plate true: real plate, incidence vs the struck surface ({@link HullMesh.Strike#armor} rule); false:
-     *              RHAe, slope included, incidence vs the face
      * @param ce    0 = {@code ke}
      * @param face  null = any
      */
     public record Zone(@SerializedName("name") String name, @SerializedName("part") @Nullable String part,
                        @SerializedName("face") @Nullable HullFace face,
                        @SerializedName("min") float[] min, @SerializedName("max") float[] max,
-                       @SerializedName("ke") float ke, @SerializedName("ce") float ce,
-                       @SerializedName("plate") boolean plate) {
+                       @SerializedName("ke") float ke, @SerializedName("ce") float ce) {
 
         public boolean matches(@Nullable String part, HullFace face, float x, float y, float z) {
             return Objects.equals(this.part, part) && (this.face == null || this.face == face)

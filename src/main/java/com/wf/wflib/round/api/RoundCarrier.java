@@ -1,5 +1,6 @@
 package com.wf.wflib.round.api;
 
+import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.warhead.api.WarheadCarrier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -30,5 +31,11 @@ record RoundCarrier(Level level, KineticPreset preset, Vec3 angle, @Nullable Ent
     @Override
     public boolean breaksBlocks() {
         return this.preset.breaksBlocks();
+    }
+
+    @Nullable
+    @Override
+    public BlastPayload payload() {
+        return this.preset.payload();
     }
 }
