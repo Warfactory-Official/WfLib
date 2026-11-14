@@ -31,6 +31,7 @@ Missing subject => NUM NaN, BOOL false, TEXT empty, list empty.
 - `?:` lowest precedence => Java-spliced fragments containing one need parens: `x + " + 8"` with `x = "a ? b : c"` adds 8 to `c` only.
 - Literals: numbers, `#RRGGBB` (opaque), `#AARRGGBB`, `true`, `false`, `pi`. Units: `3px` (framebuffer px), `2gu` (host / GUI px), `50vw`, `50vh`. Choice value: `subject.signal.value` => its index.
 - Functions: `abs sign floor ceil round trunc fract sqrt sin cos tan asin acos atan exp log deg rad isnan atan2 pow hypot min max(2+) mod step nz alpha clamp lerp invlerp smoothstep wrap rgb mixc rgba remap`; `blink(period)` (time); `smooth(x, tau_s)`, `rate(x)`, `since(cond)` (s held, 0 when false), `age(x)` (s since value changed) keep state => refused inside `repeat`. State advances only while evaluated: inside a hidden `when` branch it freezes => latch on a stand / reset = Java signal.
+- `lit {child}`: area non-emissive on world screens (canvas alpha = glow mask; default 1). Draw glowing parts after it. Needs slot `emissionMask` (CA `VehicleScreens` auto when `WorldScreens.masked`).
 - Compiled: ASM => hidden class per non-constant expression (`ExprCompiler`); constant subtrees folded. `-Dwflib.ui.interpret=true` => tree interpreter (`Node.eval`), the reference semantics; `ExprTest` diffs both over 3000 random trees, NaN cases included.
 
 ## 92. Templates (`TextProp`)

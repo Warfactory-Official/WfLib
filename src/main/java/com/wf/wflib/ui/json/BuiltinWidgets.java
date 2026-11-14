@@ -32,6 +32,7 @@ import com.wf.wflib.ui.api.widget.Stack;
 import com.wf.wflib.ui.api.widget.Tape;
 import com.wf.wflib.ui.api.widget.Text;
 import com.wf.wflib.ui.api.widget.Transform;
+import com.wf.wflib.ui.api.widget.Lit;
 import com.wf.wflib.ui.api.widget.When;
 import net.minecraft.resources.ResourceLocation;
 
@@ -65,6 +66,7 @@ public final class BuiltinWidgets {
                 p.widget("child")));
         add("text", p -> new Text(p.template("text"), p.expr("color", WHITE), p.flag("shadow", false),
                 p.expr("scale", "1"), p.expr("max_width", "0")));
+        add("lit", p -> new Lit(p.widget("child")));
         add("when", p -> new When(p.expr("if"), p.widget("then"), p.widgetOrNull("else")));
         add("ammo_glyph", p -> new AmmoGlyph(p.number("size", 8), p.expr("alpha", "1")));
         add("key_hint", p -> {

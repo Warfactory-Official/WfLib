@@ -70,6 +70,11 @@ public final class WorldScreens {
         return true;
     }
 
+    /** {@link UiSurfaces#masked} */
+    public static boolean masked(Object key) {
+        return UiSurfaces.masked(key);
+    }
+
     private static int pixelsPerUnit(Object key, float distance, float width, float unitsWidth, float unitsHeight) {
         float ndcHalf = RenderSystem.getProjectionMatrix().m00() * width / 2 / Math.max(distance, 0.05f);
         float wanted = ndcHalf * Minecraft.getInstance().getWindow().getWidth() / unitsWidth;

@@ -4,6 +4,7 @@ import com.wf.gemrender.ui.Canvas;
 import com.wf.gemrender.ui.CanvasTarget;
 import com.wf.wflib.cam.api.client.FeedTexture;
 import com.wf.wflib.ui.api.input.UiInput;
+import com.wf.wflib.ui.api.widget.Lit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -45,6 +46,7 @@ public final class UiSurfaces {
         float contentH;
         int maxFps;
         int clear;
+        boolean masked;
         long requestedFrame;
         long drawnNanos = Long.MIN_VALUE / 2;
 
@@ -99,6 +101,12 @@ public final class UiSurfaces {
         return surface == null ? 0 : surface.target.width();
     }
 
+    /** Last drawn picture of {@code key}'s surface has {@link Lit} areas: its alpha is an emission mask. */
+    public static boolean masked(Object key) {
+        Surface surface = SURFACES.get(key);
+        return surface != null && surface.masked;
+    }
+
     /** Pointer input of {@code key}'s surface (enabled on first call); null while it has none. */
     public static UiInput input(Object key) {
         Surface surface = SURFACES.get(key);
@@ -133,6 +141,7 @@ public final class UiSurfaces {
                 surface.instance.render(canvas, (surface.unitsW - surface.contentW) / 2, (surface.unitsH - surface.contentH) / 2,
                         surface.contentW, surface.contentH, partialTick);
             } finally {
+                surface.masked = canvas.masked();
                 canvas.end();
                 UiStats.end();
             }
