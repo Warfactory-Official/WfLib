@@ -167,6 +167,11 @@ public final class PlayerArms {
 
     /** Both arms in {@code player}'s skin + worn glTF armour arms; a skin sleeve only while its layer shows, uncovered. */
     public void submit(Matrix4f base, int light, int argb, AbstractClientPlayer player) {
+        submit(base, light, argb, player, DirectPass.HAND);
+    }
+
+    /** {@code pass} {@link DirectPass#LEVEL}: {@code base} = camera-relative world (view axes onto world). */
+    public void submit(Matrix4f base, int light, int argb, AbstractClientPlayer player, DirectPass pass) {
         boolean[] covered = new boolean[2];
         boolean armoured = ArmorSystem.active();
         for (ItemStack worn : player.getArmorSlots()) {
@@ -191,12 +196,12 @@ public final class PlayerArms {
         for (ItemStack worn : player.getArmorSlots()) {
             GemRenderGltfModel armour = armoured ? ArmorPieceClient.model(worn) : null;
             if (armour != null) {
-                armour(armour, base, light, argb);
+                armour(armour, base, light, argb, pass);
             }
         }
         bindSkins();
         draw(base, light, argb, player.getSkin(), !covered[0] && player.isModelPartShown(PlayerModelPart.RIGHT_SLEEVE),
-                !covered[1] && player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE));
+                !covered[1] && player.isModelPartShown(PlayerModelPart.LEFT_SLEEVE), pass);
     }
 
     /** Bare arms in {@code skin}, both sleeves shown; for views with no player entity (title screen). */
@@ -204,7 +209,7 @@ public final class PlayerArms {
         palette(0, false);
         palette(1, false);
         bindSkins();
-        draw(base, light, argb, skin, true, true);
+        draw(base, light, argb, skin, true, true, DirectPass.HAND);
     }
 
     private void bindSkins() {
@@ -217,7 +222,7 @@ public final class PlayerArms {
     }
 
     private void draw(Matrix4f base, int light, int argb, PlayerSkin skin, boolean rightSleeveShown,
-                      boolean leftSleeveShown) {
+                      boolean leftSleeveShown, DirectPass pass) {
         boolean test = ViewClientConfig.armTestSkin();
         ResourceLocation texture = test ? TEST_SKIN : skin.texture();
         boolean slim = !test && skin.model() == PlayerSkin.Model.SLIM;
@@ -230,7 +235,7 @@ public final class PlayerArms {
                     case "player_sleeve_left" -> leftSleeve ? texture : null;
                     default -> throw new IllegalStateException(MODEL + ": unknown texture slot " + slot);
                 };
-        DirectRenderer.submit(model, palette, null, base, light, OverlayTexture.NO_OVERLAY, argb, DirectPass.HAND,
+        DirectRenderer.submit(model, palette, null, base, light, OverlayTexture.NO_OVERLAY, argb, pass,
                 VariantUv.NONE, Paint.NONE, 0, rest, slots);
     }
 
@@ -245,7 +250,7 @@ public final class PlayerArms {
     }
 
     /** {@code armour}'s arm nodes on the posed bones; other nodes collapsed. */
-    private void armour(GemRenderGltfModel armour, Matrix4f base, int light, int argb) {
+    private void armour(GemRenderGltfModel armour, Matrix4f base, int light, int argb, DirectPass pass) {
         NodeTable table = armour.layout().nodeTable();
         Matrix4f[] out = sleeves.computeIfAbsent(armour, GemRenderGltfModel::newPalette);
         for (Matrix4f m : out) {
@@ -271,7 +276,7 @@ public final class PlayerArms {
             }
         }
         if (any) {
-            DirectRenderer.submit(armour, out, null, base, light, OverlayTexture.NO_OVERLAY, argb, DirectPass.HAND,
+            DirectRenderer.submit(armour, out, null, base, light, OverlayTexture.NO_OVERLAY, argb, pass,
                     VariantUv.NONE, Paint.NONE, 0, out);
         }
     }
