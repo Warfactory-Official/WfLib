@@ -289,14 +289,14 @@ dependencies {
     // one instance each posed from a shared bone palette, instead of one instance per moving part.
     // A local jar because GemRender is not published anywhere yet; declared required in the toml, so
     // it is not jar-in-jar'd either.
-    compileOnly "com.wf.gemrender:gemrender-1.21.1:${gemrender_version}-SNAPSHOT"
+    compileOnly "com.wf.gemrender:gemrender-1.21.1:[${gemrender_version}-SNAPSHOT,1)"
     // Client runs only, for the same reason as JourneyMap below: GemRender jar-in-jars lwjgl-ktx for its
     // KTX2 textures, and that module requires org.lwjgl, which a dedicated server does not have on its
     // module path. FML dies building the transforming module layer before any mod is constructed. The
     // dependency is declared side = "CLIENT" in neoforge.mods.toml, so the server never wanted it: the
     // server does not build a rig.
     if (!gradle.startParameter.taskNames.any { it.toLowerCase().contains('server') }) {
-        localRuntime "com.wf.gemrender:gemrender-1.21.1:${gemrender_version}-SNAPSHOT"
+        localRuntime "com.wf.gemrender:gemrender-1.21.1:[${gemrender_version}-SNAPSHOT,1)"
     }
 
     // --- Concentus (pure-Java Opus decoder): radio stations ------------------------------------
@@ -519,6 +519,7 @@ tasks.withType(JavaCompile).configureEach {
 
 configurations.all {
     resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
+    resolutionStrategy.cacheDynamicVersionsFor(0, 'seconds')
 }
 
 publishing {
