@@ -1,10 +1,12 @@
 package com.wf.wflib.ammo.client;
 
 import com.wf.gemrender.rig.RigGeometry;
+import com.wf.wflib.ammo.AmmoCatalogue;
 import com.wf.wflib.ammo.api.Ammo;
 import com.wf.wflib.ammo.api.AmmoVariant;
 import com.wf.wflib.ammo.api.Calibre;
 import com.wf.wflib.ammo.api.ProjectileLook;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +17,7 @@ class AmmoMeshesTest {
 
     @BeforeAll
     static void defineCatalogue() {
-        com.wf.wflib.ammo.AmmoCatalogue.define();
+        AmmoCatalogue.define();
     }
 
     private static final AmmoMeshes.Uv UV = new AmmoMeshes.Uv() {
@@ -106,8 +108,8 @@ class AmmoMeshesTest {
 
     @Test
     void tipColouredOnlyWhenSet() {
-        Calibre c = Ammo.catalogueCalibre(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wflib", "5.56x45"));
-        AmmoVariant m855 = Ammo.catalogueVariant(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wflib",
+        Calibre c = Ammo.catalogueCalibre(ResourceLocation.fromNamespaceAndPath("wflib", "5.56x45"));
+        AmmoVariant m855 = Ammo.catalogueVariant(ResourceLocation.fromNamespaceAndPath("wflib",
                 "5.56x45/ball"));
         RigGeometry g = AmmoMeshes.cartridge(c, ProjectileLook.resolve(c, m855), ProjectileLook.COPPER, UV);
         float tipU = UV.u(m855.tip()), tipV = UV.v(m855.tip());

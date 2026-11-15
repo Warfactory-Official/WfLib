@@ -7,6 +7,7 @@ import com.wf.wflib.orbital.api.OrbitalNet;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import com.wf.wflib.orbital.debug.OrbitalCommands;
 import com.wf.wflib.cam.api.VirtualFeeds;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.orbital.api.CargoTable;
 import com.wf.wflib.orbital.api.OrbitalContent;
@@ -44,6 +45,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.TerminalNoun;
+import com.wf.wflib.pda.api.Uplink;
 
 /** Satellites: orbits, payloads, ground stations, pads and shuttles, the PDA console and the survey screen. */
 public final class OrbitalSystem implements WFSystem {
@@ -59,7 +62,7 @@ public final class OrbitalSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("orbital", 350, out -> {
+        CreativeTabs.contribute("orbital", 350, out -> {
             out.accept(OrbitalContent.LANDING_PAD_ITEM.get());
             out.accept(OrbitalContent.CARGO_SHUTTLE_ITEM.get());
         });
@@ -114,7 +117,7 @@ public final class OrbitalSystem implements WFSystem {
         Warheads.register(OrbitalWarheads.CARGO_LANDING, OrbitalWarheads.detonation(OrbitalWarheads.CARGO_LANDING));
         Warheads.register(OrbitalWarheads.CARGO_LANDING_SOFT,
                 OrbitalWarheads.detonation(OrbitalWarheads.CARGO_LANDING_SOFT));
-        com.wf.wflib.pda.api.Uplink.RELAYS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "satellites"), 0,
+        Uplink.RELAYS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "satellites"), 0,
                 (level, netId, player) -> {
                     for (var sat : OrbitalNet.overhead(level, netId, player.getX(), player.getZ())) {
                         if (sat.inContact() && sat.payload().equals(SatPayloads.RELAY)) {
@@ -123,7 +126,7 @@ public final class OrbitalSystem implements WFSystem {
                     }
                     return false;
                 });
-        com.wf.wflib.pda.api.TerminalNoun.NOUNS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "sats"),
+        TerminalNoun.NOUNS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "sats"),
                 100, SatTerminal.INSTANCE);
         VirtualFeeds.FEEDS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "orbital_spots"), 0,
                 SpotFeeds.FEED);

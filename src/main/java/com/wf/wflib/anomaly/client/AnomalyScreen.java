@@ -11,6 +11,8 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import java.util.HashMap;
 import java.util.Map;
 import com.wf.wflib.core.api.WFLib;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * Anomalies colour the screen as the player nears them (X-Ray {@code CZoneEffector}): each zone class's
@@ -52,7 +54,7 @@ public final class AnomalyScreen {
             Map.entry(AnomalyType.THERMAL_FIELD, THERMAL), Map.entry(AnomalyType.ACID_FIELD, ACIDIC),
             Map.entry(AnomalyType.PSY_FIELD, PSI));
 
-    private static final java.util.List<Zone> ALL = java.util.List.copyOf(new java.util.HashSet<>(ZONES.values()));
+    private static final List<Zone> ALL = List.copyOf(new HashSet<>(ZONES.values()));
     private static final Map<Zone, Float> FACTOR = new HashMap<>();
 
     private AnomalyScreen() {

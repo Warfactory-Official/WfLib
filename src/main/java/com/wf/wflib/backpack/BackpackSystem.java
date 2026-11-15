@@ -24,6 +24,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
 
 /** Worn backpack: slots in the player inventory menu, probe-opened by others. Packs come from dependents ({@code BackpackItem}). */
 public final class BackpackSystem implements WFSystem {
@@ -74,7 +75,7 @@ public final class BackpackSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent e) -> Backpacks.sync(e.getEntity()));
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerRespawnEvent e) -> Backpacks.sync(e.getEntity()));
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e) -> Backpacks.sync(e.getEntity()));
-        if (com.wf.wflib.core.api.WFSystems.enabled("probe")) {
+        if (WFSystems.enabled("probe")) {
             BackpackProbe.registerServer();
         }
     }

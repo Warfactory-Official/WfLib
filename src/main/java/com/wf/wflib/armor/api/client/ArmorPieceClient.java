@@ -1,8 +1,16 @@
 package com.wf.wflib.armor.api.client;
 
+import com.wf.gemrender.asset.GemRenderModels;
+import com.wf.gemrender.asset.ModelCache;
+import com.wf.gemrender.direct.ArmorAppearance;
+import com.wf.gemrender.direct.GemRenderArmorModel;
+import com.wf.gemrender.gltf.GemRenderGltfModel;
+import com.wf.gemrender.gltf.NodeTable;
 import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.armor.api.ArmorPieceItem;
 import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.nvg.api.NvgWorn;
+import com.wf.wflib.nvg.api.client.NvgItemClient;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.resources.ResourceLocation;
@@ -15,10 +23,12 @@ import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 import com.wf.wflib.skin.api.Skinnable;
 import com.wf.wflib.skin.api.Skins;
+import com.wf.wflib.skin.api.client.SkinModels;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * No {@code model} on a preset => vanilla's humanoid armour model, untouched by GemRender. A rigged
@@ -56,7 +66,7 @@ public final class ArmorPieceClient {
         // Null check first: GemRenderArmor only classloads on first use, so a mod with no glTF
         // armour never touches GemRender's model types at all.
         return model == null ? VANILLA : BY_MODEL.computeIfAbsent(model, m -> new GemRenderArmor(
-                List.of(com.wf.gemrender.asset.GemRenderModels.armor(m)), preset.nvgMount()));
+                List.of(GemRenderModels.armor(m)), preset.nvgMount()));
     }
 
     /** {@link #of(ArmorPreset)}, wearing the stack's skin when {@code piece} is {@link Skinnable}. */
@@ -67,12 +77,12 @@ public final class ArmorPieceClient {
             return of(preset);
         }
         return BY_SKINS.computeIfAbsent(List.of(preset.model(), skins, preset.nvgMount()), k -> new GemRenderArmor(
-                com.wf.wflib.skin.api.client.SkinModels.armor(preset.model(), skins), preset.nvgMount()));
+                SkinModels.armor(preset.model(), skins), preset.nvgMount()));
     }
 
     /** Worn piece's glTF; null = no glTF piece or not loaded yet. */
-    @org.jetbrains.annotations.Nullable
-    public static com.wf.gemrender.gltf.GemRenderGltfModel model(ItemStack stack) {
+    @Nullable
+    public static GemRenderGltfModel model(ItemStack stack) {
         return stack.getItem() instanceof ArmorPieceItem piece && piece.preset().model() != null
                 && of(piece) instanceof GemRenderArmor armor ? armor.skin(stack).get() : null;
     }
@@ -81,7 +91,7 @@ public final class ArmorPieceClient {
     @SubscribeEvent
     public static void hideCovered(RenderPlayerEvent.Pre e) {
         int covered = 0;
-        for (net.minecraft.world.item.ItemStack worn : e.getEntity().getArmorSlots()) {
+        for (ItemStack worn : e.getEntity().getArmorSlots()) {
             if (worn.getItem() instanceof ArmorPieceItem piece && piece.preset().model() != null
                     && of(piece) instanceof GemRenderArmor armor) {
                 covered |= armor.covers();
@@ -99,35 +109,35 @@ public final class ArmorPieceClient {
     private static final class GemRenderArmor implements IClientItemExtensions {
 
         /** Model i = {@link Skinnable} skin i; one when not skinned. */
-        private final List<com.wf.gemrender.asset.ModelCache.Handle<com.wf.gemrender.gltf.GemRenderGltfModel>> models;
+        private final List<ModelCache.Handle<GemRenderGltfModel>> models;
         private final boolean nvgMount;
-        private com.wf.gemrender.direct.GemRenderArmorModel armorModel;
+        private GemRenderArmorModel armorModel;
         /** {@link #NODES} bits; -1 = model not loaded yet. */
         private int covers = -1;
 
-        private GemRenderArmor(List<com.wf.gemrender.asset.ModelCache.Handle<com.wf.gemrender.gltf.GemRenderGltfModel>> models, boolean nvgMount) {
+        private GemRenderArmor(List<ModelCache.Handle<GemRenderGltfModel>> models, boolean nvgMount) {
             this.models = models;
             this.nvgMount = nvgMount;
         }
 
-        private com.wf.gemrender.asset.ModelCache.Handle<com.wf.gemrender.gltf.GemRenderGltfModel> skin(ItemStack stack) {
+        private ModelCache.Handle<GemRenderGltfModel> skin(ItemStack stack) {
             return models.get(SKIN ? Math.min(Skins.index(stack), models.size() - 1) : 0);
         }
 
         @Override
         public HumanoidModel<?> getHumanoidArmorModel(LivingEntity entity, ItemStack stack,
                                                       EquipmentSlot slot, HumanoidModel<?> original) {
-            com.wf.gemrender.direct.GemRenderArmorModel armor = armorModel();
+            GemRenderArmorModel armor = armorModel();
             return armor == null ? original : armor.prepare(entity, stack, slot);
         }
 
         int covers() {
             if (covers < 0) {
-                com.wf.gemrender.gltf.GemRenderGltfModel m = models.getFirst().get();
+                GemRenderGltfModel m = models.getFirst().get();
                 if (m == null) {
                     return 0;
                 }
-                com.wf.gemrender.gltf.NodeTable table = m.layout().nodeTable();
+                NodeTable table = m.layout().nodeTable();
                 int bits = 0;
                 for (int i = 0; i < NODES.length; i++) {
                     if (table.slotOfName(NODES[i]) >= 0) {
@@ -139,12 +149,12 @@ public final class ArmorPieceClient {
             return covers;
         }
 
-        private com.wf.gemrender.direct.GemRenderArmorModel armorModel() {
+        private GemRenderArmorModel armorModel() {
             if (armorModel == null) {
-                armorModel = new com.wf.gemrender.direct.GemRenderArmorModel(
-                        new com.wf.gemrender.direct.ArmorAppearance() {
+                armorModel = new GemRenderArmorModel(
+                        new ArmorAppearance() {
                             @Override
-                            public com.wf.gemrender.gltf.GemRenderGltfModel model(LivingEntity entity,
+                            public GemRenderGltfModel model(LivingEntity entity,
                                                                                   ItemStack stack, EquipmentSlot slot) {
                                 return skin(stack).get();
                             }
@@ -153,8 +163,8 @@ public final class ArmorPieceClient {
                             public void attachments(LivingEntity entity, ItemStack stack, EquipmentSlot slot,
                                                     Attachments out) {
                                 if (nvgMount && NVG) {
-                                    com.wf.wflib.nvg.api.client.NvgItemClient.attach(entity,
-                                            com.wf.wflib.nvg.api.NvgWorn.mounted(stack), out);
+                                    NvgItemClient.attach(entity,
+                                            NvgWorn.mounted(stack), out);
                                 }
                             }
                         });

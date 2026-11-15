@@ -2,6 +2,7 @@ package com.wf.wflib.recon.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import com.wf.wflib.recon.RadarScopeBlock;
 import com.wf.wflib.recon.RadarScopeBlockEntity;
 import net.minecraft.client.Minecraft;
@@ -43,7 +44,7 @@ public class RadarScopeRenderer implements BlockEntityRenderer<RadarScopeBlockEn
         Direction facing = scope.getBlockState().getValue(RadarScopeBlock.FACING);
         pose.pushPose();
         pose.translate(0.5f, 0.5f, 0.5f);
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-facing.toYRot()));
+        pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
         pose.translate(0.0f, 0.0f, 0.5f + STANDOFF);
 
         VertexConsumer buffer = buffers.getBuffer(RenderType.text(texture));

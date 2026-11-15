@@ -1,5 +1,6 @@
 package com.wf.wflib.armor;
 
+import com.wf.wflib.armor.api.ArmorContent;
 import com.wf.wflib.armor.api.ArmorExposure;
 import com.wf.wflib.armor.api.ArmorMaterials;
 import com.wf.wflib.armor.api.ArmorPieceItem;
@@ -11,11 +12,19 @@ import com.wf.wflib.armor.api.client.ArmorPieceClient;
 import com.wf.wflib.armor.api.exo.client.ExoClient;
 import com.wf.wflib.armor.api.exo.client.ExoPopupClient;
 import com.wf.wflib.armor.api.exo.EnergyCellItem;
+import com.wf.wflib.armor.api.exo.Exo;
 import com.wf.wflib.armor.api.exo.ExoConfig;
 import com.wf.wflib.armor.api.exo.ExoEvents;
 import com.wf.wflib.armor.api.exo.LifeSupport;
 import com.wf.wflib.armor.api.exo.ExoPackets;
+import com.wf.wflib.armor.api.exo.ExoPopup;
 import com.wf.wflib.armor.api.exo.ExoProfiles;
+import com.wf.wflib.armor.lab.ArmorHazards;
+import com.wf.wflib.armor.lab.ArmorLabContent;
+import com.wf.wflib.armor.lab.ExplosiveProducer;
+import com.wf.wflib.armor.lab.PersonalArmorProducer;
+import com.wf.wflib.carry.api.Shoulder;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLibContent;
 import com.wf.wflib.core.api.WFSystem;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -41,6 +50,9 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import java.util.List;
 import java.util.Map;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.labs.api.LabContents;
+import com.wf.wflib.labs.api.LabProducers;
 
 /** One DT/DR resolver for every hit, per protection type; wear and exposure on worn pieces. Catalogue items request-gated ({@code WFLibContent.armor}). */
 public final class ArmorSystem implements WFSystem {
@@ -66,9 +78,9 @@ public final class ArmorSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("armor", 240, out -> {
-            com.wf.wflib.armor.api.ArmorContent.items().forEach(item -> out.accept(item.get()));
-            for (var cell : java.util.List.of(EnergyCellItem.CELL, EnergyCellItem.CELL_LARGE)) {
+        CreativeTabs.contribute("armor", 240, out -> {
+            ArmorContent.items().forEach(item -> out.accept(item.get()));
+            for (var cell : List.of(EnergyCellItem.CELL, EnergyCellItem.CELL_LARGE)) {
                 out.accept(cell.get());
                 out.accept(cell.get().full());
             }
@@ -84,7 +96,7 @@ public final class ArmorSystem implements WFSystem {
         NeoForge.EVENT_BUS.register(ExoEvents.class);
         LifeSupport.registerDefaults();
 
-        com.wf.wflib.armor.api.exo.ExoPopup.register();
+        ExoPopup.register();
         ArmorComponents.register(modBus);
         modBus.addListener(ArmorSystem::onRegister);
         modBus.addListener(FMLCommonSetupEvent.class, event -> event.enqueueWork(() -> ArmorPresets.live()
@@ -93,9 +105,9 @@ public final class ArmorSystem implements WFSystem {
             ExoProfiles.author(preset.id(), preset.exo());
         })));
         modBus.addListener(FMLCommonSetupEvent.class, event -> event.enqueueWork(() -> {
-            if (com.wf.wflib.core.api.WFSystems.enabled("carry")) {
-                com.wf.wflib.carry.api.Shoulder.PERMIT.set(WFLib.MODID,
-                        p -> com.wf.wflib.armor.api.exo.Exo.effect(p).shoulder());
+            if (WFSystems.enabled("carry")) {
+                Shoulder.PERMIT.set(WFLib.MODID,
+                        p -> Exo.effect(p).shoulder());
             }
         }));
         ArmorExposure.SOURCES.register(ArmorPreset.rl("fire_lava"), 0, (entity, type) -> {
@@ -107,23 +119,23 @@ public final class ArmorSystem implements WFSystem {
             }
             return entity.isOnFire() ? ArmorConfig.get().fireTier() : 0.0D;
         });
-        if (com.wf.wflib.core.api.WFSystems.enabled("probe")) {
+        if (WFSystems.enabled("probe")) {
             DressProbe.registerServer();
         }
         NeoForge.EVENT_BUS.register(ArmorEvents.class);
-        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.armor.lab.PersonalArmorProducer());
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.armor.lab.ExplosiveProducer());
-            com.wf.wflib.labs.api.LabContents.register(new com.wf.wflib.armor.lab.ArmorLabContent());
-            com.wf.wflib.armor.lab.ArmorHazards.register(com.wf.wflib.core.api.WFSystems.enabled("hazard")
-                    && com.wf.wflib.core.api.WFSystems.enabled("radiation"));
+        if (WFSystems.enabled("labs")) {
+            LabProducers.register(new PersonalArmorProducer());
+            LabProducers.register(new ExplosiveProducer());
+            LabContents.register(new ArmorLabContent());
+            ArmorHazards.register(WFSystems.enabled("hazard")
+                    && WFSystems.enabled("radiation"));
         }
     }
 
     @Override
     public void registerClient(IEventBus modBus) {
         NeoForge.EVENT_BUS.register(ArmorPieceClient.class);
-        if (com.wf.wflib.core.api.WFSystems.enabled("probe")) {
+        if (WFSystems.enabled("probe")) {
             DressProbe.registerClient();
         }
         NeoForge.EVENT_BUS.register(ExoClient.class);

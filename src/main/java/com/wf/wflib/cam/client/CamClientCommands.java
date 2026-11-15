@@ -1,5 +1,6 @@
 package com.wf.wflib.cam.client;
 
+import com.wf.wflib.core.api.client.DebugGate;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -12,7 +13,7 @@ public final class CamClientCommands {
 
     public static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
         event.getDispatcher().register(OffscreenViewDebug.command());
-        event.getDispatcher().register(Commands.literal("wffeed").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed()).then(Commands.literal("cull")
+        event.getDispatcher().register(Commands.literal("wffeed").requires(s -> DebugGate.allowed()).then(Commands.literal("cull")
                 .then(Commands.literal("skip").executes(ctx -> probe(ctx.getSource(), FeedProbe.Mode.SKIP)))
                 .then(Commands.literal("evict").executes(ctx -> probe(ctx.getSource(), FeedProbe.Mode.EVICT)))));
     }

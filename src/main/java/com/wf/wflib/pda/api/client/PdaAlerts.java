@@ -49,7 +49,7 @@ public final class PdaAlerts {
     public static void register() {
         // Top-left: minimaps own top-right.
         UiLayout layout = layout(LAYOUT, place("6", "6", Point.TOP_LEFT, new Toasts())).absolute();
-        UiHud.addSource(UiHud.Layer.MAIN, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "pda_alerts"), 0, out -> {
+        UiHud.addSource(UiHud.Layer.MAIN, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_alerts"), 0, out -> {
             if (!ENTRIES.isEmpty() && PdaClient.carried()
                     && Util.getMillis() - ENTRIES.getFirst().at < TOAST_MS + FADE_MS) {
                 if (toasts == null) {

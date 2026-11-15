@@ -224,12 +224,12 @@ public final class OBB {
         double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY, maxZ = Double.NEGATIVE_INFINITY;
         for (OBB obb : obbs) {
             AABB b = obb.bounds();
-            minX = java.lang.Math.min(minX, b.minX);
-            minY = java.lang.Math.min(minY, b.minY);
-            minZ = java.lang.Math.min(minZ, b.minZ);
-            maxX = java.lang.Math.max(maxX, b.maxX);
-            maxY = java.lang.Math.max(maxY, b.maxY);
-            maxZ = java.lang.Math.max(maxZ, b.maxZ);
+            minX = Math.min(minX, b.minX);
+            minY = Math.min(minY, b.minY);
+            minZ = Math.min(minZ, b.minZ);
+            maxX = Math.max(maxX, b.maxX);
+            maxY = Math.max(maxY, b.maxY);
+            maxZ = Math.max(maxZ, b.maxZ);
         }
         return new AABB(minX, minY, minZ, maxX, maxY, maxZ);
     }
@@ -367,8 +367,8 @@ public final class OBB {
             }
             double t1 = (min - origin) / direction;
             double t2 = (max - origin) / direction;
-            tEnter = java.lang.Math.max(tEnter, java.lang.Math.min(t1, t2));
-            tExit = java.lang.Math.min(tExit, java.lang.Math.max(t1, t2));
+            tEnter = Math.max(tEnter, Math.min(t1, t2));
+            tExit = Math.min(tExit, Math.max(t1, t2));
             if (tEnter > tExit) {
                 return Optional.empty();
             }
@@ -458,16 +458,16 @@ public final class OBB {
         Vector3f local = new Vector3f((float) (worldPoint.x - cx), (float) (worldPoint.y - cy),
                 (float) (worldPoint.z - cz));
         rotation.conjugate(new Quaternionf()).transform(local);
-        float dx = extents.x - java.lang.Math.abs(local.x);
-        float dy = extents.y - java.lang.Math.abs(local.y);
-        float dz = extents.z - java.lang.Math.abs(local.z);
+        float dx = extents.x - Math.abs(local.x);
+        float dy = extents.y - Math.abs(local.y);
+        float dz = extents.z - Math.abs(local.z);
         Vector3f normal = new Vector3f();
         if (dx <= dy && dx <= dz) {
-            normal.x = java.lang.Math.signum(local.x);
+            normal.x = Math.signum(local.x);
         } else if (dy <= dz) {
-            normal.y = java.lang.Math.signum(local.y);
+            normal.y = Math.signum(local.y);
         } else {
-            normal.z = java.lang.Math.signum(local.z);
+            normal.z = Math.signum(local.z);
         }
         if (normal.lengthSquared() == 0) {
             normal.y = 1;
@@ -680,7 +680,7 @@ public final class OBB {
             if (lenSq > 1.0e-6f) {
                 o = h1 * a2j + h2 * a1j + ej1 * rowAbs(f, 0, j2) + ej2 * rowAbs(f, 0, j1) - Math.abs(t2 * r1j - t1 * r2j);
                 if (o <= 0) { dest.set(0); return 0; }
-                float len = (float) java.lang.Math.sqrt(lenSq);
+                float len = (float) Math.sqrt(lenSq);
                 float depth = o / len;
                 if (depth < best) { best = depth; bestX = 0; bestY = -r2j / len; bestZ = r1j / len; }
             }
@@ -688,7 +688,7 @@ public final class OBB {
             if (lenSq > 1.0e-6f) {
                 o = h2 * a0j + h0 * a2j + ej1 * rowAbs(f, 1, j2) + ej2 * rowAbs(f, 1, j1) - Math.abs(t0 * r2j - t2 * r0j);
                 if (o <= 0) { dest.set(0); return 0; }
-                float len = (float) java.lang.Math.sqrt(lenSq);
+                float len = (float) Math.sqrt(lenSq);
                 float depth = o / len;
                 if (depth < best) { best = depth; bestX = r2j / len; bestY = 0; bestZ = -r0j / len; }
             }
@@ -696,7 +696,7 @@ public final class OBB {
             if (lenSq > 1.0e-6f) {
                 o = h0 * a1j + h1 * a0j + ej1 * rowAbs(f, 2, j2) + ej2 * rowAbs(f, 2, j1) - Math.abs(t1 * r0j - t0 * r1j);
                 if (o <= 0) { dest.set(0); return 0; }
-                float len = (float) java.lang.Math.sqrt(lenSq);
+                float len = (float) Math.sqrt(lenSq);
                 float depth = o / len;
                 if (depth < best) { best = depth; bestX = -r1j / len; bestY = r0j / len; bestZ = 0; }
             }

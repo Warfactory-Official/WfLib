@@ -2,6 +2,7 @@ package com.wf.wflib.rail.excavate;
 
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -62,8 +63,8 @@ class CarveVolumeTest {
         assertFalse(cut.contains(4, 15, 4));
     }
 
-    @org.junit.jupiter.api.Test
-    @org.junit.jupiter.api.DisplayName("a straight route on a diagonal gets a straight corridor")
+    @Test
+    @DisplayName("a straight route on a diagonal gets a straight corridor")
     void diagonalCorridorDoesNotZigzag() {
         // Sampled every four blocks, the way TunnelBuilder walks a centreline. Snapping every one of
         // these to the block grid turns the line into a staircase whose segments sit well off the true
@@ -84,15 +85,15 @@ class CarveVolumeTest {
             double[] at = corridor.pointAt(s);
             double turn = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0,
                     at[2] * first[2] + at[3] * first[3]))));
-            org.junit.jupiter.api.Assertions.assertTrue(turn < 1.0,
+            Assertions.assertTrue(turn < 1.0,
                     "the corridor bends " + turn + " degrees at " + s + " on a straight route");
         }
         // And the surveyed line itself stays on the axis of its own tunnel, rather than being pushed
         // against one wall wherever a vertex was rounded the other way.
         for (int i = 1; i < parts; i++) {
             CarveVolume.Corridor.Local local = corridor.localAt(xs[i], zs[i], 1.0);
-            org.junit.jupiter.api.Assertions.assertNotNull(local);
-            org.junit.jupiter.api.Assertions.assertTrue(Math.abs(local.offset()) < 0.1,
+            Assertions.assertNotNull(local);
+            Assertions.assertTrue(Math.abs(local.offset()) < 0.1,
                     "the route sits " + local.offset() + " blocks off the middle of its own tunnel");
         }
     }

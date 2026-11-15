@@ -17,6 +17,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Satellites app, server end: every PDA carrier gets their own net's birds each {@link #PERIOD_TICKS} (empty without
@@ -88,7 +89,7 @@ public final class PdaSatellites {
             return 0;
         }
         int feedId = SpotFeeds.open(player, id, x, z);
-        PacketDistributor.sendToPlayer(player, new SatReplyPacket(satId, String.format(java.util.Locale.ROOT,
+        PacketDistributor.sendToPlayer(player, new SatReplyPacket(satId, String.format(Locale.ROOT,
                 "spot %d %d: live while overhead", (int) Math.floor(x), (int) Math.floor(z))));
         PacketDistributor.sendToPlayer(player, new SpotOpenPacket(feedId));
         return feedId;

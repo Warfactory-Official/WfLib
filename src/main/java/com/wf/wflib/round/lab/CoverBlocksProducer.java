@@ -4,6 +4,7 @@ import com.wf.wflib.labs.api.LabContext;
 import com.wf.wflib.labs.api.LabProducer;
 import com.wf.wflib.labs.api.LabSink;
 import com.wf.wflib.labs.api.LabTable;
+import java.util.Locale;
 
 /** The cover materials {@code wflib:cover} uses, with the penetration table values the game reads for them. */
 public final class CoverBlocksProducer implements LabProducer {
@@ -33,7 +34,7 @@ public final class CoverBlocksProducer implements LabProducer {
     @Override
     public void produce(LabContext ctx, LabSink sink) {
         for (CoverBlocks.Entry e : CoverBlocks.all()) {
-            sink.row(e.id(), e.material().name().toLowerCase(java.util.Locale.ROOT), e.resistance(), e.toughness(),
+            sink.row(e.id(), e.material().name().toLowerCase(Locale.ROOT), e.resistance(), e.toughness(),
                     e.ricochet(), e.equivalents(), String.join(",", e.examples()));
         }
     }

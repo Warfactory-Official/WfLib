@@ -16,7 +16,7 @@ class ProjectileLookTest {
 
     @BeforeAll
     static void defineCatalogue() {
-        com.wf.wflib.ammo.AmmoCatalogue.define();
+        AmmoCatalogue.define();
     }
 
     private static ProjectileLook look(String variant) {

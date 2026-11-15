@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital;
 
+import com.wf.wflib.recon.api.ReconGrid;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
@@ -194,7 +195,7 @@ public final class OrbitalConfig {
      * Links a contact is charged for crossing a relay, and the thing that makes the loop impossible rather than
      * merely bounded.
      */
-    public static final int RELAY_HOP_COST = com.wf.wflib.recon.api.ReconGrid.MAX_HOPS + 1;
+    public static final int RELAY_HOP_COST = ReconGrid.MAX_HOPS + 1;
 
     private OrbitalConfig() {
     }

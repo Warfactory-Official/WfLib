@@ -2,6 +2,7 @@ package com.wf.wflib.colony.debug;
 
 import com.mojang.authlib.GameProfile;
 import com.wf.wflib.cam.api.CameraChunkStream;
+import com.wf.wflib.stream.api.ChunkStreams;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -68,7 +69,7 @@ public class BenchPlayer extends FakePlayer {
             BenchPlayer player = PLACED.get(i);
             if (player.getGameProfile().getName().equals(name)) {
                 CameraChunkStream.forget(player);
-                com.wf.wflib.stream.api.ChunkStreams.drop(player);
+                ChunkStreams.drop(player);
                 player.discard();
                 PLACED.remove(i);
             }
@@ -79,7 +80,7 @@ public class BenchPlayer extends FakePlayer {
         int removed = PLACED.size();
         for (BenchPlayer player : PLACED) {
             CameraChunkStream.forget(player);
-                com.wf.wflib.stream.api.ChunkStreams.drop(player);
+                ChunkStreams.drop(player);
             player.discard();
         }
         PLACED.clear();

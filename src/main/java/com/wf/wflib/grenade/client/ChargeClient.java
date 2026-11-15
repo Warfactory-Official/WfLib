@@ -17,6 +17,8 @@ import org.joml.Vector3f;
 
 import java.util.Map;
 import java.util.WeakHashMap;
+import net.minecraft.core.particles.DustParticleOptions;
+import org.joml.Quaternionf;
 
 /** Client side of a {@link ThrownCharge}: tumble/roll, reaction sparks, light, loops. */
 public final class ChargeClient {
@@ -77,7 +79,7 @@ public final class ChargeClient {
         if (c.grounded()) {
             double speed = v.horizontalDistance();
             if (speed > 1.0E-4) {
-                c.spin.premul(new org.joml.Quaternionf().rotationAxis((float) (speed / 0.05),
+                c.spin.premul(new Quaternionf().rotationAxis((float) (speed / 0.05),
                         new Vector3f((float) (-v.z / speed), 0, (float) (v.x / speed))));
             }
         } else if (v.lengthSqr() > 0.0025) {
@@ -85,7 +87,7 @@ public final class ChargeClient {
             if (axis.lengthSquared() < 1.0E-8) {
                 axis.set(1, 0, 0);
             }
-            c.spin.premul(new org.joml.Quaternionf().rotationAxis(TUMBLE, axis.normalize()));
+            c.spin.premul(new Quaternionf().rotationAxis(TUMBLE, axis.normalize()));
         }
     }
 
@@ -135,7 +137,7 @@ public final class ChargeClient {
         float g = ((tint >> 8) & 0xFF) / 255f;
         float b = (tint & 0xFF) / 255f;
         for (int i = 0; i < 2; i++) {
-            c.level().addParticle(new net.minecraft.core.particles.DustParticleOptions(new Vector3f(r, g, b), 3.5f),
+            c.level().addParticle(new DustParticleOptions(new Vector3f(r, g, b), 3.5f),
                     at.x + random.nextGaussian() * 0.1, at.y + 0.15, at.z + random.nextGaussian() * 0.1, 0, 0.1, 0);
         }
     }

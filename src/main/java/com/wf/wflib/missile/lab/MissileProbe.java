@@ -13,6 +13,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -64,7 +65,7 @@ final class MissileProbe {
         StringBuilder sb = new StringBuilder();
         for (WFTelemetryEvent e : telemetry.events()) {
             sb.append(e.type()).append('@').append(e.gameTime() - t0)
-                    .append(String.format(java.util.Locale.ROOT, "(%.0f,%.0f,%.0f) ", e.x(), e.y(), e.z()));
+                    .append(String.format(Locale.ROOT, "(%.0f,%.0f,%.0f) ", e.x(), e.y(), e.z()));
         }
         return sb.toString();
     }

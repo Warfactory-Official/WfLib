@@ -12,8 +12,10 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
@@ -97,8 +99,8 @@ final class VoiceDelivery {
             byte[] bytes = Files.readAllBytes(SoldierVoices.bundle());
             try {
                 String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(bytes));
-                bundle = new Bundle(bytes, hash, UUID.nameUUIDFromBytes(hash.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
-            } catch (java.security.NoSuchAlgorithmException impossible) { throw new AssertionError(impossible); }
+                bundle = new Bundle(bytes, hash, UUID.nameUUIDFromBytes(hash.getBytes(StandardCharsets.US_ASCII)));
+            } catch (NoSuchAlgorithmException impossible) { throw new AssertionError(impossible); }
         }
         if (previous != null && (bundle == null || !previous.id.equals(bundle.id))) {
             for (ServerPlayer player : server.getPlayerList().getPlayers())

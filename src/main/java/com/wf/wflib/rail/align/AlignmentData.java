@@ -19,6 +19,7 @@ import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.BuildProgress;
 import com.wf.wflib.rail.api.DesignClass;
 import com.wf.wflib.rail.api.RouteStatus;
+import net.minecraft.core.HolderLookup;
 
 /**
  * Every route in one dimension, on the server, indexed by the faction that owns it.
@@ -121,7 +122,7 @@ public final class AlignmentData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         ListTag list = new ListTag();
         for (Alignment alignment : this.alignments.values()) {
             list.add(writeAlignment(alignment));

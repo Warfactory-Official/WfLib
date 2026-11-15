@@ -1,5 +1,7 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.build.api.BuildJobs;
+import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.drone.ai.PowerPolicy;
 import com.wf.wflib.drone.exchange.Obfuscation;
 import com.wf.wflib.warhead.api.Warheads;
@@ -13,6 +15,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.drone.DroneLaunchQueue;
+import com.wf.wflib.recon.api.ReconOwners;
+import java.security.SecureRandom;
+import java.util.UUID;
+import java.util.random.RandomGenerator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 
 /** A delivery order: what to fly, where to, where back, and how many. */
 public final class DroneMission {
@@ -68,15 +77,15 @@ public final class DroneMission {
      */
     public boolean collecting;
     @Nullable
-    public java.util.UUID exchangeId;
+    public UUID exchangeId;
     @Nullable
     public String stationCode;
     /** The construction or salvage job this flight is being sent to work, or null for an ordinary mission. */
     @Nullable
-    public java.util.UUID jobId;
+    public UUID jobId;
     /** {@link DroneEntity#setOperatorId}; not on the wire. */
     @Nullable
-    public java.util.UUID operator;
+    public UUID operator;
 
     /**
      * @return true if this mission drops an explosive rather than a crate.
@@ -209,7 +218,7 @@ public final class DroneMission {
         if (legs.isEmpty()) {
             return;
         }
-        net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+        ListTag list = new ListTag();
         for (Vec3 leg : legs) {
             CompoundTag one = new CompoundTag();
             one.putDouble("X", leg.x);
@@ -224,7 +233,7 @@ public final class DroneMission {
         if (!tag.contains(key)) {
             return List.of();
         }
-        net.minecraft.nbt.ListTag list = tag.getList(key, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        ListTag list = tag.getList(key, Tag.TAG_COMPOUND);
         List<Vec3> legs = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); i++) {
             CompoundTag one = list.getCompound(i);
@@ -317,7 +326,7 @@ public final class DroneMission {
     }
 
     /** Draw the staging waypoints for this mission's mode. */
-    public void planObfuscation(java.util.random.RandomGenerator rng, Vec3 origin) {
+    public void planObfuscation(RandomGenerator rng, Vec3 origin) {
         if (mode == ExchangeMode.DIRECT) {
             approachLegs = List.of();
             egressLegs = List.of();
@@ -385,8 +394,8 @@ public final class DroneMission {
         Vec3 at = origin.add((index % 2 == 0 ? -1 : 1) * ((index + 1) / 2) * DroneEntity.SPAWN_SPACING,
                 0.0, 0.0);
         DroneEntity drone = new DroneEntity(level, at);
-        drone.setTeamId(com.wf.wflib.recon.api.ReconOwners.owningAt(
-                level, net.minecraft.core.BlockPos.containing(origin)));
+        drone.setTeamId(ReconOwners.owningAt(
+                level, BlockPos.containing(origin)));
         drone.setModelId(modelId);
         drone.setOperatorId(operator);
         drone.route().setDestination(destination);
@@ -402,8 +411,8 @@ public final class DroneMission {
         drone.orders().setProgram(program);
         drone.orders().setExchange(exchangeId, stationCode, mode.classified(), collecting,
                 approachLegs, egressLegs);
-        if (jobId != null && com.wf.wflib.core.api.WFSystems.enabled("build")) {
-            drone.orders().setAssignment(com.wf.wflib.build.api.BuildJobs.joining(jobId, level));
+        if (jobId != null && WFSystems.enabled("build")) {
+            drone.orders().setAssignment(BuildJobs.joining(jobId, level));
         }
         if (payloadId != null) {
             drone.hold().setPayload(payloadId);
@@ -425,7 +434,7 @@ public final class DroneMission {
     }
 
     /** Staging bearings come from a cryptographic source, not the level's seeded random. */
-    private static final java.security.SecureRandom OBFUSCATION_RNG = new java.security.SecureRandom();
+    private static final SecureRandom OBFUSCATION_RNG = new SecureRandom();
 
     private static long squadId(ServerLevel level) {
         long id = level.getRandom().nextLong();

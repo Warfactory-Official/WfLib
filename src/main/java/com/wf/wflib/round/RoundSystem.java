@@ -1,5 +1,6 @@
 package com.wf.wflib.round;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLibContent;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.round.api.ImpactEffects;
@@ -27,6 +28,18 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.labs.api.LabContents;
+import com.wf.wflib.labs.api.LabProducers;
+import com.wf.wflib.labs.api.ScenarioStages;
+import com.wf.wflib.round.api.RoundContent;
+import com.wf.wflib.round.api.client.ClientRounds;
+import com.wf.wflib.round.lab.CoverBlocksProducer;
+import com.wf.wflib.round.lab.CoverProducer;
+import com.wf.wflib.round.lab.CoverStage;
+import com.wf.wflib.round.lab.RoundFlightProducer;
+import com.wf.wflib.round.lab.RoundLabContent;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 /** Holders named through {@link com.wf.wflib.round.api.RoundContent}. */
 public final class RoundSystem implements WFSystem {
@@ -45,9 +58,9 @@ public final class RoundSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("round", 300, out -> com.wf.wflib.round.api.RoundContent.shellItems().stream()
-                .map(net.neoforged.neoforge.registries.DeferredHolder::get)
-                .filter(i -> i.preset().id().getNamespace().equals(com.wf.wflib.core.api.WFLib.MODID))
+        CreativeTabs.contribute("round", 300, out -> RoundContent.shellItems().stream()
+                .map(DeferredHolder::get)
+                .filter(i -> i.preset().id().getNamespace().equals(WFLib.MODID))
                 .forEach(out::accept));
         ENTITY_TYPES.register("rocket", () -> EntityType.Builder.<RocketEntity>of(RocketEntity::new, MobCategory.MISC)
                 .sized(0.4F, 0.4F)
@@ -67,12 +80,12 @@ public final class RoundSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(ServerStartingEvent.class,
                 event -> ImpactEffects.check(KineticPresets.all(), event.getServer().registryAccess()));
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, RoundCommands::onRegisterCommands);
-        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.RoundFlightProducer());
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.CoverProducer());
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.round.lab.CoverBlocksProducer());
-            com.wf.wflib.labs.api.LabContents.register(new com.wf.wflib.round.lab.RoundLabContent());
-            com.wf.wflib.labs.api.ScenarioStages.register(new com.wf.wflib.round.lab.CoverStage());
+        if (WFSystems.enabled("labs")) {
+            LabProducers.register(new RoundFlightProducer());
+            LabProducers.register(new CoverProducer());
+            LabProducers.register(new CoverBlocksProducer());
+            LabContents.register(new RoundLabContent());
+            ScenarioStages.register(new CoverStage());
         }
     }
 
@@ -96,7 +109,7 @@ public final class RoundSystem implements WFSystem {
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar("round-7").playToClient(RoundPacket.TYPE, RoundPacket.STREAM_CODEC,
-                (pkt, ctx) -> ctx.enqueueWork(() -> com.wf.wflib.round.api.client.ClientRounds.accept(
+                (pkt, ctx) -> ctx.enqueueWork(() -> ClientRounds.accept(
                         pkt.spawns(), pkt.ends(), pkt.pierces(), pkt.ricochets())));
     }
 }

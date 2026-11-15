@@ -1,5 +1,6 @@
 package com.wf.wflib.armor.api.exo;
 
+import java.util.HashSet;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public record ExoSpec(ExoStats powered, ExoStats unpowered, double drawPerSecond
         }
         parts = List.copyOf(parts);
         repairTags = repairTags.isEmpty() ? Set.of(EXOSKELETON, HEAVY) : Set.copyOf(repairTags);
-        java.util.HashSet<String> ids = new java.util.HashSet<>();
+        HashSet<String> ids = new HashSet<>();
         for (ExoPart p : parts) {
             if (!ids.add(p.id())) {
                 throw new IllegalArgumentException("duplicate exo part " + p.id());

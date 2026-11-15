@@ -10,6 +10,8 @@ import net.minecraft.world.level.Level;
 
 
 import java.util.List;
+import java.util.Locale;
+import net.neoforged.fml.ModList;
 
 /** An artefact: works worn in a Curios {@code artifact} slot (STALKER's belt); held, it floats over the palm. */
 public class ArtifactItem extends Item {
@@ -43,16 +45,16 @@ public class ArtifactItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
         for (Artifact.Hit hit : Artifact.Hit.values()) {
-            line(lines, hit.name().toLowerCase(java.util.Locale.ROOT), artifact.immunity(hit));
+            line(lines, hit.name().toLowerCase(Locale.ROOT), artifact.immunity(hit));
         }
         if (artifact.health() != 0.0F) {
             lines.add(Component.translatable("item.wflib.artifact.health",
-                            String.format(java.util.Locale.ROOT, "%+.1f", artifact.healthPerSecond(20.0F) * 60.0F))
+                            String.format(Locale.ROOT, "%+.1f", artifact.healthPerSecond(20.0F) * 60.0F))
                     .withStyle(artifact.health() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
-        if (artifact.power() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
+        if (artifact.power() != 0.0F && ModList.get().isLoaded("wfweight")) {
             lines.add(Component.translatable("item.wflib.artifact.stamina",
-                            String.format(java.util.Locale.ROOT, "%+.1f%%", artifact.staminaPerTick() * 2000.0D))
+                            String.format(Locale.ROOT, "%+.1f%%", artifact.staminaPerTick() * 2000.0D))
                     .withStyle(artifact.power() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
         if (artifact.bleeding() != 0.0F && Artifacts.CLOTTER.owner() != null) {
@@ -62,17 +64,17 @@ public class ArtifactItem extends Item {
         }
         if (artifact.radShield() != 0.0F) {
             lines.add(Component.translatable("item.wflib.artifact.radiation",
-                            String.format(java.util.Locale.ROOT, "%+.1f", artifact.radShieldPerSecond()))
+                            String.format(Locale.ROOT, "%+.1f", artifact.radShieldPerSecond()))
                     .withStyle(artifact.radShield() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
         if (artifact.radiation() != 0.0F) {
             lines.add(Component.translatable("item.wflib.artifact.irradiates",
-                            String.format(java.util.Locale.ROOT, "%+.1f", artifact.radiationPerSecond()))
+                            String.format(Locale.ROOT, "%+.1f", artifact.radiationPerSecond()))
                     .withStyle(artifact.radiation() > 0.0F ? ChatFormatting.RED : ChatFormatting.GREEN));
         }
-        if (artifact.carry() != 0.0F && net.neoforged.fml.ModList.get().isLoaded("wfweight")) {
+        if (artifact.carry() != 0.0F && ModList.get().isLoaded("wfweight")) {
             lines.add(Component.translatable("item.wflib.artifact.carry",
-                            String.format(java.util.Locale.ROOT, "%+.0f", artifact.carry()))
+                            String.format(Locale.ROOT, "%+.0f", artifact.carry()))
                     .withStyle(artifact.carry() > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
         if (artifact.satiety() < 0.0F) {
@@ -84,7 +86,7 @@ public class ArtifactItem extends Item {
     private static void line(List<Component> lines, String key, float immunity) {
         if (immunity != 0.0F) {
             lines.add(Component.translatable("item.wflib.artifact." + key,
-                            String.format(java.util.Locale.ROOT, "%+.0f%%", immunity * 100.0F))
+                            String.format(Locale.ROOT, "%+.0f%%", immunity * 100.0F))
                     .withStyle(immunity > 0.0F ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
     }

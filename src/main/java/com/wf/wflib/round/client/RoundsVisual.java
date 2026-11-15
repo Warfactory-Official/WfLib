@@ -37,6 +37,8 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import com.wf.wflib.round.api.client.ClientRounds;
 import com.wf.wflib.round.api.client.RoundRenderers;
+import com.wf.wflib.view.api.client.Rig;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * One GemRender instance per modelled round, posed nose-to-velocity every frame: preset glTF (missile attitude), or
@@ -91,7 +93,7 @@ final class RoundsVisual extends AbstractVisual implements EffectVisual<RoundsEf
             if (r.preset().modelId() == null) {
                 continue;
             }
-            com.wf.wflib.view.api.client.Rig rig = MissileRigs.missile(r.preset().modelId());
+            Rig rig = MissileRigs.missile(r.preset().modelId());
             if (rig == null) {
                 continue;
             }
@@ -134,7 +136,7 @@ final class RoundsVisual extends AbstractVisual implements EffectVisual<RoundsEf
     }
 
     /** {@link #pose} for a look; false => outside the model LOD band. {@link #heading} = velocity in. */
-    private boolean lookPose(ProjectileLook look, net.minecraft.resources.ResourceLocation id, double x, double y,
+    private boolean lookPose(ProjectileLook look, ResourceLocation id, double x, double y,
                              double z, Vec3 cam, float ticks, Vec3i origin) {
         double d = Math.sqrt(cam.distanceToSqr(x, y, z));
         if (!LookLod.model(look.diameterMm() * 0.001, d)) {

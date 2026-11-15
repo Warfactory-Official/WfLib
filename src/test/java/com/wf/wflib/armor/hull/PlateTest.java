@@ -1,6 +1,9 @@
 package com.wf.wflib.armor.hull;
 
 import com.google.gson.Gson;
+import com.wf.wflib.armor.api.hull.EraGrid;
+import com.wf.wflib.armor.api.hull.EraType;
+import com.wf.wflib.armor.api.hull.EraTypes;
 import com.wf.wflib.armor.api.hull.HullProfile;
 import com.wf.wflib.armor.api.hull.HullResolver;
 import com.wf.wflib.armor.api.hull.PlateMaterial;
@@ -11,6 +14,7 @@ import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.armor.api.hull.HullOutcome;
 import com.wf.wflib.armor.api.hull.HullResult;
+import java.util.List;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
@@ -136,7 +140,7 @@ class PlateTest {
         assertNull(p.zone(), "plate beats the zone");
         assertEquals(50, p.nominal());
         hull.plate = null;
-        hull.profile.zones = java.util.List.of();
+        hull.profile.zones = List.of();
         assertEquals(200, hit(hull, start, at).nominal(), "hull faces last");
         Vector3f aim = new Vector3f(0, 0, -1);
         hull.turretWorld.transform(aim);
@@ -151,7 +155,7 @@ class PlateTest {
     @Test
     void sideMirrorsByStruckSign() {
         FakeHull hull = hull("{\"s\":{\"slope\":30,\"facing\":\"side\",\"layers\":[{\"mm\":20,\"mat\":\"rha\"}]}}");
-        hull.profile.zones = java.util.List.of();
+        hull.profile.zones = List.of();
         hull.plate = "s";
         double c = Math.cos(Math.toRadians(30)), u = Math.sin(Math.toRadians(30));
         double want = (c + 0.5 * u) / Math.sqrt(1.25);
@@ -191,7 +195,7 @@ class PlateTest {
     @Test
     void declaredNormalDrivesRicochetAndEffectiveThickness() {
         FakeHull hull = hull("{\"ufp\":{\"slope\":80,\"facing\":\"front\",\"layers\":[{\"mm\":50,\"mat\":\"rha\"}]}}");
-        hull.profile.zones = java.util.List.of();
+        hull.profile.zones = List.of();
         hull.plate = "ufp";
         Vec3 start = hull.world(0, 1, 10), at = hull.world(0, 1, 3);
         Vec3 dir = at.subtract(start);
@@ -229,7 +233,7 @@ class PlateTest {
 
     @Test
     void anEraArrayIsTheFirstLayerAndAddsNoRhae() {
-        com.wf.wflib.armor.api.hull.EraTypes.register(new com.wf.wflib.armor.api.hull.EraType("t:k5", 0.5f, 0.3f, 0, 20,
+        EraTypes.register(new EraType("t:k5", 0.5f, 0.3f, 0, 20,
                 40, 1000, 0.1f, 0, 0, 0.1f, null, null));
         PlateSpec los = spec("{\"facing\":\"front\",\"los\":{\"ke\":500},\"layers\":[{\"era\":\"t:k5\",\"cells\":12}]}");
         assertEquals(500, los.nominal(false), EPS);
@@ -253,19 +257,19 @@ class PlateTest {
         boolean[] seen = new boolean[10];
         for (float x = -3; x < 3; x += 0.1f) {
             for (float y = 0; y < 2; y += 0.1f) {
-                seen[com.wf.wflib.armor.api.hull.EraGrid.cell(new Vector3f(x, y, 0), n, 10)] = true;
+                seen[EraGrid.cell(new Vector3f(x, y, 0), n, 10)] = true;
             }
         }
         for (boolean b : seen) {
             assertTrue(b);
         }
         int[] out = new int[8];
-        int count = com.wf.wflib.armor.api.hull.EraGrid.neighbours(0, 10, out);
+        int count = EraGrid.neighbours(0, 10, out);
         assertTrue(count >= 3 && count <= 8);
         for (int i = 0; i < count; i++) {
             assertNotEquals(0, out[i]);
         }
-        assertEquals(com.wf.wflib.armor.api.hull.EraGrid.cell(new Vector3f(0.05f, 0.05f, 0), n, 10),
-                com.wf.wflib.armor.api.hull.EraGrid.cell(new Vector3f(0.2f, 0.1f, 5), n, 10), "same brick, depth ignored");
+        assertEquals(EraGrid.cell(new Vector3f(0.05f, 0.05f, 0), n, 10),
+                EraGrid.cell(new Vector3f(0.2f, 0.1f, 5), n, 10), "same brick, depth ignored");
     }
 }

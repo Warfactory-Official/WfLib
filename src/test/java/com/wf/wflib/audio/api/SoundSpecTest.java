@@ -1,6 +1,7 @@
 package com.wf.wflib.audio.api;
 
 import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -51,13 +52,13 @@ class SoundSpecTest {
 
     @Test
     void curveInterpolatesAndClamps() {
-        Curve c = Curve.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE,
+        Curve c = Curve.CODEC.parse(JsonOps.INSTANCE,
                 JsonParser.parseString("[[0.2, 0], [0.6, 1], [1, 0.5]]")).getOrThrow();
         assertEquals(0, c.at(-1), 0);
         assertEquals(0.5F, c.at(0.4F), 1e-6);
         assertEquals(0.75F, c.at(0.8F), 1e-6);
         assertEquals(0.5F, c.at(3), 0);
-        Curve k = Curve.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, JsonParser.parseString("0.7"))
+        Curve k = Curve.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString("0.7"))
                 .getOrThrow();
         assertEquals(0.7F, k.at(42), 0);
     }

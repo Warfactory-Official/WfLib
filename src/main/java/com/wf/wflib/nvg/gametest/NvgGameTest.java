@@ -1,5 +1,6 @@
 package com.wf.wflib.nvg.gametest;
 
+import com.mojang.authlib.GameProfile;
 import com.wf.wflib.armor.api.ArmorPreset;
 import com.wf.wflib.armor.api.ArmorPresets;
 import com.wf.wflib.nvg.NvgActionPacket;
@@ -28,6 +29,9 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import java.util.List;
 import com.wf.wflib.armor.api.ArmorContent;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.nvg.NvgCurios;
+import java.util.UUID;
+import net.neoforged.fml.ModList;
 
 @PrefixGameTestTemplate(false)
 public class NvgGameTest {
@@ -78,7 +82,7 @@ public class NvgGameTest {
     @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void flipIrGain(GameTestHelper helper) {
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(),
-                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "nvg"));
+                new GameProfile(UUID.randomUUID(), "nvg"));
         ItemStack helmet = helmet();
         Slot slot = new Slot(new SimpleContainer(1), 0, 0, 0);
         NvgMount.fit(helmetPreset(), helmet, goggle(NvgState.UP), slot, player);
@@ -99,17 +103,17 @@ public class NvgGameTest {
     /** A goggle in the Curios head slot is the worn goggle: IR writes it, and the flip brings it down. */
     @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aGoggleInTheCuriosSlotIsWorn(GameTestHelper helper) {
-        if (!net.neoforged.fml.ModList.get().isLoaded("curios")) {
+        if (!ModList.get().isLoaded("curios")) {
             helper.succeed();
             return;
         }
         ServerPlayer player = FakePlayerFactory.get(helper.getLevel(),
-                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "nvgcurio"));
+                new GameProfile(UUID.randomUUID(), "nvgcurio"));
         helper.assertTrue(NvgWorn.nvg(player).isEmpty(), "goggle worn before any was put on");
-        helper.assertTrue(com.wf.wflib.nvg.NvgCurios.wear(player, goggle(NvgState.UP)), "the Curios head slot took no goggle");
+        helper.assertTrue(NvgCurios.wear(player, goggle(NvgState.UP)), "the Curios head slot took no goggle");
         helper.assertTrue(!NvgWorn.nvg(player).isEmpty(), "a goggle in the Curios slot is not seen as worn");
         NvgServer.act(player, NvgActionPacket.Action.IR);
-        helper.assertTrue(NvgWorn.state(com.wf.wflib.nvg.NvgCurios.stack(player)).ir(), "IR did not reach the Curios goggle");
+        helper.assertTrue(NvgWorn.state(NvgCurios.stack(player)).ir(), "IR did not reach the Curios goggle");
         NvgServer.act(player, NvgActionPacket.Action.FLIP);
         helper.onEachTick(() -> NvgServer.onTick(new PlayerTickEvent.Post(player)));
         helper.runAtTickTime(NvgServer.SWAP_TICK + 2, () -> {

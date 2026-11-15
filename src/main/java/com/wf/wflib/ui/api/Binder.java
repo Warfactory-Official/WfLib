@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import com.wf.wflib.ui.TemplateParser;
+import java.util.Arrays;
 
 /**
  * Compiles widget properties for one {@link LayoutPlan}. The first instance compiles and records
@@ -123,9 +124,9 @@ public final class Binder implements Symbols {
         RepeatScope scope = memo("scope:" + items.item().name(),
                 () -> new RepeatScope(plan.newScope(), plan.numSlots++, plan.numSlots++));
         if (depth == scopeIds.length) {
-            scopeIds = java.util.Arrays.copyOf(scopeIds, depth * 2);
-            scopeSubjects = java.util.Arrays.copyOf(scopeSubjects, depth * 2);
-            scopeIndexSlots = java.util.Arrays.copyOf(scopeIndexSlots, depth * 2);
+            scopeIds = Arrays.copyOf(scopeIds, depth * 2);
+            scopeSubjects = Arrays.copyOf(scopeSubjects, depth * 2);
+            scopeIndexSlots = Arrays.copyOf(scopeIndexSlots, depth * 2);
         }
         scopeIds[depth] = scope.id();
         scopeSubjects[depth] = items.itemIndex();

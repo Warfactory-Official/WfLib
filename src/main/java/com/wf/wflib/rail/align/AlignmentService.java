@@ -1,5 +1,6 @@
 package com.wf.wflib.rail.align;
 
+import com.mojang.authlib.GameProfile;
 import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.rail.RailAlignmentPacket;
 import com.wf.wflib.core.api.WFNetwork;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.RouteStatus;
+import java.util.function.BiPredicate;
 
 /**
  * Who may see which route, and sending it to them.
@@ -78,7 +80,7 @@ public final class AlignmentService {
      */
     public static boolean maySee(UUID viewer, UUID viewerFaction, UUID author, UUID ownerFaction,
                                  RouteStatus status, boolean operator,
-                                 java.util.function.BiPredicate<UUID, UUID> standing) {
+                                 BiPredicate<UUID, UUID> standing) {
         if (viewer == null) {
             return false;
         }
@@ -124,7 +126,7 @@ public final class AlignmentService {
         if (profile == null) {
             return "";
         }
-        return profile.get(player).map(com.mojang.authlib.GameProfile::getName).orElse("");
+        return profile.get(player).map(GameProfile::getName).orElse("");
     }
 
     /** Send this player their visible set, whether or not it has changed. */

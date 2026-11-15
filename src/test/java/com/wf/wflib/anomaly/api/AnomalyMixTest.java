@@ -3,6 +3,8 @@ package com.wf.wflib.anomaly.api;
 import com.wf.wflib.artifact.api.Element;
 import com.wf.wflib.anomaly.api.AnomalyMix.Kind;
 import com.wf.wflib.anomaly.api.AnomalyMix.Loot;
+import com.wf.wflib.artifact.api.Artifact;
+import java.util.Arrays;
 import net.minecraft.util.RandomSource;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +41,7 @@ class AnomalyMixTest {
             electric += AnomalyMix.pickLoot(r, 4, List.of(Kind.ELECTRO, Kind.NET, Kind.FLASH)).element
                     == Element.ELECTRIC ? 1 : 0;
         }
-        long kinds = java.util.Arrays.stream(Loot.values()).filter(l -> l.element == Element.ELECTRIC).count();
+        long kinds = Arrays.stream(Loot.values()).filter(l -> l.element == Element.ELECTRIC).count();
         assertTrue(electric > n * (double) kinds / Loot.values().length * 1.5D, "electric " + electric);
     }
 
@@ -52,13 +54,13 @@ class AnomalyMixTest {
             unique += AnomalyMix.pickLoot(r, 4, List.of(Kind.GRABBER)).share == AnomalyMix.UNIQUE_SHARE ? 1 : 0;
         }
         assertTrue(unique > 0 && unique < n / 50, "uniques " + unique);
-        for (com.wf.wflib.artifact.api.Artifact a : com.wf.wflib.artifact.api.Artifact.UNIQUE) {
+        for (Artifact a : Artifact.UNIQUE) {
             assertEquals(4, a.minTier());
         }
     }
 
     @Test
     void everyArtifactIsLoot() {
-        assertEquals(com.wf.wflib.artifact.api.Artifact.ALL.size(), Loot.values().length);
+        assertEquals(Artifact.ALL.size(), Loot.values().length);
     }
 }

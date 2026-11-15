@@ -1,23 +1,30 @@
 package com.wf.wflib.soldier.api;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+
 /** The mods a soldier works through, supplied by whichever mod owns the guns, grenades and medicine. */
 public final class SoldierServices {
     private static volatile SoldierWeapon weapon;
     private static volatile SoldierThrowables throwables;
     private static volatile SoldierMedical medical = SoldierMedical.NONE;
 
-    private static final java.util.Map<String, java.util.function.Supplier<SoldierSpec>> SIDES = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, Supplier<SoldierSpec>> SIDES = new ConcurrentHashMap<>();
 
     private SoldierServices() {
     }
 
     /** Names a side that the {@code /soldiers spawn} command can field; the supplier gives what a new soldier of it is issued (null = none installed). */
-    public static void side(String name, java.util.function.Supplier<SoldierSpec> spec) {
+    public static void side(String name, Supplier<SoldierSpec> spec) {
         SIDES.put(name, spec);
     }
 
-    public static java.util.Set<String> sides() {
-        return java.util.Collections.unmodifiableSet(new java.util.TreeSet<>(SIDES.keySet()));
+    public static Set<String> sides() {
+        return Collections.unmodifiableSet(new TreeSet<>(SIDES.keySet()));
     }
 
     public static SoldierSpec spec(String side) {

@@ -45,6 +45,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.cam.api.CameraChunkStream;
+import com.wf.wflib.cam.api.client.CameraFeedCache;
+import com.wf.wflib.core.api.CreativeTabs;
 
 /** Holders dependents name: {@link CameraContent}. */
 public final class CamSystem implements WFSystem {
@@ -103,7 +105,7 @@ public final class CamSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("cam", 550, out -> {
+        CreativeTabs.contribute("cam", 550, out -> {
             out.accept(CAMERA_MONITOR_ITEM.get());
             out.accept(SECURITY_CAMERA_ITEM.get());
             out.accept(CAMERA_LINKER.get());
@@ -153,7 +155,7 @@ public final class CamSystem implements WFSystem {
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar r = event.registrar("cam-1");
         r.playToClient(CameraFeedPacket.TYPE, CameraFeedPacket.STREAM_CODEC,
-                (pkt, ctx) -> ctx.enqueueWork(() -> com.wf.wflib.cam.api.client.CameraFeedCache.accept(pkt.feed())));
+                (pkt, ctx) -> ctx.enqueueWork(() -> CameraFeedCache.accept(pkt.feed())));
         r.playToServer(CameraControlPacket.TYPE, CameraControlPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
         r.playToServer(CameraCapabilityPacket.TYPE, CameraCapabilityPacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
         r.playToClient(CameraPanelPacket.TYPE, CameraPanelPacket.STREAM_CODEC,

@@ -17,6 +17,8 @@ import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.UUID;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 
 /** {@link Dress}: unaided equip/remove gating and the assisted routes. */
 @PrefixGameTestTemplate(false)
@@ -64,10 +66,10 @@ public class DressGameTest {
             p.setItemSlot(EquipmentSlot.CHEST, suit());
             helper.assertFalse(p.inventoryMenu.getSlot(CHEST_MENU_SLOT).mayPickup(p), "removed unaided");
             p.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
-            p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, suit());
+            p.setItemInHand(InteractionHand.MAIN_HAND, suit());
             helper.assertTrue(p.getMainHandItem().getItem().use(helper.getLevel(), p,
-                    net.minecraft.world.InteractionHand.MAIN_HAND).getResult()
-                    == net.minecraft.world.InteractionResult.FAIL, "right-click equipped");
+                    InteractionHand.MAIN_HAND).getResult()
+                    == InteractionResult.FAIL, "right-click equipped");
         });
         helper.succeed();
     }
@@ -77,7 +79,7 @@ public class DressGameTest {
         selfDress(false, () -> {
             ServerPlayer helperP = player(helper, "helper");
             ServerPlayer target = player(helper, "target");
-            helperP.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, suit());
+            helperP.setItemInHand(InteractionHand.MAIN_HAND, suit());
             helper.assertTrue(Dress.putOnSlot(helperP, target) == EquipmentSlot.CHEST, "cannot put on");
             Dress.putOn(helperP, target);
             helper.assertFalse(target.getItemBySlot(EquipmentSlot.CHEST).isEmpty(), "not worn");

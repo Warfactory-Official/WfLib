@@ -3,6 +3,7 @@ package com.wf.wflib.explosion.api;
 import com.wf.wflib.audio.api.AudioCategory;
 import com.wf.wflib.audio.api.Blasts;
 import com.wf.wflib.audio.api.WfAudio;
+import com.wf.wflib.core.api.ViewRange;
 import com.wf.wflib.explosion.AuxParticlePacket;
 import com.wf.wflib.core.api.WFNetwork;
 import net.minecraft.nbt.CompoundTag;
@@ -40,7 +41,7 @@ public final class ExplosionCreator {
         data.putFloat("debrisVelocity", debrisVelocity);
         data.putFloat("soundRange", soundRange);
 
-        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.core.api.ViewRange.blocks(), new AuxParticlePacket("explosion_large", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, ViewRange.blocks(), new AuxParticlePacket("explosion_large", x, y, z, data));
         WfAudio.at((ServerLevel) level, new Vec3(x, y, z), AudioCategory.EXPLOSIONS, Blasts.large(soundRange));
     }
 
@@ -53,7 +54,7 @@ public final class ExplosionCreator {
         }
         CompoundTag data = new CompoundTag();
         data.putFloat("waveScale", waveScale);
-        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.core.api.ViewRange.blocks(), new AuxParticlePacket("sonic_boom", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, ViewRange.blocks(), new AuxParticlePacket("sonic_boom", x, y, z, data));
         WfAudio.at((ServerLevel) level, new Vec3(x, y, z), AudioCategory.EXPLOSIONS, Blasts.sonicBoom());
     }
 

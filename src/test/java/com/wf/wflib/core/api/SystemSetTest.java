@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import net.minecraft.resources.ResourceLocation;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -140,10 +141,10 @@ class SystemSetTest {
             defineWflib(Set.of("base"));
             WFRegistry<String> off = WFRegistry.create("leaf", "t");
             IllegalStateException e = assertThrows(IllegalStateException.class,
-                    () -> off.register(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("t", "x"), "v"));
+                    () -> off.register(ResourceLocation.fromNamespaceAndPath("t", "x"), "v"));
             assertTrue(e.getMessage().contains("leaf"));
             OrderedRegistry<String> on = OrderedRegistry.create("base", "t");
-            on.register(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("t", "x"), 0, "v");
+            on.register(ResourceLocation.fromNamespaceAndPath("t", "x"), 0, "v");
         } finally {
             WFSystems.reset();
         }

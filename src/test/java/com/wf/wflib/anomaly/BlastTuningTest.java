@@ -1,5 +1,6 @@
 package com.wf.wflib.anomaly;
 
+import com.wf.wflib.damage.api.WFDamageTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
@@ -67,9 +68,9 @@ class BlastTuningTest {
 
     @Test
     void eachHitsWithTheDamageItsArmourResolves() {
-        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.ELECTRIC, AnomalyType.ELECTRO.damage());
-        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.FIRE, AnomalyType.BURNER.damage());
-        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.ACID, AnomalyType.ACID.damage());
-        assertEquals(com.wf.wflib.damage.api.WFDamageTypes.GRAVITY_ANOMALY, AnomalyType.SPRINGBOARD.damage());
+        assertEquals(WFDamageTypes.ELECTRIC, AnomalyType.ELECTRO.damage());
+        assertEquals(WFDamageTypes.FIRE, AnomalyType.BURNER.damage());
+        assertEquals(WFDamageTypes.ACID, AnomalyType.ACID.damage());
+        assertEquals(WFDamageTypes.GRAVITY_ANOMALY, AnomalyType.SPRINGBOARD.damage());
     }
 }

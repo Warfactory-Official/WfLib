@@ -41,6 +41,8 @@ import com.wf.wflib.pda.api.client.PdaShell;
 import com.wf.wflib.pda.api.client.PdaLog;
 import com.wf.wflib.pda.api.client.PdaTheme;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.client.PdaSounds;
+import com.wf.wflib.ui.api.Ui;
 
 import static com.wf.wflib.ui.api.Ui.at;
 import static com.wf.wflib.ui.api.Ui.list;
@@ -363,7 +365,7 @@ public final class SatellitesApp implements PdaApp {
                                 at(vx, Float.toString(bodyY + 2), PdaShell.fit("{pda_sats.mode}  {pda_sats.scale} m/u",
                                         PdaShell.TEXT, innerW - 110)),
                                 place(Float.toString(viewX + viewW - 4), Float.toString(bodyY + 2), Point.TOP_RIGHT,
-                                        com.wf.wflib.ui.api.Ui.row(3,
+                                        Ui.row(3,
                                                 small("SPOT", () -> requestSpot(new String[]{"spot"})),
                                                 small("-", () -> scale = Math.min(SCALES.length - 1, scale + 1)),
                                                 small("+", () -> scale = Math.max(0, scale - 1)),
@@ -375,7 +377,7 @@ public final class SatellitesApp implements PdaApp {
     }
 
     private static WidgetDef tab(String label, String active, Runnable action, float right, float y) {
-        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> { com.wf.wflib.pda.api.client.PdaSounds.tab(); action.run(); }, "true",
+        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> { PdaSounds.tab(); action.run(); }, "true",
                 active + " ? " + PdaShell.PRESS + " : " + PdaShell.PANEL, PdaShell.HOVER, PdaShell.PRESS,
                 PdaShell.EDGE, 1, 0, 4, 1, 0, 0, Point.TOP_RIGHT, text(label, PdaShell.TEXT)));
     }

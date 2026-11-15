@@ -5,8 +5,10 @@ import com.wf.wflib.drone.api.DroneBattery;
 import com.wf.wflib.drone.api.DroneEntity;
 import com.wf.wflib.drone.api.DroneState;
 import com.wf.wflib.cam.api.CameraChunkStream;
+import com.wf.wflib.cam.api.CameraContent;
 import com.wf.wflib.cam.api.CameraNet;
 import com.wf.wflib.cam.api.CameraSpec;
+import com.wf.wflib.stream.api.ChunkStreams;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -53,7 +55,7 @@ public final class CameraDebug {
                 chunkEncodes == 0 ? 0.0 : (double) chunkDeliveries / chunkEncodes)), false);
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "  %d chunk(s) streamed to %d viewer(s)",
-                com.wf.wflib.stream.api.ChunkStreams.claimCount(), CameraChunkStream.streamingViewers())), false);
+                ChunkStreams.claimCount(), CameraChunkStream.streamingViewers())), false);
         return 1;
     }
 
@@ -95,7 +97,7 @@ public final class CameraDebug {
         Direction facing = Direction.WEST;
         Direction right = facing.getCounterClockWise();
         BlockPos monitorPos = base.offset(2, 0, -1);
-        BlockState monitor = com.wf.wflib.cam.api.CameraContent.CAMERA_MONITOR.get().defaultBlockState()
+        BlockState monitor = CameraContent.CAMERA_MONITOR.get().defaultBlockState()
                 .setValue(CameraMonitorBlock.FACING, facing);
         for (int x = 0; x < CameraMonitorBlock.WIDTH; x++) {
             BlockPos column = monitorPos.relative(right, x);

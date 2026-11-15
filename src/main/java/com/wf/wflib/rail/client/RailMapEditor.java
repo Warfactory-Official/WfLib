@@ -28,6 +28,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.Locale;
 import com.wf.wflib.core.api.WFLib;
+import java.util.function.IntConsumer;
 
 /**
  * Rail alignment editor as a {@link MapTool}; geometry lives in {@link AlignEditor}. Working copy autosaved
@@ -429,7 +430,7 @@ public final class RailMapEditor implements MapTool, PublishedAlignments.Listene
         load(nearest);
     }
 
-    private void withPointAt(double x, double z, double tolerance, java.util.function.IntConsumer action) {
+    private void withPointAt(double x, double z, double tolerance, IntConsumer action) {
         int index = this.editor.pickPoint(x, z, tolerance);
         if (index < 0) {
             this.editor.say("no point within " + Math.round(tolerance) + " blocks of there", 4000);
@@ -492,7 +493,7 @@ public final class RailMapEditor implements MapTool, PublishedAlignments.Listene
         return this.editor;
     }
 
-    public java.util.List<AlignPoint> points() {
+    public List<AlignPoint> points() {
         return this.editor.points();
     }
 }

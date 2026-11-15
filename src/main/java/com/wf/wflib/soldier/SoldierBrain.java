@@ -1,5 +1,6 @@
 package com.wf.wflib.soldier;
 
+import com.wf.wflib.soldier.api.SoldierRole;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -47,7 +48,7 @@ final class SoldierBrain {
         if (b.hunting && last != null && last.visible == 0 && p.position().distanceToSqr(b.anchor) < ARRIVED * ARRIVED) {
             b.huntedSeen = last.seen;                                           // got there: nothing, so stop looking
         }
-        boolean lost = !com.wf.wflib.soldier.api.SoldierRole.tactics(b.role).support() && last != null && worthChasing(now, last.seen, last.visible, b.huntedSeen);
+        boolean lost = !SoldierRole.tactics(b.role).support() && last != null && worthChasing(now, last.seen, last.visible, b.huntedSeen);
         if (lost && p.position().distanceToSqr(post) < LEASH * LEASH) {
             b.anchor = last.eye.subtract(0, 1.62, 0);                           // where they were, not where they are
             b.mode = SoldierAi.Mode.ADVANCE;
@@ -68,7 +69,7 @@ final class SoldierBrain {
     }
 
     static Vec3 roleSlot(Vec3 centre,Vec3 forward,String role,int seed) {
-        int back=com.wf.wflib.soldier.api.SoldierRole.tactics(role).formationBack;
+        int back=SoldierRole.tactics(role).formationBack;
         return slot(centre,seed).subtract(forward.multiply(1,0,1).normalize().scale(back));
     }
     /** A spot around {@code centre}, a different one for each soldier (by name hash). */

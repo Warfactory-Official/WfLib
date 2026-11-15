@@ -4,23 +4,27 @@ import com.wf.gemrender.ui.Canvas;
 import java.util.List;
 import com.wf.wflib.pda.client.theme.PdaControls;
 import com.wf.wflib.pda.client.theme.PdaSkin;
+import com.wf.wflib.ui.api.UiEval;
+import com.wf.wflib.ui.api.Widget;
+import com.wf.wflib.ui.api.WidgetDef;
+import java.util.Map;
 
 /** Common translucent disclosure popup for WFLib and external PDA pages. Caller supplies measured, fitted lines. */
 public final class PdaPopup {
     public static final float HEADER = 14;
     private static final boolean AUDIT = Boolean.getBoolean("wflib.pda.popupAudit");
-    private static java.util.Map<String, Object> lastDisclosure = java.util.Map.of();
-    public static java.util.Map<String, Object> disclosure() { return lastDisclosure; }
-    public static void clearDisclosure() { lastDisclosure = java.util.Map.of(); }
+    private static Map<String, Object> lastDisclosure = Map.of();
+    public static Map<String, Object> disclosure() { return lastDisclosure; }
+    public static void clearDisclosure() { lastDisclosure = Map.of(); }
     private static String pendingTitle, pendingStamp, pendingBody;
     private PdaPopup() { }
     public static void show(String title, String stamp, String body) {
         pendingTitle = title; pendingStamp = stamp; pendingBody = body;
     }
-    public static com.wf.wflib.ui.api.WidgetDef layer() {
-        return binder -> new com.wf.wflib.ui.api.Widget() {
-            public void measure(com.wf.wflib.ui.api.UiEval ev) { width = height = 0; }
-            public void draw(com.wf.wflib.ui.api.UiEval ev, float x, float y, float w, float h) {
+    public static WidgetDef layer() {
+        return binder -> new Widget() {
+            public void measure(UiEval ev) { width = height = 0; }
+            public void draw(UiEval ev, float x, float y, float w, float h) {
                 if (pendingBody == null) return;
                 String title = pendingTitle, stamp = pendingStamp, body = pendingBody;
                 pendingBody = null;
@@ -28,11 +32,11 @@ public final class PdaPopup {
                 var c = ev.canvas;
                 var lines = PdaControls.wrap(c, body, 290, 20);
                 float width = 300, height = HEADER + 6 + lines.size() * c.lineHeight();
-                float px = Math.clamp(com.wf.wflib.pda.api.client.PdaClient.cursorX() + 8, 4, 380 - width);
-                float py = Math.clamp(com.wf.wflib.pda.api.client.PdaClient.cursorY() + 12, 20, 236 - height);
+                float px = Math.clamp(PdaClient.cursorX() + 8, 4, 380 - width);
+                float py = Math.clamp(PdaClient.cursorY() + 12, 20, 236 - height);
                 PdaPopup.draw(c, px, py, width, height, title, stamp, lines);
                 if (ev.input != null) ev.input.coverFeedback(px, py, px + width, py + height);
-                if (AUDIT) lastDisclosure = java.util.Map.of("source", body, "lines", java.util.List.copyOf(lines),
+                if (AUDIT) lastDisclosure = Map.of("source", body, "lines", List.copyOf(lines),
                         "x", px, "y", py, "width", width, "height", height);
             }
         };

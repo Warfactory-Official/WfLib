@@ -3,6 +3,7 @@ package com.wf.wflib.rail.demo;
 import cam72cam.immersiverailroading.util.VecUtil;
 import cam72cam.mod.math.Vec3d;
 import com.wf.wflib.rail.RailCompat;
+import com.wf.wflib.rail.RailConfig;
 import com.wf.wflib.rail.api.AlignElement;
 import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.Centreline;
@@ -16,6 +17,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  * The verdict on a deployed Five Points network.
@@ -57,7 +59,7 @@ public final class FivePointsCheck {
 
     /** How far inside a route a train actually stands, once the junction's own stretch is allowed for. */
     private static double inside() {
-        return INSIDE + com.wf.wflib.rail.RailConfig.TURNOUT_LEAD.get();
+        return INSIDE + RailConfig.TURNOUT_LEAD.get();
     }
 
     private FivePointsCheck() {
@@ -187,7 +189,7 @@ public final class FivePointsCheck {
             }
             if (meeting.kind() == RouteMeeting.Kind.JOINT
                     || (meeting.kind() == RouteMeeting.Kind.TURNOUT && meeting.branch() == mine)) {
-                return com.wf.wflib.rail.RailConfig.TURNOUT_LEAD.get();
+                return RailConfig.TURNOUT_LEAD.get();
             }
         }
         return 0.0;
@@ -226,7 +228,7 @@ public final class FivePointsCheck {
                 Centreline line = route.compile().centreline();
                 // A route leaves its last lead blocks to the junction and lays no track on them, so a
                 // train stood a dozen blocks short of one is stood on nothing. Back off past it.
-                double back = APPROACH + com.wf.wflib.rail.RailConfig.TURNOUT_LEAD.get();
+                double back = APPROACH + RailConfig.TURNOUT_LEAD.get();
                 if (line.length() <= back) {
                     continue;
                 }
@@ -253,7 +255,7 @@ public final class FivePointsCheck {
                 through, tried));
     }
 
-    private static Alignment byId(List<Alignment> routes, java.util.UUID id) {
+    private static Alignment byId(List<Alignment> routes, UUID id) {
         for (Alignment route : routes) {
             if (route.id().equals(id)) {
                 return route;

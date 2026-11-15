@@ -22,11 +22,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -166,7 +168,7 @@ final class LabServe implements AutoCloseable {
 
     private static String describe(Throwable e) {
         Throwable root = e;
-        while ((root instanceof IllegalStateException || root instanceof java.util.concurrent.ExecutionException)
+        while ((root instanceof IllegalStateException || root instanceof ExecutionException)
                 && root.getCause() != null) {
             root = root.getCause();
         }
@@ -431,7 +433,7 @@ final class LabServe implements AutoCloseable {
             if (joined.isBlank()) {
                 throw new IllegalArgumentException("run wants ids");
             }
-            Map<String, String> args = new java.util.LinkedHashMap<>();
+            Map<String, String> args = new LinkedHashMap<>();
             JsonElement a = req.get("args");
             if (a != null && a.isJsonObject()) {
                 for (Map.Entry<String, JsonElement> e : a.getAsJsonObject().entrySet()) {

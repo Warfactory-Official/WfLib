@@ -77,6 +77,10 @@ import com.wf.wflib.round.api.event.RoundImpactEvent;
 import com.wf.wflib.round.api.event.RoundNearMissEvent;
 import com.wf.wflib.round.api.event.RoundPierceEvent;
 import com.wf.wflib.core.api.WFLib;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import java.util.Arrays;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.world.phys.EntityHitResult;
 
 /**
  * Unguided rounds without entities (bullets, shells, bombs): one {@link RoundBatch} per level, stepped on the tick
@@ -89,7 +93,7 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     /** {@code RoundConfig.ammoAccuracy}. */
     public static boolean ammoAccuracy() {
-        return com.wf.wflib.round.RoundConfig.snapshot().ammoAccuracy();
+        return RoundConfig.snapshot().ammoAccuracy();
     }
 
     /** Fraction of kinetic energy landing as damage when the preset names no flat figure. */
@@ -102,8 +106,8 @@ public final class Rounds implements SimKind<RoundBatch> {
     public static final double PICK_INFLATE = 0.3;
     static final int PRELOAD_WAIT = 100;
     /** Round key -> ticks spent waiting on a preload. */
-    private static final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap PRELOAD_WAITED =
-            new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+    private static final Long2IntOpenHashMap PRELOAD_WAITED =
+            new Long2IntOpenHashMap();
 
     /** Chunk ticket ids: {@code key} in the low half. */
     private static final long TICKET_HIGH = 0x524F554E44L;
@@ -265,7 +269,7 @@ public final class Rounds implements SimKind<RoundBatch> {
                 found[n++] = b.key[i];
             }
         }
-        return java.util.Arrays.copyOf(found, n);
+        return Arrays.copyOf(found, n);
     }
 
     /** Advance one round one tick now (tests, deterministic stepping). @return false once it has ended */
@@ -1572,7 +1576,7 @@ public final class Rounds implements SimKind<RoundBatch> {
      * Entity hit carrying the exact point (vanilla's result stores the entity origin for projectile sweeps), AHF
      * parts, the victim's feet height at the swept tick (eye-band fallback), and that tick ({@code LIVE} = live).
      */
-    static final class EntityHit extends net.minecraft.world.phys.EntityHitResult {
+    static final class EntityHit extends EntityHitResult {
         final Entity entity;
         final Vec3 at;
         @Nullable
@@ -1603,7 +1607,7 @@ public final class Rounds implements SimKind<RoundBatch> {
         return out;
     }
 
-    static void send(ServerPlayer player, net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
+    static void send(ServerPlayer player, CustomPacketPayload payload) {
         PacketDistributor.sendToPlayer(player, payload);
     }
 }

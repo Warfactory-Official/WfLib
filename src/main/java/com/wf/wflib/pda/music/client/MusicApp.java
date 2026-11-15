@@ -22,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.client.PdaClient;
+import com.wf.wflib.ui.api.Ui;
 
 import static com.wf.wflib.ui.api.Ui.at;
 import static com.wf.wflib.ui.api.Ui.clip;
@@ -336,7 +338,7 @@ public final class MusicApp implements PdaApp {
 
     @Override
     public boolean visible(LocalPlayer player) {
-        return com.wf.wflib.pda.api.client.PdaClient.held();
+        return PdaClient.held();
     }
 
     @Override
@@ -410,7 +412,7 @@ public final class MusicApp implements PdaApp {
                 at(Float.toString(x0), "96", slider(Float.toString(innerW), "8", "pda_music.progress",
                         (item, v) -> MusicPlayer.scrubTo((float) v), BAR, ACCENT, TEXT)),
                 at(Float.toString(x0), "108", text("{pda_music.time}", TEXT)),
-                com.wf.wflib.ui.api.Ui.place(Float.toString(x0 + innerW), "108", Point.TOP_RIGHT,
+                Ui.place(Float.toString(x0 + innerW), "108", Point.TOP_RIGHT,
                         text("{pda_music.total}", DIM)),
 
                 at(Float.toString(x0), "122", btn("|<", 30, 16, i -> MusicPlayer.previous())),

@@ -1,5 +1,6 @@
 package com.wf.wflib.nvg.api;
 
+import com.wf.wflib.nvg.NvgCurios;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +20,7 @@ public final class NvgWorn {
             return head;
         }
         ItemStack mounted = mounted(head);
-        return mounted.isEmpty() ? com.wf.wflib.nvg.NvgCurios.stack(entity) : mounted;
+        return mounted.isEmpty() ? NvgCurios.stack(entity) : mounted;
     }
 
     public static NvgState state(LivingEntity entity) {
@@ -44,7 +45,7 @@ public final class NvgWorn {
         }
         ItemContainerContents mount = head.get(NvgComponents.MOUNT.get());
         if (mount == null) {
-            ItemStack worn = com.wf.wflib.nvg.NvgCurios.stack(entity);
+            ItemStack worn = NvgCurios.stack(entity);
             if (!worn.isEmpty()) {
                 worn.set(NvgComponents.STATE.get(), state);
             }

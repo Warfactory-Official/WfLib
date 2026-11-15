@@ -1,5 +1,6 @@
 package com.wf.wflib.pda.client;
 
+import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,7 +19,7 @@ class FastfetchTest {
 
     @Test
     void outputIsCappedAtSixtyLines() {
-        List<String> raw = new java.util.ArrayList<>();
+        List<String> raw = new ArrayList<>();
         for (int i = 0; i < 200; i++) {
             raw.add("line " + i);
         }

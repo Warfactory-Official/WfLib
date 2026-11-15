@@ -1,5 +1,6 @@
 package com.wf.wflib.ui.api.theme;
 
+import com.wf.gemrender.ui.Canvas;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
@@ -12,7 +13,7 @@ public final class PdaFont {
     private PdaFont() { }
     public static boolean active() { return (UiSkin.current().inPda() || measuring) && UiSkin.current().theme() == PdaTheme.GAMMA; }
     /** Pointer-to-caret runs between frames, outside ThemeScope. Retain the last draw's font metrics. */
-    public static float width(com.wf.gemrender.ui.Canvas canvas, CharSequence text, int start, int end, boolean gamma) {
+    public static float width(Canvas canvas, CharSequence text, int start, int end, boolean gamma) {
         boolean before = measuring;
         measuring = gamma;
         try { return canvas.width(text, start, end); }

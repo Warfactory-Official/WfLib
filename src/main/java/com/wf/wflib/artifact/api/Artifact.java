@@ -1,5 +1,7 @@
 package com.wf.wflib.artifact.api;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.wf.wflib.particle.api.XrGroups;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -10,6 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import com.wf.wflib.core.api.WFLib;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 /**
  * One kind of STALKER artefact, as GAMMA leaves it (Artefacts Reinvention's last word on each section, resolved over
@@ -78,17 +86,17 @@ public record Artifact(String id, ResourceLocation model, Map<String, ResourceLo
         static final Map<String, float[]> BY_ID = load();
 
         private static Map<String, float[]> load() {
-            try (java.io.Reader in = new java.io.InputStreamReader(Objects.requireNonNull(
+            try (Reader in = new InputStreamReader(Objects.requireNonNull(
                     Artifact.class.getResourceAsStream("/assets/wflib/models/artifact/scales.json")),
-                    java.nio.charset.StandardCharsets.UTF_8)) {
-                Map<String, float[]> out = new java.util.HashMap<>();
-                com.google.gson.JsonParser.parseReader(in).getAsJsonObject().entrySet().forEach(e -> {
-                    com.google.gson.JsonObject o = e.getValue().getAsJsonObject();
+                    StandardCharsets.UTF_8)) {
+                Map<String, float[]> out = new HashMap<>();
+                JsonParser.parseReader(in).getAsJsonObject().entrySet().forEach(e -> {
+                    JsonObject o = e.getValue().getAsJsonObject();
                     out.put(e.getKey(), new float[] {o.get("scale").getAsFloat(), o.get("body").getAsFloat()});
                 });
                 return out;
-            } catch (java.io.IOException e) {
-                throw new java.io.UncheckedIOException(e);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
         }
 

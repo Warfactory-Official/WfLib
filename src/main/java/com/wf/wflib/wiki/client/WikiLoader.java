@@ -4,6 +4,8 @@ import com.mojang.logging.LogUtils;
 import com.wf.wflib.wiki.api.Article;
 import com.wf.wflib.wiki.ArticleParser;
 import com.wf.wflib.wiki.api.Wiki;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -35,8 +37,8 @@ public final class WikiLoader extends SimplePreparableReloadListener<Map<Resourc
                 LOGGER.warn("Wiki {}: invalid article id: skipped", file);
                 continue;
             }
-            try (java.io.InputStream in = e.getValue().open()) {
-                out.put(id, ArticleParser.parse(id, new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)));
+            try (InputStream in = e.getValue().open()) {
+                out.put(id, ArticleParser.parse(id, new String(in.readAllBytes(), StandardCharsets.UTF_8)));
             } catch (Exception ex) {
                 LOGGER.warn("Wiki {}: {}: skipped", file, ex.toString());
             }

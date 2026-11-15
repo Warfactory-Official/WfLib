@@ -21,6 +21,7 @@ import java.util.Map;
 import com.wf.wflib.explosion.client.wiaj.Debris;
 import com.wf.wflib.explosion.client.wiaj.DebrisManager;
 import com.wf.wflib.explosion.client.wiaj.WorldInAJar;
+import java.util.Random;
 
 /**
  * Blast debris from the blocks the blast removed, never from surviving terrain. Effect packet precedes the block
@@ -79,7 +80,7 @@ public final class BlastDebris {
         }
         List<List<Removals.Removed>> chunks = new ArrayList<>(cells.values());
         RandomSource rand = p.level.random;
-        Collections.shuffle(chunks, new java.util.Random(rand.nextLong()));
+        Collections.shuffle(chunks, new Random(rand.nextLong()));
         if (chunks.size() > p.count) {
             chunks = chunks.subList(0, p.count);
         }

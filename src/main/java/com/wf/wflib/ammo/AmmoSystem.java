@@ -5,6 +5,7 @@ import com.wf.wflib.ammo.api.AmmoCodecs;
 import com.wf.wflib.ammo.api.AmmoItems;
 import com.wf.wflib.ammo.api.CartridgeItem;
 import com.wf.wflib.ammo.client.AmmoClient;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLibContent;
 import com.wf.wflib.core.api.WFSystem;
 import net.minecraft.core.component.DataComponentType;
@@ -37,9 +38,9 @@ public final class AmmoSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("ammo", 290, out -> com.wf.wflib.ammo.api.Ammo.variants().stream()
-                .filter(v -> v.id().getNamespace().equals(com.wf.wflib.core.api.WFLib.MODID))
-                .forEach(v -> out.accept(com.wf.wflib.ammo.api.AmmoItems.stack(v, 1))));
+        CreativeTabs.contribute("ammo", 290, out -> Ammo.variants().stream()
+                .filter(v -> v.id().getNamespace().equals(WFLib.MODID))
+                .forEach(v -> out.accept(AmmoItems.stack(v, 1))));
         COMPONENTS.register("ammo_variant", () -> DataComponentType.<ResourceLocation>builder()
                 .persistent(AmmoCodecs.VARIANT)
                 .networkSynchronized(ResourceLocation.STREAM_CODEC)

@@ -1,5 +1,8 @@
 package com.wf.wflib.mist.api;
 
+import com.wf.wflib.core.api.OrderedRegistry;
+import com.wf.wflib.grenade.api.SightBlocker;
+import com.wf.wflib.grenade.api.SmokeScreens;
 import com.wf.wflib.mist.client.MistClientFX;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,9 +24,10 @@ import net.minecraft.world.phys.AABB;
 
 import java.util.List;
 import com.wf.wflib.mist.MistSystem;
+import java.util.function.Predicate;
 
 /** A stationary cloud of fluid hanging in the air: gas, spray or vapour. */
-public class MistEntity extends Entity implements com.wf.wflib.grenade.api.SightBlocker {
+public class MistEntity extends Entity implements SightBlocker {
 
     private static final EntityDataAccessor<Float> RADIUS = SynchedEntityData.defineId(MistEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> HEIGHT = SynchedEntityData.defineId(MistEntity.class, EntityDataSerializers.FLOAT);
@@ -88,13 +92,13 @@ public class MistEntity extends Entity implements com.wf.wflib.grenade.api.Sight
     }
 
     /** Entities a cloud passes over unharmed (a gas mask, a sealed suit); any predicate that matches wins. */
-    public static final com.wf.wflib.core.api.OrderedRegistry<java.util.function.Predicate<Entity>> IMMUNITY =
-            com.wf.wflib.core.api.OrderedRegistry.create("mist", "mist.immunity");
+    public static final OrderedRegistry<Predicate<Entity>> IMMUNITY =
+            OrderedRegistry.create("mist", "mist.immunity");
 
     /** The gate every cloud tick applies: false => the entity takes nothing. */
     public static boolean isAffectable(Entity entity) {
         if (entity instanceof MistEntity) return false;
-        for (java.util.function.Predicate<Entity> immune : IMMUNITY.values()) {
+        for (Predicate<Entity> immune : IMMUNITY.values()) {
             if (immune.test(entity)) return false;
         }
         return !(entity instanceof Player player) || (!player.isSpectator() && !player.isCreative());
@@ -228,21 +232,21 @@ public class MistEntity extends Entity implements com.wf.wflib.grenade.api.Sight
 
     @Override
     public boolean blocksSight() {
-        return getFluid() == com.wf.wflib.mist.api.WFFluids.SMOKE.get();
+        return getFluid() == WFFluids.SMOKE.get();
     }
 
     @Override
     public void onAddedToLevel() {
         super.onAddedToLevel();
         if (!level().isClientSide && blocksSight()) {
-            com.wf.wflib.grenade.api.SmokeScreens.add(this);
+            SmokeScreens.add(this);
         }
     }
 
     @Override
     public void onRemovedFromLevel() {
         super.onRemovedFromLevel();
-        com.wf.wflib.grenade.api.SmokeScreens.remove(this);
+        SmokeScreens.remove(this);
     }
 
     public float getRadius() {

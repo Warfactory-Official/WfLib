@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import net.minecraft.world.level.block.Blocks;
 
 /**
  * What a finished tunnel's cross-section actually is, beside what it was supposed to be.
@@ -98,8 +99,8 @@ public final class SectionProbe {
             return TunnelProfile.CH_BORE;
         }
         String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
-        if (state.getBlock() == net.minecraft.world.level.block.Blocks.TORCH
-                || state.getBlock() == net.minecraft.world.level.block.Blocks.WALL_TORCH) {
+        if (state.getBlock() == Blocks.TORCH
+                || state.getBlock() == Blocks.WALL_TORCH) {
             return TunnelProfile.CH_TORCH;
         }
         if (state.is(BlockTags.RAILS) || id.startsWith("immersiverailroading:")) {

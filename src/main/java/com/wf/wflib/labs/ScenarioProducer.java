@@ -19,11 +19,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import net.minecraft.server.level.ServerLevel;
 
 /** Runs on the server thread: stages spawn rigs and read the level, which off-thread waits on the thread blocked here. Launcher x range x ordered layers: one row per (case, layer), speed in / out and cumulative probability. Params {@code scenario=<file>} | {@code scenario_json=}. */
 public final class ScenarioProducer implements LabProducer {
@@ -136,7 +140,7 @@ public final class ScenarioProducer implements LabProducer {
             }
         });
         double[] rs = needed.stream().mapToDouble(Double::doubleValue).toArray();
-        Map<Double, LabFlight.Sample> flight = new java.util.HashMap<>();
+        Map<Double, LabFlight.Sample> flight = new HashMap<>();
         LabFlight.Sample[] fly = LabFlight.fly(p, l.muzzleVelocity(), rs);
         for (LabFlight.Sample s : fly) {
             flight.put(s.range(), s);
@@ -179,7 +183,7 @@ public final class ScenarioProducer implements LabProducer {
 
     private record WithSamples(LabContext d, int samples) implements LabContext {
         @Override
-        public net.minecraft.server.level.ServerLevel level() {
+        public ServerLevel level() {
             return d.level();
         }
 
@@ -189,7 +193,7 @@ public final class ScenarioProducer implements LabProducer {
         }
 
         @Override
-        public java.util.function.Predicate<String> rounds() {
+        public Predicate<String> rounds() {
             return d.rounds();
         }
 
@@ -224,7 +228,7 @@ public final class ScenarioProducer implements LabProducer {
         }
 
         @Override
-        public java.util.concurrent.ExecutorService executor() {
+        public ExecutorService executor() {
             return d.executor();
         }
     }

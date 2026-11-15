@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.saveddata.SavedData;
 import com.wf.wflib.industry.IndustryConfig;
+import java.util.Arrays;
 
 /** Per-level record of provocative industry: where it is, and what it is worth. */
 public final class IndustryData extends SavedData {
@@ -258,7 +259,7 @@ public final class IndustryData extends SavedData {
             }
         }
 
-        registry.scanned.addAll(java.util.Arrays.stream(tag.getLongArray("scanned")).boxed().toList());
+        registry.scanned.addAll(Arrays.stream(tag.getLongArray("scanned")).boxed().toList());
         registry.cellChunks = IndustryConfig.cellChunks();
         registry.reindex();
         return registry;

@@ -16,6 +16,12 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 import com.wf.wflib.armor.ArmorTooltip;
+import com.wf.wflib.armor.api.exo.ExoProfiles;
+import com.wf.wflib.armor.api.exo.ExoSpec;
+import com.wf.wflib.armor.api.exo.ExoStacks;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.nvg.api.NvgItem;
+import com.wf.wflib.nvg.api.NvgMount;
 
 /** A garment: what it protects against comes from its {@link ArmorPreset}, not from vanilla armour points. */
 public class ArmorPieceItem extends ArmorItem {
@@ -49,12 +55,12 @@ public class ArmorPieceItem extends ArmorItem {
     @Override
     public boolean overrideOtherStackedOnMe(ItemStack stack, ItemStack other, Slot slot, ClickAction action,
                                             Player player, SlotAccess access) {
-        if (other.getItem() instanceof com.wf.wflib.nvg.api.NvgItem && com.wf.wflib.core.api.WFSystems.enabled("nvg")) {
-            return com.wf.wflib.nvg.api.NvgMount.fit(preset, stack, other, slot, player);
+        if (other.getItem() instanceof NvgItem && WFSystems.enabled("nvg")) {
+            return NvgMount.fit(preset, stack, other, slot, player);
         }
-        com.wf.wflib.armor.api.exo.ExoSpec exo = com.wf.wflib.armor.api.exo.ExoProfiles.of(stack);
+        ExoSpec exo = ExoProfiles.of(stack);
         if (exo != null && stack.getCount() == 1 && slot.allowModification(player)
-                && com.wf.wflib.armor.api.exo.ExoStacks.repairWith(stack, exo, other)) {
+                && ExoStacks.repairWith(stack, exo, other)) {
             return true;
         }
         if (action != ClickAction.SECONDARY || stack.getCount() != 1 || !slot.allowModification(player)) {

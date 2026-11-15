@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.nbt.StringTag;
 
 /**
  * Block changes owed to chunks that are not loaded, applied the moment they are: the answer to "the colony expanded
@@ -159,7 +160,7 @@ public final class PendingChunkEditData extends SavedData {
             ListTag blocks = new ListTag();
             for (int i = 0; i < queue.size(); i++) {
                 positions[i] = queue.get(i).pos();
-                blocks.add(net.minecraft.nbt.StringTag.valueOf(queue.get(i).block().toString()));
+                blocks.add(StringTag.valueOf(queue.get(i).block().toString()));
             }
             chunkTag.putLongArray("p", positions);
             chunkTag.put("b", blocks);

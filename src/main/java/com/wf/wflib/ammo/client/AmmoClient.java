@@ -9,6 +9,7 @@ import com.wf.wflib.ammo.api.Ammo;
 import com.wf.wflib.ammo.api.AmmoItems;
 import com.wf.wflib.ammo.api.AmmoVariant;
 import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.CartridgeItem;
 import com.wf.wflib.ammo.api.ProjectileLook;
 import com.wf.wflib.fx.api.FlywheelEffectManager;
 import com.wf.wflib.fx.api.InstancedTrailEffect;
@@ -26,6 +27,15 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.ammo.api.client.AmmoModels;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.Item;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 
 /** Cartridge item renderer (GemRender direct path) + trails behind entity-less rounds whose look has one. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -34,9 +44,9 @@ public final class AmmoClient {
     static final float FILL = 0.9f;
     private static GemRenderItemRenderer renderer;
     /** Rounds with a trail (identity: adoption re-keys a round). */
-    private static final java.util.Set<ClientRounds.Round> TRAILED =
-            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-    private static java.util.Set<ClientRounds.Round> liveNow = java.util.Set.of();
+    private static final Set<ClientRounds.Round> TRAILED =
+            Collections.newSetFromMap(new IdentityHashMap<>());
+    private static Set<ClientRounds.Round> liveNow = Set.of();
 
     private AmmoClient() {
     }
@@ -47,16 +57,16 @@ public final class AmmoClient {
         NeoForge.EVENT_BUS.addListener(AmmoClient::onClientTick);
     }
 
-    public static void register(net.neoforged.bus.api.IEventBus modBus) {
-        modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class, event -> {
-            var extensions = new net.neoforged.neoforge.client.extensions.common.IClientItemExtensions() {
+    public static void register(IEventBus modBus) {
+        modBus.addListener(RegisterClientExtensionsEvent.class, event -> {
+            var extensions = new IClientItemExtensions() {
                 @Override
-                public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                public BlockEntityWithoutLevelRenderer getCustomRenderer() {
                     return renderer();
                 }
             };
-            for (net.minecraft.world.item.Item item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
-                if (item instanceof com.wf.wflib.ammo.api.CartridgeItem && !event.isItemRegistered(item)) {
+            for (Item item : BuiltInRegistries.ITEM) {
+                if (item instanceof CartridgeItem && !event.isItemRegistered(item)) {
                     event.registerItem(extensions, item);
                 }
             }
@@ -108,7 +118,7 @@ public final class AmmoClient {
             TRAILED.clear();
             return;
         }
-        java.util.Set<ClientRounds.Round> now = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        Set<ClientRounds.Round> now = Collections.newSetFromMap(new IdentityHashMap<>());
         now.addAll(ClientRounds.live());
         liveNow = now;
         for (ClientRounds.Round r : now) {

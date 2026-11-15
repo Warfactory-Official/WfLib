@@ -10,6 +10,7 @@ import com.wf.wflib.armor.api.ArmorOutcome;
 import com.wf.wflib.armor.api.ArmorResult;
 import com.wf.wflib.armor.api.ArmorSpec;
 import com.wf.wflib.armor.api.ProtectionType;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -344,7 +345,7 @@ class ArmorResolverTest {
 
         @Test
         void anInsertAdvertisesItselfByWhatItDefendsAgainst() {
-            assertEquals(java.util.Set.of(ProtectionType.KINETIC), steelInsert().covers());
+            assertEquals(Set.of(ProtectionType.KINETIC), steelInsert().covers());
             assertTrue(vest().acceptsInsert(steelInsert()),
                     "a vest good at sharp and impact is exactly what wants a kinetic plate");
         }

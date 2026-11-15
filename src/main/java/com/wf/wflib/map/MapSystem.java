@@ -11,6 +11,8 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.map.client.xaero.XaeroMinimapHost;
+import com.wf.wflib.map.client.xaero.XaeroWorldMapHost;
 
 public final class MapSystem implements WFSystem {
     private static volatile boolean active;
@@ -47,10 +49,10 @@ public final class MapSystem implements WFSystem {
             MapApp.register();
             WFMaps.TOOLS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "markers"), 0, new MarkerClient());
             if (ModList.get().isLoaded("xaeroworldmap")) {
-                com.wf.wflib.map.client.xaero.XaeroWorldMapHost.attach();
+                XaeroWorldMapHost.attach();
             }
             if (ModList.get().isLoaded("xaerominimap")) {
-                com.wf.wflib.map.client.xaero.XaeroMinimapHost.attach();
+                XaeroMinimapHost.attach();
             }
         }));
     }

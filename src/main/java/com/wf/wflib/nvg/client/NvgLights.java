@@ -1,5 +1,6 @@
 package com.wf.wflib.nvg.client;
 
+import com.wf.gemrender.light.Lights;
 import com.wf.wflib.nvg.api.client.NvgClient;
 
 public final class NvgLights {
@@ -7,7 +8,7 @@ public final class NvgLights {
     }
 
     public static void register() {
-        com.wf.gemrender.light.Lights.irView(NvgClient::irView);
-        com.wf.gemrender.light.Lights.nightSky(NvgClient::nightSky);
+        Lights.irView(NvgClient::irView);
+        Lights.nightSky(NvgClient::nightSky);
     }
 }

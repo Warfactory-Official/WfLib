@@ -5,6 +5,7 @@ import net.minecraft.commands.arguments.coordinates.Vec3Argument;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -116,7 +117,7 @@ public final class MineCommands {
         return 1;
     }
 
-    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> MINE_PRESETS =
+    private static final SuggestionProvider<CommandSourceStack> MINE_PRESETS =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
                     MinePresets.all().stream().map(preset -> preset.id().getPath()), builder);
 

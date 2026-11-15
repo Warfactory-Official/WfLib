@@ -8,6 +8,7 @@ import com.wf.wflib.door.DoorProbeData;
 import com.wf.wflib.door.api.DoorState;
 import com.wf.wflib.door.api.DoorType;
 import com.wf.wflib.door.DoorContent;
+import com.wf.wflib.door.DoorKeyItem;
 import com.wf.wflib.probe.api.ProbeAction;
 import com.wf.wflib.probe.api.ProbeElement;
 import com.wf.wflib.probe.api.ProbeCapabilities;
@@ -24,6 +25,8 @@ import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
 import java.util.List;
+import java.util.Locale;
+import net.minecraft.world.inventory.InventoryMenu;
 
 /** What the probe says about a door. */
 public final class DoorProbe {
@@ -119,7 +122,7 @@ public final class DoorProbe {
             default -> 0xFFFFAA00;
         };
         info.text(Component.translatable(
-                "probe.wflib.door.state." + state.name().toLowerCase(java.util.Locale.ROOT)), colour);
+                "probe.wflib.door.state." + state.name().toLowerCase(Locale.ROOT)), colour);
 
         if (state.moving()) {
             info.bar(open, 90, colour, Component.literal(Math.round(open * 100) + "%"));
@@ -127,7 +130,7 @@ public final class DoorProbe {
 
         if (door.locked()) {
             ItemStack key = new ItemStack(DoorContent.DOOR_KEY.get());
-            boolean opens = !ctx.find(held -> com.wf.wflib.door.DoorKeyItem.opens(held, door.pins())).isEmpty();
+            boolean opens = !ctx.find(held -> DoorKeyItem.opens(held, door.pins())).isEmpty();
             info.add(new ProbeElement.Row(List.of(
                     ProbeElement.Icon.of(key),
                     ProbeElement.Text.of(Component.translatable(opens
@@ -139,7 +142,7 @@ public final class DoorProbe {
         if (powered > 0) {
             info.add(new ProbeElement.Row(List.of(
                     new ProbeElement.AtlasSprite(
-                            net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS,
+                            InventoryMenu.BLOCK_ATLAS,
                             REDSTONE, 10, 10, 0xFFFF4040),
                     ProbeElement.Text.of(
                             Component.translatable("probe.wflib.door.powered", powered),

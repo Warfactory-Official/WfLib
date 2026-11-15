@@ -3,6 +3,7 @@ package com.wf.wflib.demolition;
 import com.wf.wflib.audio.api.AudioCategory;
 import com.wf.wflib.audio.api.WfAudio;
 import com.wf.wflib.compat.api.WarforgeCompat;
+import com.wf.wflib.core.api.ViewRange;
 import it.unimi.dsi.fastutil.longs.Long2BooleanMap;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import com.wf.wflib.demolition.api.IDetonatable;
+import com.wf.wflib.explosion.api.AuxParticles;
 import com.wf.wflib.explosion.api.BlastParticles;
 
 /**
@@ -296,8 +298,8 @@ public final class MiningExplosion {
         double cx = center.getX() + 0.5;
         double cy = center.getY() + 0.5;
         double cz = center.getZ() + 0.5;
-        WFNetwork.sendToAllAround(level, cx, cy, cz, com.wf.wflib.core.api.ViewRange.blocks(),
-                com.wf.wflib.explosion.api.AuxParticles.packet("mining_blast", cx, cy, cz, data));
+        WFNetwork.sendToAllAround(level, cx, cy, cz, ViewRange.blocks(),
+                AuxParticles.packet("mining_blast", cx, cy, cz, data));
     }
 
     /** A heavy burst of vanilla block-break crack particles, fanning out from the centre. Always plays. */

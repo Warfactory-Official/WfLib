@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.network.FriendlyByteBuf;
 
 /** Configuration phase: server asks, client answers with its effective set, mismatch => disconnect. */
 public final class SystemsNetwork {
@@ -29,7 +30,7 @@ public final class SystemsNetwork {
 
     public record SystemsPayload(List<String> ids) implements CustomPacketPayload {
         static final Type<SystemsPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "systems"));
-        static final StreamCodec<net.minecraft.network.FriendlyByteBuf, SystemsPayload> CODEC = StreamCodec.composite(
+        static final StreamCodec<FriendlyByteBuf, SystemsPayload> CODEC = StreamCodec.composite(
                 ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), SystemsPayload::ids, SystemsPayload::new);
 
         @Override

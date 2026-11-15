@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -266,7 +267,7 @@ class SectionNbtTest {
         @DisplayName("a cell already the lining is not counted or rewritten")
         void fillSkipsWhatIsAlreadyRight() {
             int[] cells = new int[SectionNbt.CELLS];
-            java.util.Arrays.fill(cells, 1);
+            Arrays.fill(cells, 1);
             CompoundTag section = section(List.of(STONE, BRICKS), cells);
 
             SectionNbt.Result result = SectionNbt.fill(section, everything(), BRICKS);

@@ -2,6 +2,7 @@ package com.wf.wflib.mixin.geom;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.wf.wflib.core.api.client.DebugGate;
 import com.wf.wflib.geom.api.client.OBBRenderer;
 import com.wf.wflib.geom.api.OBBEntity;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -19,7 +20,7 @@ public class MixinEntityRenderDispatcher {
             at = @At("RETURN"))
     private static void wflib$renderHitbox(PoseStack pMatrixStack, VertexConsumer pBuffer, Entity pEntity,
                                                   float pPartialTicks, float green, float blue, float alpha, CallbackInfo ci) {
-        if (com.wf.wflib.core.api.client.DebugGate.allowed() && pEntity instanceof OBBEntity obbEntity && obbEntity.drawsDebugOBBs() && !obbEntity.enableAABB()) {
+        if (DebugGate.allowed() && pEntity instanceof OBBEntity obbEntity && obbEntity.drawsDebugOBBs() && !obbEntity.enableAABB()) {
             OBBRenderer.render(pEntity, obbEntity.getOBBs(), pMatrixStack, pBuffer, 0, 1, 0, 1);
             OBBRenderer.renderSweep(pEntity, obbEntity.getOBBs(), pMatrixStack, pBuffer);
         }

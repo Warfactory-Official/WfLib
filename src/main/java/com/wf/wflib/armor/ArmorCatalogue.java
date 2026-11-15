@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 /** Catalogue armour, as worked examples for the model (not balance-tuned); registered iff requested. Dev-only {@code mw_*} when not production. */
 public final class ArmorCatalogue {
@@ -57,7 +58,7 @@ public final class ArmorCatalogue {
                 .nvgMount()
                 .build());
 
-        if (!net.neoforged.fml.loading.FMLEnvironment.production) {
+        if (!FMLEnvironment.production) {
             MwTestArmor.addTo(DEFS);
         }
     }

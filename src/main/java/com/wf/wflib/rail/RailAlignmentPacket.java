@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.core.api.WFLib;
+import java.util.UUID;
 
 /**
  * Every line a player is allowed to see in one dimension, as a complete replacement.
@@ -82,7 +83,7 @@ public record RailAlignmentPacket(ResourceKey<Level> dimension, List<AlignmentVi
         List<AlignmentView> views = new ArrayList<>(count);
         DesignClass[] classes = DesignClass.values();
         for (int i = 0; i < count; i++) {
-            java.util.UUID id = buf.readUUID();
+            UUID id = buf.readUUID();
             String name = buf.readUtf(Alignment.MAX_NAME);
             String ownerName = buf.readUtf(Alignment.MAX_NAME);
             String lastEditor = buf.readUtf(Alignment.MAX_NAME);

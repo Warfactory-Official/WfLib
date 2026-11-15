@@ -6,6 +6,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
+import java.util.List;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
@@ -47,7 +48,7 @@ public record SoundSpec(ResourceLocation event, float volume, float pitch, float
     }, b -> new SoundSpec(ResourceLocation.STREAM_CODEC.decode(b), b.readFloat(), b.readFloat(), b.readFloat(),
             b.readFloat(), b.readFloat(), b.readFloat()));
 
-    public static final StreamCodec<ByteBuf, java.util.List<SoundSpec>> LIST_STREAM_CODEC =
+    public static final StreamCodec<ByteBuf, List<SoundSpec>> LIST_STREAM_CODEC =
             STREAM_CODEC.apply(ByteBufCodecs.list(16));
 
     public SoundSpec {

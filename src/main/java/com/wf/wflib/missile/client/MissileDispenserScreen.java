@@ -12,6 +12,7 @@ import com.wf.wflib.missile.flight.LoiterStage;
 import com.wf.wflib.missile.MissileDispenserMenu;
 import com.wf.wflib.missile.SpawnMissilePacket;
 import com.wf.wflib.core.api.WFNetwork;
+import com.wf.wflib.missile.flight.ApproachStage;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -380,7 +381,7 @@ public class MissileDispenserScreen extends AbstractContainerScreen<MissileDispe
                 parseDouble(targetZ.getValue(), menu.pos().getZ()));
         Vec3 approachDir = attackDirIndex > 0
                 ? new Vec3(ATTACK_DIRS[attackDirIndex][0], 0.0, ATTACK_DIRS[attackDirIndex][1]) : null;
-        double horiz = com.wf.wflib.missile.flight.ApproachStage.approachHorizontalDistance(from, tgt, approachDir,
+        double horiz = ApproachStage.approachHorizontalDistance(from, tgt, approachDir,
                 MissileEntity.DEFAULT_APPROACH_JOIN_CAP);
         double range = fuel * speed;
         if (range >= horiz) {

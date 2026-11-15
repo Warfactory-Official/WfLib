@@ -22,8 +22,11 @@ import net.neoforged.neoforge.common.util.FakePlayer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Round / warhead x distance x chest armour: standard blast falloff ({@link EntityProcessorCross#calculateDamage},
@@ -60,7 +63,7 @@ public final class ExplosiveProducer implements LabProducer {
     /** Every blast source passing {@code rounds=} and the dev filter. */
     public static List<Source> sources(LabContext ctx) {
         List<Source> sources = new ArrayList<>();
-        java.util.Set<ResourceLocation> referenced = new java.util.HashSet<>();
+        Set<ResourceLocation> referenced = new HashSet<>();
         for (KineticPreset p : KineticPresets.all()) {
             referenced.add(p.warheadId());
             float size = p.blastSize() > 0.0f ? p.blastSize() : Warheads.blastSize(p.warheadId());
@@ -121,7 +124,7 @@ public final class ExplosiveProducer implements LabProducer {
     private static void row(LabSink sink, Source s, double d, float radius, float dmg, String armor,
                             ArmorSetups.Setup set, DamageSource src, FakePlayer stand) {
         for (EquipmentSlot z : ArmorSetups.worn()) {
-            stand.setItemSlot(z, net.minecraft.world.item.ItemStack.EMPTY);
+            stand.setItemSlot(z, ItemStack.EMPTY);
         }
         if (set != null) {
             stand.setItemSlot(set.slot(), set.stack());

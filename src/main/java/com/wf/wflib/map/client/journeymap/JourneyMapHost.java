@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.wf.wflib.core.api.WFLib;
+import journeymap.client.ui.UIManager;
 
 /**
  * {@link MapShape} -> JourneyMap overlays. Zoom: {@code blockSize = zoom / 512} framebuffer px/block, so a
@@ -60,7 +61,7 @@ public final class JourneyMapHost implements MapHost {
 
     @Override
     public void openFullscreen() {
-        journeymap.client.ui.UIManager.INSTANCE.getOrOpenFullscreenMap();
+        UIManager.INSTANCE.getOrOpenFullscreenMap();
     }
 
     @Override

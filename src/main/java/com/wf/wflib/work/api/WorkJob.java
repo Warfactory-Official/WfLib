@@ -1,5 +1,6 @@
 package com.wf.wflib.work.api;
 
+import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
@@ -8,6 +9,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.UUID;
+import net.minecraft.core.registries.Registries;
+import org.jetbrains.annotations.Nullable;
 
 /** A {@link WorkQueue} with somewhere to be and a name on it. */
 public final class WorkJob {
@@ -76,7 +79,7 @@ public final class WorkJob {
         this.cancelled = true;
     }
 
-    @org.jetbrains.annotations.Nullable
+    @Nullable
     public String suspended() {
         return this.suspended;
     }
@@ -84,8 +87,8 @@ public final class WorkJob {
     /**
      * @return true if the reason changed, so the caller can log it once rather than every tick
      */
-    public boolean suspend(@org.jetbrains.annotations.Nullable String reason) {
-        if (java.util.Objects.equals(this.suspended, reason)) {
+    public boolean suspend(@Nullable String reason) {
+        if (Objects.equals(this.suspended, reason)) {
             return false;
         }
         this.suspended = reason;
@@ -150,7 +153,7 @@ public final class WorkJob {
                 ? new BoundingBox(b[0], b[1], b[2], b[3], b[4], b[5])
                 : new BoundingBox(BlockPos.ZERO);
         ResourceLocation dimensionId = ResourceLocation.tryParse(tag.getString("Dimension"));
-        ResourceKey<Level> dimension = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+        ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION,
                 dimensionId != null ? dimensionId : Level.OVERWORLD.location());
         ResourceLocation kind = ResourceLocation.tryParse(tag.getString("Kind"));
         WorkJob job = new WorkJob(tag.getUUID("Id"),

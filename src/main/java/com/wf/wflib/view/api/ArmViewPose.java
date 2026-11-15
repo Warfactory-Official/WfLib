@@ -1,6 +1,7 @@
 package com.wf.wflib.view.api;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Quaternionfc;
@@ -117,7 +118,7 @@ public final class ArmViewPose {
         Vector3f y = new Vector3f(along).normalize();
         Vector3f x = new Vector3f(palm).fma(-palm.dot(y), y).normalize();
         Vector3f z = new Vector3f(x).cross(y);
-        return out.setFromNormalized(new org.joml.Matrix3f(x, y, z));
+        return out.setFromNormalized(new Matrix3f(x, y, z));
     }
 
     /** Hand frame without authored orientation: arm +Y from the shoulder toward the wrist, minimal swing from rest. */

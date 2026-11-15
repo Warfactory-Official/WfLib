@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.anomaly.api.SitePlan;
 import com.wf.wflib.anomaly.api.SiteStyle;
+import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.RotatedPillarBlock;
 
 /**
  * Ruins in a site: what people left before the anomalies came. Each claims level ground (a pad) away from the
@@ -188,7 +190,7 @@ final class SiteRuins {
         int cx = (p.minX() + p.maxX()) / 2;
         int cz = (p.minZ() + p.maxZ()) / 2;
         int y = p.y();
-        l.put(cx, y + 1, cz, Blocks.CAMPFIRE.defaultBlockState().setValue(net.minecraft.world.level.block.CampfireBlock.LIT,
+        l.put(cx, y + 1, cz, Blocks.CAMPFIRE.defaultBlockState().setValue(CampfireBlock.LIT,
                 false));
         Block[] cloth = {Blocks.GREEN_WOOL, Blocks.BROWN_WOOL, Blocks.GRAY_WOOL, Blocks.LIGHT_GRAY_WOOL};
         Direction[] around = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
@@ -205,7 +207,7 @@ final class SiteRuins {
                 l.put(x, y + 1, z, l.random.nextFloat() < 0.5F ? Blocks.BARREL : Blocks.COMPOSTER);
             }
         }
-        BlockState seat = Blocks.SPRUCE_LOG.defaultBlockState().setValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS,
+        BlockState seat = Blocks.SPRUCE_LOG.defaultBlockState().setValue(RotatedPillarBlock.AXIS,
                 Direction.Axis.X);
         for (int k = -1; k <= 1; k++) {
             l.put(cx + k, y + 1, cz + 2, seat);

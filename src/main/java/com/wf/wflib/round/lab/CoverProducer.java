@@ -14,6 +14,7 @@ import com.wf.wflib.round.api.KineticPreset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Round x launcher x range x block x thickness x incidence: verdict of the real ricochet / block-pen / drill rules.
@@ -69,7 +70,7 @@ public final class CoverProducer implements LabProducer {
 
     private static boolean matches(String globs, String id) {
         for (String g : globs.split(",")) {
-            if (id.matches(java.util.regex.Pattern.quote(g).replace("*", "\\E.*\\Q"))) {
+            if (id.matches(Pattern.quote(g).replace("*", "\\E.*\\Q"))) {
                 return true;
             }
         }

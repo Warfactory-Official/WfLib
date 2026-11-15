@@ -12,6 +12,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A wandering anomaly's loop over the ground round its block, one point per tick (so a position is the game time
@@ -55,7 +56,7 @@ public final class AnomalyPath {
         tag.putIntArray("path", bits);
     }
 
-    @org.jetbrains.annotations.Nullable
+    @Nullable
     public static AnomalyPath load(CompoundTag tag) {
         int[] bits = tag.getIntArray("path");
         if (bits.length < 6 || bits.length % 3 != 0) {

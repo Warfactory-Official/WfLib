@@ -27,6 +27,7 @@ import java.util.Locale;
 import com.wf.wflib.cam.api.client.FeedTexture;
 import com.wf.wflib.cam.api.client.OffscreenView;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.client.DebugGate;
 
 /** {@code /wfview}: an {@link OffscreenView} blitted top-left, with CPU/GPU pass timing. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -69,7 +70,7 @@ public final class OffscreenViewDebug {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
-        return Commands.literal("wfview").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed())
+        return Commands.literal("wfview").requires(s -> DebugGate.allowed())
                 .then(Commands.literal("off").executes(ctx -> {
                     close();
                     return reply(ctx, "offscreen view off");

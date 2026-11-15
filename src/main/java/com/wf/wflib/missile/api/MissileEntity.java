@@ -38,6 +38,10 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import com.wf.wflib.explosion.api.BlastPayload;
+import com.wf.wflib.recon.api.Telemetry;
+import com.wf.wflib.recon.api.TelemetryKind;
+import com.wf.wflib.recon.api.TelemetryLog;
+import com.wf.wflib.recon.api.TelemetryReporter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
 import org.joml.Quaternionf;
@@ -47,13 +51,14 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.core.BlockPos;
 
 /**
  * Guided missile. Entity = body (model, OBB, synced look, allegiance, telemetry, chunk tickets) + tick order;
  * behaviour lives in the components under {@link com.wf.wflib.missile}.
  */
 public class MissileEntity extends Projectile implements OBBEntity, InterceptTarget, IMissileListener, WarheadCarrier,
-        ModelledProjectile, ThreatSource, com.wf.wflib.recon.api.TelemetryReporter {
+        ModelledProjectile, ThreatSource, TelemetryReporter {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final int LOG_INTERVAL = 4;
 
@@ -200,10 +205,10 @@ public class MissileEntity extends Projectile implements OBBEntity, InterceptTar
 
     private void snapGroundTarget() {
         Vec3 target = this.flight.getTarget();
-        if (target == null || !this.level().isLoaded(net.minecraft.core.BlockPos.containing(target))) {
+        if (target == null || !this.level().isLoaded(BlockPos.containing(target))) {
             return;
         }
-        net.minecraft.core.BlockPos column = net.minecraft.core.BlockPos.containing(target);
+        BlockPos column = BlockPos.containing(target);
         this.groundTarget = false;
         this.flight.setTarget(new Vec3(target.x, this.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 column.getX(), column.getZ()), target.z));
@@ -318,7 +323,7 @@ public class MissileEntity extends Projectile implements OBBEntity, InterceptTar
         }
         WFTelemetryService.record(this.telemetry, this.getUUID(), type,
                 this.level().getGameTime(), this.position(), false, detail);
-        com.wf.wflib.recon.api.TelemetryLog.post(this, type, detail);
+        TelemetryLog.post(this, type, detail);
     }
 
     /** Sweep/proximity target filter. */
@@ -416,12 +421,12 @@ public class MissileEntity extends Projectile implements OBBEntity, InterceptTar
     /** Radio: none under water. */
     @Override
     @Nullable
-    public com.wf.wflib.recon.api.Telemetry datalink() {
+    public Telemetry datalink() {
         if (this.isInWater()) {
             return null;
         }
         ResourceLocation look = this.getLook();
-        return new com.wf.wflib.recon.api.Telemetry(com.wf.wflib.recon.api.TelemetryKind.MISSILE,
+        return new Telemetry(TelemetryKind.MISSILE,
                 (look != null ? look : this.getModelId()).getPath(), this.teamId, this.operatorId);
     }
 

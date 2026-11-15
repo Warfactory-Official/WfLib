@@ -1,6 +1,7 @@
 package com.wf.wflib.radio;
 
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.radio.api.client.RadioCatalog;
 import net.minecraft.core.registries.Registries;
@@ -11,6 +12,7 @@ import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.radio.api.RadioContent;
 
 public final class RadioSystem implements WFSystem {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, WFLib.MODID);
@@ -27,7 +29,7 @@ public final class RadioSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("radio", 380, out -> out.accept(com.wf.wflib.radio.api.RadioContent.LOUDSPEAKER.get()));
+        CreativeTabs.contribute("radio", 380, out -> out.accept(RadioContent.LOUDSPEAKER.get()));
         ITEMS.register("loudspeaker", () -> new Item(new Item.Properties().stacksTo(1)));
         ITEMS.register(modBus);
         modBus.addListener(RegisterPayloadHandlersEvent.class, event ->

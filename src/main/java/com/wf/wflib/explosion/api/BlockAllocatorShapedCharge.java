@@ -1,5 +1,6 @@
 package com.wf.wflib.explosion.api;
 
+import com.wf.wflib.explosion.debug.ExplosionTrace;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -60,7 +61,7 @@ public class BlockAllocatorShapedCharge extends BlockAllocatorStandard {
         Set<BlockPos> affected = new HashSet<>();
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 
-        com.wf.wflib.explosion.debug.ExplosionTrace.cone(axis, (float) Math.toDegrees(halfAngleRad));
+        ExplosionTrace.cone(axis, (float) Math.toDegrees(halfAngleRad));
 
         Vec3 up = Math.abs(axis.y) < 0.999 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
         Vec3 u = up.cross(axis).normalize();
@@ -105,7 +106,7 @@ public class BlockAllocatorShapedCharge extends BlockAllocatorStandard {
             cy += dir.y * step;
             cz += dir.z * step;
         }
-        com.wf.wflib.explosion.debug.ExplosionTrace.ray(x, y, z, cx, cy, cz, broke);
+        ExplosionTrace.ray(x, y, z, cx, cy, cz, broke);
     }
 
     /** Ray direction at polar angle {@code theta} off axis, azimuth {@code phi}. */

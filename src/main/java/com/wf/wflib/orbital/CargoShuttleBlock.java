@@ -15,6 +15,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import net.minecraft.network.chat.Component;
 
 public class CargoShuttleBlock extends BaseEntityBlock {
 
@@ -44,7 +45,7 @@ public class CargoShuttleBlock extends BaseEntityBlock {
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
                                                BlockHitResult hit) {
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof CargoShuttleBlockEntity shuttle) {
-            player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+            player.displayClientMessage(Component.literal(
                     String.format(Locale.ROOT, "Cargo shuttle: %d/%d slot(s) - pipe it, hopper it, or take it",
                             shuttle.occupiedSlots(), shuttle.items().getSlots())), true);
         }

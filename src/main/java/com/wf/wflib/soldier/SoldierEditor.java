@@ -9,6 +9,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
@@ -41,7 +43,7 @@ public final class SoldierEditor {
         require(owner); var s=owner.getServer(); var r=SoldierRoster.get(s); var u=r.units().get(id);
         if (u==null || !r.factions().containsKey(u.faction())) throw new IllegalArgumentException("This saved variant or faction no longer exists");
         var c=catalogue(s); c.validate(u);
-        var box=new net.minecraft.world.phys.AABB(feet.x-.3,feet.y,feet.z-.3,feet.x+.3,feet.y+1.8,feet.z+.3);
+        var box=new AABB(feet.x-.3,feet.y,feet.z-.3,feet.x+.3,feet.y+1.8,feet.z+.3);
         if (!owner.serverLevel().noCollision(box) || !owner.serverLevel().getWorldBorder().isWithinBounds(BlockPos.containing(feet)))
             throw new IllegalArgumentException("The soldier needs two clear blocks inside the world border");
         if (!owner.serverLevel().hasChunkAt(BlockPos.containing(feet)) || feet.y<owner.level().getMinBuildHeight() || feet.y+2>=owner.level().getMaxBuildHeight())
@@ -52,8 +54,8 @@ public final class SoldierEditor {
         if (p==null) throw new IllegalArgumentException("Soldier limit reached ("+Soldiers.CAP+")");
         for (var e:u.armour().entrySet()) p.setItemSlot(SoldierCatalogue.slot(e.getKey()),c.get(e.getValue()).stack().copy());
         if (u.role()==SoldierRole.HEAVY) {
-            p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(40);
-            p.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(.6);
+            p.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40);
+            p.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(.6);
             p.setHealth(40);
         }
         p.setCustomName(Component.literal(u.name())); p.setCustomNameVisible(true);
@@ -81,7 +83,7 @@ public final class SoldierEditor {
             if (!p.serverLevel().hasChunkAt(at)) continue;
             for (int dy:new int[]{0,-1,1}) {
                 var q=at.above(dy); if (!p.serverLevel().getBlockState(q.below()).isCollisionShapeFullBlock(p.level(),q.below())) continue;
-                var feet=Vec3.atBottomCenterOf(q); if (!p.serverLevel().noCollision(new net.minecraft.world.phys.AABB(feet.x-.3,feet.y,feet.z-.3,feet.x+.3,feet.y+1.8,feet.z+.3))) continue;
+                var feet=Vec3.atBottomCenterOf(q); if (!p.serverLevel().noCollision(new AABB(feet.x-.3,feet.y,feet.z-.3,feet.x+.3,feet.y+1.8,feet.z+.3))) continue;
                 spawn(p,id,feet,p.getYRot()); made++; break;
             }
         }

@@ -1,5 +1,6 @@
 package com.wf.wflib.pda.api;
 
+import com.wf.wflib.core.api.OrderedRegistry;
 import com.wf.wflib.recon.api.ReconNet;
 import com.wf.wflib.recon.api.ReconOwners;
 import com.wf.wflib.recon.api.GridNode;
@@ -27,8 +28,8 @@ public final class Uplink {
         boolean overhead(ServerLevel level, long netId, ServerPlayer player);
     }
 
-    public static final com.wf.wflib.core.api.OrderedRegistry<Relay> RELAYS =
-            com.wf.wflib.core.api.OrderedRegistry.create("pda.uplink_relays");
+    public static final OrderedRegistry<Relay> RELAYS =
+            OrderedRegistry.create("pda.uplink_relays");
 
     static final int CACHE_TICKS = 10;
     private static final Map<UUID, Cached> CACHE = new HashMap<>();

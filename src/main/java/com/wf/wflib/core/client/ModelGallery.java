@@ -33,6 +33,8 @@ import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.core.api.client.BakedEntry;
 import com.wf.wflib.core.api.client.GalleryEntry;
 import com.wf.wflib.core.api.client.GltfEntry;
+import com.wf.wflib.view.api.client.Rig;
+import java.util.Locale;
 
 /** Every model this mod has, gathered out of the registries that hold them. */
 // TODO(C-sweep): per-owner GalleryContributor registry replaces the system imports below; no piece owns this yet.
@@ -150,7 +152,7 @@ public final class ModelGallery {
     }
 
     private static List<GalleryEntry.Clip> droneClips(ResourceLocation id) {
-        com.wf.wflib.view.api.client.Rig rig = PartRigs.drone(id);
+        Rig rig = PartRigs.drone(id);
         if (rig == null) {
             return List.of();
         }
@@ -211,7 +213,7 @@ public final class ModelGallery {
     }
 
     private static List<GalleryEntry.Clip> pieceClips(ResourceLocation id) {
-        com.wf.wflib.view.api.client.Rig rig = PartRigs.piece(id);
+        Rig rig = PartRigs.piece(id);
         if (rig == null || rig.piece() == null) {
             return List.of();
         }
@@ -331,7 +333,7 @@ public final class ModelGallery {
         List<GalleryEntry.Variant> variants = new ArrayList<>(GlyphidCaste.VALUES.length);
         for (GlyphidCaste caste : GlyphidCaste.VALUES) {
             variants.add(new GalleryEntry.Variant(caste.name()
-                    .toLowerCase(java.util.Locale.ROOT), caste.ordinal()));
+                    .toLowerCase(Locale.ROOT), caste.ordinal()));
         }
         return variants;
     }
@@ -373,7 +375,7 @@ public final class ModelGallery {
     }
 
     @Nullable
-    private static GemRenderGltfModel model(@Nullable com.wf.wflib.view.api.client.Rig rig) {
+    private static GemRenderGltfModel model(@Nullable Rig rig) {
         return rig == null ? null : rig.model();
     }
 

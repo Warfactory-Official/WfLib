@@ -1,6 +1,7 @@
 package com.wf.wflib.drone.api;
 
 import java.security.SecureRandom;
+import java.util.Locale;
 import java.util.random.RandomGenerator;
 
 /** The 12-character identifier a station is known by. */
@@ -45,7 +46,7 @@ public final class StationCode {
             return "";
         }
         StringBuilder out = new StringBuilder(LENGTH);
-        for (char c : raw.toUpperCase(java.util.Locale.ROOT).toCharArray()) {
+        for (char c : raw.toUpperCase(Locale.ROOT).toCharArray()) {
             switch (c) {
                 case '-', ' ', '_', '.' -> {
                     // Separators people add to make a long code readable.

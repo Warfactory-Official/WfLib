@@ -26,6 +26,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.artifact.api.ArtifactSounds;
+import com.wf.wflib.core.api.CreativeTabs;
 
 /** STALKER artefacts, the detectors that find them, and thrown bolts. */
 public final class ArtifactSystem implements WFSystem {
@@ -41,7 +42,7 @@ public final class ArtifactSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("artifact", 450, out -> {
+        CreativeTabs.contribute("artifact", 450, out -> {
             ArtifactContent.ARTIFACTS.values().forEach(a -> out.accept(a.get()));
             out.accept(ArtifactContent.DETECTOR_ECHO.get());
             out.accept(ArtifactContent.DETECTOR_BEAR.get());

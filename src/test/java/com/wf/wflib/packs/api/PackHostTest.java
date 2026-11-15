@@ -9,10 +9,13 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.ClosedFileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -182,10 +185,10 @@ class PackHostTest {
         }
         PackHost closed = host(null, dir);
         closed.rescan();
-        assertThrows(java.nio.file.ClosedFileSystemException.class, () -> Files.exists(closed.packs().getFirst().root()
+        assertThrows(ClosedFileSystemException.class, () -> Files.exists(closed.packs().getFirst().root()
                 .resolve("pack.mcmeta")) );
-        PackSpec hold = new PackSpec("fakemod", "Fake", "fakemod_packs", "fakemod", "fakemod", java.util.Set.of("tab"),
-                java.util.OptionalInt.of(34), s -> false, true, false, false, false);
+        PackSpec hold = new PackSpec("fakemod", "Fake", "fakemod_packs", "fakemod", "fakemod", Set.of("tab"),
+                OptionalInt.of(34), s -> false, true, false, false, false);
         PackHost held = PackHost.detached(hold, List.of(), dir);
         held.rescan();
         assertTrue(Files.exists(held.packs().getFirst().root().resolve("pack.mcmeta")));

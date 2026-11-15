@@ -1,7 +1,9 @@
 package com.wf.wflib.round.api;
 
 import com.wf.wflib.damage.api.Threat;
+import java.util.List;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceLocation;
 
 /** What a round does on its trigger, beyond its own damage and warhead. Server thread. */
 @FunctionalInterface
@@ -19,7 +21,7 @@ public interface ImpactEffect {
     }
 
     /** Warheads it detonates: catalogue ones go live with the bound preset. */
-    default java.util.List<net.minecraft.resources.ResourceLocation> warheads() {
-        return java.util.List.of();
+    default List<ResourceLocation> warheads() {
+        return List.of();
     }
 }

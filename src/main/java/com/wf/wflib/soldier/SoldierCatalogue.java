@@ -2,12 +2,14 @@ package com.wf.wflib.soldier;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.armor.api.ArmorPieceItem;
 import com.wf.wflib.armor.api.ArmorSetups;
 import com.wf.wflib.armor.api.exo.ExoProfiles;
 import com.wf.wflib.soldier.api.SoldierRole;
 import com.wf.wflib.soldier.api.SoldierServices;
 import com.wf.wflib.soldier.api.SoldierThrowables;
+import java.util.regex.Pattern;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -36,7 +38,7 @@ public final class SoldierCatalogue {
         // Legacy converted packs identify exoskeleton garments by item ID but have no powered ExoSpec.
         String path=id.toLowerCase(Locale.ROOT);
         return path.contains("exosuit") || path.contains("exoskeleton") || path.contains("exokarkas")
-                || java.util.regex.Pattern.compile("(^|[./_])exo([./_]|$)").matcher(path).find();
+                || Pattern.compile("(^|[./_])exo([./_]|$)").matcher(path).find();
     }
     public static SoldierCatalogue create() {
         long start=System.nanoTime();
@@ -52,7 +54,7 @@ public final class SoldierCatalogue {
             if (SoldierServices.hasThrowables() && SoldierServices.throwables().kind(id)!=SoldierThrowables.Kind.OTHER)
                 c.add(key,"grenade",new ItemStack(item),Set.of());
         }
-        com.mojang.logging.LogUtils.getLogger().info("Soldier editor catalogue: {} choices in {} ms",c.choices.size(),(System.nanoTime()-start)/1_000_000);
+        LogUtils.getLogger().info("Soldier editor catalogue: {} choices in {} ms",c.choices.size(),(System.nanoTime()-start)/1_000_000);
         return c;
     }
     public void validate(SoldierTemplate u) {

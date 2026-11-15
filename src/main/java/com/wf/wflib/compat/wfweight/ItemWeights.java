@@ -8,6 +8,7 @@ import com.warfactory.ultimateweight.v1211.WeightViews1211;
 import com.wf.wflib.ammo.api.Ammo;
 import com.wf.wflib.armor.api.ArmorPieceItem;
 import com.wf.wflib.armor.api.ArmorStacks;
+import com.wf.wflib.armor.api.exo.ExoStacks;
 import com.wf.wflib.compat.ItemMasses;
 import com.wf.wflib.magazine.api.MagFill;
 import com.wf.wflib.magazine.api.MagazineItem;
@@ -69,8 +70,8 @@ public final class ItemWeights implements IWeightCompatProvider {
             for (ItemStack i : ArmorStacks.inserts(s)) {
                 kg += WeightViews1211.stackWeight(i, depth);
             }
-            kg += WeightViews1211.stackWeight(com.wf.wflib.armor.api.exo.ExoStacks.battery(s), depth);
-            kg += WeightViews1211.stackWeight(com.wf.wflib.armor.api.exo.ExoStacks.belt(s), depth);
+            kg += WeightViews1211.stackWeight(ExoStacks.battery(s), depth);
+            kg += WeightViews1211.stackWeight(ExoStacks.belt(s), depth);
         }
         return kg;
     }

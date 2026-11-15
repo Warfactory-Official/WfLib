@@ -8,6 +8,7 @@ import java.util.UUID;
 import com.wf.wflib.rail.api.AlignPoint;
 import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.DesignClass;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,7 +27,7 @@ class RouteMeetingsTest {
     private static final UUID BLUE = UUID.nameUUIDFromBytes("blue".getBytes());
 
     private static Alignment route(String name, UUID owner, double... coordinates) {
-        List<AlignPoint> points = new java.util.ArrayList<>();
+        List<AlignPoint> points = new ArrayList<>();
         for (int i = 0; i + 1 < coordinates.length; i += 2) {
             points.add(new AlignPoint(coordinates[i], coordinates[i + 1], 80.0));
         }

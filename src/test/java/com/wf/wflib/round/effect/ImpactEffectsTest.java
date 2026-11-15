@@ -24,7 +24,7 @@ class ImpactEffectsTest {
 
     @BeforeAll
     static void defineCatalogue() {
-        com.wf.wflib.round.effect.BuiltinEffects.register();
+        BuiltinEffects.register();
     }
 
 

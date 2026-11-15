@@ -4,6 +4,7 @@ import com.wf.wflib.barrel.api.Barrels;
 import com.wf.wflib.barrel.api.SpareBarrel;
 import com.wf.wflib.barrel.api.SpareBarrelItem;
 import com.wf.wflib.barrel.client.BarrelClient;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLibContent;
 import com.wf.wflib.core.api.WFSystem;
 import net.minecraft.core.component.DataComponentType;
@@ -27,7 +28,7 @@ public final class BarrelSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("barrel", 270, out -> com.wf.wflib.barrel.api.Barrels.creativeStacks().forEach(out::accept));
+        CreativeTabs.contribute("barrel", 270, out -> Barrels.creativeStacks().forEach(out::accept));
         COMPONENTS.register("spare_barrel", () -> DataComponentType.<SpareBarrel>builder()
                 .persistent(SpareBarrel.CODEC).networkSynchronized(SpareBarrel.STREAM_CODEC).cacheEncoding().build());
         COMPONENTS.register(modBus);

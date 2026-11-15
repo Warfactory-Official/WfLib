@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import com.wf.wflib.grenade.Dazed;
 import com.wf.wflib.grenade.FlashPacket;
+import net.minecraft.world.item.ItemStack;
 
 /** Hand-charge warheads. Smoke and thermite are {@link Reaction}s: the shell keeps working after the fuse. */
 public final class GrenadeWarheads {
@@ -258,8 +259,8 @@ public final class GrenadeWarheads {
         if (source.level().isClientSide || source instanceof ThrownCharge) {
             return;
         }
-        ThrownCharge.react((ServerLevel) source.level(), pos, net.minecraft.world.item.ItemStack.EMPTY,
-                new com.wf.wflib.grenade.api.ChargeSpec(id, 0, 0.2f, false, false, 0, 0, 0), new Vec3(0, 1, 0),
+        ThrownCharge.react((ServerLevel) source.level(), pos, ItemStack.EMPTY,
+                new ChargeSpec(id, 0, 0.2f, false, false, 0, 0, 0), new Vec3(0, 1, 0),
                 source.exploder(), null, false);
     }
 
@@ -281,8 +282,8 @@ public final class GrenadeWarheads {
         if (source.level().isClientSide || source instanceof ThrownCharge) {
             return;
         }
-        ThrownCharge.react((ServerLevel) source.level(), pos, net.minecraft.world.item.ItemStack.EMPTY,
-                new com.wf.wflib.grenade.api.ChargeSpec(THERMITE, 0, 0.1f, false, false, 0, 0, 0), new Vec3(0, 1, 0),
+        ThrownCharge.react((ServerLevel) source.level(), pos, ItemStack.EMPTY,
+                new ChargeSpec(THERMITE, 0, 0.1f, false, false, 0, 0, 0), new Vec3(0, 1, 0),
                 source.exploder(), null, false);
     }
 

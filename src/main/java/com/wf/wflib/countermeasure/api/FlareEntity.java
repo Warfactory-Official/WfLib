@@ -1,5 +1,6 @@
 package com.wf.wflib.countermeasure.api;
 
+import com.wf.wflib.countermeasure.client.FlareSound;
 import com.wf.wflib.missile.api.SeekerDecoy;
 import com.wf.wflib.recon.api.Band;
 import net.minecraft.core.particles.ParticleTypes;
@@ -61,7 +62,7 @@ public class FlareEntity extends Projectile implements SeekerDecoy {
                 level().addParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, xo, yo, zo, 0, 0, 0);
             }
             if (tickCount == 1) {
-                com.wf.wflib.countermeasure.client.FlareSound.play(this);
+                FlareSound.play(this);
             }
             return;
         }

@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital.api;
 
+import java.util.Arrays;
 import net.minecraft.nbt.CompoundTag;
 
 /** One square kilometre of imaged ground. */
@@ -77,7 +78,7 @@ public final class SurveyTile {
     }
 
     void clearChanges() {
-        java.util.Arrays.fill(changed, (byte) 0);
+        Arrays.fill(changed, (byte) 0);
     }
 
     public CompoundTag save() {

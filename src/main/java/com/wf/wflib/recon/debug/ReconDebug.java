@@ -11,6 +11,7 @@ import com.wf.wflib.recon.RadarSurveillanceBlockEntity;
 import com.wf.wflib.recon.api.ReconHubBlockEntity;
 import com.wf.wflib.recon.ReconProbeBlockEntity;
 import com.wf.wflib.core.api.WorldThread;
+import com.wf.wflib.missile.api.MissileConfig;
 import com.wf.wflib.recon.api.Band;
 import com.wf.wflib.recon.example.ExampleCountermeasureProvider;
 import com.wf.wflib.recon.example.AnechoicCoating;
@@ -79,6 +80,11 @@ import java.util.concurrent.CompletableFuture;
 import com.wf.wflib.missile.api.MissileContent;
 import com.wf.wflib.recon.api.ReconContent;
 import com.wf.wflib.recon.ReconSystem;
+import com.wf.wflib.recon.api.Countermeasure;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import net.minecraft.world.level.block.Block;
 
 /** What the sensor net is doing right now, and whether the parts of it that are pure functions still work. */
 public final class ReconDebug {
@@ -295,7 +301,7 @@ public final class ReconDebug {
      * Put a block on the surface, clearing the column above it so a probe is not buried by the terrain it was
      * dropped into.
      */
-    private static void place(ServerLevel level, int x, int z, net.minecraft.world.level.block.Block block) {
+    private static void place(ServerLevel level, int x, int z, Block block) {
         int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
         BlockPos pos = new BlockPos(x, y, z);
         level.setBlockAndUpdate(pos, block.defaultBlockState());
@@ -872,7 +878,7 @@ public final class ReconDebug {
         // cut against a one-way law is exactly half the range: the unit the whole stealth economy is in.
         TargetSnapshot tiled = new TargetSnapshot(73L, ContactClass.VEHICLE, 100.0, 80.0, 0.0,
                 0.0, 0.0, 0.0, new Signature(1.0f, 0.0f, 0.0f, 1.0f, 0.0f),
-                new com.wf.wflib.recon.api.Countermeasure[]{AnechoicCoating.STANDARD},
+                new Countermeasure[]{AnechoicCoating.STANDARD},
                 EmconState.ACTIVE, 0L, false, true);
         double bare = SonarPropagator.INSTANCE.look(ear, loud, ReconTerrain.EMPTY).detectionRange();
         double coated = SonarPropagator.INSTANCE.look(ear, tiled, ReconTerrain.EMPTY).detectionRange();
@@ -942,8 +948,8 @@ public final class ReconDebug {
         int cells = 32;
         short[] height = new short[cells * cells];
         short[] seabed = new short[cells * cells];
-        java.util.Arrays.fill(height, (short) surface);
-        java.util.Arrays.fill(seabed, (short) floor);
+        Arrays.fill(height, (short) surface);
+        Arrays.fill(seabed, (short) floor);
         return new ReconTerrain(-128, -128, cells, cells, height, seabed,
                 new byte[cells * cells], new byte[cells * cells], floor);
     }
@@ -961,7 +967,7 @@ public final class ReconDebug {
         checkDetectionRange(failures, 16.0f, 100.0, 200.0);
 
         // The old stealth boolean's fixed 32-block window against a battery, as a cross-section.
-        double stealthRange = 200.0 * Math.pow(com.wf.wflib.missile.api.MissileConfig.stealthRcs(), 0.25);
+        double stealthRange = 200.0 * Math.pow(MissileConfig.stealthRcs(), 0.25);
         if (Math.abs(stealthRange - 32.0) > 2.0) {
             failures.add(String.format(Locale.ROOT,
                     "stealth rcs gives %.1f blocks against a 200-block set, expected ~32", stealthRange));
@@ -1035,7 +1041,7 @@ public final class ReconDebug {
                 failures.add(String.format(Locale.ROOT,
                         "tracker recovered vx=%.3f for a target closing at 0.5 b/t", track.vx()));
             }
-            if (!track.quality().atLeast(com.wf.wflib.recon.api.TrackQuality.CONFIRMED)) {
+            if (!track.quality().atLeast(TrackQuality.CONFIRMED)) {
                 failures.add("ten looks at one target left the track " + track.quality());
             }
         }
@@ -1095,7 +1101,7 @@ public final class ReconDebug {
 
         TargetSnapshot coated = new TargetSnapshot(61L, ContactClass.MISSILE, 120.0, 80.0, 0.0,
                 -1.0, 0.0, 0.0, new Signature(1.0f, 0.0f, 2.25f, 0.0f, 0.0f),
-                new com.wf.wflib.recon.api.Countermeasure[]{RadarAbsorbentCoating.STANDARD},
+                new Countermeasure[]{RadarAbsorbentCoating.STANDARD},
                 EmconState.ACTIVE, 0L, false);
         List<Plot> byRadar = offThread(() -> DetectionPass.run(sensor, List.of(coated), ReconTerrain.EMPTY,
                 RadarPropagator.INSTANCE, 0L), failures, "coated radar pass");
@@ -1293,8 +1299,8 @@ public final class ReconDebug {
      * Run a pass on a worker and wait for it, because the pass refuses to run here, which is exactly the property
      * being tested a few lines further down.
      */
-    private static <T> T offThread(java.util.concurrent.Callable<T> work, List<String> failures, String what) {
-        java.util.concurrent.ExecutorService pool = WorkerPool.pool();
+    private static <T> T offThread(Callable<T> work, List<String> failures, String what) {
+        ExecutorService pool = WorkerPool.pool();
         if (pool == null) {
             failures.add(what + " skipped: no worker pool");
             return null;

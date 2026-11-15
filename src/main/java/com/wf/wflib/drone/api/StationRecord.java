@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import java.util.Collections;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -13,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import net.minecraft.core.registries.Registries;
 
 /** One registered station: its code, where it actually is, and who it will accept cargo from. */
 public final class StationRecord {
@@ -57,7 +59,7 @@ public final class StationRecord {
     }
 
     public Set<String> allowed() {
-        return java.util.Collections.unmodifiableSet(allowed);
+        return Collections.unmodifiableSet(allowed);
     }
 
     public boolean allows(String senderCode) {
@@ -75,7 +77,7 @@ public final class StationRecord {
     // --- roles ---
 
     public Set<StationRole> roles() {
-        return java.util.Collections.unmodifiableSet(this.roles);
+        return Collections.unmodifiableSet(this.roles);
     }
 
     public boolean has(StationRole role) {
@@ -126,7 +128,7 @@ public final class StationRecord {
 
     public static StationRecord load(CompoundTag tag) {
         ResourceLocation dimensionId = ResourceLocation.tryParse(tag.getString("Dimension"));
-        ResourceKey<Level> dimension = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+        ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION,
                 dimensionId != null ? dimensionId : Level.OVERWORLD.location());
         StationRecord record = new StationRecord(tag.getString("Code"), dimension,
                 BlockPos.of(tag.getLong("Pos")), tag.getLong("RegisteredAt"));

@@ -211,7 +211,7 @@ public final class SimMissile {
             sm.attackApproachDir = new Vec3(tag.getDouble("AttackApproachX"), 0.0, tag.getDouble("AttackApproachZ"));
         }
         if (tag.contains("AttackProfile")) {
-            sm.attackProfile = com.wf.wflib.missile.api.AttackProfile.byName(tag.getString("AttackProfile"));
+            sm.attackProfile = AttackProfile.byName(tag.getString("AttackProfile"));
         }
         if (tag.contains("ApproachJoinCap")) {
             sm.approachJoinCap = tag.getDouble("ApproachJoinCap");

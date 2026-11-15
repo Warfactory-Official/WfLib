@@ -7,6 +7,9 @@ import net.minecraft.world.item.component.ItemContainerContents;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 
 /** The one place that knows how exo state is stored on a stack. Writes on a worn stack are equipment-sync packets. */
 public final class ExoStacks {
@@ -66,8 +69,8 @@ public final class ExoStacks {
         if (item.isEmpty()) {
             return false;
         }
-        for (net.minecraft.resources.ResourceLocation tag : spec.repairTags()) {
-            if (item.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, tag))) {
+        for (ResourceLocation tag : spec.repairTags()) {
+            if (item.is(TagKey.create(Registries.ITEM, tag))) {
                 return true;
             }
         }

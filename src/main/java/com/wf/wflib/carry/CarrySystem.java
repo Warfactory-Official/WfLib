@@ -26,7 +26,10 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import com.wf.wflib.carry.api.Shoulder;
+import com.wf.wflib.carry.client.ShoulderClient;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.component.ItemContainerContents;
 
 /** Open carry of one {@code carriable} item in both hands, no inventory slot. */
 public final class CarrySystem implements WFSystem {
@@ -43,10 +46,10 @@ public final class CarrySystem implements WFSystem {
                 .serialize(ItemStack.OPTIONAL_CODEC).copyOnDeath().build());
         attachments.register(modBus);
         DeferredRegister.DataComponents components =
-                DeferredRegister.createDataComponents(net.minecraft.core.registries.Registries.DATA_COMPONENT_TYPE, WFLib.MODID);
-        components.<net.minecraft.world.item.component.ItemContainerContents>registerComponentType("shouldered_gun",
-                b -> b.persistent(net.minecraft.world.item.component.ItemContainerContents.CODEC)
-                        .networkSynchronized(net.minecraft.world.item.component.ItemContainerContents.STREAM_CODEC));
+                DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, WFLib.MODID);
+        components.<ItemContainerContents>registerComponentType("shouldered_gun",
+                b -> b.persistent(ItemContainerContents.CODEC)
+                        .networkSynchronized(ItemContainerContents.STREAM_CODEC));
         attachments.register("carried_body", () -> AttachmentType.builder(() -> -1).build());
         attachments.register("shouldered_gun", () -> AttachmentType.builder(() -> ItemStack.EMPTY)
                 .serialize(ItemStack.OPTIONAL_CODEC).copyOnDeath().build());
@@ -81,6 +84,6 @@ public final class CarrySystem implements WFSystem {
         modBus.addListener(RegisterKeyMappingsEvent.class, CarryClient::keys);
         modBus.addListener(EntityRenderersEvent.AddLayers.class, CarryClient::layers);
         NeoForge.EVENT_BUS.register(CarryClient.class);
-        NeoForge.EVENT_BUS.register(com.wf.wflib.carry.client.ShoulderClient.class);
+        NeoForge.EVENT_BUS.register(ShoulderClient.class);
     }
 }

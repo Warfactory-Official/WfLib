@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import com.wf.wflib.colony.api.GlyphidObjective;
+import java.util.Arrays;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Splits a swarm into squads of roughly equal strength and gives each one something different to do, so a swarm is
@@ -240,12 +242,12 @@ public final class GlyphidSquads {
         return level.getBlockState(wall.above()).isSolidRender(level, wall.above()) ? wall : null;
     }
 
-    private static double median(List<EntityGlyphid> members, java.util.function.ToDoubleFunction<EntityGlyphid> axis) {
+    private static double median(List<EntityGlyphid> members, ToDoubleFunction<EntityGlyphid> axis) {
         double[] values = new double[members.size()];
         for (int i = 0; i < values.length; i++) {
             values[i] = axis.applyAsDouble(members.get(i));
         }
-        java.util.Arrays.sort(values);
+        Arrays.sort(values);
         return values[values.length / 2];
     }
 

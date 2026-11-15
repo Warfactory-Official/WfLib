@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import com.wf.wflib.colony.glyphid.sim.SimWorldPrefetch;
 import com.wf.wflib.core.api.WFLib;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Glyphid tiers: <b>entity when something could interact with it, record otherwise</b>, with hysteresis.
@@ -290,9 +291,9 @@ public final class SimGlyphidManager implements SimKind<SimGlyphid> {
     }
 
     /** A place the benchmark says to treat as a player, or null. */
-    private static volatile double @org.jetbrains.annotations.Nullable [] watcher;
+    private static volatile double @Nullable [] watcher;
 
-    public static void setWatcher(double @org.jetbrains.annotations.Nullable [] at) {
+    public static void setWatcher(double @Nullable [] at) {
         watcher = at;
     }
 

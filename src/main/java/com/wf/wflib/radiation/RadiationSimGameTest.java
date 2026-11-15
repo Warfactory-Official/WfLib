@@ -1,5 +1,6 @@
 package com.wf.wflib.radiation;
 
+import com.sun.management.ThreadMXBean;
 import com.wf.wflib.hazard.api.Hazards;
 import com.wf.wflib.hazard.api.HazardRules;
 import net.minecraft.core.SectionPos;
@@ -294,7 +295,7 @@ public class RadiationSimGameTest {
             System.arraycopy(column, 0, scratch, 0, column.length);
             kernel.decay(scratch, 0, column.length, 0.9D, 0.0D, 100.0D, 5.0D, masks);
         }
-        com.sun.management.ThreadMXBean bean = (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
+        ThreadMXBean bean = (ThreadMXBean) ManagementFactory.getThreadMXBean();
         long before = bean.getCurrentThreadAllocatedBytes();
         for (int i = 0; i < 5_000; i++) {
             System.arraycopy(column, 0, scratch, 0, column.length);

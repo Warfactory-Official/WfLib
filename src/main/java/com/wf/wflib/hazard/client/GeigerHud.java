@@ -33,7 +33,7 @@ public final class GeigerHud {
 
     public static void register() {
         UiLayout layout = layout(LAYOUT, place("4", "ui.height - 4", Point.BOTTOM_LEFT, new Lcd()));
-        UiHud.addSource(UiHud.Layer.MAIN, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "geiger"), 0, out -> {
+        UiHud.addSource(UiHud.Layer.MAIN, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "geiger"), 0, out -> {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null || !player.getInventory().contains(HazardContent.GEIGER_COUNTER)) return;
             if (instance == null) instance = layout.instantiate();

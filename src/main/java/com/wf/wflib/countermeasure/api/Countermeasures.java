@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.world.entity.Entity;
 
 /** Countermeasure entity types + catalogue items (registered iff requested); registered by {@code CountermeasureSystem}. */
 public final class Countermeasures {
@@ -50,7 +51,7 @@ public final class Countermeasures {
         live = CountermeasureCatalogue.ids().stream().filter(requested::contains).toList();
     }
 
-    private static <T extends net.minecraft.world.entity.Entity> DeferredHolder<EntityType<?>, EntityType<T>> entity(
+    private static <T extends Entity> DeferredHolder<EntityType<?>, EntityType<T>> entity(
             String path) {
         return DeferredHolder.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, path));
     }

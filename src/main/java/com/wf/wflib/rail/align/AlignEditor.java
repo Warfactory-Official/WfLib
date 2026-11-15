@@ -253,7 +253,7 @@ public final class AlignEditor {
      * underneath. The work itself is still good, so it becomes a fresh draft rather than being lost.</p>
      */
     public void fork() {
-        this.id = java.util.UUID.randomUUID();
+        this.id = UUID.randomUUID();
         this.baseRevision = 0;
         this.status = RouteStatus.DRAFT;
         this.built = BuildProgress.NONE;

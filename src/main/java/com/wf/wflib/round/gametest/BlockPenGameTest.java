@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Locale;
 
 /**
  * Non-destructive block penetration: rifle round (blockPen 10, 800 m/s) vs plank, stone, glass, loaded and on disk.
@@ -288,7 +289,7 @@ public class BlockPenGameTest {
                 }
                 best = Math.min(best, (System.nanoTime() - t0) / 500.0);
             }
-            out.append(String.format(java.util.Locale.ROOT, " %s %.0f ns;", block.getDescriptionId(), best));
+            out.append(String.format(Locale.ROOT, " %s %.0f ns;", block.getDescriptionId(), best));
         }
         RoundConfig.override(saved);
         level.setBlockAndUpdate(wall, Blocks.AIR.defaultBlockState());

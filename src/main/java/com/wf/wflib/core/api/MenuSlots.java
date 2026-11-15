@@ -7,6 +7,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
@@ -73,7 +74,7 @@ public final class MenuSlots {
                 f = frozen;
                 if (f == null) {
                     f = REGISTERED.stream().filter(g -> g.enabled().getAsBoolean())
-                            .sorted(java.util.Comparator.comparingInt(Group::priority).reversed()
+                            .sorted(Comparator.comparingInt(Group::priority).reversed()
                                     .thenComparing(g -> g.id().toString())).toList();
                     frozen = f;
                 }

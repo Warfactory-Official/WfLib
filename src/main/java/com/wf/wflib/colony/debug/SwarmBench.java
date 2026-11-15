@@ -25,6 +25,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import com.wf.wflib.colony.api.ColonyContent;
+import com.wf.wflib.colony.glyphid.ai.GlyphidPathCache;
+import com.wf.wflib.colony.glyphid.nav.GlyphidBridges;
+import com.wf.wflib.colony.glyphid.nav.GlyphidFlowFields;
+import com.wf.wflib.explosion.api.ExplosionAEF;
+import java.lang.management.ManagementFactory;
 
 /** Spawns a glyphid swarm on demand and reports what it costs. */
 public final class SwarmBench {
@@ -212,7 +217,7 @@ public final class SwarmBench {
         float dealt = damage;
         int touched = engaged;
         int size = dummies.size();
-        source.sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
+        source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "%d dummies, %d engaged, %d hits, %.1f damage", size, touched, total, dealt)), false);
         return 1;
     }
@@ -424,7 +429,7 @@ public final class SwarmBench {
     public static int blast(CommandSourceStack source, float size) {
         Vec3 at = source.getPosition();
         int before = GlyphidTracker.count(source.getLevel()) + SimGlyphidManager.count(source.getLevel());
-        new com.wf.wflib.explosion.api.ExplosionAEF(source.getLevel(), at.x, at.y, at.z, size)
+        new ExplosionAEF(source.getLevel(), at.x, at.y, at.z, size)
                 .makeStandard().explode();
         int after = GlyphidTracker.count(source.getLevel()) + SimGlyphidManager.count(source.getLevel());
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
@@ -461,14 +466,14 @@ public final class SwarmBench {
     public static int flowField(CommandSourceStack source, boolean on) {
         flowField = on;
         if (!on) {
-            com.wf.wflib.colony.glyphid.nav.GlyphidFlowFields.clear();
+            GlyphidFlowFields.clear();
         }
         source.sendSuccess(() -> Component.literal("Glyphid flow field " + (on ? "on" : "off") + "."), false);
         return 1;
     }
 
     public static int flowFields(CommandSourceStack source) {
-        for (String line : com.wf.wflib.colony.glyphid.nav.GlyphidFlowFields.report(source.getLevel())) {
+        for (String line : GlyphidFlowFields.report(source.getLevel())) {
             source.sendSuccess(() -> Component.literal(line), false);
         }
         return 1;
@@ -481,7 +486,7 @@ public final class SwarmBench {
     }
 
     public static int bridgeReport(CommandSourceStack source) {
-        for (String line : com.wf.wflib.colony.glyphid.nav.GlyphidBridges.report(source.getLevel())) {
+        for (String line : GlyphidBridges.report(source.getLevel())) {
             source.sendSuccess(() -> Component.literal(line), false);
         }
         return 1;
@@ -578,7 +583,7 @@ public final class SwarmBench {
 
     public static int sharedPaths(CommandSourceStack source, boolean on) {
         sharedPaths = on;
-        com.wf.wflib.colony.glyphid.ai.GlyphidPathCache.clear();
+        GlyphidPathCache.clear();
         source.sendSuccess(() -> Component.literal("Shared paths " + (on ? "on" : "off") + "."), false);
         return 1;
     }
@@ -602,7 +607,7 @@ public final class SwarmBench {
             }
         }
         int touched = levels;
-        source.sendSuccess(() -> Component.literal(String.format(java.util.Locale.ROOT,
+        source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                 "Path-type cache: %d entries (%.2f MB) across %d level(s).",
                 entries, PathTypeCacheSize.megabytesFor(entries), touched)), false);
         return 1;
@@ -646,7 +651,7 @@ public final class SwarmBench {
 
     private static long threadAllocatedBytes() {
         try {
-            java.lang.management.ThreadMXBean bean = java.lang.management.ManagementFactory.getThreadMXBean();
+            java.lang.management.ThreadMXBean bean = ManagementFactory.getThreadMXBean();
             if (bean instanceof com.sun.management.ThreadMXBean sun) {
                 return sun.getCurrentThreadAllocatedBytes();
             }

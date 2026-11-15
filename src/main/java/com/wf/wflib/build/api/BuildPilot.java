@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import com.wf.wflib.build.BlueprintLibrary;
 import com.wf.wflib.build.SiteRules;
+import com.wf.wflib.drone.api.DroneState;
 
 public final class BuildPilot {
 
@@ -236,7 +237,7 @@ public final class BuildPilot {
     }
 
     /** False: headed home, grounded, or falling. */
-    private static boolean worksJobs(com.wf.wflib.drone.api.DroneState state) {
+    private static boolean worksJobs(DroneState state) {
         return switch (state) {
             case TAKEOFF, MUSTER, TRANSIT, WORK, SUPPLY -> true;
             default -> false;

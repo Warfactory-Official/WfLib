@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 
 import java.util.function.BiConsumer;
+import top.theillusivec4.curios.api.CuriosApi;
 
 /** Built-in kinds: vanilla inventory (index key), worn backpack, carried kit, Curios ({@code id/index}). */
 final class CorpseSlots {
@@ -146,11 +147,11 @@ final class CorpseSlots {
 
     private static final class Loaded {
         static void settle(Player player) {
-            top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player).ifPresent(inv -> inv.handleInvalidStacks());
+            CuriosApi.getCuriosInventory(player).ifPresent(inv -> inv.handleInvalidStacks());
         }
 
         static void each(Player player, BiConsumer<String, ItemStack> out) {
-            top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player).ifPresent(inv ->
+            CuriosApi.getCuriosInventory(player).ifPresent(inv ->
                     inv.getCurios().forEach((id, handler) -> {
                         var stacks = handler.getStacks();
                         for (int i = 0; i < stacks.getSlots(); i++) {
@@ -164,7 +165,7 @@ final class CorpseSlots {
         static ItemStack take(Player player, String key) {
             int cut = key.lastIndexOf('/');
             int i = Integer.parseInt(key.substring(cut + 1));
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player)
+            return CuriosApi.getCuriosInventory(player)
                     .flatMap(inv -> inv.getStacksHandler(key.substring(0, cut)))
                     .map(h -> {
                         ItemStack s = h.getStacks().getStackInSlot(i);
@@ -176,7 +177,7 @@ final class CorpseSlots {
         static boolean put(ServerPlayer player, String key, ItemStack stack) {
             int cut = key.lastIndexOf('/');
             int i = Integer.parseInt(key.substring(cut + 1));
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player)
+            return CuriosApi.getCuriosInventory(player)
                     .flatMap(inv -> inv.getStacksHandler(key.substring(0, cut)))
                     .filter(h -> i < h.getStacks().getSlots() && h.getStacks().getStackInSlot(i).isEmpty())
                     .map(h -> {

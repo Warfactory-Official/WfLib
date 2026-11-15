@@ -1,6 +1,7 @@
 package com.wf.wflib.smoking;
 
 import com.norwood.ahf.hook.AhfHooks;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.smoking.api.SmokingContent;
 import com.wf.wflib.smoking.client.CigaretteItemClient;
@@ -36,7 +37,7 @@ public final class SmokingSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("smoking", 400, out -> out.accept(SmokingContent.CIGARETTE.get()));
+        CreativeTabs.contribute("smoking", 400, out -> out.accept(SmokingContent.CIGARETTE.get()));
         DeferredRegister<AttachmentType<?>> attachments =
                 DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, WFLib.MODID);
         attachments.register("smoking", () -> AttachmentType.<Smoking.Session>builder(() -> {

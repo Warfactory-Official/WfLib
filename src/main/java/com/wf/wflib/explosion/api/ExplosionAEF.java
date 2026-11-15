@@ -2,6 +2,8 @@ package com.wf.wflib.explosion.api;
 
 import com.wf.wflib.explosion.standard.*;
 import com.wf.wflib.compat.api.WarforgeCompat;
+import com.wf.wflib.explosion.debug.ExplosionTrace;
+import com.wf.wflib.recon.api.SeismicEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -14,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import net.minecraft.server.level.ServerLevel;
 
 /**
  * A composable replacement for {@link net.minecraft.world.level.Explosion}: the core of the Advanced Explosion
@@ -109,11 +112,11 @@ public class ExplosionAEF {
     }
 
     private void run() {
-        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            com.wf.wflib.recon.api.SeismicEvents.report(serverLevel, posX, posY, posZ, size);
+        if (level instanceof ServerLevel serverLevel) {
+            SeismicEvents.report(serverLevel, posX, posY, posZ, size);
         }
 
-        com.wf.wflib.explosion.debug.ExplosionTrace.begin(new Vec3(posX, posY, posZ), size,
+        ExplosionTrace.begin(new Vec3(posX, posY, posZ), size,
                 level.getGameTime());
 
         boolean processBlocks = blockAllocator != null && blockProcessor != null;
@@ -139,7 +142,7 @@ public class ExplosionAEF {
 
         if (processBlocks) compat.getToBlow().addAll(affectedBlocks);
 
-        com.wf.wflib.explosion.debug.ExplosionTrace.end();
+        ExplosionTrace.end();
 
         // 5: sound and particles.
         if (sfx != null) {

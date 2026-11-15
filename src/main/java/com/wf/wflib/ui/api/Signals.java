@@ -4,6 +4,7 @@ import com.wf.wflib.core.api.WFRegistry;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
@@ -38,11 +39,11 @@ public final class Signals {
 
     /** Names = lower-cased constants. */
     public static <S, E extends Enum<E>> Signal.Choice<S> choice(Subject<S> subject, String name, Class<E> type,
-                                                                 java.util.function.Function<? super S, E> getter) {
+                                                                 Function<? super S, E> getter) {
         E[] values = type.getEnumConstants();
         String[] names = new String[values.length];
         for (int i = 0; i < values.length; i++) {
-            names[i] = values[i].name().toLowerCase(java.util.Locale.ROOT);
+            names[i] = values[i].name().toLowerCase(Locale.ROOT);
         }
         return choice(subject, name, List.of(names), s -> {
             E value = getter.apply(s);

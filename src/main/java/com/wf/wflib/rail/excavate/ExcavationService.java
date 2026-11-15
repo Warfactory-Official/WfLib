@@ -12,15 +12,20 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.slf4j.Logger;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.IntConsumer;
+import net.minecraft.server.level.ChunkMap;
 
 /** Carves terrain for one level, taking the cheap path when nobody is looking and the correct one when they are. */
 public final class ExcavationService {
@@ -43,12 +48,12 @@ public final class ExcavationService {
      */
     private static final class Job {
 
-        private final java.util.function.IntConsumer onComplete;
+        private final IntConsumer onComplete;
         private int outstanding;
         /** Fluid cells this carve had to take out of the inside of the tunnel. */
         private int fluid;
 
-        private Job(int columns, java.util.function.IntConsumer onComplete) {
+        private Job(int columns, IntConsumer onComplete) {
             this.outstanding = columns;
             this.onComplete = onComplete;
         }
@@ -142,7 +147,7 @@ public final class ExcavationService {
     }
 
     /** Queue a carve with no territory restriction. */
-    public int submit(ServerLevel level, CarvePlan plan, java.util.function.IntConsumer onComplete) {
+    public int submit(ServerLevel level, CarvePlan plan, IntConsumer onComplete) {
         return submit(level, plan, null, onComplete);
     }
 
@@ -157,8 +162,8 @@ public final class ExcavationService {
      *                   many fluid cells the carve had to remove from inside the tunnel; or null
      * @return how many chunk columns were actually queued
      */
-    public int submit(ServerLevel level, CarvePlan plan, java.util.Set<Long> allowedChunks,
-                      java.util.function.IntConsumer onComplete) {
+    public int submit(ServerLevel level, CarvePlan plan, Set<Long> allowedChunks,
+                      IntConsumer onComplete) {
         WorldThread.assertOn("submitting a carve");
         BoundingBox box = plan.bounds();
         int minX = box.minX() >> 4;
@@ -166,7 +171,7 @@ public final class ExcavationService {
         int minZ = box.minZ() >> 4;
         int maxZ = box.maxZ() >> 4;
 
-        List<ChunkPos> queue = new java.util.ArrayList<>();
+        List<ChunkPos> queue = new ArrayList<>();
         for (int cx = minX; cx <= maxX; cx++) {
             for (int cz = minZ; cz <= maxZ; cz++) {
                 ChunkPos pos = new ChunkPos(cx, cz);
@@ -329,7 +334,7 @@ public final class ExcavationService {
                                 unwrap(error))));
     }
 
-    private StoredChunkCarver.Outcome carve(net.minecraft.server.level.ChunkMap chunkMap, Column column,
+    private StoredChunkCarver.Outcome carve(ChunkMap chunkMap, Column column,
                                             ChunkClaim claim, Optional<CompoundTag> stored,
                                             long started, long readDone) {
         WorldThread.assertOff("carving a stored chunk");
@@ -338,7 +343,7 @@ public final class ExcavationService {
         }
         if (stored.isEmpty()) {
             // Never generated. Skipped deliberately: generating it here would be far dearer than the carve.
-            return new StoredChunkCarver.Outcome(0, 0, 0, java.util.List.of());
+            return new StoredChunkCarver.Outcome(0, 0, 0, List.of());
         }
         boolean timing = RailConfig.EXCAVATION_STATS.get();
         long begun = timing ? System.nanoTime() : 0L;
@@ -367,7 +372,7 @@ public final class ExcavationService {
     }
 
     private static Throwable unwrap(Throwable error) {
-        return error instanceof java.util.concurrent.CompletionException && error.getCause() != null
+        return error instanceof CompletionException && error.getCause() != null
                 ? error.getCause() : error;
     }
 }

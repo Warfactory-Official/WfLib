@@ -14,9 +14,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -27,14 +31,14 @@ final class SoldierVoices {
     static Path bundle() { return root().resolve("generated/voices-resources.zip"); }
     private static Map<String, VoicePack> packs = Map.of();
     private static Map<String, String> teams = Map.of();
-    private static final Map<String, VoiceCadence> squads = new java.util.HashMap<>();
+    private static final Map<String, VoiceCadence> squads = new HashMap<>();
 
     private SoldierVoices() {}
 
     /** A binding is a pack id, or {@code pack/speaker} to pin every soldier on the team to one speaker. */
     static final String BINDING = "[a-z0-9_]{1,64}(/[a-z0-9_]{1,64})?";
 
-    static java.util.Set<String> ids() { return packs.keySet(); }
+    static Set<String> ids() { return packs.keySet(); }
 
     static Map<String, String> teams() { return teams; }
 
@@ -72,7 +76,7 @@ final class SoldierVoices {
         }
         Map<String, String> bindings = readTeams(root().resolve("teams.json"));
         buildBundle(loaded, bundle());
-        packs = java.util.Collections.unmodifiableMap(loaded);
+        packs = Collections.unmodifiableMap(loaded);
         teams = Map.copyOf(bindings);
         squads.clear();
         LogUtils.getLogger().info("Soldier voices: {} packs, {} team assignments, resources {}", packs.size(), teams.size(), bundle());
@@ -122,7 +126,7 @@ final class SoldierVoices {
                 for (VoicePack pack : loaded.values()) {
                     try (var zip = new ZipFile(pack.file().toFile())) {
                         for (var entry : zip.stream().filter(e -> !e.isDirectory() && e.getName().startsWith("assets/"))
-                                .sorted(java.util.Comparator.comparing(ZipEntry::getName)).toList()) {
+                                .sorted(Comparator.comparing(ZipEntry::getName)).toList()) {
                             var copy = new ZipEntry(entry.getName()); copy.setTime(0);
                             out.putNextEntry(copy);
                             try (var input = zip.getInputStream(entry)) {

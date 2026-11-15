@@ -1,6 +1,7 @@
 package com.wf.wflib.mist.spray;
 
 import com.wf.wflib.mist.api.GasCloud;
+import com.wf.wflib.mist.api.MistEffects;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.Vec3;
@@ -21,7 +22,7 @@ public final class Sprays {
 
     /** Payload {@code gas}, {@code MistEffects}-bearing or lighter-than-air => gas. */
     public static boolean isGas(Fluid fluid) {
-        return com.wf.wflib.mist.api.MistEffects.get(fluid) != null || fluid.getFluidType().isLighterThanAir();
+        return MistEffects.get(fluid) != null || fluid.getFluidType().isLighterThanAir();
     }
 
     /** @param radius footprint (blocks); puff flood-fill reach / curtain disc radius */

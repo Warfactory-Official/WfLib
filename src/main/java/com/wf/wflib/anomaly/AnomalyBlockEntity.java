@@ -33,6 +33,26 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import com.wf.wflib.anomaly.api.AnomalyContent;
+import com.wf.wflib.anomaly.client.AnomalyClient;
+import com.wf.wflib.artifact.api.BoltEntity;
+import com.wf.wflib.round.api.Rounds;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An anomaly's state, its {@link AnomalyType} from its block. The server starts each blowout with a block event; both
@@ -57,16 +77,16 @@ public class AnomalyBlockEntity extends BlockEntity {
     /** Server: blowout ticks in a row with nobody big enough inside. */
     private int empty;
     /** Server: who was inside last tick, for the entrance sound. */
-    private java.util.Set<Integer> inside = java.util.Set.of();
+    private Set<Integer> inside = Set.of();
     /** Entity ids hit this blowout; each side keeps its own. */
-    private final java.util.Set<Integer> hit = new java.util.HashSet<>();
+    private final Set<Integer> hit = new HashSet<>();
     /** Server, a CHairsZone: where each body inside was last tick, for its speed. */
-    private java.util.Map<Integer, Vec3> seen = java.util.Map.of();
+    private Map<Integer, Vec3> seen = Map.of();
     /** Server: Rebounders loaded now, for {@link #shielding}. */
-    private static final java.util.Set<AnomalyBlockEntity> SHIELDS =
-            java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    private static final Set<AnomalyBlockEntity> SHIELDS =
+            Collections.newSetFromMap(new WeakHashMap<>());
     /** A {@link Quirk#moves wandering} anomaly's loop: made by the server once, saved, sent to clients. */
-    @org.jetbrains.annotations.Nullable
+    @Nullable
     private AnomalyPath path;
     /**
      * Client: game time as this anomaly walks its path, a tick per tick, eased toward the server's (whose time
@@ -80,7 +100,7 @@ public class AnomalyBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         if (path != null) {
             path.save(tag);
@@ -88,22 +108,22 @@ public class AnomalyBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void loadAdditional(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         path = AnomalyPath.load(tag);
     }
 
     @Override
-    public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
-        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
         saveAdditional(tag, registries);
         return tag;
     }
 
     @Override
-    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener>
+    public Packet<ClientGamePacketListener>
             getUpdatePacket() {
-        return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     public AnomalyType type() {
@@ -219,7 +239,7 @@ public class AnomalyBlockEntity extends BlockEntity {
         if (be.type.quirk().moves() && be.path == null) {
             be.path = be.type.quirk() == Quirk.ORBIT ? AnomalyPath.comet(level, pos) : AnomalyPath.ghost(level, pos);
             be.setChanged();
-            level.sendBlockUpdated(pos, state, state, net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+            level.sendBlockUpdated(pos, state, state, Block.UPDATE_CLIENTS);
         }
         if (be.type.quirk() == Quirk.PSY_AURA && be.age % FieldTuning.PULSE_TICKS == 0
                 && level instanceof ServerLevel server) {
@@ -233,8 +253,8 @@ public class AnomalyBlockEntity extends BlockEntity {
         boolean occupied = false;
         boolean tripped = false;
         boolean hairs = behaviour instanceof BlastTuning blast && blast.hairs();
-        java.util.Set<Integer> now = new java.util.HashSet<>();
-        java.util.Map<Integer, Vec3> seen = hairs ? new java.util.HashMap<>() : java.util.Map.of();
+        Set<Integer> now = new HashSet<>();
+        Map<Integer, Vec3> seen = hairs ? new HashMap<>() : Map.of();
         AABB around = new AABB(c, c).inflate(behaviour.radius());
         for (Entity e : level.getEntities((Entity) null, hairs ? around.expandTowards(0.0D, -BlastTuning.HAIRS_DROP,
                 0.0D) : around, AnomalyBlockEntity::affected)) {
@@ -260,7 +280,7 @@ public class AnomalyBlockEntity extends BlockEntity {
             }
             // The living set it off, and thrown bolts (STALKER's way of finding them); not items or arrows. While one
             // stays inside it fires again as soon as it has recharged (CCustomZone::AccumulateState).
-            boolean bolt = e instanceof com.wf.wflib.artifact.api.BoltEntity;
+            boolean bolt = e instanceof BoltEntity;
             tripped |= (alive && (big || behaviour.smallTrips()) || bolt) && behaviour.trips(dist) && moving;
             if (alive && level instanceof ServerLevel server) {
                 be.dwell(server, (LivingEntity) e, dist);
@@ -354,7 +374,7 @@ public class AnomalyBlockEntity extends BlockEntity {
     }
 
     /** The Rebounder {@code victim} is inside, if any (server). */
-    @org.jetbrains.annotations.Nullable
+    @Nullable
     public static AnomalyBlockEntity shielding(LivingEntity victim) {
         for (AnomalyBlockEntity be : SHIELDS) {
             if (!be.isRemoved() && be.level == victim.level()
@@ -434,7 +454,7 @@ public class AnomalyBlockEntity extends BlockEntity {
         player.causeFoodExhaustion(4.0F * minutes / 60.0F);
         player.hurt(source(level), player.getMaxHealth() * (0.01F + 0.03F * random.nextFloat()));
         player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 120, 0));
-        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("anomaly.wflib.time_slip",
+        player.displayClientMessage(Component.translatable("anomaly.wflib.time_slip",
                 minutes / 60, minutes % 60), true);
         if (level.getServer().getPlayerCount() == 1) {
             ServerLevel overworld = level.getServer().overworld();
@@ -446,7 +466,7 @@ public class AnomalyBlockEntity extends BlockEntity {
         be.step();
         long now = level.getGameTime();
         be.clock = be.clock < 0.0D || Math.abs(now - be.clock) > 20.0D ? now : be.clock + 1.0D + 0.05D * (now - be.clock - 1.0D);
-        com.wf.wflib.anomaly.client.AnomalyClient.tick(be);
+        AnomalyClient.tick(be);
     }
 
     /** Pulled, floated or thrown: the living, loose objects, vehicles and anything in flight. Not spectators or creative players. */
@@ -456,7 +476,7 @@ public class AnomalyBlockEntity extends BlockEntity {
         }
         return e instanceof LivingEntity || e instanceof ItemEntity || e instanceof ExperienceOrb
                 || e instanceof Projectile || e instanceof VehicleEntity
-                || e instanceof com.wf.wflib.artifact.api.BoltEntity;
+                || e instanceof BoltEntity;
     }
 
     /** One tick of this anomaly on {@code e} (caller checks {@link #affected} and range). */
@@ -537,18 +557,18 @@ public class AnomalyBlockEntity extends BlockEntity {
      */
     private void rebound(ServerLevel level, Vec3 c) {
         double r = behaviour().radius();
-        for (long key : com.wf.wflib.round.api.Rounds.within(level, new AABB(c, c).inflate(r + ROUND_REACH))) {
-            Vec3 p = com.wf.wflib.round.api.Rounds.position(level, key);
-            Vec3 v = com.wf.wflib.round.api.Rounds.velocity(level, key);
+        for (long key : Rounds.within(level, new AABB(c, c).inflate(r + ROUND_REACH))) {
+            Vec3 p = Rounds.position(level, key);
+            Vec3 v = Rounds.velocity(level, key);
             Vec3 at = p == null || v == null ? null : entry(p, v, c, r);
-            if (at == null || level.clip(new net.minecraft.world.level.ClipContext(p, at,
-                    net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE,
-                    net.minecraft.world.phys.shapes.CollisionContext.empty())).getType()
-                    != net.minecraft.world.phys.HitResult.Type.MISS) {
+            if (at == null || level.clip(new ClipContext(p, at,
+                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE,
+                    CollisionContext.empty())).getType()
+                    != HitResult.Type.MISS) {
                 continue;
             }
             Vec3 n = at.subtract(c).normalize();
-            com.wf.wflib.round.api.Rounds.deflect(level, key, at, v.subtract(n.scale(2.0D * v.dot(n))).scale(0.5D));
+            Rounds.deflect(level, key, at, v.subtract(n.scale(2.0D * v.dot(n))).scale(0.5D));
             if (type.sounds().hit() != null) {
                 level.playSound(null, at.x, at.y, at.z, type.sounds().hit().get(), SoundSource.HOSTILE, 0.8F,
                         0.9F + 0.2F * level.random.nextFloat());
@@ -557,7 +577,7 @@ public class AnomalyBlockEntity extends BlockEntity {
     }
 
     /** Where {@code p + t v} (t in 0..1), from outside, first meets the sphere {@code c, r}; null if it doesn't. */
-    @org.jetbrains.annotations.Nullable
+    @Nullable
     static Vec3 entry(Vec3 p, Vec3 v, Vec3 c, double r) {
         Vec3 d = p.subtract(c);
         double a = v.lengthSqr();
@@ -604,7 +624,7 @@ public class AnomalyBlockEntity extends BlockEntity {
         super.setRemoved();
         SHIELDS.remove(this);
         if (level != null && level.isClientSide) {
-            com.wf.wflib.anomaly.client.AnomalyClient.forget(this);
+            AnomalyClient.forget(this);
         }
     }
 

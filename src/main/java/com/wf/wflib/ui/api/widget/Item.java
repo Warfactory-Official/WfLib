@@ -8,6 +8,7 @@ import com.wf.wflib.ui.api.UiEval;
 import com.wf.wflib.ui.api.Widget;
 import com.wf.wflib.ui.api.WidgetDef;
 import com.wf.wflib.ui.api.input.UiStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
@@ -53,7 +54,7 @@ public record Item(UiStack stack, float size, boolean decorations) implements Wi
                 pose.scale(size / 16, size / 16, 1);
                 graphics.renderItem(s, 0, 0);
                 if (decorations) {
-                    graphics.renderItemDecorations(net.minecraft.client.Minecraft.getInstance().font, s, 0, 0);
+                    graphics.renderItemDecorations(Minecraft.getInstance().font, s, 0, 0);
                 }
                 pose.popPose();
                 canvas.resume();

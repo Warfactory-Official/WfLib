@@ -10,15 +10,18 @@ import net.neoforged.fml.loading.FMLEnvironment;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import net.neoforged.fml.loading.FMLPaths;
 
 /** Manifest {@code content}: what exactly was loaded when the rows were computed. */
 final class LabsContent {
@@ -64,7 +67,7 @@ final class LabsContent {
 
         JsonObject configs = new JsonObject();
         Map<String, String> files = new TreeMap<>();
-        Path dir = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get();
+        Path dir = FMLPaths.CONFIGDIR.get();
         try (var list = Files.list(dir)) {
             for (Path p : (Iterable<Path>) list::iterator) {
                 String name = p.getFileName().toString();
@@ -73,7 +76,7 @@ final class LabsContent {
                 }
             }
         } catch (IOException e) {
-            throw new java.io.UncheckedIOException(e);
+            throw new UncheckedIOException(e);
         }
         files.forEach(configs::addProperty);
         o.add("configs", configs);
@@ -89,7 +92,7 @@ final class LabsContent {
                     md.update(buf, 0, n);
                 }
                 return HexFormat.of().formatHex(md.digest());
-            } catch (IOException | java.security.NoSuchAlgorithmException e) {
+            } catch (IOException | NoSuchAlgorithmException e) {
                 throw new IllegalStateException(e);
             }
         });

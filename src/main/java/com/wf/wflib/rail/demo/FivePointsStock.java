@@ -2,6 +2,7 @@ package com.wf.wflib.rail.demo;
 
 import cam72cam.immersiverailroading.util.VecUtil;
 import cam72cam.mod.math.Vec3d;
+import com.wf.wflib.rail.RailConfig;
 import com.wf.wflib.rail.api.AlignElement;
 import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.Centreline;
@@ -73,7 +74,7 @@ public final class FivePointsStock {
             // Clear of the junction itself. The last stretch of a route that meets another one is the
             // junction's rather than the line's, so the first blocks out of a stop carry the connecting
             // curve, and that is the one place a piece of parked stock is in the way of the test.
-            double off = com.wf.wflib.rail.RailConfig.TURNOUT_LEAD.get() + 8.0;
+            double off = RailConfig.TURNOUT_LEAD.get() + 8.0;
             Vec3 at = new Vec3(aim.x() + Math.cos(aim.heading()) * off, floorY,
                     aim.z() + Math.sin(aim.heading()) * off);
             IrStock.Placed result = IrStock.spawn(level, at, aim.yaw(), handCar);

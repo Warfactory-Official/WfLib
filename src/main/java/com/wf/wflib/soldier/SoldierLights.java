@@ -1,8 +1,10 @@
 package com.wf.wflib.soldier;
 
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.soldier.client.SoldierLightClient;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.ClientCommonPacketListener;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,7 +30,7 @@ public final class SoldierLights {
     }
 
     /** Client: whether the server has the channel {@link #requestToggle} needs. */
-    public static boolean canToggle(net.minecraft.network.protocol.common.ClientCommonPacketListener connection) {
+    public static boolean canToggle(ClientCommonPacketListener connection) {
         return connection.hasChannel(Toggle.TYPE);
     }
 
@@ -69,7 +71,7 @@ public final class SoldierLights {
         public Type<Lit> type() { return TYPE; }
 
         static void handle(Lit packet, IPayloadContext context) {
-            context.enqueueWork(() -> com.wf.wflib.soldier.client.SoldierLightClient.set(packet.entity, packet.on));
+            context.enqueueWork(() -> SoldierLightClient.set(packet.entity, packet.on));
         }
     }
 }

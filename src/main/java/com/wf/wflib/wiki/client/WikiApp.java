@@ -24,6 +24,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.client.PdaPopup;
+import com.wf.wflib.pda.api.client.PdaText;
 
 /**
  * Searchable article list and markdown reader over {@link Wiki}. State is static (one PDA screen): current article
@@ -297,7 +299,7 @@ public final class WikiApp implements PdaApp {
                 canvas.text(row.summary, left + 24, ry + 12, DIM, false);
                 if ((!row.title.equals(a.title()) || !row.summary.equals(a.summary())) && input != null
                         && input.over(left + 24, ry, left + rowW, ry + ROW))
-                    com.wf.wflib.pda.api.client.PdaPopup.show("ARTICLE", "", a.title() + "\n" + a.summary());
+                    PdaPopup.show("ARTICLE", "", a.title() + "\n" + a.summary());
                 if (input != null) {
                     input.hit(left, ry, left + rowW, ry + ROW, RESULT, a);
                 }
@@ -336,7 +338,7 @@ public final class WikiApp implements PdaApp {
             bx += button(ev, bx, top, 16, "<", BACK_BUTTON, canBack) + 3;
             bx += button(ev, bx, top, 44, "INDEX", INDEX_BUTTON, true) + 6;
             canvas.pushClip(bx, top, left + inner, top + FIELD);
-            com.wf.wflib.pda.api.client.PdaText.line(ev, current.title(), bx, top + 3, left + inner - bx, ACCENT);
+            PdaText.line(ev, current.title(), bx, top + 3, left + inner - bx, ACCENT);
             canvas.popClip();
 
             float by = top + FIELD + 4;

@@ -11,6 +11,8 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 /** Cremation remains: Flywheel instances, not a baked VBO. */
 public class SkeletonBoneEffect implements WFFlywheelEffect {
@@ -119,10 +121,10 @@ public class SkeletonBoneEffect implements WFFlywheelEffect {
             if (onGround) return false;
 
             BlockPos below = BlockPos.containing(x, y - 0.1, z);
-            net.minecraft.world.phys.shapes.VoxelShape shape = level.getBlockState(below).getCollisionShape(level, below);
+            VoxelShape shape = level.getBlockState(below).getCollisionShape(level, below);
             if (!shape.isEmpty()) {
                 onGround = true;
-                y = below.getY() + shape.max(net.minecraft.core.Direction.Axis.Y);
+                y = below.getY() + shape.max(Direction.Axis.Y);
                 vx = vy = vz = 0;
                 return true;
             }

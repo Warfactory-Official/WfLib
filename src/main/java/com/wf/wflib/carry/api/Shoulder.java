@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Predicate;
+import net.minecraft.world.item.Items;
 
 /**
  * A carried item that becomes a real hand-held gun while its carrier may shoulder it (an exoskeleton with a powered
@@ -102,7 +103,7 @@ public final class Shoulder {
             return false;
         }
         Item item = BuiltInRegistries.ITEM.get(id);
-        if (item == net.minecraft.world.item.Items.AIR) {
+        if (item == Items.AIR) {
             return false;
         }
         carrier.setData(HELD, new ItemStack(item));

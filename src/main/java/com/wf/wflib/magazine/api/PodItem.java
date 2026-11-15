@@ -16,6 +16,7 @@ import net.minecraft.world.level.Level;
 import org.joml.Vector2fc;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Launch pod: {@link PodTubes}, round per tube, mixed kinds. Use: load empty tubes from the inventory; sneak-use: unload.
@@ -53,7 +54,7 @@ public class PodItem extends Item {
     }
 
     public static PodTubes contents(ItemStack pod) {
-        return java.util.Objects.requireNonNull(pod.get(MagazineItems.POD_TUBES.get()), "pod_tubes");
+        return Objects.requireNonNull(pod.get(MagazineItems.POD_TUBES.get()), "pod_tubes");
     }
 
     @Override

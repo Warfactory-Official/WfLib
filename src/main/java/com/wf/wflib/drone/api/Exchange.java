@@ -8,6 +8,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import net.minecraft.core.registries.Registries;
 
 /** One arranged meeting between two stations at a neutral point. */
 public final class Exchange {
@@ -155,7 +156,7 @@ public final class Exchange {
 
     public static Exchange load(CompoundTag tag) {
         ResourceLocation dimensionId = ResourceLocation.tryParse(tag.getString("Dimension"));
-        ResourceKey<Level> dimension = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+        ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION,
                 dimensionId != null ? dimensionId : Level.OVERWORLD.location());
         Exchange exchange = new Exchange(tag.getUUID("Id"), dimension,
                 new Vec3(tag.getDouble("X"), tag.getDouble("Y"), tag.getDouble("Z")),

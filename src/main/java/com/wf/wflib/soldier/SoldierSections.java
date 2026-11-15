@@ -14,6 +14,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.core.Direction;
 
 /**
  * A copy of the world's collision, one byte per block, that a worker can read while the tick thread goes on changing the
@@ -100,10 +101,10 @@ public final class SoldierSections {
         VoxelShape shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
         byte value = 0;
         if (!shape.isEmpty()) {
-            int height = (int) Math.min(16, Math.ceil(shape.max(net.minecraft.core.Direction.Axis.Y) * 16 - 1e-9));
+            int height = (int) Math.min(16, Math.ceil(shape.max(Direction.Axis.Y) * 16 - 1e-9));
             value = (byte) Math.max(1, height);
-            double width = Math.min(shape.max(net.minecraft.core.Direction.Axis.X) - shape.min(net.minecraft.core.Direction.Axis.X),
-                    shape.max(net.minecraft.core.Direction.Axis.Z) - shape.min(net.minecraft.core.Direction.Axis.Z));
+            double width = Math.min(shape.max(Direction.Axis.X) - shape.min(Direction.Axis.X),
+                    shape.max(Direction.Axis.Z) - shape.min(Direction.Axis.Z));
             if (width < 0.4) value |= THIN;
         }
         CLASSES.put(state, value);

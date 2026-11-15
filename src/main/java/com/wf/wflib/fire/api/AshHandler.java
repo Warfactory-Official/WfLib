@@ -1,6 +1,7 @@
 package com.wf.wflib.fire.api;
 
 import com.wf.wflib.core.api.WFNetwork;
+import com.wf.wflib.explosion.api.AuxParticles;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
@@ -35,7 +36,7 @@ public final class AshHandler {
         data.putFloat("scale", 0.125F);
 
         WFNetwork.sendToTracking(level, entity.getX(), entity.getZ(),
-                com.wf.wflib.explosion.api.AuxParticles.packet("ashes", entity.getX(), entity.getY() + height * 0.5, entity.getZ(), data));
+                AuxParticles.packet("ashes", entity.getX(), entity.getY() + height * 0.5, entity.getZ(), data));
 
         // Humanoid-ish things also collapse into a Flywheel-instanced skeleton (see SkeletonBoneEffect).
         if (height >= 0.9F && height <= 3.0F && width <= 1.2F) {
@@ -45,7 +46,7 @@ public final class AshHandler {
             bones.putFloat("height", height);
             bones.putFloat("brightness", 0.85F);
             WFNetwork.sendToTracking(level, entity.getX(), entity.getZ(),
-                    com.wf.wflib.explosion.api.AuxParticles.packet("skeleton", entity.getX(), entity.getY(), entity.getZ(), bones));
+                    AuxParticles.packet("skeleton", entity.getX(), entity.getY(), entity.getZ(), bones));
         }
 
         level.playSound(null, entity.getX(), entity.getY(), entity.getZ(),

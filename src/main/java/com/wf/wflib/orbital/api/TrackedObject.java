@@ -1,6 +1,7 @@
 package com.wf.wflib.orbital.api;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Somebody else's satellite, as far as your ground stations can tell.
@@ -25,9 +26,9 @@ public record TrackedObject(long designator, OrbitElements estimate, long lastSe
      * @return where this object is believed to be at a tick: propagated from the elements, or the station it
      *      was last seen holding. Wrong from the moment the target burns or breaks station, and that is the point.
      */
-    public net.minecraft.world.phys.Vec3 positionAt(long gameTime) {
+    public Vec3 positionAt(long gameTime) {
         return parked
-                ? new net.minecraft.world.phys.Vec3(parkX, estimate.altitude(), parkZ)
+                ? new Vec3(parkX, estimate.altitude(), parkZ)
                 : estimate.at(gameTime);
     }
 

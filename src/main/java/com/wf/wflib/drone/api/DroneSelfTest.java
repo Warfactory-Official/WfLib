@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.build.api.BuildSelfTest;
 import com.wf.wflib.drone.ai.PowerPolicy;
 import com.wf.wflib.drone.ai.Steering;
 import com.wf.wflib.drone.ai.coord.Consensus;
@@ -19,6 +20,7 @@ import com.wf.wflib.drone.nav.PathPlanner;
 import com.wf.wflib.drone.nav.TerrainCache;
 import com.wf.wflib.drone.nav.TerrainGuard;
 import com.wf.wflib.cam.api.CameraSpec;
+import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.drone.exchange.Obfuscation;
 import com.wf.wflib.fire.api.FireType;
 import com.wf.wflib.warhead.api.Warheads;
@@ -45,6 +47,13 @@ import com.wf.wflib.core.api.WorldThread;
 import com.wf.wflib.geom.api.flight.Airframe;
 import com.wf.wflib.geom.api.flight.FlightAttitude;
 import com.wf.wflib.geom.api.flight.Multirotor;
+import com.wf.wflib.mine.api.MineSelfTest;
+import io.netty.buffer.Unpooled;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 
 /**
  * In-game checks for the parts of the drone system that are pure functions: the battery policy, the ballistics, the
@@ -82,12 +91,12 @@ public final class DroneSelfTest {
         minelay(results);
         fire(results);
         airframes(results);
-        if (com.wf.wflib.core.api.WFSystems.enabled("mine")) {
-            com.wf.wflib.mine.api.MineSelfTest.runAll()
+        if (WFSystems.enabled("mine")) {
+            MineSelfTest.runAll()
                     .forEach(r -> results.add(new Result(r.name(), r.passed(), r.detail())));
         }
-        if (com.wf.wflib.core.api.WFSystems.enabled("build")) {
-            results.addAll(com.wf.wflib.build.api.BuildSelfTest.runAll());
+        if (WFSystems.enabled("build")) {
+            results.addAll(BuildSelfTest.runAll());
         }
         return results;
     }
@@ -573,7 +582,7 @@ public final class DroneSelfTest {
 
     /** The obfuscation and the secrecy. */
     private static void exchange(List<Result> out) {
-        java.util.Random rng = new java.util.Random(20260820L);
+        Random rng = new Random(20260820L);
 
         String code = StationCode.generate(rng);
         out.add(check("exchange/code-is-well-formed",
@@ -589,7 +598,7 @@ public final class DroneSelfTest {
                         + StationCode.normalise("o1i-l0O ")));
         out.add(check("exchange/code-rejects-nonsense", !StationCode.valid(StationCode.normalise("hello!")),
                 "a typo should fail validation rather than resolve to some other station"));
-        java.util.Set<String> drawn = new java.util.HashSet<>();
+        Set<String> drawn = new HashSet<>();
         for (int i = 0; i < 20000; i++) {
             drawn.add(StationCode.generate(rng));
         }
@@ -665,7 +674,7 @@ public final class DroneSelfTest {
         Vec3 stationB = new Vec3(900.0, 70.0, 400.0);
         boolean standsOff = true;
         boolean offTheLine = true;
-        java.util.Set<String> distinctPoints = new java.util.HashSet<>();
+        Set<String> distinctPoints = new HashSet<>();
         for (int i = 0; i < 2000; i++) {
             Vec3 point = Obfuscation.rendezvous(rng, stationA, stationB);
             if (Obfuscation.horizontal(point, stationA) < Obfuscation.RENDEZVOUS_STANDOFF
@@ -709,8 +718,8 @@ public final class DroneSelfTest {
                 containsDouble(plainBytes, secret.x) && containsDouble(plainBytes, secret.z),
                 "a direct packet did not contain its destination, so the leak test above proves nothing"));
 
-        DroneMission decoded = DroneMission.read(new net.minecraft.network.FriendlyByteBuf(
-                io.netty.buffer.Unpooled.wrappedBuffer(handshakeBytes)));
+        DroneMission decoded = DroneMission.read(new FriendlyByteBuf(
+                Unpooled.wrappedBuffer(handshakeBytes)));
         out.add(check("exchange/handshake-destination-is-server-resolved",
                 decoded.destination.equals(Vec3.ZERO) && decoded.mode == ExchangeMode.HANDSHAKE,
                 "a decoded handshake arrived with a destination already set, got " + decoded.destination));
@@ -725,8 +734,8 @@ public final class DroneSelfTest {
     }
 
     private static byte[] serialise(DroneMission mission) {
-        net.minecraft.network.FriendlyByteBuf buf =
-                new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        FriendlyByteBuf buf =
+                new FriendlyByteBuf(Unpooled.buffer());
         mission.write(buf);
         byte[] bytes = new byte[buf.readableBytes()];
         buf.getBytes(0, bytes);
@@ -1197,7 +1206,7 @@ public final class DroneSelfTest {
                 "the drones still queued must fly the same drawn-once dogleg as the one already airborne, "
                         + "so the dispatch-time fields have to persist with the launch"));
         out.add(check("muster/old-pads-still-launch-together",
-                DroneMission.load(new net.minecraft.nbt.CompoundTag()).launchInterval == 0,
+                DroneMission.load(new CompoundTag()).launchInterval == 0,
                 "a pad configured before staggered launch existed put its whole flight up at once, and "
                         + "reloading a world is not the moment to change that"));
     }
@@ -2055,17 +2064,17 @@ public final class DroneSelfTest {
         }
 
         @Override
-        public DroneSnapshot snapshot(net.minecraft.server.level.ServerLevel level, long gameTime) {
+        public DroneSnapshot snapshot(ServerLevel level, long gameTime) {
             throw new UnsupportedOperationException("succession must not need a snapshot");
         }
 
         @Override
-        public void apply(net.minecraft.server.level.ServerLevel level, DronePlan plan) {
+        public void apply(ServerLevel level, DronePlan plan) {
             throw new UnsupportedOperationException("succession must not apply plans");
         }
 
         @Override
-        public void coast(net.minecraft.server.level.ServerLevel level) {
+        public void coast(ServerLevel level) {
             throw new UnsupportedOperationException("succession must not fly anything");
         }
     }

@@ -3,6 +3,7 @@ package com.wf.wflib.ammo.client;
 import com.wf.gemrender.rig.RigGeometry;
 import com.wf.wflib.ammo.api.Calibre;
 import com.wf.wflib.ammo.api.CalibreKind;
+import com.wf.wflib.ammo.api.CaseMaterial;
 import com.wf.wflib.ammo.api.ProjectileLook;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -309,7 +310,7 @@ public final class AmmoMeshes {
         float b = c.bulletMm() * MM / 2;
         if (c.kind() == CalibreKind.SHOTSHELL) {
             float brass = len * 0.22f;
-            int brassRgb = com.wf.wflib.ammo.api.CaseMaterial.BRASS.rgb;
+            int brassRgb = CaseMaterial.BRASS.rgb;
             rs.add(new Ring(0, rim, brassRgb));
             rs.add(new Ring(len * 0.03f, rim, brassRgb));
             rs.add(new Ring(len * 0.03f, head, brassRgb));

@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * The machines currently building railway in a world, and the tick that drives them.
@@ -90,7 +91,7 @@ public final class RailWorks {
     }
 
     /** Tick everything in a list, dropping whatever says it is finished. */
-    private static <T> void drive(List<T> work, java.util.function.Predicate<T> tick) {
+    private static <T> void drive(List<T> work, Predicate<T> tick) {
         if (work == null || work.isEmpty()) {
             return;
         }

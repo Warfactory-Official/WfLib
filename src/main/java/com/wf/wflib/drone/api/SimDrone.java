@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.cam.api.CameraSpec;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -10,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.UUID;
 import com.wf.wflib.geom.api.flight.FlightAttitude;
+import com.wf.wflib.work.api.WorkAssignment;
 
 /** A drone flying over unloaded terrain: the same idea as {@code SimMissile}, but it keeps running the real AI. */
 public final class SimDrone implements DroneCarrier {
@@ -42,14 +44,14 @@ public final class SimDrone implements DroneCarrier {
     public int squadSize = 1;
     /** The work job this drone was on when it offloaded. */
     @Nullable
-    public com.wf.wflib.work.api.WorkAssignment assignment;
+    public WorkAssignment assignment;
     public double cruiseSpeed = DroneFlight.DEFAULT_CRUISE_SPEED;
     public double cruiseAltitude = DroneFlight.DEFAULT_CRUISE_ALTITUDE;
     public double climbRate = DroneFlight.DEFAULT_CLIMB_RATE;
     public ResourceLocation modelId = DroneModels.DEFAULT;
     /** The camera head bolted on, or null for none. */
     @Nullable
-    public com.wf.wflib.cam.api.CameraSpec camera;
+    public CameraSpec camera;
     /** The slung crate's saved contents, or null if the drone flew empty. */
     @Nullable
     public CompoundTag cargo;
@@ -327,7 +329,7 @@ public final class SimDrone implements DroneCarrier {
                 ? CoordinationModels.parse(tag.getString("Coordination")) : CoordinationModels.LEGACY;
         sd.squadSize = Math.max(1, tag.getInt("SquadSize"));
         sd.assignment = tag.contains("Work")
-                ? com.wf.wflib.work.api.WorkAssignment.load(tag.getCompound("Work")) : null;
+                ? WorkAssignment.load(tag.getCompound("Work")) : null;
         sd.cruiseSpeed = tag.getDouble("CruiseSpeed");
         sd.cruiseAltitude = tag.getDouble("CruiseAltitude");
         sd.climbRate = tag.getDouble("ClimbRate");

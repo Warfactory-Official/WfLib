@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.core.Direction;
 
 /** Models a probe panel may draw that are not an item and not a block. */
 public final class ProbeModels {
@@ -67,7 +68,7 @@ public final class ProbeModels {
         float[] box = {Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE,
                 -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
         accumulate(box, model.getQuads(null, null, RANDOM, ModelData.EMPTY, null));
-        for (net.minecraft.core.Direction face : net.minecraft.core.Direction.values()) {
+        for (Direction face : Direction.values()) {
             accumulate(box, model.getQuads(null, face, RANDOM, ModelData.EMPTY, null));
         }
         if (box[0] > box[3]) {

@@ -3,6 +3,7 @@ package com.wf.wflib.labs;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,7 @@ final class GitInfo {
             if (!p.waitFor(20, TimeUnit.SECONDS) || p.exitValue() != 0) {
                 return null;
             }
-            return new String(out, java.nio.charset.StandardCharsets.UTF_8).trim();
+            return new String(out, StandardCharsets.UTF_8).trim();
         } catch (IOException e) {
             return null;
         } catch (InterruptedException e) {

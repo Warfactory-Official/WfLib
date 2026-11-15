@@ -2,8 +2,10 @@ package com.wf.wflib.armor.gametest;
 
 import com.mojang.authlib.GameProfile;
 import com.wf.wflib.armor.api.ArmorContent;
+import com.wf.wflib.armor.api.ArmorPreset;
 import com.wf.wflib.armor.api.ArmorResolution;
 import com.wf.wflib.armor.api.exo.ArmorBattery;
+import com.wf.wflib.armor.api.exo.EnergyCellItem;
 import com.wf.wflib.armor.api.exo.Exo;
 import com.wf.wflib.armor.api.exo.ExoConfig;
 import com.wf.wflib.armor.api.exo.ExoPopup;
@@ -40,6 +42,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import net.neoforged.neoforge.capabilities.Capabilities;
 
 /** Exoskeleton rules on a dev {@code exo_test} chest piece; pure math is {@code ExoResolverTest}. */
 @PrefixGameTestTemplate(false)
@@ -78,7 +81,7 @@ public class ExoGameTest {
     }
 
     private static ItemStack suit() {
-        return new ItemStack(ArmorContent.item(com.wf.wflib.armor.api.ArmorPreset.rl("exo_test")));
+        return new ItemStack(ArmorContent.item(ArmorPreset.rl("exo_test")));
     }
 
     private static void with(Bank bank, ExoConfig.Values cfg, Runnable body) {
@@ -127,7 +130,7 @@ public class ExoGameTest {
     public static void anEnergyCellPowersTheSuitAndDrains(GameTestHelper helper) {
         with(null, cfg(true), () -> {
             ServerPlayer p = player(helper);
-            ItemStack cell = com.wf.wflib.armor.api.exo.EnergyCellItem.CELL.get().full();
+            ItemStack cell = EnergyCellItem.CELL.get().full();
             helper.assertTrue(ArmorBattery.accepts(cell), "cell not in battery tag");
             long before = ArmorBattery.stored(cell);
             ItemStack suit = suit();
@@ -137,9 +140,9 @@ public class ExoGameTest {
             helper.assertTrue(Exo.canSprint(p), "cell-powered suit cannot sprint");
             helper.assertTrue(ArmorBattery.stored(ExoStacks.battery(p.getItemBySlot(EquipmentSlot.CHEST))) < before,
                     "cell not drained");
-            helper.assertTrue(cell.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM)
+            helper.assertTrue(cell.getCapability(Capabilities.EnergyStorage.ITEM)
                     .extractEnergy(1000, true) == 0, "cell discharges outside exo");
-            ItemStack empty = new ItemStack(com.wf.wflib.armor.api.exo.EnergyCellItem.CELL.get());
+            ItemStack empty = new ItemStack(EnergyCellItem.CELL.get());
             helper.assertTrue(ArmorBattery.stored(empty) == 0 && ArmorBattery.capacity(empty) == 400_000, "empty cell");
         });
         helper.succeed();

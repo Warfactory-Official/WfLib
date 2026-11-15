@@ -1,7 +1,13 @@
 package com.wf.wflib.soldier;
 
+import com.google.gson.JsonArray;
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.wf.wflib.soldier.api.SoldierRole;
+import io.netty.buffer.Unpooled;
+import net.minecraft.commands.Commands;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,25 +44,25 @@ class SoldierEditorTest {
         assertTrue(BotPolicy.crouch(false,false,false,false,false,true),"explicit filming posture remains available");
     }
     @Test void largePackCataloguesRoundTripInsideThePayloadLimit() {
-        var j=new com.google.gson.JsonArray();
+        var j=new JsonArray();
         for(int i=0;i<15000;i++)j.add("mwarchive:large_equipment_pack/armor/modular_uniform_variant_"+i);
         String json=j.toString();assertTrue(json.length()>262144);
-        var buf=new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        var buf=new FriendlyByteBuf(Unpooled.buffer());
         try {
             SoldierEditorPackets.State.CODEC.encode(buf,new SoldierEditorPackets.State(json));
             assertTrue(buf.readableBytes()<524288);
             assertEquals(json,SoldierEditorPackets.State.CODEC.decode(buf).json());
         } finally {buf.release();}
-        var tooLarge=new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        var tooLarge=new FriendlyByteBuf(Unpooled.buffer());
         try {assertThrows(IllegalArgumentException.class,()->SoldierEditorPackets.State.CODEC.encode(tooLarge,new SoldierEditorPackets.State("x".repeat(2097153))));}
         finally {tooLarge.release();}
     }
     @Test void resourceIdsAndModularEquipmentAreAcceptedByTheActualCommandNodes() throws Exception {
-        var root=net.minecraft.commands.Commands.literal("soldiers");SoldierEditorCommands.add(root);var node=root.build().getChild("unit");
-        var gun=(com.mojang.brigadier.tree.ArgumentCommandNode<?,?>)node.getChild("create").getChild("id").getChild("faction").getChild("role").getChild("gun");
-        assertEquals("ma_rifles:m4a1",gun.getType().parse(new com.mojang.brigadier.StringReader("ma_rifles:m4a1")));
-        var armor=(com.mojang.brigadier.tree.ArgumentCommandNode<?,?>)node.getChild("equip").getChild("variant").getChild("slot").getChild("equipment");
-        assertEquals("mwarchive:pack/vest+wflib:steel_platex2",armor.getType().parse(new com.mojang.brigadier.StringReader("mwarchive:pack/vest+wflib:steel_platex2")));
+        var root=Commands.literal("soldiers");SoldierEditorCommands.add(root);var node=root.build().getChild("unit");
+        var gun=(ArgumentCommandNode<?,?>)node.getChild("create").getChild("id").getChild("faction").getChild("role").getChild("gun");
+        assertEquals("ma_rifles:m4a1",gun.getType().parse(new StringReader("ma_rifles:m4a1")));
+        var armor=(ArgumentCommandNode<?,?>)node.getChild("equip").getChild("variant").getChild("slot").getChild("equipment");
+        assertEquals("mwarchive:pack/vest+wflib:steel_platex2",armor.getType().parse(new StringReader("mwarchive:pack/vest+wflib:steel_platex2")));
     }
     @Test void rolesHaveDistinctFireAndSquadDoctrineWithoutDisplacingTheRifleDefault() {
         assertTrue(SoldierRole.MACHINEGUNNER.burst>SoldierRole.RIFLEMAN.burst);

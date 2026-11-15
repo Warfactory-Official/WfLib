@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.lab;
 
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.labs.api.LabContext;
 import com.wf.wflib.labs.api.LabDefender;
 import com.wf.wflib.labs.api.LabDefenders;
@@ -8,6 +9,10 @@ import com.wf.wflib.labs.api.LabSink;
 import com.wf.wflib.labs.api.LabTable;
 import com.wf.wflib.missile.api.MissileEntity;
 import com.wf.wflib.missile.api.MissilePreset;
+import com.wf.wflib.missile.api.WFEventType;
+import com.wf.wflib.missile.api.WFTelemetry;
+import com.wf.wflib.missile.api.WFTelemetryEvent;
+import com.wf.wflib.missile.api.WFTelemetryService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -16,12 +21,15 @@ import net.minecraft.world.phys.Vec3;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import net.minecraft.world.phys.AABB;
 
 /**
  * Every registered air defence x threat missile x target offset: the defence placed and left on its own, the threat
@@ -155,8 +163,8 @@ public final class InterceptionProducer implements LabProducer {
         Outcome outcome;
         int spent;
         double closest = Double.POSITIVE_INFINITY;
-        private final java.util.Map<UUID, com.wf.wflib.missile.api.WFTelemetry> interceptors = new java.util.LinkedHashMap<>();
-        private net.minecraft.world.phys.AABB lane;
+        private final Map<UUID, WFTelemetry> interceptors = new LinkedHashMap<>();
+        private AABB lane;
 
         Engagement(LabDefender site, MissilePreset preset, double offset, double approach, int radius, long seed,
                    boolean trace) {
@@ -189,7 +197,7 @@ public final class InterceptionProducer implements LabProducer {
             defender = Vec3.atBottomCenterOf(o);
             target = new Vec3(o.getX() + 0.5, o.getY(), o.getZ() + 0.5 + offset);
             placed = site.place(level, o, side("defender"));
-            lane = new net.minecraft.world.phys.AABB(o).inflate(approach + 64.0, 1024.0, Math.abs(offset) + approach + 64.0);
+            lane = new AABB(o).inflate(approach + 64.0, 1024.0, Math.abs(offset) + approach + 64.0);
             Vec3 launch = target.add(-approach, 2.0, 0.0);
             MissileEntity m = MissileProbe.build(level, preset, target, launch, side("attacker"), seed);
             probe = new MissileProbe(m, level.getGameTime());
@@ -202,7 +210,7 @@ public final class InterceptionProducer implements LabProducer {
             placed.tick();
             for (MissileEntity m : level.getEntitiesOfClass(MissileEntity.class, lane,
                     m -> m.interceptor().isActive() && !interceptors.containsKey(m.getUUID()))) {
-                com.wf.wflib.missile.api.WFTelemetry t = com.wf.wflib.missile.api.WFTelemetryService.open(m.getUUID(),
+                WFTelemetry t = WFTelemetryService.open(m.getUUID(),
                         level.getGameTime());
                 m.attachTelemetry(t);
                 interceptors.put(m.getUUID(), t);
@@ -222,19 +230,19 @@ public final class InterceptionProducer implements LabProducer {
         public void finish(ServerLevel level, boolean timedOut) {
             probe.finish(timedOut);
             if (trace) {
-                com.mojang.logging.LogUtils.getLogger().info("[labs-trace] {} {} off={} seed={} events={}", site.id(), preset.id(),
+                LogUtils.getLogger().info("[labs-trace] {} {} off={} seed={} events={}", site.id(), preset.id(),
                         offset, seed, probe.trace());
             }
             spent = Math.max(placed.spent(), interceptors.size());
             placed.remove();
-            Set<Long> intercepts = new java.util.HashSet<>();
-            for (Map.Entry<UUID, com.wf.wflib.missile.api.WFTelemetry> e : interceptors.entrySet()) {
-                for (com.wf.wflib.missile.api.WFTelemetryEvent ev : e.getValue().events()) {
-                    if (ev.type() == com.wf.wflib.missile.api.WFEventType.INTERCEPTED) {
+            Set<Long> intercepts = new HashSet<>();
+            for (Map.Entry<UUID, WFTelemetry> e : interceptors.entrySet()) {
+                for (WFTelemetryEvent ev : e.getValue().events()) {
+                    if (ev.type() == WFEventType.INTERCEPTED) {
                         intercepts.add(ev.gameTime());
                     }
                 }
-                com.wf.wflib.missile.api.WFTelemetryService.close(e.getKey());
+                WFTelemetryService.close(e.getKey());
             }
             if (timedOut) {
                 outcome = Outcome.TIMEOUT;

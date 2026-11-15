@@ -33,6 +33,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.nbt.ListTag;
 
 /** Registered only with gtceu loaded: no {@code @GameTestHolder}, see {@link #register}. */
 @PrefixGameTestTemplate(false)
@@ -81,7 +82,7 @@ public class GregtechEMPGameTest {
             for (String k : c.getAllKeys()) {
                 if (hasKey(c.get(k), key)) return true;
             }
-        } else if (tag instanceof net.minecraft.nbt.ListTag l) {
+        } else if (tag instanceof ListTag l) {
             for (Tag t : l) {
                 if (hasKey(t, key)) return true;
             }

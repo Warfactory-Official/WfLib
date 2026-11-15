@@ -17,6 +17,11 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
+import net.neoforged.fml.ModList;
 
 /**
  * A soldier is killed, then keeps being hit in the same tick: death must happen once, and the corpse's armour must not
@@ -51,13 +56,13 @@ public class DeathGameTest {
             h.assertTrue(deaths[0] == 1, "died " + deaths[0] + " times");
             h.assertTrue(hitsAfterDeath[0] == 0, hitsAfterDeath[0] + " hits were resolved against the corpse");
             // the stacks themselves: the death empties the slots, and the pieces go on as the dropped loot
-            h.assertTrue(net.minecraft.world.item.ItemStack.isSameItemSameComponents(helmet, helmetBefore)
-                    && net.minecraft.world.item.ItemStack.isSameItemSameComponents(vest, vestBefore), "the armour changed on dying");
-            if (net.neoforged.fml.ModList.get().isLoaded("corpse")) {
-                var around = new net.minecraft.world.phys.AABB(p.blockPosition()).inflate(6);
-                var corpses = h.getLevel().getEntities((net.minecraft.world.entity.Entity) null, around, e -> e.getType().builtInRegistryHolder().key().location().getNamespace().equals("corpse"));
+            h.assertTrue(ItemStack.isSameItemSameComponents(helmet, helmetBefore)
+                    && ItemStack.isSameItemSameComponents(vest, vestBefore), "the armour changed on dying");
+            if (ModList.get().isLoaded("corpse")) {
+                var around = new AABB(p.blockPosition()).inflate(6);
+                var corpses = h.getLevel().getEntities((Entity) null, around, e -> e.getType().builtInRegistryHolder().key().location().getNamespace().equals("corpse"));
                 var kit = new StringBuilder();
-                for (var c : corpses) kit.append(c.saveWithoutId(new net.minecraft.nbt.CompoundTag()));
+                for (var c : corpses) kit.append(c.saveWithoutId(new CompoundTag()));
                 h.assertTrue(corpses.size() == 1, corpses.size() + " corpses; " + kit);
                 h.assertTrue(kit.toString().contains("combat_helmet") && kit.toString().contains("plate_carrier"), "corpse kit lost the armour: " + kit);
                 h.assertTrue(!kit.toString().contains("minecraft:damage"), "corpse armour is damaged: " + kit);

@@ -1,5 +1,6 @@
 package com.wf.wflib.ui.api.input;
 
+import java.util.Locale;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
@@ -179,7 +180,7 @@ public final class TextBox implements UiKeyboard.Target {
     }
 
     private String trim(double v) {
-        String s = String.format(java.util.Locale.ROOT, "%." + decimals + "f", v);
+        String s = String.format(Locale.ROOT, "%." + decimals + "f", v);
         return decimals > 0 && s.contains(".") ? s.replaceAll("0+$", "").replaceAll("\\.$", "") : s;
     }
 

@@ -6,6 +6,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Named plate of a {@link HullProfile}: declared normal + layers. Gson-bound.
@@ -153,7 +154,7 @@ public final class PlateSpec {
         Vector3f positive = null, negative = null;
         float losCos = 1;
         if (facing != null) {
-            String f = facing.trim().toLowerCase(java.util.Locale.ROOT);
+            String f = facing.trim().toLowerCase(Locale.ROOT);
             switch (f) {
                 case "top" -> positive = negative = new Vector3f(0, 1, 0);
                 case "bottom" -> positive = negative = new Vector3f(0, -1, 0);

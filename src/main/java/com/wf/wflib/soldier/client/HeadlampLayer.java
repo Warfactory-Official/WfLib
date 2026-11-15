@@ -9,7 +9,10 @@ import com.wf.gemrender.direct.GemRenderArmorModel;
 import com.wf.gemrender.gltf.NodeTable;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.client.WearerScope;
 import com.wf.wflib.soldier.Headlamp;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -26,6 +29,7 @@ import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.world.entity.Entity;
 
 /**
  * The headlamp on the head (headband, brow lamp, rear battery): drawn on the head bone of anyone wearing one, from inside
@@ -55,12 +59,12 @@ public final class HeadlampLayer {
         if (!Headlamp.wearing(player) && !SoldierLightClient.lit(player.getId())) return;
         HumanoidModel m = MODEL.prepare(player, new ItemStack(Headlamp.ITEM.get()), EquipmentSlot.HEAD);
         parent.copyPropertiesTo(m);
-        com.wf.wflib.core.client.WearerScope.begin(parent);
+        WearerScope.begin(parent);
         try {
             m.renderToBuffer(pose, null, light, OverlayTexture.NO_OVERLAY, -1);
             track(player, m, pose, partialTick);
         } finally {
-            com.wf.wflib.core.client.WearerScope.end();
+            WearerScope.end();
         }
     }
 
@@ -71,12 +75,12 @@ public final class HeadlampLayer {
     private static final String HEAD = "head", SOCKET = "socket_lamp";
 
     /** The lens drawn this tick or the last, or null: callers fall back to the entity's eye. */
-    static LampFrame.World lens(net.minecraft.world.entity.Entity who, long now, float partialTick) {
+    static LampFrame.World lens(Entity who, long now, float partialTick) {
         Lens l = LENSES.get(who.getId());
         return l != null && now - l.tick <= 1 ? LampFrame.decode(basis(who, partialTick), l.local) : null;
     }
 
-    private static LampFrame.Basis basis(net.minecraft.world.entity.Entity who, float partialTick) {
+    private static LampFrame.Basis basis(Entity who, float partialTick) {
         Vec3 eye = who.getEyePosition(partialTick);
         return new LampFrame.Basis(eye.x, eye.y, eye.z, who.getViewVector(partialTick).toVector3f(),
                 who.getUpVector(partialTick).toVector3f());
@@ -95,7 +99,7 @@ public final class HeadlampLayer {
         if (lens < 0) return;
         float[] state = table.newScratch();
         int[] slots = new int[GemRenderArmorModel.PARTS.size()];
-        java.util.Arrays.fill(slots, -1);
+        Arrays.fill(slots, -1);
         slots[0] = head;
         if (head >= 0 && table.isPosable(head)) {
             Quaternionf rest = new Quaternionf();
@@ -105,7 +109,7 @@ public final class HeadlampLayer {
         ArmorRig rig = GemRenderArmorModel.rig();
         if (rig != null) rig.pose(m, table, state, slots);
         int[] parents = table.parentSlots();
-        java.util.ArrayDeque<Integer> chain = new java.util.ArrayDeque<>();
+        ArrayDeque<Integer> chain = new ArrayDeque<>();
         for (int s = lens; s >= 0; s = parents[s]) chain.push(s);
         Matrix4f node = new Matrix4f(), local = new Matrix4f();
         for (int s : chain) {

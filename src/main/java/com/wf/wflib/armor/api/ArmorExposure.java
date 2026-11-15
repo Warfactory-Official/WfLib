@@ -10,6 +10,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -181,7 +182,7 @@ public final class ArmorExposure {
                 if (owed == null) {
                     owed = contact.pending.computeIfAbsent(slot, s -> new int[piece.layers().size()]);
                     if (owed.length < piece.layers().size()) {
-                        owed = java.util.Arrays.copyOf(owed, piece.layers().size());
+                        owed = Arrays.copyOf(owed, piece.layers().size());
                         contact.pending.put(slot, owed);
                     }
                 }

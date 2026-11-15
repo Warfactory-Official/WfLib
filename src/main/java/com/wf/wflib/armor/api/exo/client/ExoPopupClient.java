@@ -32,6 +32,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.client.gui.screens.Screen;
 
 /**
  * Draggable attachment window over the survival inventory: battery / artifact belt / NVG slots, charge, part condition.
@@ -70,7 +71,7 @@ public final class ExoPopupClient {
         e.register(KEY);
     }
 
-    private static boolean shown(@Nullable net.minecraft.client.gui.screens.Screen screen) {
+    private static boolean shown(@Nullable Screen screen) {
         return open && screen instanceof InventoryScreen && screen == Minecraft.getInstance().screen;
     }
 
@@ -355,7 +356,7 @@ public final class ExoPopupClient {
     }
 
     @Nullable
-    private static Slot overSlot(net.minecraft.client.gui.screens.Screen screen, double mx, double my) {
+    private static Slot overSlot(Screen screen, double mx, double my) {
         Player player = Minecraft.getInstance().player;
         SlotLayout.Placed range = MenuSlots.range(player, ExoPopup.GROUP);
         if (range == null || !(screen instanceof InventoryScreen inv)) {

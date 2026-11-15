@@ -4,12 +4,17 @@ import com.norwood.ahf.part.HitboxPart;
 import com.wf.wflib.armor.api.ArmorResolution;
 import com.wf.wflib.armor.api.ArmorSetups;
 import com.wf.wflib.armor.lab.ExplosiveProducer;
+import com.wf.wflib.armor.lab.HazardsProducer;
 import com.wf.wflib.armor.lab.PersonalArmorProducer;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.damage.api.Threat;
+import com.wf.wflib.damage.api.WFDamageTypes;
 import com.wf.wflib.explosion.api.EntityProcessorCross;
 import com.wf.wflib.explosion.api.ExplosionAEF;
+import com.wf.wflib.explosion.api.PlayerProcessorStandard;
 import com.wf.wflib.labs.api.LabContext;
+import com.wf.wflib.labs.api.LabProducer;
+import com.wf.wflib.labs.api.LabRows;
 import com.wf.wflib.round.api.KineticPreset;
 import com.wf.wflib.round.api.KineticPresets;
 import com.wf.wflib.round.api.RoundDamageSource;
@@ -33,13 +38,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.neoforge.common.damagesource.DamageContainer;
 
 /** WFLabs rows == live armour door and live blast falloff. */
 @PrefixGameTestTemplate(false)
 public class ArmorLabGameTest {
     private static final String TEMPLATE = "empty";
 
-    private static List<Object[]> rows(ServerLevel level, com.wf.wflib.labs.api.LabProducer producer, double[] ranges,
+    private static List<Object[]> rows(ServerLevel level, LabProducer producer, double[] ranges,
                                        Map<String, String> params, String round) {
         List<Object[]> out = new ArrayList<>();
         LabContext ctx = LabContext.of(level, ranges, id -> id.equals(round), params);
@@ -77,10 +86,10 @@ public class ArmorLabGameTest {
             Threat threat = Rounds.threat(p, vel);
             RoundDamageSource src = Rounds.source(level, p, null, null, threat, Vec3.ZERO, vel, 0L, vel,
                     RoundDamageSource.LIVE, List.of(zone.equals("head") ? HitboxPart.HEAD : HitboxPart.TORSO));
-            net.minecraft.world.entity.LivingEntity v = com.wf.wflib.labs.api.LabRows.victim(level);
+            LivingEntity v = LabRows.victim(level);
             v.setItemSlot(set.slot(), set.stack().copy());
             float in = ((Number) r[9]).floatValue();
-            LivingIncomingDamageEvent event = new LivingIncomingDamageEvent(v, new net.neoforged.neoforge.common.damagesource.DamageContainer(src, in));
+            LivingIncomingDamageEvent event = new LivingIncomingDamageEvent(v, new DamageContainer(src, in));
             ArmorResolution.applyToEvent(event);
             double live = event.isCanceled() ? 0.0 : event.getAmount();
             double lab = ((Number) r[12]).doubleValue();
@@ -122,7 +131,7 @@ public class ArmorLabGameTest {
                 ExplosionAEF blast = new ExplosionAEF(level, o.getX() + 0.5, v.getY() + v.getBbHeight() / 2.0,
                         o.getZ() + 0.5, size, null);
                 blast.setEntityProcessor(new EntityProcessorCross());
-                blast.setPlayerProcessor(new com.wf.wflib.explosion.api.PlayerProcessorStandard());
+                blast.setPlayerProcessor(new PlayerProcessorStandard());
                 blast.explode();
             } finally {
                 NeoForge.EVENT_BUS.unregister(probe);
@@ -140,7 +149,7 @@ public class ArmorLabGameTest {
         List<Object[]> rows = new ArrayList<>();
         LabContext ctx = LabContext.of(level, new double[0], id -> true, Map.of("armor", "wflib:*",
                 "durations", "10"));
-        new com.wf.wflib.armor.lab.HazardsProducer().produce(ctx, row -> {
+        new HazardsProducer().produce(ctx, row -> {
             synchronized (rows) {
                 rows.add(row);
             }
@@ -153,14 +162,14 @@ public class ArmorLabGameTest {
             }
             ArmorSetups.Setup set = ArmorSetups.all().stream().filter(s -> s.label().equals(r[4])).findFirst()
                     .orElseThrow();
-            net.minecraft.world.entity.LivingEntity v = com.wf.wflib.labs.api.LabRows.victim(level);
+            LivingEntity v = LabRows.victim(level);
             v.setItemSlot(set.slot(), set.stack().copy());
-            net.minecraft.world.damagesource.DamageSource src = new net.minecraft.world.damagesource.DamageSource(
-                    level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.DAMAGE_TYPE)
-                            .getHolderOrThrow(com.wf.wflib.damage.api.WFDamageTypes.GAS));
+            DamageSource src = new DamageSource(
+                    level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                            .getHolderOrThrow(WFDamageTypes.GAS));
             float in = ((Number) r[9]).floatValue();
             LivingIncomingDamageEvent event = new LivingIncomingDamageEvent(v,
-                    new net.neoforged.neoforge.common.damagesource.DamageContainer(src, in));
+                    new DamageContainer(src, in));
             ArmorResolution.applyToEvent(event);
             double live = event.isCanceled() ? 0.0 : event.getAmount();
             double lab = ((Number) r[12]).doubleValue();

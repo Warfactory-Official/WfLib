@@ -2,7 +2,14 @@ package com.wf.wflib.core.api.client;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.wf.wflib.particle.api.XrBlend;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 
 public final class WFRenderTypes extends RenderType {
 
@@ -31,16 +38,16 @@ public final class WFRenderTypes extends RenderType {
                     .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(false));
 
-    private static final java.util.Map<java.util.List<Object>, RenderType> XRAY = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<List<Object>, RenderType> XRAY = new ConcurrentHashMap<>();
 
     /** Main target, drawn from AFTER_PARTICLES: under Fabulous that stage runs with the particles target bound. */
     private static final OutputStateShard XRAY_MAIN = new OutputStateShard("wf_xray_main", () -> {
-        if (net.minecraft.client.Minecraft.useShaderTransparency()) {
-            net.minecraft.client.Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
+        if (Minecraft.useShaderTransparency()) {
+            Minecraft.getInstance().getMainRenderTarget().bindWrite(false);
         }
     }, () -> {
-        if (net.minecraft.client.Minecraft.useShaderTransparency()) {
-            net.minecraft.client.Minecraft.getInstance().levelRenderer.getParticlesTarget().bindWrite(false);
+        if (Minecraft.useShaderTransparency()) {
+            Minecraft.getInstance().levelRenderer.getParticlesTarget().bindWrite(false);
         }
     });
 
@@ -51,13 +58,13 @@ public final class WFRenderTypes extends RenderType {
      * BLEND = over. Additive ones draw into the main target: Fabulous composites the particles target by alpha,
      * which turns their black into opaque squares (and drops alpha-0 pixels, so zeroing alpha hides them instead).
      */
-    public static RenderType xray(net.minecraft.resources.ResourceLocation texture,
-                                  com.wf.wflib.particle.api.XrBlend blend) {
-        return XRAY.computeIfAbsent(java.util.List.of(texture, blend), k -> create("wf_xray_" + blend,
+    public static RenderType xray(ResourceLocation texture,
+                                  XrBlend blend) {
+        return XRAY.computeIfAbsent(List.of(texture, blend), k -> create("wf_xray_" + blend,
                 DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS, 1536, false, false,
                 CompositeState.builder()
                         .setShaderState(new ShaderStateShard(
-                                net.minecraft.client.renderer.GameRenderer::getPositionTexColorShader))
+                                GameRenderer::getPositionTexColorShader))
                         .setTextureState(new TextureStateShard(texture, true, false))
                         .setTransparencyState(switch (blend) {
                             case ADD -> ADDITIVE_TRANSPARENCY;
@@ -66,7 +73,7 @@ public final class WFRenderTypes extends RenderType {
                         })
                         .setCullState(NO_CULL)
                         .setWriteMaskState(COLOR_WRITE)
-                        .setOutputState(blend == com.wf.wflib.particle.api.XrBlend.BLEND ? PARTICLES_TARGET : XRAY_MAIN)
+                        .setOutputState(blend == XrBlend.BLEND ? PARTICLES_TARGET : XRAY_MAIN)
                         .createCompositeState(false)));
     }
 

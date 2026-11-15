@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import com.wf.wflib.ui.api.Binder;
 import com.wf.wflib.ui.api.Signal;
 import com.wf.wflib.ui.api.TextProp;
+import java.util.Locale;
 
 public final class TemplateParser {
     private static final Pattern NUMBER_FORMAT = Pattern.compile("(\\+)?(0)?(\\d+)?(?:\\.(\\d))?");
@@ -177,7 +178,7 @@ public final class TemplateParser {
                     String name = choice.names().get(i);
                     table[i] = switch (format) {
                         case "" -> name;
-                        case "upper" -> name.toUpperCase(java.util.Locale.ROOT);
+                        case "upper" -> name.toUpperCase(Locale.ROOT);
                         default -> {
                             if (!format.startsWith("tr:")) {
                                 throw new ExprException("choice format `" + format + "` in `" + template + "`");

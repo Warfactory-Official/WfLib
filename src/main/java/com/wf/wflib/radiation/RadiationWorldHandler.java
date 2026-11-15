@@ -13,13 +13,14 @@ import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import org.jetbrains.annotations.Nullable;
 
 // 1.7 surface decay; 26.2: Material.LEAVES -> instanceof.
 public final class RadiationWorldHandler {
 
     /** NTM waste_earth/waste_leaves absent here => dirt / null (= air); a pack with waste blocks overrides. */
     private static final BlockState WASTE_EARTH = Blocks.DIRT.defaultBlockState();
-    private static volatile @org.jetbrains.annotations.Nullable BlockState wasteLeaves;
+    private static volatile @Nullable BlockState wasteLeaves;
 
     private RadiationWorldHandler() {
     }

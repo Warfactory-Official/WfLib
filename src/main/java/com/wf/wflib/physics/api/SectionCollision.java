@@ -124,7 +124,7 @@ public abstract sealed class SectionCollision {
     }
 
     private static long[] computeBoxes(BlockState state) {
-        if (state.isAir()) {
+        if (state.isAir() || state.is(PhysicsTags.VEHICLE_GHOST)) {
             return NO_COLLISION;
         }
         // Dynamic shape (e.g. moving piston) needs the world to resolve; treated as full block (matches old isSolid).

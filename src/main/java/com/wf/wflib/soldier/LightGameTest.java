@@ -10,6 +10,8 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import net.minecraft.core.BlockPos;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 /**
  * The light decision against a real level: night and day must read differently where a soldier stands. A soldier is
@@ -28,7 +30,7 @@ public class LightGameTest {
         try {
             var bot = SoldierAi.botOf(p.getGameProfile().getName());
             boolean wants = SoldierAi.wantsLight(p, bot), wearing = Headlamp.worn(p);
-            int brightness = p.level().getMaxLocalRawBrightness(net.minecraft.core.BlockPos.containing(p.getEyePosition())),
+            int brightness = p.level().getMaxLocalRawBrightness(BlockPos.containing(p.getEyePosition())),
                     sky = p.level().getSkyDarken();
             String curios = Headlamp.describe(p);
             bot.light = "on";
@@ -101,7 +103,7 @@ public class LightGameTest {
             Headlamp.take(p);
             h.assertTrue(!Headlamp.wearing(p), "the lamp did not come off");
             p.tickCount = 40;
-            Headlamp.tick(new net.neoforged.neoforge.event.tick.PlayerTickEvent.Post(p));
+            Headlamp.tick(new PlayerTickEvent.Post(p));
             h.assertTrue(Headlamp.wearing(p), "a soldier without a lamp was not issued one");
             h.succeed();
         } finally {

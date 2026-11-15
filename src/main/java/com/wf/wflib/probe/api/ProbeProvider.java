@@ -1,5 +1,6 @@
 package com.wf.wflib.probe.api;
 
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -28,12 +29,12 @@ public final class ProbeProvider {
     /** Nodes on an entity; client, per frame, while within reach. */
     @FunctionalInterface
     public interface EntityNodes {
-        void nodes(java.util.List<ProbeNode> out, ProbeContext ctx, Entity entity);
+        void nodes(List<ProbeNode> out, ProbeContext ctx, Entity entity);
     }
 
     /** Nodes on a block entity; client, per frame, while within reach. */
     @FunctionalInterface
     public interface BlockNodes {
-        void nodes(java.util.List<ProbeNode> out, ProbeContext ctx, BlockEntity blockEntity);
+        void nodes(List<ProbeNode> out, ProbeContext ctx, BlockEntity blockEntity);
     }
 }

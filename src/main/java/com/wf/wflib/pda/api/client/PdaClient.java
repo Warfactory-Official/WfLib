@@ -204,7 +204,7 @@ public final class PdaClient {
         if (app == next) {
             return;
         }
-        if (focused) com.wf.wflib.pda.api.client.PdaSounds.tab();
+        if (focused) PdaSounds.tab();
         UiKeyboard.blur();
         if (app != null) {
             app.closed();
@@ -397,7 +397,7 @@ public final class PdaClient {
     static void onScroll(InputEvent.MouseScrollingEvent event) {
         if (focused && Minecraft.getInstance().screen == null) {
             if (fullscreenFeed != 0) {
-                com.wf.wflib.cam.api.client.CameraLink.zoomBy(event.getScrollDeltaY());
+                CameraLink.zoomBy(event.getScrollDeltaY());
                 event.setCanceled(true);
                 return;
             }
@@ -429,7 +429,7 @@ public final class PdaClient {
     /** Before {@link UiSurfaces} redraws the screen at default priority. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     static void onFrame(RenderFrameEvent.Pre event) {
-        if (fullscreenFeed != 0 && !com.wf.wflib.cam.api.client.CameraLink.active()) {
+        if (fullscreenFeed != 0 && !CameraLink.active()) {
             fullscreenFeed = 0;
         }
         if (!focused || fullscreenFeed != 0) {

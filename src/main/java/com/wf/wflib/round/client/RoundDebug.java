@@ -27,6 +27,7 @@ import java.util.Locale;
 import com.wf.wflib.round.api.client.ClientRounds;
 import com.wf.wflib.round.api.client.RoundObserver;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.client.DebugGate;
 
 /** {@code /wfdebug rounds}: every client round's flown path, predicted arc, resyncs, pierces and end. Client thread. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -116,7 +117,7 @@ public final class RoundDebug implements RoundObserver {
     }
 
     public static void setEnabled(boolean on) {
-        enabled = on && com.wf.wflib.core.api.client.DebugGate.allowed();
+        enabled = on && DebugGate.allowed();
         if (!on) {
             POOL.addAll(LIVE_TRACKS);
             LIVE_TRACKS.clear();
@@ -227,7 +228,7 @@ public final class RoundDebug implements RoundObserver {
 
     @SubscribeEvent
     public static void onRender(RenderLevelStageEvent event) {
-        if (!enabled || !com.wf.wflib.core.api.client.DebugGate.allowed() || event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
+        if (!enabled || !DebugGate.allowed() || event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
                 || LIVE_TRACKS.isEmpty() && ENDED_TRACKS.isEmpty()) {
             return;
         }

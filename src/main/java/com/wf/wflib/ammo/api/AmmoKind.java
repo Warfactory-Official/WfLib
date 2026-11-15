@@ -1,5 +1,6 @@
 package com.wf.wflib.ammo.api;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -60,7 +61,7 @@ public enum AmmoKind {
         if (HE_NAME.matcher(v.name()).find()) {
             return HE;
         }
-        if (role.contains("subsonic") || v.name().toLowerCase(java.util.Locale.ROOT).contains("subsonic")) {
+        if (role.contains("subsonic") || v.name().toLowerCase(Locale.ROOT).contains("subsonic")) {
             return SUBSONIC;
         }
         return v.tracer() != AmmoVariant.NONE ? TRACER : BALL;

@@ -1,5 +1,6 @@
 package com.wf.wflib.rail.supply;
 
+import java.util.ArrayList;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -119,7 +120,7 @@ public final class Stores {
 
     /** @return everything aboard that is not one of these, which is what a return trip unloads. */
     public List<ItemStack> allBut(List<Item> keep) {
-        List<ItemStack> out = new java.util.ArrayList<>();
+        List<ItemStack> out = new ArrayList<>();
         for (Container hold : this.holds) {
             for (int slot = 0; slot < hold.getContainerSize(); slot++) {
                 ItemStack in = hold.getItem(slot);

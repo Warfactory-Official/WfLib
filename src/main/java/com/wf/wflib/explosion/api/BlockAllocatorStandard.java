@@ -1,5 +1,6 @@
 package com.wf.wflib.explosion.api;
 
+import com.wf.wflib.explosion.debug.ExplosionTrace;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -64,7 +65,7 @@ public class BlockAllocatorStandard implements IBlockAllocator {
                         cz += dz * step;
                     }
 
-                    com.wf.wflib.explosion.debug.ExplosionTrace.ray(x, y, z, cx, cy, cz, broke);
+                    ExplosionTrace.ray(x, y, z, cx, cy, cz, broke);
                 }
             }
         }

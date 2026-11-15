@@ -10,6 +10,8 @@ import cam72cam.immersiverailroading.thirdparty.trackapi.ITrack;
 import cam72cam.immersiverailroading.util.VecUtil;
 import cam72cam.mod.math.Vec3d;
 import cam72cam.mod.world.World;
+import com.wf.wflib.rail.api.Centreline;
+import java.util.ArrayList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 
@@ -138,7 +140,7 @@ public final class IrStock {
      * there is track: asking the graph, point by point along the surveyed line, is the difference
      * between a railway and a picture of one.</p>
      */
-    public static Coverage check(ServerLevel level, com.wf.wflib.rail.api.Centreline line, int floorY,
+    public static Coverage check(ServerLevel level, Centreline line, int floorY,
                                  double step) {
         return check(level, line, floorY, step, 0.0, line.length());
     }
@@ -151,13 +153,13 @@ public final class IrStock {
      * lays no track there, so counting those blocks against it reports a hole in a railway that is
      * exactly as it was meant to be built. See {@code TrackLines.leftToTheJunction}.</p>
      */
-    public static Coverage check(ServerLevel level, com.wf.wflib.rail.api.Centreline line, int floorY,
+    public static Coverage check(ServerLevel level, Centreline line, int floorY,
                                  double step, double from, double to) {
         World world = World.get(level);
         double spacing = Math.max(0.5, step);
         double first = Math.max(0.0, from);
         double last = Math.min(line.length(), to);
-        java.util.List<Double> at = new java.util.ArrayList<>();
+        List<Double> at = new ArrayList<>();
         for (double s = first; s < last; s += spacing) {
             at.add(s);
         }

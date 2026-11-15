@@ -3,6 +3,7 @@ package com.wf.wflib.explosion.api;
 import com.wf.wflib.audio.api.AudioCategory;
 import com.wf.wflib.audio.api.Blasts;
 import com.wf.wflib.audio.api.WfAudio;
+import com.wf.wflib.core.api.ViewRange;
 import com.wf.wflib.explosion.AuxParticlePacket;
 import com.wf.wflib.core.api.WFNetwork;
 import net.minecraft.nbt.CompoundTag;
@@ -34,7 +35,7 @@ public final class ExplosionSmallCreator {
         data.putFloat("speed", cloudSpeedMult);
         data.putInt("debris", DEBRIS);
 
-        WFNetwork.sendToAllAround(level, x, y, z, com.wf.wflib.core.api.ViewRange.blocks(), new AuxParticlePacket("explosion_small", x, y, z, data));
+        WFNetwork.sendToAllAround(level, x, y, z, ViewRange.blocks(), new AuxParticlePacket("explosion_small", x, y, z, data));
         WfAudio.at((ServerLevel) level, new Vec3(x, y, z), AudioCategory.EXPLOSIONS, Blasts.small());
     }
 }

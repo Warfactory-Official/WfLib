@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.fire.api.FireType;
 
 public final class BombletWarhead {
 
@@ -31,7 +32,7 @@ public final class BombletWarhead {
             return;
         }
         ExplosionNukeGeneric.dealDamage(level, pos.x, pos.y, pos.z, BLAST_RADIUS, MAX_DAMAGE * 0.5f);
-        FireLingeringEntity.spawn(level, pos.x, pos.y, pos.z, 3.0f, 2.0f, 120, com.wf.wflib.fire.api.FireType.NORMAL);
+        FireLingeringEntity.spawn(level, pos.x, pos.y, pos.z, 3.0f, 2.0f, 120, FireType.NORMAL);
         ExplosionSmallCreator.composeEffect(level, pos.x, pos.y, pos.z, 3, 1.0f, 0.6f);
     };
 

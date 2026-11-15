@@ -3,6 +3,7 @@ package com.wf.wflib.round.api;
 import com.wf.wflib.round.RoundConfig;
 import com.wf.wflib.round.pen.PenMaterial;
 import com.wf.wflib.round.pen.PenTable;
+import java.util.Locale;
 import net.minecraft.world.level.block.state.BlockState;
 
 /** What the round system reads for a block: data map value, else its {@link PenMaterial} class. */
@@ -32,6 +33,6 @@ public final class PenValues {
 
     /** Lower-case {@link PenMaterial} class name. */
     public static String materialClass(BlockState state) {
-        return PenMaterial.resolve(state).name().toLowerCase(java.util.Locale.ROOT);
+        return PenMaterial.resolve(state).name().toLowerCase(Locale.ROOT);
     }
 }

@@ -1,5 +1,6 @@
 package com.wf.wflib.pda;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.pda.alerts.PdaAlertPacket;
 import com.wf.wflib.pda.api.client.PdaAlerts;
@@ -35,6 +36,11 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.PdaContent;
+import com.wf.wflib.pda.api.TerminalNoun;
+import com.wf.wflib.pda.api.client.PdaTheme;
+import com.wf.wflib.pda.terminal.PdaTerminal;
+import net.neoforged.fml.config.ModConfig;
 
 /** Holders named through {@link com.wf.wflib.pda.api.PdaContent}. */
 public final class PdaSystem implements WFSystem {
@@ -68,15 +74,15 @@ public final class PdaSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("pda", 500, out -> out.accept(com.wf.wflib.pda.api.PdaContent.PDA.get()));
-        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT, PdaClientConfig.SPEC, "wflib-pda-client.toml");
+        CreativeTabs.contribute("pda", 500, out -> out.accept(PdaContent.PDA.get()));
+        container.registerConfig(ModConfig.Type.CLIENT, PdaClientConfig.SPEC, "wflib-pda-client.toml");
         active = true;
         ITEMS.register("pda", () -> new PdaItem(new Item.Properties().stacksTo(1)));
         ITEMS.register(modBus);
         SOUNDS.register(modBus);
         modBus.addListener(RegisterPayloadHandlersEvent.class, PdaSystem::registerPayloads);
-        com.wf.wflib.pda.api.TerminalNoun.NOUNS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "nodes"),
-                200, com.wf.wflib.pda.terminal.PdaTerminal.NODES);
+        TerminalNoun.NOUNS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "nodes"),
+                200, PdaTerminal.NODES);
     }
 
     @Override
@@ -84,7 +90,7 @@ public final class PdaSystem implements WFSystem {
         UiSkin.HOOK.set(WFLib.MODID, new PdaUiSkin());
         MouseSteer.STEERS.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda"), 100, PdaClient::steer);
         modBus.addListener(RegisterClientExtensionsEvent.class,
-                e -> e.registerItem(PdaItemClient.INSTANCE, com.wf.wflib.pda.api.PdaContent.PDA.get()));
+                e -> e.registerItem(PdaItemClient.INSTANCE, PdaContent.PDA.get()));
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(PdaSystem::registerApps));
     }
 
@@ -111,7 +117,7 @@ public final class PdaSystem implements WFSystem {
         r.playToClient(MusicListPacket.TYPE, MusicListPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> MusicApp.accept(pkt)));
         r.playToClient(BackgroundListPacket.TYPE, BackgroundListPacket.STREAM_CODEC,
-                (pkt, ctx) -> ctx.enqueueWork(() -> com.wf.wflib.pda.api.client.PdaTheme.accept(pkt)));
+                (pkt, ctx) -> ctx.enqueueWork(() -> PdaTheme.accept(pkt)));
         r.playToClient(MusicChunkPacket.TYPE, MusicChunkPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> MusicApp.accept(pkt)));
     }

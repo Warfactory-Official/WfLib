@@ -14,6 +14,7 @@ import net.minecraft.world.phys.AABB;
 import java.util.List;
 import com.wf.wflib.recon.api.Decoy;
 import com.wf.wflib.recon.api.Decoys;
+import com.wf.wflib.recon.api.EmconState;
 
 /** A worked {@link TargetSource}: how an addon adds a whole new kind of target. */
 public final class DecoyTargetSource implements TargetSource {
@@ -36,7 +37,7 @@ public final class DecoyTargetSource implements TargetSource {
             sink.accept(new TargetSnapshot(SourceIds.ofDecoy(decoy.id()), ContactClass.UNKNOWN,
                     x, y, z, decoy.vx(), decoy.vy(), decoy.vz(),
                     Signature.radar(decoy.rcs()), REFLECTOR,
-                    com.wf.wflib.recon.api.EmconState.ACTIVE, 0L, false));
+                    EmconState.ACTIVE, 0L, false));
         }
     }
 }

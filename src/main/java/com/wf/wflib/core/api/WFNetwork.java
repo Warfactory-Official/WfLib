@@ -1,5 +1,6 @@
 package com.wf.wflib.core.api;
 
+import com.wf.wflib.explosion.api.FxMute;
 import net.minecraft.core.SectionPos;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerLevel;
@@ -26,7 +27,7 @@ public final class WFNetwork {
      * localized effect.
      */
     public static void sendToTracking(Level level, double x, double z, CustomPacketPayload msg) {
-        if (!(level instanceof ServerLevel sl) || com.wf.wflib.explosion.api.FxMute.active()) return;
+        if (!(level instanceof ServerLevel sl) || FxMute.active()) return;
         LevelChunk chunk = level.getChunk(SectionPos.blockToSectionCoord((int) Math.floor(x)),
                 SectionPos.blockToSectionCoord((int) Math.floor(z)));
         PacketDistributor.sendToPlayersTrackingChunk(sl, chunk.getPos(), msg);
@@ -43,7 +44,7 @@ public final class WFNetwork {
      * Radius-based fallback when an explicit cutoff (rather than view distance) is wanted.
      */
     public static void sendToAllAround(Level level, double x, double y, double z, double radius, CustomPacketPayload msg) {
-        if (!(level instanceof ServerLevel sl) || com.wf.wflib.explosion.api.FxMute.active()) return;
+        if (!(level instanceof ServerLevel sl) || FxMute.active()) return;
         PacketDistributor.sendToPlayersNear(sl, null, x, y, z, radius, msg);
     }
 }

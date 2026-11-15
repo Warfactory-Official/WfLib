@@ -5,14 +5,19 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.server.level.ServerPlayer;
 import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.AlignPoint;
 import com.wf.wflib.rail.align.AlignmentData;
+import com.wf.wflib.rail.align.AlignmentEdits;
+import com.wf.wflib.rail.align.AlignmentProgress;
 import com.wf.wflib.rail.api.DesignClass;
 import com.wf.wflib.rail.align.LineColour;
+import com.wf.wflib.rail.align.RouteMeeting;
+import com.wf.wflib.rail.align.RouteMeetings;
 import com.wf.wflib.rail.excavate.CarveVolume;
 import com.wf.wflib.rail.excavate.TunnelProfile;
 import com.wf.wflib.rail.excavate.TunnelProfiles;
@@ -20,7 +25,13 @@ import com.wf.wflib.rail.excavate.ChunkClaims;
 import com.wf.wflib.rail.build.BoreTrain;
 import com.wf.wflib.rail.build.RailWorks;
 import com.wf.wflib.rail.build.TrackJob;
+import com.wf.wflib.rail.build.ir.IrJunction;
+import com.wf.wflib.rail.build.ir.IrRoll;
+import com.wf.wflib.rail.build.ir.IrStock;
+import com.wf.wflib.rail.build.ir.IrTrackClear;
+import com.wf.wflib.rail.build.ir.IrTurnout;
 import com.wf.wflib.rail.demo.FivePoints;
+import com.wf.wflib.rail.demo.FivePointsCheck;
 import com.wf.wflib.rail.plan.Leg;
 import com.wf.wflib.rail.plan.RailGraph;
 import com.wf.wflib.rail.plan.RailStationData;
@@ -28,8 +39,11 @@ import com.wf.wflib.rail.supply.Bill;
 import com.wf.wflib.rail.supply.Depot;
 import com.wf.wflib.rail.supply.Stores;
 import com.wf.wflib.rail.demo.FivePointsFixture;
+import com.wf.wflib.rail.demo.FivePointsStock;
 import com.wf.wflib.rail.excavate.ExcavationService;
 import com.wf.wflib.rail.excavate.LightingPolicy;
+import com.wf.wflib.rail.excavate.SectionProbe;
+import java.util.ArrayList;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -46,9 +60,13 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.function.Consumer;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.Item;
 
 /** {@code /wfrail}: drive the excavator by hand, and read back what it cost. */
 public final class RailCommands {
@@ -433,7 +451,7 @@ public final class RailCommands {
     private static int report(CommandSourceStack source, boolean laid) {
         ServerLevel level = source.getLevel();
         Vec3 at = source.getPosition();
-        java.util.UUID route = com.wf.wflib.rail.align.AlignmentProgress.report(
+        UUID route = AlignmentProgress.report(
                 level, null, at.x, at.z, TrackReporter.MIN_TOLERANCE, laid);
         if (route == null) {
             source.sendFailure(Component.literal("no route within reach of "
@@ -504,7 +522,7 @@ public final class RailCommands {
                              Integer floor, boolean lit) {
         ServerLevel level = source.getLevel();
         Vec3 at = source.getPosition();
-        var hit = com.wf.wflib.rail.align.AlignmentProgress.nearest(level, null, at.x, at.z, BUILD_REACH);
+        var hit = AlignmentProgress.nearest(level, null, at.x, at.z, BUILD_REACH);
         if (hit == null) {
             source.sendFailure(Component.literal("no surveyed route within "
                     + (int) BUILD_REACH + " blocks; survey one on the map first"));
@@ -540,7 +558,7 @@ public final class RailCommands {
     private static final SuggestionProvider<CommandSourceStack> STOCK_SUGGESTIONS =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
                     RailCompat.trackGraphAvailable()
-                            ? com.wf.wflib.rail.build.ir.IrStock.names() : List.of(), builder);
+                            ? IrStock.names() : List.of(), builder);
 
     /**
      * Put a piece of Immersive Railroading stock where you are standing.
@@ -557,7 +575,7 @@ public final class RailCommands {
         }
         Vec3 at = source.getPosition();
         float yaw = source.getEntity() != null ? source.getEntity().getYRot() : 0.0f;
-        var placed = com.wf.wflib.rail.build.ir.IrStock.spawn(source.getLevel(), at, yaw, defId);
+        var placed = IrStock.spawn(source.getLevel(), at, yaw, defId);
         if (placed.name() == null) {
             source.sendFailure(Component.literal(placed.problem()
                     + "; /wfrail stock lists what this install has"));
@@ -574,7 +592,7 @@ public final class RailCommands {
             source.sendFailure(Component.literal("Immersive Railroading is not installed"));
             return 0;
         }
-        List<String> names = com.wf.wflib.rail.build.ir.IrStock.names();
+        List<String> names = IrStock.names();
         source.sendSuccess(() -> Component.literal(names.size() + " piece(s) of stock: "
                 + String.join(", ", names.subList(0, Math.min(names.size(), 40)))), false);
         return names.size();
@@ -608,7 +626,7 @@ public final class RailCommands {
         ServerPlayer player;
         try {
             player = source.getPlayerOrException();
-        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+        } catch (CommandSyntaxException e) {
             source.sendFailure(Component.literal("a route belongs to whoever surveys it,"
                     + " so this has to be run by a player"));
             return 0;
@@ -620,9 +638,9 @@ public final class RailCommands {
                 new AlignPoint(to.x, to.z, radius));
         String name = StringArgumentType.getString(ctx, "name");
         UUID id = UUID.randomUUID();
-        var outcome = com.wf.wflib.rail.align.AlignmentEdits.save(player, source.getLevel(), id, name,
+        var outcome = AlignmentEdits.save(player, source.getLevel(), id, name,
                 LineColour.AMBER.rgb(), designClass, points, 0);
-        if (outcome != com.wf.wflib.rail.align.AlignmentEdits.SaveOutcome.SAVED) {
+        if (outcome != AlignmentEdits.SaveOutcome.SAVED) {
             source.sendFailure(Component.literal("that route was not saved: "
                     + outcome.name().toLowerCase(Locale.ROOT)));
             return 0;
@@ -641,7 +659,7 @@ public final class RailCommands {
         ServerPlayer player;
         try {
             player = source.getPlayerOrException();
-        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+        } catch (CommandSyntaxException e) {
             source.sendFailure(Component.literal("this has to be run by a player"));
             return 0;
         }
@@ -650,12 +668,12 @@ public final class RailCommands {
             return 0;
         }
         Vec3 to = Vec3Argument.getVec3(ctx, "to");
-        List<AlignPoint> points = new java.util.ArrayList<>(route.points());
+        List<AlignPoint> points = new ArrayList<>(route.points());
         points.add(new AlignPoint(to.x, to.z, route.designClass().defaultRadius()));
-        var outcome = com.wf.wflib.rail.align.AlignmentEdits.save(player, source.getLevel(), route.id(),
+        var outcome = AlignmentEdits.save(player, source.getLevel(), route.id(),
                 route.name(), route.coreColour(), route.designClass(), points,
                 route.revision().number());
-        if (outcome != com.wf.wflib.rail.align.AlignmentEdits.SaveOutcome.SAVED) {
+        if (outcome != AlignmentEdits.SaveOutcome.SAVED) {
             source.sendFailure(Component.literal("that route was not changed: "
                     + outcome.name().toLowerCase(Locale.ROOT)));
             return 0;
@@ -681,7 +699,7 @@ public final class RailCommands {
     /** The route under the caller, or null with the failure already reported. */
     private static Alignment routeAt(CommandSourceStack source) {
         Vec3 at = source.getPosition();
-        var hit = com.wf.wflib.rail.align.AlignmentProgress.nearest(source.getLevel(), null, at.x, at.z,
+        var hit = AlignmentProgress.nearest(source.getLevel(), null, at.x, at.z,
                 BUILD_REACH);
         if (hit == null) {
             source.sendFailure(Component.literal("no surveyed route within "
@@ -845,7 +863,7 @@ public final class RailCommands {
         return 1;
     }
 
-    private static String name(net.minecraft.world.item.Item item) {
+    private static String name(Item item) {
         return item.getDescription().getString();
     }
 
@@ -1050,7 +1068,7 @@ public final class RailCommands {
     }
 
     /** Blocks of the journey with no track on them yet, which is what the bill is for. */
-    private static double owed(java.util.Collection<Alignment> routes, RailGraph.Journey journey) {
+    private static double owed(Collection<Alignment> routes, RailGraph.Journey journey) {
         double total = 0.0;
         for (Leg leg : journey.legs()) {
             Alignment route = routeIn(routes, leg.route());
@@ -1060,7 +1078,7 @@ public final class RailCommands {
         return total;
     }
 
-    private static Alignment routeIn(java.util.Collection<Alignment> routes, UUID id) {
+    private static Alignment routeIn(Collection<Alignment> routes, UUID id) {
         for (Alignment route : routes) {
             if (route.id().equals(id)) {
                 return route;
@@ -1070,7 +1088,7 @@ public final class RailCommands {
     }
 
     /** Which faction a journey digs for: the first leg's owner, which is the line being extended. */
-    private static UUID diggerFor(CommandSourceStack source, java.util.Collection<Alignment> routes,
+    private static UUID diggerFor(CommandSourceStack source, Collection<Alignment> routes,
                                   RailGraph.Journey journey) {
         Alignment first = routeIn(routes, journey.legs().get(0).route());
         return first != null ? diggerFor(source, first)
@@ -1092,7 +1110,7 @@ public final class RailCommands {
             for (int dz = -DEPOT_REACH; dz <= DEPOT_REACH; dz++) {
                 for (int dx = -DEPOT_REACH; dx <= DEPOT_REACH; dx++) {
                     BlockPos at = centre.offset(dx, dy, dz);
-                    if (!level.isLoaded(at) || !(level.getBlockEntity(at) instanceof net.minecraft.world.Container)) {
+                    if (!level.isLoaded(at) || !(level.getBlockEntity(at) instanceof Container)) {
                         continue;
                     }
                     double away = at.distSqr(centre);
@@ -1147,7 +1165,7 @@ public final class RailCommands {
             return 0;
         }
         int floorY = floor != null ? floor : (int) Math.floor(source.getPosition().y);
-        var coverage = com.wf.wflib.rail.build.ir.IrStock.check(source.getLevel(),
+        var coverage = IrStock.check(source.getLevel(),
                 route.compile().centreline(), floorY, TRACK_CHECK_STEP);
         String name = route.name().isEmpty() ? "unnamed route" : route.name();
         if (coverage.complete()) {
@@ -1192,14 +1210,14 @@ public final class RailCommands {
         CarveVolume.Corridor path = TunnelBuilder.corridor(centreline, 0.0, centreline.length(),
                 profile, floorY);
         var box = path.bounds();
-        List<BlockPos> cells = new java.util.ArrayList<>();
+        List<BlockPos> cells = new ArrayList<>();
         for (int x = box.minX(); x <= box.maxX(); x++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
                 // Anchors sit on the floor course, so one pass over it is the whole railway.
                 cells.add(new BlockPos(x, floorY, z));
             }
         }
-        int removed = com.wf.wflib.rail.build.ir.IrTrackClear.remove(level,
+        int removed = IrTrackClear.remove(level,
                 cam72cam.mod.world.World.get(level), cells, centreline, profile.width() / 2.0 + 1.0);
         String name = route.name().isEmpty() ? "unnamed route" : route.name();
         source.sendSuccess(() -> Component.literal(removed == 0
@@ -1218,7 +1236,7 @@ public final class RailCommands {
      */
     private static int junctions(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
-        var meetings = com.wf.wflib.rail.align.RouteMeetings.find(level);
+        var meetings = RouteMeetings.find(level);
         if (meetings.isEmpty()) {
             source.sendSuccess(() -> Component.literal("no two routes in "
                     + level.dimension().location() + " meet"), false);
@@ -1271,14 +1289,14 @@ public final class RailCommands {
      *
      * @return how many were built, and how many were not
      */
-    public static int[] junctions(ServerLevel level, int floorY, java.util.function.Consumer<String> ok,
-                                  java.util.function.Consumer<String> no) {
+    public static int[] junctions(ServerLevel level, int floorY, Consumer<String> ok,
+                                  Consumer<String> no) {
         var store = AlignmentData.of(level);
         int built = 0;
         int skipped = 0;
-        for (var meeting : com.wf.wflib.rail.align.RouteMeetings.find(level)) {
+        for (var meeting : RouteMeetings.find(level)) {
             var kind = meeting.kind();
-            if (kind == com.wf.wflib.rail.align.RouteMeeting.Kind.CROSSING) {
+            if (kind == RouteMeeting.Kind.CROSSING) {
                 continue;
             }
             if (!meeting.sameOwner()) {
@@ -1295,8 +1313,8 @@ public final class RailCommands {
             }
             String done;
             String problem;
-            if (kind == com.wf.wflib.rail.align.RouteMeeting.Kind.JOINT) {
-                var result = com.wf.wflib.rail.build.ir.IrJunction.build(level, meeting,
+            if (kind == RouteMeeting.Kind.JOINT) {
+                var result = IrJunction.build(level, meeting,
                         first.compile().centreline(), second.compile().centreline(), floorY,
                         RailConfig.IR_TRACK.get(), RailConfig.IR_GAUGE.get(),
                         RailConfig.TURNOUT_LEAD.get());
@@ -1306,7 +1324,7 @@ public final class RailCommands {
                         result.cut() > 0 ? ", " + result.cut() + " block(s) cut for it" : "") : null;
                 problem = result.problem();
             } else {
-                var result = com.wf.wflib.rail.build.ir.IrTurnout.build(level, meeting,
+                var result = IrTurnout.build(level, meeting,
                         store.get(meeting.through().route()).compile().centreline(),
                         store.get(meeting.branch().route()).compile().centreline(), floorY,
                         RailConfig.IR_TRACK.get(), RailConfig.IR_GAUGE.get(),
@@ -1371,7 +1389,7 @@ public final class RailCommands {
             return 0;
         }
         Vec3 at = source.getPosition();
-        var ran = com.wf.wflib.rail.build.ir.IrRoll.roll(source.getLevel(),
+        var ran = IrRoll.roll(source.getLevel(),
                 new Vec3(at.x, Math.floor(at.y), at.z), source.getEntity().getYRot(), limit);
         source.sendSuccess(() -> Component.literal(ran.describe()), false);
         return (int) ran.blocks();
@@ -1415,7 +1433,7 @@ public final class RailCommands {
     }
 
     private static int demoCheck(CommandSourceStack source) {
-        List<String> verdict = com.wf.wflib.rail.demo.FivePointsCheck.verdict(source.getLevel(),
+        List<String> verdict = FivePointsCheck.verdict(source.getLevel(),
                 FivePoints.FLOOR_Y);
         for (String line : verdict) {
             source.sendSuccess(() -> Component.literal(line), false);
@@ -1429,7 +1447,7 @@ public final class RailCommands {
                     + " so there is no stock to place"));
             return 0;
         }
-        var placed = com.wf.wflib.rail.demo.FivePointsStock.put(source.getLevel(),
+        var placed = FivePointsStock.put(source.getLevel(),
                 FivePoints.FLOOR_Y);
         for (String note : placed.notes()) {
             source.sendFailure(Component.literal("  " + note));
@@ -1480,7 +1498,7 @@ public final class RailCommands {
     private static ServerPlayer playerOrTell(CommandSourceStack source, String why) {
         try {
             return source.getPlayerOrException();
-        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+        } catch (CommandSyntaxException e) {
             source.sendFailure(Component.literal(why + ", so this has to be run by a player"));
             return null;
         }
@@ -1505,15 +1523,15 @@ public final class RailCommands {
         var line = route.compile().centreline();
         int floorY = floor != null ? floor : (int) Math.floor(source.getPosition().y);
         double at = chainage != null ? chainage
-                : com.wf.wflib.rail.align.AlignmentProgress.chainageAt(route,
+                : AlignmentProgress.chainageAt(route,
                         source.getPosition().x, source.getPosition().z, 48.0);
         if (at < 0.0) {
             source.sendFailure(Component.literal("you are not on that route; give a chainage"));
             return 0;
         }
-        var probe = com.wf.wflib.rail.excavate.SectionProbe.at(source.getLevel(), line, profile,
+        var probe = SectionProbe.at(source.getLevel(), line, profile,
                 floorY, at);
-        for (String row : com.wf.wflib.rail.excavate.SectionProbe.describe(probe, route.name())) {
+        for (String row : SectionProbe.describe(probe, route.name())) {
             source.sendSuccess(() -> Component.literal(row), false);
         }
         return 1;

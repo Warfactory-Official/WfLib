@@ -17,6 +17,9 @@ import net.minecraft.world.phys.AABB;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -128,8 +131,8 @@ public final class ReconNetwork {
     /**
      * @return every sensor on this network, for diagnostics.
      */
-    public java.util.Collection<SensorHandle> sensorHandles() {
-        return java.util.Collections.unmodifiableCollection(sensors.values());
+    public Collection<SensorHandle> sensorHandles() {
+        return Collections.unmodifiableCollection(sensors.values());
     }
 
     SensorHandle register(BlockPos pos, SensorSpec spec, long gameTime) {
@@ -194,8 +197,8 @@ public final class ReconNetwork {
     /**
      * @return every met station on this network, for diagnostics.
      */
-    public java.util.Collection<WeatherStation> stationHandles() {
-        return java.util.Collections.unmodifiableCollection(stations.values());
+    public Collection<WeatherStation> stationHandles() {
+        return Collections.unmodifiableCollection(stations.values());
     }
 
     boolean isQuiet() {
@@ -310,7 +313,7 @@ public final class ReconNetwork {
         }
 
         List<SensorJob> jobs = new ArrayList<>();
-        java.util.Arrays.fill(lastKinds, 0);
+        Arrays.fill(lastKinds, 0);
         Atmosphere weather = ReconWeather.sample(level);
         int targets = 0;
         int swept = 0;
@@ -401,8 +404,8 @@ public final class ReconNetwork {
      * @return every seismic event this network has fixed lately, oldest first. See {@link #eventStamp()} for
      *      how to avoid walking it when nothing has changed.
      */
-    public java.util.Collection<SeismicFix> events() {
-        return java.util.Collections.unmodifiableCollection(events.values());
+    public Collection<SeismicFix> events() {
+        return Collections.unmodifiableCollection(events.values());
     }
 
     /**

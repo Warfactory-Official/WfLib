@@ -9,6 +9,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 import java.util.List;
+import java.util.Locale;
+import net.minecraft.network.chat.MutableComponent;
 
 /**
  * The action list, drawn the way an interaction list reads in Arma Reforger: the chosen action sits at the top of
@@ -142,9 +144,9 @@ public final class ProbeActionList {
     // --- a row ---------------------------------------------------------------------------------
 
     private static Component label(ProbeAction action) {
-        net.minecraft.network.chat.MutableComponent out = Component.empty().append(action.label());
+        MutableComponent out = Component.empty().append(action.label());
         if (action.ticks() > 0) {
-            out.append(Component.literal(String.format(java.util.Locale.ROOT, " (%.0fs)", action.ticks() / 20.0f)));
+            out.append(Component.literal(String.format(Locale.ROOT, " (%.0fs)", action.ticks() / 20.0f)));
         }
         if (action.note() != null) {
             out.append(Component.literal(" - ")).append(action.note());

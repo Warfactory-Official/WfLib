@@ -10,6 +10,7 @@ import net.neoforged.neoforge.event.EventHooks;
 
 import java.util.Collection;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Real server ticks for producers that run game entities over time ({@link LabProducer#ticksWorld()}). Headless runs
@@ -98,7 +99,7 @@ public final class LabTicks {
             }
             tick(level.getServer());
             if (!drain(level.getServer())) {
-                java.util.concurrent.locks.LockSupport.parkNanos(1_000_000L);
+                LockSupport.parkNanos(1_000_000L);
             }
         }
     }

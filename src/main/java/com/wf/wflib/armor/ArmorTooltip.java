@@ -15,6 +15,7 @@ import com.wf.wflib.armor.api.ArmorSpec;
 import com.wf.wflib.armor.api.ArmorStacks;
 import com.wf.wflib.armor.api.ProtectionRow;
 import com.wf.wflib.armor.api.ProtectionType;
+import net.minecraft.world.entity.EquipmentSlot;
 
 /**
  * What the piece actually does, on the piece.
@@ -43,7 +44,7 @@ public final class ArmorTooltip {
                 .append(Component.literal(" " + percent(fraction)).withStyle(conditionColor(fraction))));
         if (stack.getItem() instanceof ArmorPieceItem piece && !piece.preset().occupies().isEmpty()) {
             tooltip.add(Component.literal("Suit: also covers " + String.join(", ", piece.preset().occupies().stream()
-                    .map(net.minecraft.world.entity.EquipmentSlot::getName).toList())).withStyle(ChatFormatting.GRAY));
+                    .map(EquipmentSlot::getName).toList())).withStyle(ChatFormatting.GRAY));
         }
 
         boolean dt = false;

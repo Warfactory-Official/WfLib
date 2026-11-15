@@ -5,6 +5,7 @@ import com.wf.wflib.ammo.api.Ammo;
 import com.wf.wflib.ammo.api.AmmoItems;
 import com.wf.wflib.ammo.api.AmmoVariant;
 import com.wf.wflib.ammo.api.Calibre;
+import com.wf.wflib.ammo.api.CalibreKind;
 import com.wf.wflib.ammo.api.CartridgeItem;
 import com.wf.wflib.round.api.KineticPreset;
 import com.wf.wflib.round.api.KineticPresets;
@@ -37,7 +38,7 @@ public class AmmoGameTest {
             h.assertTrue(p != null && Math.abs(p.muzzleSpeed() - v.speed() / 20f) < 1e-6f
                     && p.damagePerKJ() == v.damagePerKJ() && p.blockPen() == v.blockPen()
                     && p.tracerColor() == (v.tracer() == AmmoVariant.NONE ? 0 : v.tracer())
-                    && p.loadsChunks() == (Ammo.calibre(v.calibre()).kind() == com.wf.wflib.ammo.api.CalibreKind.TANK),
+                    && p.loadsChunks() == (Ammo.calibre(v.calibre()).kind() == CalibreKind.TANK),
                     "preset " + v.id());
         }
         h.succeed();

@@ -1,5 +1,6 @@
 package com.wf.wflib.anomaly.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.gemrender.lens.Lenses;
 import com.wf.gemrender.light.Lights;
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
@@ -8,6 +9,8 @@ import com.wf.wflib.anomaly.AnomalyBehaviour;
 import com.wf.wflib.anomaly.AnomalyLook;
 import com.wf.wflib.anomaly.MincerTuning;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.logging.LogUtils;
+import com.wf.wflib.anomaly.AnomalyType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
@@ -25,6 +28,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.client.WFRenderTypes;
+import com.wf.wflib.particle.api.XrBlend;
+import com.wf.wflib.particle.api.client.XrParticles;
+import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.slf4j.Logger;
 
 /**
  * Anomalies as seen, each by its {@link AnomalyLook}: a GemRender {@link Lenses lens} (idle shimmer, spinning up
@@ -37,7 +50,7 @@ public final class AnomalyClient {
     private static final double DRAW_DISTANCE = 96.0D;
 
 
-    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final Set<AnomalyBlockEntity> LIVE = Collections.newSetFromMap(new WeakHashMap<>());
     /** Debug ({@link AnomalyDebug}): per anomaly, when last ticked / lensed and why last skipped. */
@@ -65,9 +78,9 @@ public final class AnomalyClient {
     }
 
     /** STALKER particle groups playing for an anomaly: its looped idle look, its blowout. */
-    private static final Map<AnomalyBlockEntity, List<com.wf.wflib.particle.api.client.XrParticles.Playing>> IDLE_FX =
+    private static final Map<AnomalyBlockEntity, List<XrParticles.Playing>> IDLE_FX =
             new WeakHashMap<>();
-    private static final Map<AnomalyBlockEntity, com.wf.wflib.particle.api.client.XrParticles.Playing> BLOWOUT_FX =
+    private static final Map<AnomalyBlockEntity, XrParticles.Playing> BLOWOUT_FX =
             new WeakHashMap<>();
 
     private static final Map<AnomalyBlockEntity, AnomalyIdleSound> IDLE_SOUND = new WeakHashMap<>();
@@ -159,15 +172,15 @@ public final class AnomalyClient {
     }
 
     private static void stopIdleFx(AnomalyBlockEntity be) {
-        List<com.wf.wflib.particle.api.client.XrParticles.Playing> playing = IDLE_FX.remove(be);
+        List<XrParticles.Playing> playing = IDLE_FX.remove(be);
         if (playing != null) {
-            playing.forEach(com.wf.wflib.particle.api.client.XrParticles.Playing::stop);
+            playing.forEach(XrParticles.Playing::stop);
         }
     }
 
-    private static void stopFx(Map<AnomalyBlockEntity, com.wf.wflib.particle.api.client.XrParticles.Playing> fx,
+    private static void stopFx(Map<AnomalyBlockEntity, XrParticles.Playing> fx,
                                AnomalyBlockEntity be) {
-        com.wf.wflib.particle.api.client.XrParticles.Playing playing = fx.remove(be);
+        XrParticles.Playing playing = fx.remove(be);
         if (playing != null) {
             playing.stop();
         }
@@ -192,7 +205,7 @@ public final class AnomalyClient {
      * fireball, as STALKER's path point is (heat_02/03 build the fire 2 m above their origin).
      */
     private static Vec3 emitter(AnomalyBlockEntity be, Vec3 c) {
-        return be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.ORBIT
+        return be.type().quirk() == AnomalyType.Quirk.ORBIT
                 ? c.subtract(0.0D, 2.0D * be.type().look().particleHeight(), 0.0D) : c;
     }
 
@@ -202,12 +215,12 @@ public final class AnomalyClient {
         if (look.idleParticles() != null) {
             boolean present = be.presence(0.0F) > 0.0F;
             if (present && !IDLE_FX.containsKey(be)) {
-                List<com.wf.wflib.particle.api.client.XrParticles.Playing> playing = new ArrayList<>();
+                List<XrParticles.Playing> playing = new ArrayList<>();
                 int copies = copies(look);
                 double ring = ring(be, copies);
                 for (int i = 0; i < copies; i++) {
                     double a = Mth.TWO_PI * i / copies;
-                    com.wf.wflib.particle.api.client.XrParticles.play(look.idleParticles(),
+                    XrParticles.play(look.idleParticles(),
                             c.add(Math.cos(a) * ring, 0.0D, Math.sin(a) * ring), look.particleScale() / copies * 1.5F,
                             look.particleHeight(), true).map(p -> p.glow(glow(look))).ifPresent(playing::add);
                 }
@@ -219,7 +232,7 @@ public final class AnomalyClient {
         if (look.blowoutParticles() != null) {
             if (be.exploding()) {
                 stopFx(BLOWOUT_FX, be);
-                com.wf.wflib.particle.api.client.XrParticles.play(look.blowoutParticles(), c, look.particleScale(),
+                XrParticles.play(look.blowoutParticles(), c, look.particleScale(),
                         look.particleHeight(), false)
                         .ifPresent(p -> BLOWOUT_FX.put(be, p.glow(glow(look))));
             } else if (be.phase() != Phase.BLOWOUT) {
@@ -255,7 +268,7 @@ public final class AnomalyClient {
         double playerDist = be.reach(player, c);
         if (AnomalyBlockEntity.affected(player) && playerDist <= behaviour.radius()
                 && (!be.striking() || be.claim(player))) {
-            if (be.striking() && be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.TIME_SLIP
+            if (be.striking() && be.type().quirk() == AnomalyType.Quirk.TIME_SLIP
                     && be.behaviour().trips(playerDist)) {
                 TimeSlipOverlay.start();
             }
@@ -356,32 +369,32 @@ public final class AnomalyClient {
                 if (be.type().quirk().moves() && !be.isRemoved()) {
                     Vec3 c = emitter(be, be.center(partial));
                     IDLE_FX.getOrDefault(be, List.of()).forEach(p -> p.trailTo(c));
-                    com.wf.wflib.particle.api.client.XrParticles.Playing blowout = BLOWOUT_FX.get(be);
+                    XrParticles.Playing blowout = BLOWOUT_FX.get(be);
                     if (blowout != null) {
                         blowout.trailTo(c);
                     }
                 }
             }
         }
-        shapes(event, solid, partial, solid ? net.minecraft.client.renderer.RenderType.entityCutoutNoCull(WHITE)
-                : com.wf.wflib.core.api.client.WFRenderTypes.xray(RING, com.wf.wflib.particle.api.XrBlend.ALPHA_ADD));
+        shapes(event, solid, partial, solid ? RenderType.entityCutoutNoCull(WHITE)
+                : WFRenderTypes.xray(RING, XrBlend.ALPHA_ADD));
         if (!solid) {
-            shapes(event, false, partial, com.wf.wflib.core.api.client.WFRenderTypes.xray(GLOW,
-                    com.wf.wflib.particle.api.XrBlend.ALPHA_ADD));
+            shapes(event, false, partial, WFRenderTypes.xray(GLOW,
+                    XrBlend.ALPHA_ADD));
         }
     }
 
     private static void shapes(RenderLevelStageEvent event, boolean fuzz, float partial,
-                               net.minecraft.client.renderer.RenderType type) {
-        boolean glow = type == com.wf.wflib.core.api.client.WFRenderTypes.xray(GLOW,
-                com.wf.wflib.particle.api.XrBlend.ALPHA_ADD);
+                               RenderType type) {
+        boolean glow = type == WFRenderTypes.xray(GLOW,
+                XrBlend.ALPHA_ADD);
         Minecraft mc = Minecraft.getInstance();
         Vec3 cam = event.getCamera().getPosition();
-        com.mojang.blaze3d.vertex.PoseStack pose = event.getPoseStack();
+        PoseStack pose = event.getPoseStack();
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);
-        org.joml.Matrix4f matrix = pose.last().pose();
-        net.minecraft.client.renderer.MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        Matrix4f matrix = pose.last().pose();
+        MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         boolean any = false;
         for (AnomalyBlockEntity be : LIVE) {
             if (be.isRemoved() || be.getLevel() != mc.level || be.center().distanceTo(cam) > DRAW_DISTANCE
@@ -391,16 +404,16 @@ public final class AnomalyClient {
             if (fuzz) {
                 FuzzStrands strands = STRANDS.get(be);
                 if (strands != null) {
-                    int light = net.minecraft.client.renderer.LevelRenderer.getLightColor(mc.level, be.getBlockPos());
+                    int light = LevelRenderer.getLightColor(mc.level, be.getBlockPos());
                     strands.emit(buffers.getBuffer(type), matrix, cam, partial, light);
                     any = true;
                 }
             } else if (glow) {
-                if (be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.ORBIT) {
+                if (be.type().quirk() == AnomalyType.Quirk.ORBIT) {
                     glow(buffers.getBuffer(type), matrix, event.getCamera(), be, partial);
                     any = true;
                 }
-            } else if (be.type().quirk() == com.wf.wflib.anomaly.AnomalyType.Quirk.REBOUNDS
+            } else if (be.type().quirk() == AnomalyType.Quirk.REBOUNDS
                     && be.presence(partial) > 0.0F) {
                 disc(buffers.getBuffer(type), matrix, be, partial);
                 any = true;
@@ -416,7 +429,7 @@ public final class AnomalyClient {
      * The Rebounder's disc of force waves, upright and turned its own way: rings swelling out from its middle and
      * fading, flaring through a blowout.
      */
-    private static void disc(VertexConsumer out, org.joml.Matrix4f matrix, AnomalyBlockEntity be, float partial) {
+    private static void disc(VertexConsumer out, Matrix4f matrix, AnomalyBlockEntity be, float partial) {
         Vec3 c = be.center(partial).add(0.0D, be.type().look().lensHeight(), 0.0D);
         double yaw = RandomSource.create(be.getBlockPos().asLong()).nextDouble() * Math.PI;
         float ux = (float) Math.cos(yaw);
@@ -439,11 +452,11 @@ public final class AnomalyClient {
      * The Comet's glow (STALKER's HDR bloom round its fireball): a wide warm halo and a white-hot core, flickering,
      * brighter as it strikes.
      */
-    private static void glow(VertexConsumer out, org.joml.Matrix4f matrix, net.minecraft.client.Camera camera,
+    private static void glow(VertexConsumer out, Matrix4f matrix, Camera camera,
                              AnomalyBlockEntity be, float partial) {
         Vec3 c = be.center(partial);
-        org.joml.Vector3f up = camera.getUpVector();
-        org.joml.Vector3f left = camera.getLeftVector();
+        Vector3f up = camera.getUpVector();
+        Vector3f left = camera.getLeftVector();
         float t = be.age() + partial;
         float flicker = 0.85F + 0.1F * Mth.sin(t * 0.9F) + 0.05F * Mth.sin(t * 2.3F + 1.0F);
         float strike = be.phase() == Phase.BLOWOUT ? 1.3F : 1.0F;
@@ -452,8 +465,8 @@ public final class AnomalyClient {
         billboard(out, matrix, c, up, left, 0.4F, 1.0F, 0.95F, 0.8F, 0.55F);
     }
 
-    private static void billboard(VertexConsumer out, org.joml.Matrix4f matrix, Vec3 c, org.joml.Vector3f up,
-                                  org.joml.Vector3f left, float size, float r, float g, float b, float a) {
+    private static void billboard(VertexConsumer out, Matrix4f matrix, Vec3 c, Vector3f up,
+                                  Vector3f left, float size, float r, float g, float b, float a) {
         float ux = up.x() * size;
         float uy = up.y() * size;
         float uz = up.z() * size;
@@ -469,7 +482,7 @@ public final class AnomalyClient {
         out.addVertex(matrix, x + lx + ux, y + ly + uy, z + lz + uz).setUv(0.0F, 0.0F).setColor(r, g, b, a);
     }
 
-    private static void ring(VertexConsumer out, org.joml.Matrix4f matrix, Vec3 c, float dx, float dy, float dz,
+    private static void ring(VertexConsumer out, Matrix4f matrix, Vec3 c, float dx, float dy, float dz,
                              float u, float v, float alpha) {
         out.addVertex(matrix, (float) c.x + dx, (float) c.y + dy, (float) c.z + dz).setUv(u, v)
                 .setColor(0.85F, 0.95F, 1.0F, alpha);

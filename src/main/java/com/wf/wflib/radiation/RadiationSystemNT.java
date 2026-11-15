@@ -44,6 +44,7 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 public final class RadiationSystemNT {
 
@@ -432,7 +433,7 @@ public final class RadiationSystemNT {
         if (!RadiationConfig.get().enableChunkRads()) return null;
         int cx = pos.x, cz = pos.z;
         if (((cx ^ (cx << 10) >> 10) | (cz ^ (cz << 10) >> 10)) != 0) return null;
-        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return null;
         ServerLevel level = server.getLevel(dimension);
         if (level == null) return null;

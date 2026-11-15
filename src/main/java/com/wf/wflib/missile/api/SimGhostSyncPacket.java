@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.core.api.WFLib;
+import java.util.UUID;
 
 /**
  * Off-world {@link SimGhosts} near one player, render only: no target, owner or orders on the wire.
@@ -27,7 +28,7 @@ public record SimGhostSyncPacket(List<Added> added, List<Moved> moved, int[] rem
     }
 
     /** @param sim the sim's UUID = the real entity's once it rematerializes */
-    public record Added(int handle, java.util.UUID sim, ResourceLocation kind, ResourceLocation model, int exhaust) {
+    public record Added(int handle, UUID sim, ResourceLocation kind, ResourceLocation model, int exhaust) {
     }
 
     public record Moved(int handle, double x, double y, double z, float vx, float vy, float vz) {

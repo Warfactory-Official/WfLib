@@ -2,6 +2,7 @@ package com.wf.wflib.mixin.nvg;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.nvg.client.NvgCuriosLayer;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -22,7 +23,7 @@ public abstract class MixinHumanoidArmorLayerNvg {
                             float c, float d, float e, float f, CallbackInfo ci) {
         if (entity instanceof AbstractClientPlayer player
                 && ((RenderLayer<?, ?>) (Object) this).getParentModel() instanceof HumanoidModel<?> parent && WFSystems.enabled("nvg")) {
-            com.wf.wflib.nvg.client.NvgCuriosLayer.draw(pose, light, player, parent);
+            NvgCuriosLayer.draw(pose, light, player, parent);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier.api;
 
 import com.mojang.authlib.GameProfile;
+import com.wf.wflib.soldier.SoldierProfiler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerLevel;
@@ -13,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.TickTask;
 
 /**
  * A server player with no client: it is in the player list, so every mod that handles players (guns, medical, stance,
@@ -92,7 +94,7 @@ public final class SoldierPlayer extends ServerPlayer {
         long start = System.nanoTime();
         super.tick();
         doTick();                                          // the connection that would tick it does not exist
-        com.wf.wflib.soldier.SoldierProfiler.record("body_player_tick", System.nanoTime() - start);
+        SoldierProfiler.record("body_player_tick", System.nanoTime() - start);
     }
 
     @Override
@@ -103,7 +105,7 @@ public final class SoldierPlayer extends ServerPlayer {
         } finally {
             quiet = false;
         }
-        getServer().tell(new net.minecraft.server.TickTask(getServer().getTickCount(), () -> Soldiers.remove(this)));
+        getServer().tell(new TickTask(getServer().getTickCount(), () -> Soldiers.remove(this)));
     }
 
     @Override

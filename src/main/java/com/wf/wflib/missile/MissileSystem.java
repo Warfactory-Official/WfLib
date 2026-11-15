@@ -1,5 +1,6 @@
 package com.wf.wflib.missile;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.ServerTicks;
 import com.wf.wflib.core.api.TickOrder;
 import net.minecraft.resources.ResourceLocation;
@@ -66,7 +67,18 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.labs.api.LabProducers;
+import com.wf.wflib.missile.api.MissileContent;
+import com.wf.wflib.missile.api.SimGhostSyncPacket;
+import com.wf.wflib.missile.api.SimGhosts;
 import com.wf.wflib.missile.api.SimMissileManager;
+import com.wf.wflib.missile.client.TvClient;
+import com.wf.wflib.missile.lab.InterceptionProducer;
+import com.wf.wflib.missile.lab.MissileFlightProducer;
+import com.wf.wflib.missile.lab.MissileVulnerabilityProducer;
+import com.wf.wflib.missile.lab.TurretDefender;
+import com.wf.wflib.ui.api.input.MouseSteer;
 
 public final class MissileSystem implements WFSystem {
     // Shahed pusher prop spin, deg/tick; visual only.
@@ -167,18 +179,18 @@ public final class MissileSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("missile", 900, out -> {
+        CreativeTabs.contribute("missile", 900, out -> {
             out.accept(MISSILE_DISPENSER_ITEM.get());
             out.accept(MISSILE_LISTENER_DEBUG_ITEM.get());
             out.accept(TURRET_INTERCEPTOR_ITEM.get());
             out.accept(TURRET_INTERCEPTOR_SUPERSONIC_ITEM.get());
-            com.wf.wflib.missile.api.MissileContent.missileItems().stream()
-                    .map(net.neoforged.neoforge.registries.DeferredHolder::get)
-                    .filter(i -> i.preset().id().getNamespace().equals(com.wf.wflib.core.api.WFLib.MODID))
+            MissileContent.missileItems().stream()
+                    .map(DeferredHolder::get)
+                    .filter(i -> i.preset().id().getNamespace().equals(WFLib.MODID))
                     .forEach(out::accept);
         });
         ServerTicks.LEVEL_POST.register(ResourceLocation.fromNamespaceAndPath("wflib", "missile_ghosts"), TickOrder.MISSILE_GHOSTS, SimGhostTracking::tick);
-        com.wf.wflib.missile.api.SimGhosts.SOURCES.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "missile"),
+        SimGhosts.SOURCES.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "missile"),
                 SimGhostTracking::missiles);
         active = true;
         ENTITY_TYPES.register(modBus);
@@ -220,14 +232,14 @@ public final class MissileSystem implements WFSystem {
         SimKinds.register(SimMissileManager.KIND);
         // Interceptor turrets fly unregistered catalogue presets => warhead live.
         WFLibContent.warheads(WFLib.MODID, "interceptor");
-        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
+        if (WFSystems.enabled("labs")) {
             WFLibContent.warheads(WFLib.MODID, "inert");
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileFlightProducer());
-            if (com.wf.wflib.core.api.WFSystems.enabled("armor")) {
-                com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.MissileVulnerabilityProducer());
+            LabProducers.register(new MissileFlightProducer());
+            if (WFSystems.enabled("armor")) {
+                LabProducers.register(new MissileVulnerabilityProducer());
             }
-            com.wf.wflib.labs.api.LabProducers.register(new com.wf.wflib.missile.lab.InterceptionProducer());
-            com.wf.wflib.missile.lab.TurretDefender.registerAll();
+            LabProducers.register(new InterceptionProducer());
+            TurretDefender.registerAll();
         }
 
         modBus.addListener(EventPriority.NORMAL, RegisterEvent.class, MissileSystem::registerItems);
@@ -241,8 +253,8 @@ public final class MissileSystem implements WFSystem {
 
     @Override
     public void registerClient(IEventBus modBus) {
-        com.wf.wflib.ui.api.input.MouseSteer.STEERS.register(
-                ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "tv"), 0, com.wf.wflib.missile.client.TvClient::steer);
+        MouseSteer.STEERS.register(
+                ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "tv"), 0, TvClient::steer);
         MissileClient.register(modBus);
     }
 
@@ -316,8 +328,8 @@ public final class MissileSystem implements WFSystem {
         PayloadRegistrar r = event.registrar("missile-2");
         r.playToClient(MissileFlightAudioPacket.TYPE, MissileFlightAudioPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> MissileClient.handleMissileAudio(pkt)));
-        r.playToClient(com.wf.wflib.missile.api.SimGhostSyncPacket.TYPE,
-                com.wf.wflib.missile.api.SimGhostSyncPacket.STREAM_CODEC,
+        r.playToClient(SimGhostSyncPacket.TYPE,
+                SimGhostSyncPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> MissileClient.handleSimGhosts(pkt)));
         r.playToServer(SpawnMissilePacket.TYPE, SpawnMissilePacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
         r.playToServer(TvConnectPacket.TYPE, TvConnectPacket.STREAM_CODEC,

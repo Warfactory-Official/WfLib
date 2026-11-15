@@ -28,6 +28,8 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import java.util.Locale;
 import java.util.UUID;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.PdaContent;
+import net.minecraft.world.item.ItemStack;
 
 /** TV rounds: operator's gimbal = line of sight flown; let go => seeker lock; only the launcher, only in range. */
 @PrefixGameTestTemplate(false)
@@ -205,7 +207,7 @@ public class TvGuidanceGameTest {
         FakePlayer player = FakePlayerFactory.get(lane.level,
                 new GameProfile(new UUID(0x7654_0000L, n), "tv_operator_" + n));
         player.moveTo(lane.origin.getX() - 4.5, lane.y(), lane.origin.getZ() + 0.5);
-        player.getInventory().add(new net.minecraft.world.item.ItemStack(com.wf.wflib.pda.api.PdaContent.PDA.get()));
+        player.getInventory().add(new ItemStack(PdaContent.PDA.get()));
         return player;
     }
 

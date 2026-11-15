@@ -2,6 +2,7 @@ package com.wf.wflib.missile.debug;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.missile.api.SimMissileManager;
 import com.wf.wflib.missile.api.MissileConfig;
 import com.wf.wflib.missile.api.MissileData;
@@ -11,6 +12,7 @@ import com.wf.wflib.missile.api.MissilePresets;
 import com.wf.wflib.missile.api.MissileSimConfig;
 import com.wf.wflib.missile.api.SwarmManager;
 import com.wf.wflib.missile.api.WFLibAPI;
+import com.wf.wflib.recon.api.ReconOwners;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -240,7 +242,7 @@ public final class MissileCommands {
             return 0;
         }
         UUID mine = player.getUUID();
-        UUID myTeam = com.wf.wflib.compat.api.WarforgeCompat.factionOfPlayer(mine);
+        UUID myTeam = WarforgeCompat.factionOfPlayer(mine);
         AABB box = player.getBoundingBox().inflate(512.0);
         List<MissileEntity> ms = level.getEntitiesOfClass(MissileEntity.class, box,
                 m -> m.isAlive() && !m.interceptor().isActive()
@@ -266,7 +268,7 @@ public final class MissileCommands {
         ServerLevel level = player.serverLevel();
         Vec3 target = swarmTarget(level, player);
         long swarmId = SwarmManager.newId(level);
-        UUID team = com.wf.wflib.recon.api.ReconOwners.owningEntity(player);
+        UUID team = ReconOwners.owningEntity(player);
         MissilePreset preset = MissilePresets.get(MissilePresets.rl("cruise"));
         if (preset == null) {
             src.sendFailure(Component.literal("wflib:cruise not requested"));
@@ -325,7 +327,7 @@ public final class MissileCommands {
         MissileEntity m = preset.build(level, spawn);
         m.setControlId(player.getUUID());
         m.setOperatorId(player.getUUID());
-        m.setTeamId(com.wf.wflib.recon.api.ReconOwners.owningEntity(player));
+        m.setTeamId(ReconOwners.owningEntity(player));
         if (lock != null) {
             m.interceptor().setLock(lock);
         }

@@ -9,6 +9,7 @@ import com.wf.gemrender.render.PosedBound;
 import com.wf.wflib.drone.api.client.PartRigs;
 import com.wf.wflib.view.api.client.Rig;
 import com.wf.wflib.drone.DroneDebrisEntity;
+import com.wf.wflib.drone.api.DroneModels;
 import dev.engine_room.flywheel.api.task.Plan;
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -22,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.FrustumIntersection;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 public class DroneDebrisVisual extends AbstractEntityVisual<DroneDebrisEntity> implements DynamicVisual {
@@ -40,7 +42,7 @@ public class DroneDebrisVisual extends AbstractEntityVisual<DroneDebrisEntity> i
     private final float[] times = new float[1];
 
     /** Piece centre within the airframe's model space. */
-    private final org.joml.Vector3f centre = new org.joml.Vector3f();
+    private final Vector3f centre = new Vector3f();
     private boolean centred;
 
     private double prevX, prevY, prevZ;
@@ -82,7 +84,7 @@ public class DroneDebrisVisual extends AbstractEntityVisual<DroneDebrisEntity> i
                     .createInstance();
         }
         if (!centred) {
-            Vec3 c = com.wf.wflib.drone.api.DroneModels.pieceCenter(entity.part());
+            Vec3 c = DroneModels.pieceCenter(entity.part());
             centre.set((float) c.x, (float) c.y, (float) c.z);
             centred = true;
         }

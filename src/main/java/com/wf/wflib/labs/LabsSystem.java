@@ -2,6 +2,8 @@ package com.wf.wflib.labs;
 
 import com.mojang.logging.LogUtils;
 import com.wf.wflib.core.api.WFSystem;
+import com.wf.wflib.labs.api.LabProducers;
+import java.io.IOException;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
@@ -11,6 +13,8 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import net.minecraft.server.MinecraftServer;
+import org.apache.logging.log4j.LogManager;
 
 /** WFLabs: headless data-mapping runs of the real damage stack; producers registered by the owning systems. */
 public final class LabsSystem implements WFSystem {
@@ -25,7 +29,7 @@ public final class LabsSystem implements WFSystem {
     public void register(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.COMMON, LabsConfig.SPEC, "wflib-labs.toml");
         modBus.addListener(LabsConfig::onLoad);
-        com.wf.wflib.labs.api.LabProducers.register(new ScenarioProducer());
+        LabProducers.register(new ScenarioProducer());
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, LabsCommands::register);
         NeoForge.EVENT_BUS.addListener(ServerStartedEvent.class, LabsSystem::headless);
     }
@@ -54,7 +58,7 @@ public final class LabsSystem implements WFSystem {
             try {
                 LabServe.serve(event.getServer(), Integer.parseInt(serve.trim()));
                 ok = true;
-            } catch (java.io.IOException | RuntimeException | Error e) {
+            } catch (IOException | RuntimeException | Error e) {
                 LOGGER.error("[labs] serve FAILED", e);
             }
             stop(event.getServer(), ok);
@@ -76,7 +80,7 @@ public final class LabsSystem implements WFSystem {
     }
 
     /** A test server has no tracker before its first tick and throws on a normal exit: leave it directly. */
-    private static void stop(net.minecraft.server.MinecraftServer server, boolean ok) {
+    private static void stop(MinecraftServer server, boolean ok) {
         if (!server.getClass().getName().endsWith("GameTestServer")) {
             server.halt(false);
             if (!ok) {
@@ -84,7 +88,7 @@ public final class LabsSystem implements WFSystem {
             }
             return;
         }
-        org.apache.logging.log4j.LogManager.shutdown();
+        LogManager.shutdown();
         Runtime.getRuntime().halt(ok ? 0 : 1);
     }
 }

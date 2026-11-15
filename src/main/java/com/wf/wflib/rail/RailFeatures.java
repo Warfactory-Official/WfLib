@@ -3,6 +3,7 @@ package com.wf.wflib.rail;
 import com.wf.wflib.rail.align.AlignmentProgress;
 import com.wf.wflib.rail.align.AlignmentService;
 import com.wf.wflib.rail.build.RailWorks;
+import com.wf.wflib.rail.demo.FivePointsFixture;
 import com.wf.wflib.rail.excavate.ExcavationService;
 import net.minecraft.server.level.ServerLevel;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -25,7 +26,7 @@ public final class RailFeatures {
         ExcavationService.shutdown();
         // A bore train is a machine somebody is watching, and there is nobody left to watch it.
         RailWorks.clear();
-        com.wf.wflib.rail.demo.FivePointsFixture.clearAll();
+        FivePointsFixture.clearAll();
         // The projections are keyed by route id, which the next world will reuse.
         AlignmentProgress.clearCache();
     }
@@ -47,6 +48,6 @@ public final class RailFeatures {
         // After the excavator, so a machine that queued a carve this tick is not also waiting a tick
         // for it to be picked up.
         RailWorks.tick(level);
-        com.wf.wflib.rail.demo.FivePointsFixture.tick(level);
+        FivePointsFixture.tick(level);
     }
 }

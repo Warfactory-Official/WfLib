@@ -6,6 +6,7 @@ import com.wf.gemrender.render.GemRenderInstance;
 import com.wf.gemrender.render.GemRenderInstanceTypes;
 import com.wf.gemrender.render.PoseCache;
 import com.wf.gemrender.render.PosedBound;
+import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.missile.api.client.ModModels;
 import com.wf.wflib.missile.api.MissileAttitude;
 import com.wf.wflib.missile.api.MissileAttitudes;
@@ -33,6 +34,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.FrustumIntersection;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -100,7 +102,7 @@ public class DroneVisual extends AbstractEntityVisual<DroneEntity> implements Dy
     private boolean carryingCrate;
     private boolean carryingBomb;
     private int mineCount;
-    @org.jetbrains.annotations.Nullable
+    @Nullable
     private ResourceLocation mineModelId;
 
     public DroneVisual(VisualizationContext context, DroneEntity entity) {
@@ -263,7 +265,7 @@ public class DroneVisual extends AbstractEntityVisual<DroneEntity> implements Dy
 
     private void updateMines(Matrix4f body, int packedLight) {
         ResourceLocation id = mineModelId;
-        GemRenderGltfModel current = id == null || !com.wf.wflib.core.api.WFSystems.enabled("mine") ? null
+        GemRenderGltfModel current = id == null || !WFSystems.enabled("mine") ? null
                 : MineRigs.model(id);
         if (current != mineModel) {
             for (int i = 0; i < mines.length; i++) {

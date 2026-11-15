@@ -1,5 +1,6 @@
 package com.wf.wflib.nvg.client;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
@@ -68,7 +69,7 @@ public record NvgOptics(List<Tube> tubes, float resolution, float gainMax, float
 
     public static final class Loader extends SimpleJsonResourceReloadListener {
         public Loader() {
-            super(new com.google.gson.Gson(), "nvg");
+            super(new Gson(), "nvg");
         }
 
         @Override

@@ -2,6 +2,7 @@ package com.wf.wflib.labs.api;
 
 import com.wf.wflib.round.api.BlockPen;
 import com.wf.wflib.round.api.KineticPreset;
+import com.wf.wflib.round.api.PenValues;
 import com.wf.wflib.round.api.Ricochet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -11,6 +12,10 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * One round meeting an infinite wall of {@code thickness} m (full blocks of 1 m, remainder last) at {@code angle}
@@ -30,12 +35,12 @@ public final class LabCover {
 
     /** @throws IllegalArgumentException for an unknown block id */
     public static Material material(String blockId) {
-        net.minecraft.world.level.block.Block b = net.minecraft.core.registries.BuiltInRegistries.BLOCK
-                .getOptional(net.minecraft.resources.ResourceLocation.parse(blockId))
+        Block b = BuiltInRegistries.BLOCK
+                .getOptional(ResourceLocation.parse(blockId))
                 .orElseThrow(() -> new IllegalArgumentException("no block " + blockId));
-        net.minecraft.world.level.block.state.BlockState s = b.defaultBlockState();
-        return new Material(blockId, com.wf.wflib.round.api.PenValues.resistance(s),
-                com.wf.wflib.round.api.PenValues.toughnessScaled(s), com.wf.wflib.round.api.PenValues.ricochet(s));
+        BlockState s = b.defaultBlockState();
+        return new Material(blockId, PenValues.resistance(s),
+                PenValues.toughnessScaled(s), PenValues.ricochet(s));
     }
 
     public static Result evaluate(KineticPreset p, double speedMs, Material m, double thickness, double angleDeg,

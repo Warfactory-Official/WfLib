@@ -36,7 +36,7 @@ public final class PdaApps {
     }
 
     static List<PdaApp> visible() {
-        if (!com.wf.wflib.pda.api.client.PdaThemeState.gamma()) return VISIBLE;
+        if (!PdaThemeState.gamma()) return VISIBLE;
         HOME.clear();
         for (PdaApp app : VISIBLE) {
             String id = app.id().toString();

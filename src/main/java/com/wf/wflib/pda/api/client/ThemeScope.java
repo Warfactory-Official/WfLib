@@ -4,10 +4,11 @@ import com.wf.wflib.ui.api.Binder;
 import com.wf.wflib.ui.api.UiEval;
 import com.wf.wflib.ui.api.Widget;
 import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.input.UiInput;
 
 /** Marks everything drawn inside as PDA content, so shared widgets (Box, Button) apply the theme's chrome only there. */
 public record ThemeScope(WidgetDef child) implements WidgetDef {
-    private static final com.wf.wflib.ui.api.input.UiInput.Feedback AUDIO = new com.wf.wflib.ui.api.input.UiInput.Feedback() {
+    private static final UiInput.Feedback AUDIO = new UiInput.Feedback() {
         public void hover() { PdaSounds.request(PdaSounds.Event.HOVER); }
         public void click() { PdaThemeState.click(); }
     };

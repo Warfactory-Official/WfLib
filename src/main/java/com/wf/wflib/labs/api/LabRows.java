@@ -1,15 +1,24 @@
 package com.wf.wflib.labs.api;
 
+import com.mojang.authlib.GameProfile;
 import com.wf.wflib.round.api.KineticPreset;
 import com.wf.wflib.round.api.KineticPresets;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.common.util.FakePlayer;
 
 /** Shared producer plumbing. */
 public final class LabRows {
@@ -17,9 +26,9 @@ public final class LabRows {
     }
 
     /** A silent server player not in the world: the body armour and damage code answers for (players carry the game's own resistances). */
-    public static net.neoforged.neoforge.common.util.FakePlayer victim(net.minecraft.server.level.ServerLevel level) {
-        var p = new net.neoforged.neoforge.common.util.FakePlayer(level, new com.mojang.authlib.GameProfile(
-                java.util.UUID.nameUUIDFromBytes("wflabs".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "wflabs"));
+    public static FakePlayer victim(ServerLevel level) {
+        var p = new FakePlayer(level, new GameProfile(
+                UUID.nameUUIDFromBytes("wflabs".getBytes(StandardCharsets.UTF_8)), "wflabs"));
         p.setSilent(true);
         return p;
     }
@@ -43,7 +52,7 @@ public final class LabRows {
     public static String json(Map<String, Object> m) {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
-        for (Map.Entry<String, Object> e : new java.util.TreeMap<>(m).entrySet()) {
+        for (Map.Entry<String, Object> e : new TreeMap<>(m).entrySet()) {
             if (!first) {
                 sb.append(',');
             }
@@ -59,13 +68,13 @@ public final class LabRows {
     }
 
     /** {@code work} per item on {@code pool}, each with its own {@link #victim}, created here on the calling thread (player construction needs the server thread). */
-    public static <T> void eachWithVictim(ExecutorService pool, net.minecraft.server.level.ServerLevel level, List<T> items,
-                                          java.util.function.BiConsumer<T, net.neoforged.neoforge.common.util.FakePlayer> work) {
-        List<net.neoforged.neoforge.common.util.FakePlayer> victims = new java.util.ArrayList<>(items.size());
+    public static <T> void eachWithVictim(ExecutorService pool, ServerLevel level, List<T> items,
+                                          BiConsumer<T, FakePlayer> work) {
+        List<FakePlayer> victims = new ArrayList<>(items.size());
         for (int i = 0; i < items.size(); i++) {
             victims.add(victim(level));
         }
-        List<Integer> ix = new java.util.ArrayList<>();
+        List<Integer> ix = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
             ix.add(i);
         }
@@ -73,8 +82,8 @@ public final class LabRows {
     }
 
     /** Runs {@code work} per item on {@code pool}, waiting for all; first failure rethrown. */
-    public static <T> void each(ExecutorService pool, List<T> items, java.util.function.Consumer<T> work) {
-        List<Future<Void>> fs = new java.util.ArrayList<>(items.size());
+    public static <T> void each(ExecutorService pool, List<T> items, Consumer<T> work) {
+        List<Future<Void>> fs = new ArrayList<>(items.size());
         for (T item : items) {
             Callable<Void> c = () -> {
                 work.accept(item);

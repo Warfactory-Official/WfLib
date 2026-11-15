@@ -2,6 +2,8 @@ package com.wf.wflib.armor.api.exo;
 
 import com.wf.wflib.core.api.OrderedRegistry;
 import com.wf.wflib.armor.api.ArmorPreset;
+import com.wf.wflib.backpack.api.Backpacks;
+import com.wf.wflib.core.api.WFSystems;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -60,8 +62,8 @@ public final class LifeSupport {
     public static List<Container> sources(ServerPlayer player) {
         List<Container> out = new ArrayList<>(2);
         out.add(player.getInventory());
-        if (com.wf.wflib.core.api.WFSystems.enabled("backpack")) {
-            out.add(com.wf.wflib.backpack.api.Backpacks.container(player));
+        if (WFSystems.enabled("backpack")) {
+            out.add(Backpacks.container(player));
         }
         return out;
     }

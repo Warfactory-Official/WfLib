@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import com.wf.wflib.colony.api.Colony;
+import java.util.UUID;
 
 /** Inspection and control for the colony simulation. */
 public final class ColonyDebug {
@@ -290,7 +291,7 @@ public final class ColonyDebug {
             return 0;
         }
 
-        Warband warband = new Warband(java.util.UUID.randomUUID(), origin.id, origin.x, origin.z,
+        Warband warband = new Warband(UUID.randomUUID(), origin.id, origin.x, origin.z,
                 (int) pos.x, (int) pos.z, count, origin.tier);
         warband.flying = flying;
         registry.add(warband);

@@ -2,8 +2,12 @@ package com.wf.wflib.soldier.client;
 
 import com.wf.gemrender.light.LightSink;
 import com.wf.gemrender.light.Lights;
+import com.wf.wflib.core.api.NightKey;
+import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.ragdoll.api.client.RagdollView;
+import com.wf.wflib.soldier.Headlamp;
+import com.wf.wflib.soldier.SoldierLights;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.bus.api.IEventBus;
@@ -14,6 +18,7 @@ import org.joml.Vector3f;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import net.minecraft.world.phys.Vec3;
 
 /** A shadowed white spot, and its lens flare, at the head of every soldier the server says has its light on. */
 public final class SoldierLightClient {
@@ -38,7 +43,7 @@ public final class SoldierLightClient {
     public static void register(IEventBus modBus) {
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
             Lights.register(SoldierLightClient::collect);
-            com.wf.wflib.core.api.NightKey.UNHANDLED.set(com.wf.wflib.core.api.WFLib.MODID, SoldierLightClient::flipOwnLamp);
+            NightKey.UNHANDLED.set(WFLib.MODID, SoldierLightClient::flipOwnLamp);
             NeoForge.EVENT_BUS.addListener(LampFlare::onRenderLevel);
         }));
     }
@@ -46,9 +51,9 @@ public final class SoldierLightClient {
     /** The night-vision key with no goggles on: switches the lamp the player wears, if any. */
     private static boolean flipOwnLamp() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.getConnection() == null || !com.wf.wflib.soldier.Headlamp.wearing(mc.player)
-                || !com.wf.wflib.soldier.SoldierLights.canToggle(mc.getConnection())) return false;
-        com.wf.wflib.soldier.SoldierLights.requestToggle();
+        if (mc.player == null || mc.getConnection() == null || !Headlamp.wearing(mc.player)
+                || !SoldierLights.canToggle(mc.getConnection())) return false;
+        SoldierLights.requestToggle();
         return true;
     }
 
@@ -89,7 +94,7 @@ public final class SoldierLightClient {
                 x = lens.x(); y = lens.y(); z = lens.z();
                 look = lens.forward(); up = lens.up();
             } else {
-                net.minecraft.world.phys.Vec3 eye = who.getEyePosition(partialTick);
+                Vec3 eye = who.getEyePosition(partialTick);
                 look = head != null ? new Vector3f((float) head[1][0], (float) head[1][1], (float) head[1][2])
                         : who.getViewVector(partialTick).toVector3f();
                 up = head != null ? new Vector3f((float) head[2][0], (float) head[2][1], (float) head[2][2])

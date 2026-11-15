@@ -1,5 +1,6 @@
 package com.wf.wflib.core.client;
 
+import com.wf.wflib.anomaly.client.AnomalyDebug;
 import com.wf.wflib.round.client.RoundDebug;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
@@ -10,6 +11,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.client.DebugGate;
 
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 // TODO(C-sweep): each owner registers its own client commands in registerClient; no piece owns this yet.
@@ -24,8 +26,8 @@ public final class WFClientCommands {
             Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new ModelGalleryScreen()));
             return 1;
         }));
-        event.getDispatcher().register(com.wf.wflib.anomaly.client.AnomalyDebug.command());
-        event.getDispatcher().register(Commands.literal("wfdebug").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed()).then(Commands.literal("rounds")
+        event.getDispatcher().register(AnomalyDebug.command());
+        event.getDispatcher().register(Commands.literal("wfdebug").requires(s -> DebugGate.allowed()).then(Commands.literal("rounds")
                 .executes(ctx -> rounds(ctx.getSource(), !RoundDebug.enabled()))
                 .then(Commands.literal("on").executes(ctx -> rounds(ctx.getSource(), true)))
                 .then(Commands.literal("off").executes(ctx -> rounds(ctx.getSource(), false)))

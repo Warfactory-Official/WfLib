@@ -39,6 +39,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import org.joml.Vector3d;
 
 /** Tick slot {@code TickOrder.RAGDOLL}. Tick thread. */
 public final class RagdollServer {
@@ -64,7 +68,7 @@ public final class RagdollServer {
         final LivingEntity entity;
         /** Corpse: never stands, no fall damage. */
         final boolean inert;
-        final net.minecraft.world.level.Level level;
+        final Level level;
         boolean wanted = true;
         Ragdoll sim;
         final BoxBuffer buffer = new BoxBuffer();
@@ -273,7 +277,7 @@ public final class RagdollServer {
         return true;
     }
 
-    public static LivingEntity carrier(net.minecraft.world.entity.Entity entity) {
+    public static LivingEntity carrier(Entity entity) {
         Body body = BODIES.get(entity.getId());
         return body == null ? null : body.carrier;
     }
@@ -457,8 +461,8 @@ public final class RagdollServer {
         send(body, now, track.newest());
     }
 
-    private static org.joml.Vector3d world(Vec3 axis, double rx, double rz, double fx, double fz) {
-        return new org.joml.Vector3d(axis.x * rx + axis.z * fx, axis.y, axis.x * rz + axis.z * fz);
+    private static Vector3d world(Vec3 axis, double rx, double rz, double fx, double fz) {
+        return new Vector3d(axis.x * rx + axis.z * fx, axis.y, axis.x * rz + axis.z * fz);
     }
 
     private static void step(ServerLevel level, RagdollStore store, Body body, long now) {
@@ -671,7 +675,7 @@ public final class RagdollServer {
         AABB probe = new AABB(p.getX() - 0.3, p.getY(), p.getZ() - 0.3, p.getX() + 0.3, p.getY() + 0.01, p.getZ() + 0.3);
         double lift = 0;
         for (VoxelShape shape : p.level().getBlockCollisions(p, probe)) {
-            lift = Math.max(lift, shape.max(net.minecraft.core.Direction.Axis.Y) - p.getY());
+            lift = Math.max(lift, shape.max(Direction.Axis.Y) - p.getY());
         }
         if (lift > 0 && lift <= 0.5) {
             p.setPos(p.getX(), p.getY() + lift, p.getZ());

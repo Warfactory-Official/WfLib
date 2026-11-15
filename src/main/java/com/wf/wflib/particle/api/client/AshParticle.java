@@ -1,6 +1,7 @@
 package com.wf.wflib.particle.api.client;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.wf.wflib.fx.api.ParticleLight;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
@@ -62,7 +63,7 @@ public class AshParticle extends TextureSheetParticle {
         float u1 = this.getU1();
         float v0 = this.getV0();
         float v1 = this.getV1();
-        int light = com.wf.wflib.fx.api.ParticleLight.surface(this.level, this.x, this.y, this.z);
+        int light = ParticleLight.surface(this.level, this.x, this.y, this.z);
 
         float[][] corner = {{-1F, -1F}, {-1F, 1F}, {1F, 1F}, {1F, -1F}};
         float[][] uv = {{u1, v1}, {u1, v0}, {u0, v0}, {u0, v1}};

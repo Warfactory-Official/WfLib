@@ -13,6 +13,8 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import com.wf.wflib.compat.api.GregtechCompat;
+import com.wf.wflib.compat.wfweight.ExoWeight;
+import com.wf.wflib.compat.wfweight.WeightLabs;
 
 /**
  * Faction and territory facade (inert without WarForge) and the bridges to optional mods. A bridge is wired only
@@ -34,7 +36,7 @@ public final class CompatSystem implements WFSystem {
         container.registerConfig(ModConfig.Type.COMMON, CompatConfig.SPEC, "wflib-compat.toml");
         modBus.addListener(CompatConfig::onLoad);
         if (ModList.get().isLoaded("wfweight") && WFSystems.enabled("labs") && WFSystems.enabled("armor")) {
-            com.wf.wflib.compat.wfweight.WeightLabs.register();
+            WeightLabs.register();
         }
         if (GregtechCompat.isActive()) {
             modBus.addListener(GregtechEMPGameTest::register);
@@ -49,7 +51,7 @@ public final class CompatSystem implements WFSystem {
                 ArtifactWeight.register();
             }
             if (WFSystems.enabled("armor")) {
-                com.wf.wflib.compat.wfweight.ExoWeight.register();
+                ExoWeight.register();
             }
             if (WFSystems.enabled("backpack")) {
                 BackpackWeight.register();

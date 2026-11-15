@@ -23,6 +23,7 @@ import org.joml.Vector3f;
 import com.wf.wflib.anomaly.api.AnomalyContent;
 import com.wf.wflib.artifact.api.ArtifactContent;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.world.entity.Entity;
 
 /**
  * Thrown bolts: rest flat on flat ground, on stairs and after a wall; set anomalies off; come back as the same stack;
@@ -164,7 +165,7 @@ public class BoltGameTest {
             helper.assertFalse(Bolts.toss(helper.getLevel(), player, InteractionHand.MAIN_HAND).getResult()
                     .consumesAction(), mode + ": thrown again inside the cooldown");
             helper.getLevel().getEntitiesOfClass(BoltEntity.class, player.getBoundingBox().inflate(3.0D))
-                    .forEach(net.minecraft.world.entity.Entity::discard);
+                    .forEach(Entity::discard);
         }
         helper.assertTrue(Bolts.isBolt(new ItemStack(ArtifactContent.BOLT_ITEM.get())), "wflib:bolt not a bolt");
         helper.assertFalse(Bolts.isBolt(new ItemStack(Items.IRON_NUGGET)), "a nugget is a bolt");

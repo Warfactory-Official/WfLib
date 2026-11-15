@@ -1,5 +1,6 @@
 package com.wf.wflib.soldier.api;
 
+import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
@@ -44,8 +45,8 @@ public interface SoldierMedical {
     @Nullable Plan plan(ServerPlayer actor, ServerPlayer patient);
 
     /** The medical items carried, by item id, for telemetry. */
-    default java.util.Map<String, Integer> supplies(ServerPlayer p) {
-        return java.util.Map.of();
+    default Map<String, Integer> supplies(ServerPlayer p) {
+        return Map.of();
     }
 
     /** Make a downed soldier give up (what a downed player's held key sends); nothing when not downed. */

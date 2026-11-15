@@ -17,6 +17,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import java.util.List;
 import com.wf.wflib.missile.MissileSystem;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
 
 /** Probe panel of the missile dispenser. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -27,7 +28,7 @@ public final class MissileProbe {
 
     @SubscribeEvent
     static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {
-        if (!com.wf.wflib.core.api.WFSystems.enabled("probe")) {
+        if (!WFSystems.enabled("probe")) {
             return;
         }
         event.registerBlockEntity(ProbeCapabilities.BLOCK, MissileSystem.MISSILE_DISPENSER_BE.get(),

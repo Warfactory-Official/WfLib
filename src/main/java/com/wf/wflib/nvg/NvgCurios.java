@@ -4,6 +4,8 @@ import com.wf.wflib.nvg.api.NvgItem;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotResult;
 
 /** Goggles worn in the Curios head slot. Optional linkage boundary: only the nested class references Curios classes. */
 public final class NvgCurios {
@@ -21,13 +23,13 @@ public final class NvgCurios {
 
     private static final class Loaded {
         static ItemStack stack(LivingEntity entity) {
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(entity)
+            return CuriosApi.getCuriosInventory(entity)
                     .flatMap(inventory -> inventory.findFirstCurio(s -> s.getItem() instanceof NvgItem))
-                    .map(top.theillusivec4.curios.api.SlotResult::stack).orElse(ItemStack.EMPTY);
+                    .map(SlotResult::stack).orElse(ItemStack.EMPTY);
         }
 
         static boolean wear(LivingEntity entity, ItemStack nvg) {
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(entity)
+            return CuriosApi.getCuriosInventory(entity)
                     .flatMap(inventory -> inventory.getStacksHandler("head")).map(head -> {
                         for (int i = 0; i < head.getSlots(); i++) {
                             if (head.getStacks().getStackInSlot(i).isEmpty()) {

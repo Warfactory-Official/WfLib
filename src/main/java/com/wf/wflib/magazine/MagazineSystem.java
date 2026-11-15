@@ -1,5 +1,6 @@
 package com.wf.wflib.magazine;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLibContent;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.magazine.api.MagContents;
@@ -13,6 +14,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Set;
 
 /** Holders named through {@link MagazineItems}. */
 public final class MagazineSystem implements WFSystem {
@@ -25,13 +27,13 @@ public final class MagazineSystem implements WFSystem {
     }
 
     @Override
-    public java.util.Set<String> requires() {
-        return java.util.Set.of("ammo");
+    public Set<String> requires() {
+        return Set.of("ammo");
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("magazine", 280, out -> com.wf.wflib.magazine.api.MagazineItems.creativeStacks().forEach(out::accept));
+        CreativeTabs.contribute("magazine", 280, out -> MagazineItems.creativeStacks().forEach(out::accept));
         COMPONENTS.register("mag_contents", () -> DataComponentType.<MagContents>builder()
                 .persistent(MagContents.CODEC).networkSynchronized(MagContents.STREAM_CODEC).cacheEncoding().build());
         COMPONENTS.register("pod_tubes", () -> DataComponentType.<PodTubes>builder()

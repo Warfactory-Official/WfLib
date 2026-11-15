@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.Shapes;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ final class CoverBlocks {
         Map<String, Block> first = new LinkedHashMap<>();
         List<Block> blocks = new ArrayList<>();
         BuiltInRegistries.BLOCK.forEach(blocks::add);
-        blocks.sort(java.util.Comparator.comparing(b -> BuiltInRegistries.BLOCK.getKey(b).toString()));
+        blocks.sort(Comparator.comparing(b -> BuiltInRegistries.BLOCK.getKey(b).toString()));
         for (Block b : blocks) {
             BlockState s = b.defaultBlockState();
             if (s.isAir() || s.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) != Shapes.block()) {

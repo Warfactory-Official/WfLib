@@ -40,6 +40,7 @@ import com.wf.wflib.artifact.detect.client.ZoneArtifactRenderer;
 import com.wf.wflib.artifact.api.ArtifactSounds;
 import com.wf.wflib.artifact.api.ArtifactContent;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 
 /**
  * The detector in the hand, client side: it listens for the artefacts its rank finds, beeps at STALKER's rate for the
@@ -130,7 +131,7 @@ public final class DetectorClient {
             GemRenderItemRenderer renderer = new GemRenderItemRenderer(appearance(tier));
             event.registerItem(new IClientItemExtensions() {
                 @Override
-                public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                public BlockEntityWithoutLevelRenderer getCustomRenderer() {
                     return renderer;
                 }
             }, holder.get());

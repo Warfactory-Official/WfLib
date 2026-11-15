@@ -13,6 +13,7 @@ import com.wf.wflib.ui.api.widget.Point;
 import net.minecraft.resources.ResourceLocation;
 import com.wf.wflib.cam.api.client.CameraTarget;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.ui.api.widget.Rect;
 
 import static com.wf.wflib.ui.api.Ui.*;
 
@@ -89,7 +90,7 @@ public final class CameraOsd {
                         when("!feed.orbital", at("10", Integer.toString(OSD_H - 24), text("SPD {feed.speed|5.1}", TINT))),
                         at("10", Integer.toString(OSD_H - 14), stack(
                                 rect(46, 6, "#80000000"),
-                                new com.wf.wflib.ui.api.widget.Rect("46", "6", battery, 0, 1),
+                                new Rect("46", "6", battery, 0, 1),
                                 at("1", "1", rect("44 * feed.battery", "4", battery)),
                                 at("50", "-1", text("{feed.battery * 100|3}%", battery)),
                                 at("72", "-1", when("feed.guided", text("MTR", battery),

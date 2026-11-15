@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import java.util.Collections;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -18,7 +19,7 @@ public enum StationKind {
 
     StationKind(String id, Set<StationRole> roles) {
         this.id = id;
-        this.roles = java.util.Collections.unmodifiableSet(roles);
+        this.roles = Collections.unmodifiableSet(roles);
     }
 
     public String id() {

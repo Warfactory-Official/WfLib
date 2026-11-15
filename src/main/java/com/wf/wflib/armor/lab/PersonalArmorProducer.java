@@ -23,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Round x launcher x range x garment (+ inserts) x zone: the real per-limb armour door
@@ -88,7 +89,7 @@ public final class PersonalArmorProducer implements LabProducer {
                             String armor, EquipmentSlot zone, float base, RoundDamageSource src, FakePlayer stand,
                             ArmorSetups.Setup set) {
         for (EquipmentSlot z : ArmorSetups.worn()) {
-            stand.setItemSlot(z, net.minecraft.world.item.ItemStack.EMPTY);
+            stand.setItemSlot(z, ItemStack.EMPTY);
         }
         if (set != null) {
             stand.setItemSlot(set.slot(), set.stack());

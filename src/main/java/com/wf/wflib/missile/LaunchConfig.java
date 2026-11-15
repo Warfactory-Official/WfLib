@@ -1,5 +1,6 @@
 package com.wf.wflib.missile;
 
+import com.wf.wflib.missile.api.AttackProfile;
 import com.wf.wflib.missile.api.MissileFlight;
 import com.wf.wflib.missile.api.MissileBuilder;
 import com.wf.wflib.missile.api.MissileEntity;
@@ -208,7 +209,7 @@ public final class LaunchConfig {
         if (attackApproachX != 0.0 || attackApproachZ != 0.0) {
             builder.attackFrom(attackApproachX, attackApproachZ);
         }
-        builder.attackProfile(com.wf.wflib.missile.api.AttackProfile.byName(attackProfile));
+        builder.attackProfile(AttackProfile.byName(attackProfile));
         builder.approachJoinCap(approachJoinCap);
         if (startInCruise) {
             builder.startInCruise();

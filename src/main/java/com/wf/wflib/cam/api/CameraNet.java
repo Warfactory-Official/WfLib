@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import com.wf.wflib.cam.GimbalMath;
 import com.wf.wflib.cam.StaticCameraFeeds;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 /** Every live camera feed on the server, and the audience for each one. */
 public final class CameraNet {
@@ -321,7 +322,7 @@ public final class CameraNet {
                 (byte) cam.mode.ordinal(), (byte) spec.modeMask(),
                 source.battery(), link,
                 source.speed(),
-                (float) (eye.y - level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
+                (float) (eye.y - level.getHeight(Heightmap.Types.MOTION_BLOCKING,
                         (int) Math.floor(eye.x), (int) Math.floor(eye.z))),
                 now);
 

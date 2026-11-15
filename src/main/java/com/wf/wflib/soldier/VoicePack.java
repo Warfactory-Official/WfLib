@@ -6,11 +6,14 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipFile;
@@ -25,7 +28,7 @@ record VoicePack(String id, Path file, Map<String, Map<String, List<Clip>>> spea
     record Clip(ResourceLocation sound, int ticks) {}
 
     static VoicePack read(Path file) throws IOException {
-        if (java.nio.file.Files.size(file) > MAX_PACK) throw new IOException("ZIP exceeds 64 MiB");
+        if (Files.size(file) > MAX_PACK) throw new IOException("ZIP exceeds 64 MiB");
         try (ZipFile zip = new ZipFile(file.toFile())) {
             var manifest = zip.getEntry("voices.json");
             if (manifest == null || manifest.getSize() < 0 || manifest.getSize() > 1024 * 1024)
@@ -82,7 +85,7 @@ record VoicePack(String id, Path file, Map<String, Map<String, List<Clip>>> spea
                         var audio = zip.getEntry("assets/" + id + "/sounds/" + sound.getPath() + ".ogg");
                         if (audio == null || audio.getSize() > 4 * 1024 * 1024) throw new IOException("Missing or oversized audio: " + sound);
                         try (var input = zip.getInputStream(audio)) {
-                            if (!java.util.Arrays.equals(input.readNBytes(4), new byte[]{'O', 'g', 'g', 'S'}))
+                            if (!Arrays.equals(input.readNBytes(4), new byte[]{'O', 'g', 'g', 'S'}))
                                 throw new IOException("Not an OGG stream: " + sound);
                         }
                         clips.add(new Clip(sound, ticks));
@@ -94,7 +97,7 @@ record VoicePack(String id, Path file, Map<String, Map<String, List<Clip>>> spea
                 speakers.put(speaker.getKey(), Map.copyOf(events));
             }
             if (speakers.isEmpty() || speakers.size() > 64) throw new IOException("Expected 1–64 speakers");
-            return new VoicePack(id, file, java.util.Collections.unmodifiableMap(speakers));
+            return new VoicePack(id, file, Collections.unmodifiableMap(speakers));
         } catch (RuntimeException ex) {
             throw new IOException("Invalid voice pack: " + ex.getMessage(), ex);
         }

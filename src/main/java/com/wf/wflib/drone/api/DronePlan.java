@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import com.wf.wflib.geom.api.flight.FlightAttitude;
+import java.util.UUID;
 
 /**
  * A worker's answer for one drone: where to move this tick, how it is leaning to do it, which way to face, whether
@@ -19,7 +20,7 @@ import com.wf.wflib.geom.api.flight.FlightAttitude;
  * @param desired guidance setpoint before the flight model; bodies with their own physics fly this
  * @param feedForward guidance reference acceleration, blocks/tick²
  */
-public record DronePlan(java.util.UUID droneId, long sourceGameTime, Vec3 velocity, FlightAttitude attitude,
+public record DronePlan(UUID droneId, long sourceGameTime, Vec3 velocity, FlightAttitude attitude,
                         float yaw, @Nullable DroneState nextState, List<DroneAction> actions,
                         Vec3 desired, Vec3 feedForward) {
 

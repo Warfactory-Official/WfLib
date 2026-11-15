@@ -3,6 +3,7 @@ package com.wf.wflib.view;
 import com.wf.wflib.core.api.WFSystem;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
 
 public final class ViewSystem implements WFSystem {
     @Override
@@ -17,6 +18,6 @@ public final class ViewSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT, ViewClientConfig.SPEC, "wflib-view-client.toml");
+        container.registerConfig(ModConfig.Type.CLIENT, ViewClientConfig.SPEC, "wflib-view-client.toml");
     }
 }

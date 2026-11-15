@@ -16,6 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.anomaly.api.AnomalyMix;
 import com.wf.wflib.anomaly.api.SitePlan;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 
 /**
  * The motifs' work, in two passes: {@link #shape} lays the ground (bowls, trenches, how flat), before any ruin claims
@@ -191,13 +197,13 @@ final class SiteMotifs {
                 grid(l, (x, z, c) -> nearTrench(l, x, z, 3.0D) ? 3.0D : 1.0D);
             }
             case GLASS_FIELD -> {
-                java.util.Set<Long> streak = new java.util.HashSet<>();
+                Set<Long> streak = new HashSet<>();
                 for (int i = 3 + l.random.nextInt(3); i > 0; i--) {
                     lichtenberg(l, l.cx, l.cz, l.random.nextDouble() * Mth.TWO_PI, r * 0.9D, streak, 2);
                 }
                 for (long s : streak) {
-                    int x = net.minecraft.world.level.ChunkPos.getX(s);
-                    int z = net.minecraft.world.level.ChunkPos.getZ(s);
+                    int x = ChunkPos.getX(s);
+                    int z = ChunkPos.getZ(s);
                     if (l.u(x, z) < 0.95D) {
                         l.put(x, l.height(x, z), z, Blocks.POLISHED_DEEPSLATE);
                     }
@@ -354,7 +360,7 @@ final class SiteMotifs {
     }
 
     /** {@code n} points round a bowl between {@code from} and {@code to} radii. */
-    private static void ring(SiteLayout l, Bowl b, double from, double to, int n, java.util.function.BiConsumer<Integer,
+    private static void ring(SiteLayout l, Bowl b, double from, double to, int n, BiConsumer<Integer,
             Integer> at) {
         for (int i = 0; i < n; i++) {
             double a = l.random.nextDouble() * Mth.TWO_PI;
@@ -430,17 +436,17 @@ final class SiteMotifs {
         for (Direction d : Direction.Plane.HORIZONTAL) {
             l.put(x + d.getStepX(), y, z + d.getStepZ(), Blocks.BASALT);
         }
-        l.anomalies.add(new SiteLayout.Placed(AnomalyMix.Kind.STEAM_VENT, new net.minecraft.core.BlockPos(x, y + 1, z)));
+        l.anomalies.add(new SiteLayout.Placed(AnomalyMix.Kind.STEAM_VENT, new BlockPos(x, y + 1, z)));
     }
 
     /** A branching scorch: a random walk out, splitting now and then. */
     private static void lichtenberg(SiteLayout l, double x, double z, double angle, double length,
-                                    java.util.Set<Long> out, int splits) {
+                                    Set<Long> out, int splits) {
         for (double t = 0.0D; t < length; t += 1.0D) {
             angle += (l.random.nextDouble() - 0.5D) * 0.7D;
             x += Math.cos(angle);
             z += Math.sin(angle);
-            out.add(net.minecraft.world.level.ChunkPos.asLong(Mth.floor(x), Mth.floor(z)));
+            out.add(ChunkPos.asLong(Mth.floor(x), Mth.floor(z)));
             if (splits > 0 && l.random.nextFloat() < 0.06F) {
                 lichtenberg(l, x, z, angle + (l.random.nextBoolean() ? 0.8D : -0.8D), (length - t) * 0.6D, out,
                         splits - 1);
@@ -476,7 +482,7 @@ final class SiteMotifs {
             l.put(x, y + k, z, log);
         }
         List<Direction> dirs = new ArrayList<>(Direction.Plane.HORIZONTAL.stream().toList());
-        net.minecraft.Util.shuffle(dirs, l.random);
+        Util.shuffle(dirs, l.random);
         for (int i = 0, n = 2 + l.random.nextInt(2); i < n; i++) {
             Direction d = dirs.get(i);
             int by = y + h - 1 - l.random.nextInt(3);

@@ -1,6 +1,7 @@
 package com.wf.wflib.stream.client;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.wf.wflib.core.api.client.DebugGate;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -15,7 +16,7 @@ public final class StreamClientCommands {
     }
 
     public static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("wfstream").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed())
+        event.getDispatcher().register(Commands.literal("wfstream").requires(s -> DebugGate.allowed())
                 .then(Commands.literal("audit").executes(ctx -> {
                     int[] counts = ClientChunkStreamAudit.run(Minecraft.getInstance().level, "wflib-stream-audit-client.txt");
                     ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,

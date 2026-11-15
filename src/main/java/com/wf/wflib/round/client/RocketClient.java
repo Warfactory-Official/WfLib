@@ -1,6 +1,7 @@
 package com.wf.wflib.round.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.wf.wflib.ammo.api.client.LookRockets;
 import com.wf.wflib.round.api.RocketEntity;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -19,7 +20,7 @@ public final class RocketClient extends EntityRenderer<RocketEntity> {
 
     public static void tick(RocketEntity rocket) {
         if (rocket.tickCount == 1) {
-            com.wf.wflib.ammo.api.client.LookRockets.launched(rocket);
+            LookRockets.launched(rocket);
         }
         RoundRenderer renderer = rocket.preset() == null ? null : RoundRenderers.get(rocket.preset().id());
         if (renderer == null) {

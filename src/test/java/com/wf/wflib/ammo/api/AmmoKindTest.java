@@ -1,5 +1,6 @@
 package com.wf.wflib.ammo.api;
 
+import com.wf.wflib.ammo.AmmoCatalogue;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -9,11 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class AmmoKindTest {
     @BeforeAll
     static void define() {
-        com.wf.wflib.ammo.AmmoCatalogue.define();
+        AmmoCatalogue.define();
     }
 
     private static AmmoKind kind(String path) {
-        return AmmoKind.of(com.wf.wflib.ammo.AmmoCatalogue.variant(ResourceLocation.fromNamespaceAndPath("wflib", path)));
+        return AmmoKind.of(AmmoCatalogue.variant(ResourceLocation.fromNamespaceAndPath("wflib", path)));
     }
 
     @Test

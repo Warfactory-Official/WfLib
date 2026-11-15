@@ -1,5 +1,6 @@
 package com.wf.wflib.mine;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.mine.api.MineContent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import com.wf.wflib.mine.debug.MineCommands;
@@ -54,7 +55,7 @@ public final class MineSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("mine", 250, out -> MineContent.items().forEach(item -> out.accept(item.get())));
+        CreativeTabs.contribute("mine", 250, out -> MineContent.items().forEach(item -> out.accept(item.get())));
         active = true;
         MineWarheads.register();
         MineModels.register("ap", 0.06);

@@ -9,6 +9,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Authored piece (garment or insert); same preset shape as this mod's missile/mine presets.
@@ -39,7 +41,7 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
         if (exo != null && type == null) {
             throw new IllegalArgumentException("an insert cannot be an exoskeleton: " + id);
         }
-        occupies = occupies.isEmpty() ? Set.of() : java.util.Collections.unmodifiableSet(EnumSet.copyOf(occupies));
+        occupies = occupies.isEmpty() ? Set.of() : Collections.unmodifiableSet(EnumSet.copyOf(occupies));
     }
 
     public boolean isInsert() {
@@ -123,7 +125,7 @@ public record ArmorPreset(ResourceLocation id, @Nullable ArmorItem.Type type, in
         }
 
         public Builder occupies(EquipmentSlot... slots) {
-            occupies.addAll(java.util.List.of(slots));
+            occupies.addAll(List.of(slots));
             return this;
         }
 

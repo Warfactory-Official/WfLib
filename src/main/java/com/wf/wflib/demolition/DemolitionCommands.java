@@ -4,6 +4,9 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.wf.wflib.demolition.api.IDetonatable;
+import com.wf.wflib.demolition.api.IDetonatableEntity;
+import java.util.Collection;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -38,11 +41,11 @@ public final class DemolitionCommands {
      * Fires detonatable entities (mines), without a detonator, the way {@code detonate} fires a charge without one.
      */
     private static int fireOnCommand(CommandSourceStack source,
-                                     java.util.Collection<? extends Entity> targets) {
+                                     Collection<? extends Entity> targets) {
         ServerLevel level = source.getLevel();
         int fired = 0;
         for (Entity entity : targets) {
-            if (entity instanceof com.wf.wflib.demolition.api.IDetonatableEntity detonatable
+            if (entity instanceof IDetonatableEntity detonatable
                     && detonatable.detonateOnCommand(level, null)) {
                 fired++;
             }
@@ -59,12 +62,12 @@ public final class DemolitionCommands {
     /** Fire the mining charge at a position without a detonator. */
     private static int detonateCharge(CommandSourceStack source, BlockPos at) {
         ServerLevel level = source.getLevel();
-        if (!com.wf.wflib.demolition.api.IDetonatable.isExplosive(level.getBlockState(at))) {
+        if (!IDetonatable.isExplosive(level.getBlockState(at))) {
             source.sendFailure(Component.literal("No detonatable charge at "
                     + at.getX() + ", " + at.getY() + ", " + at.getZ()));
             return 0;
         }
-        com.wf.wflib.demolition.api.IDetonatable.tryDetonate(level, at, null);
+        IDetonatable.tryDetonate(level, at, null);
         source.sendSuccess(() -> Component.literal("Detonated charge at "
                 + at.getX() + ", " + at.getY() + ", " + at.getZ()), true);
         return 1;

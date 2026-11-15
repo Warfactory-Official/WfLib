@@ -10,6 +10,7 @@ import com.wf.wflib.labs.api.ScenarioState;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 /** Scenario layer {@code cover}: {@code block}, {@code thickness} m, {@code angle} deg (default 0) through {@link LabCover}. */
@@ -35,7 +36,7 @@ public final class CoverStage implements ScenarioStage {
     public Result apply(LabContext ctx, ScenarioState in, JsonObject spec) {
         for (String k : spec.keySet()) {
             if (!KEYS.contains(k)) {
-                throw new IllegalArgumentException("cover: unknown key " + k + "; have " + new java.util.TreeSet<>(KEYS));
+                throw new IllegalArgumentException("cover: unknown key " + k + "; have " + new TreeSet<>(KEYS));
             }
         }
         String block = string(spec, "block");

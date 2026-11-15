@@ -2,6 +2,7 @@ package com.wf.wflib.drone.debug;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.wf.wflib.drone.api.DroneMission;
 import com.wf.wflib.drone.api.Exchange;
 import com.wf.wflib.drone.api.ExchangeMode;
@@ -13,6 +14,7 @@ import com.wf.wflib.drone.api.DronePadBlockEntity;
 import com.wf.wflib.drone.exchange.ExchangeData;
 import com.wf.wflib.drone.exchange.ExchangeManager;
 import com.wf.wflib.drone.api.StationData;
+import java.util.Arrays;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -64,12 +66,12 @@ public final class ExchangeCommands {
                                                 UuidArgument.getUuid(ctx, "id")))))));
     }
 
-    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> ROLES =
+    private static final SuggestionProvider<CommandSourceStack> ROLES =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
-                    java.util.Arrays.stream(StationRole.values()).map(StationRole::id).toList(), builder);
-    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> KINDS =
+                    Arrays.stream(StationRole.values()).map(StationRole::id).toList(), builder);
+    private static final SuggestionProvider<CommandSourceStack> KINDS =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
-                    java.util.Arrays.stream(StationKind.values()).map(StationKind::id).toList(), builder);
+                    Arrays.stream(StationKind.values()).map(StationKind::id).toList(), builder);
 
     @Nullable
     private static DronePadBlockEntity nearestPad(CommandSourceStack src) {
@@ -120,7 +122,7 @@ public final class ExchangeCommands {
         StationKind kind = StationKind.byId(id);
         if (kind == null) {
             src.sendFailure(Component.literal("No such kind. Try: "
-                    + String.join(", ", java.util.Arrays.stream(StationKind.values())
+                    + String.join(", ", Arrays.stream(StationKind.values())
                     .map(StationKind::id).toList())));
             return 0;
         }
@@ -138,7 +140,7 @@ public final class ExchangeCommands {
         StationRole role = StationRole.byId(id);
         if (role == null) {
             src.sendFailure(Component.literal("No such role. Try: "
-                    + String.join(", ", java.util.Arrays.stream(StationRole.values())
+                    + String.join(", ", Arrays.stream(StationRole.values())
                     .map(StationRole::id).toList())));
             return 0;
         }

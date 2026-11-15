@@ -36,6 +36,7 @@ import com.wf.wflib.colony.api.GlyphidWaypoint;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.colony.debug.EntityDebugDummy;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.explosion.api.BlastDamageHooks;
 import com.wf.wflib.mine.api.MineTarget;
 import com.wf.wflib.mine.api.MineTrigger;
@@ -89,7 +90,7 @@ public final class ColonySystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("colony", 700, out -> {
+        CreativeTabs.contribute("colony", 700, out -> {
             out.accept(ColonyContent.GLYPHID_NEST_ITEM.get());
             out.accept(ColonyContent.GLYPHID_NEST_REINFORCED_ITEM.get());
             out.accept(ColonyContent.GLYPHID_SPAWNER_ITEM.get());

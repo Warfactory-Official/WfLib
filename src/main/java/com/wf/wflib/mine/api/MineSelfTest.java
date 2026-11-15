@@ -16,6 +16,7 @@ import java.util.Set;
 import com.wf.wflib.mine.MineWarheads;
 import com.wf.wflib.missile.api.DefuseMethod;
 import com.wf.wflib.missile.api.MineTags;
+import java.util.stream.Collectors;
 
 /**
  * In-game checks on the mine models as they are actually shipped: that every asset is in the jar and parses, that
@@ -140,7 +141,7 @@ public final class MineSelfTest {
                 .filter(MinePreset::buriable)
                 .map(preset -> preset.id()
                         .getPath())
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         out.add(new Result("mine/buriable-are-the-ground-mines",
                 buriable.equals(Set.of("ap", "bounding", "heat")),
                 "the mines that can be dug in should be the three that sit on the earth, got " + buriable));

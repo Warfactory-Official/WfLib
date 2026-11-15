@@ -7,6 +7,7 @@ import com.wf.wflib.labs.api.LabProducers;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public final class WeightLabs {
                     byte[] yaml = UltimateWeightCommon.serializeActiveConfig().getBytes(StandardCharsets.UTF_8);
                     return Map.of("weight_config", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                             .digest(yaml)));
-                } catch (java.security.NoSuchAlgorithmException e) {
+                } catch (NoSuchAlgorithmException e) {
                     throw new IllegalStateException(e);
                 }
             }

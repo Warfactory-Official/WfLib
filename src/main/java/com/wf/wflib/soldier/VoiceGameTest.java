@@ -12,19 +12,22 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec3;
 
 /** Server-side emission only; converter tests exercise real Vorbis encoding, client playback needs a client. */
 @PrefixGameTestTemplate(false)
 public class VoiceGameTest {
     @GameTest(templateNamespace = WFLib.MODID, template = "empty")
     public static void externalPackEmitsOnceAndUnconsciousSoldiersStaySilent(GameTestHelper h) throws Exception {
-        String id = "voice_test_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        String id = "voice_test_" + UUID.randomUUID().toString().substring(0, 8);
         var directory = SoldierVoices.root().resolve("packs");
         Files.createDirectories(directory);
         var file = Files.createTempFile(directory, "voice-test-", ".zip");
-        net.minecraft.server.level.ServerPlayer player = null;
+        ServerPlayer player = null;
         try {
             try (var zip = new ZipOutputStream(Files.newOutputStream(file))) {
                 entry(zip, "voices.json", "{\"format\":1,\"id\":\"" + id
@@ -34,7 +37,7 @@ public class VoiceGameTest {
             }
             SoldierVoices.reload();
             var spec = new SoldierSpec("voice_test", "VoiceTest", false, null, List.of(), Map.of(), 0);
-            player = Soldiers.spawn(h.getLevel(), h.absoluteVec(new net.minecraft.world.phys.Vec3(1, 2, 1)), 0, spec, null);
+            player = Soldiers.spawn(h.getLevel(), h.absoluteVec(new Vec3(1, 2, 1)), 0, spec, null);
             h.assertTrue(player != null, "could not spawn test soldier");
             var bot = SoldierAi.botOf(player.getGameProfile().getName());
             bot.voice = id;
@@ -58,11 +61,11 @@ public class VoiceGameTest {
 
     @GameTest(templateNamespace = WFLib.MODID, template = "empty")
     public static void aBindingPinsTheSpeakerAndRejectsUnknownOnes(GameTestHelper h) throws Exception {
-        String id = "voice_pin_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        String id = "voice_pin_" + UUID.randomUUID().toString().substring(0, 8);
         var directory = SoldierVoices.root().resolve("packs");
         Files.createDirectories(directory);
         var file = Files.createTempFile(directory, "voice-pin-", ".zip");
-        net.minecraft.server.level.ServerPlayer player = null;
+        ServerPlayer player = null;
         try {
             try (var zip = new ZipOutputStream(Files.newOutputStream(file))) {
                 entry(zip, "voices.json", "{\"format\":1,\"id\":\"" + id + "\",\"speakers\":{"
@@ -77,7 +80,7 @@ public class VoiceGameTest {
             h.assertTrue(!SoldierVoices.valid(id + "/three") && !SoldierVoices.valid(id + "/two/extra"), "bad binding accepted");
             h.assertTrue(SoldierVoices.catalog().get(id).equals(List.of("one", "two")), "catalog " + SoldierVoices.catalog().get(id));
             var spec = new SoldierSpec("voice_pin", "VoicePin", false, null, List.of(), Map.of(), 0);
-            player = Soldiers.spawn(h.getLevel(), h.absoluteVec(new net.minecraft.world.phys.Vec3(1, 2, 1)), 0, spec, null);
+            player = Soldiers.spawn(h.getLevel(), h.absoluteVec(new Vec3(1, 2, 1)), 0, spec, null);
             h.assertTrue(player != null, "could not spawn test soldier");
             var bot = SoldierAi.botOf(player.getGameProfile().getName());
             bot.voice = id + "/two";

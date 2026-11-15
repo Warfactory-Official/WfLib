@@ -1,5 +1,6 @@
 package com.wf.wflib.geom.api;
 
+import com.google.gson.JsonParser;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,7 @@ class GlbTest {
 
     @Test
     void trsIsTranslateRotateScale() {
-        Matrix4f m = Glb.local(com.google.gson.JsonParser.parseString(
+        Matrix4f m = Glb.local(JsonParser.parseString(
                 "{\"translation\":[1,2,3],\"rotation\":[0,0.7071068,0,0.7071068],\"scale\":[2,2,2]}").getAsJsonObject());
         Vector3f p = m.transformPosition(new Vector3f(1, 0, 0));
         assertEquals(1, p.x, 1e-5);

@@ -26,6 +26,7 @@ import com.wf.wflib.pda.api.PdaContent;
 import com.wf.wflib.cam.api.CameraContent;
 import com.wf.wflib.drone.api.DroneContent;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Optional;
 
 @PrefixGameTestTemplate(false)
 public class PdaTelemetryGameTest {
@@ -65,8 +66,8 @@ public class PdaTelemetryGameTest {
 
         // onLoad (-> DroneDispatchers.add) runs at the next level tick.
         helper.runAfterDelay(1, () -> {
-            String strike = PdaDrones.dispatch(player, DroneTask.Kind.STRIKE.id(), target, 0, java.util.Optional.empty());
-            String loiter = PdaDrones.dispatch(player, DroneTask.Kind.LOITER.id(), target, 0, java.util.Optional.empty());
+            String strike = PdaDrones.dispatch(player, DroneTask.Kind.STRIKE.id(), target, 0, Optional.empty());
+            String loiter = PdaDrones.dispatch(player, DroneTask.Kind.LOITER.id(), target, 0, Optional.empty());
             CameraChannels channels = player.getMainHandItem().getOrDefault(CameraContent.CHANNELS.get(),
                     CameraChannels.EMPTY);
             boolean operated = false;

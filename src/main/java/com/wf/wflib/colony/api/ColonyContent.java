@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import com.wf.wflib.colony.GlyphidSpawnerBlockEntity;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.world.entity.Entity;
 
 /** Holders registered by {@code ColonySystem}: the glyphid castes, their ordnance, nest blocks. */
 public final class ColonyContent {
@@ -51,7 +52,7 @@ public final class ColonyContent {
         return ResourceLocation.fromNamespaceAndPath(WFLib.MODID, path);
     }
 
-    private static <T extends net.minecraft.world.entity.Entity> DeferredHolder<EntityType<?>, EntityType<T>> entity(String path) {
+    private static <T extends Entity> DeferredHolder<EntityType<?>, EntityType<T>> entity(String path) {
         return DeferredHolder.create(Registries.ENTITY_TYPE, id(path));
     }
 

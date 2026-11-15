@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier;
 
 import com.wf.wflib.soldier.api.SoldierMedical;
+import com.wf.wflib.soldier.api.SoldierRole;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -28,13 +29,13 @@ final class BotSquad {
     static List<String> movers(List<Member> members, int count) {
         return members.stream().filter(Member::available)
                 .sorted(Comparator.comparingLong(Member::lastBound)
-                        .thenComparingInt(m -> com.wf.wflib.soldier.api.SoldierRole.tactics(m.role).movePriority())
+                        .thenComparingInt(m -> SoldierRole.tactics(m.role).movePriority())
                         .thenComparing(Member::name))
                 .limit(count).map(Member::name).toList();
     }
 
     static Vec3 formation(Vec3 objective, Vec3 forward, String role, int index) {
-        double back = com.wf.wflib.soldier.api.SoldierRole.tactics(role).formationBack;
+        double back = SoldierRole.tactics(role).formationBack;
         Vec3 right = new Vec3(-forward.z, 0, forward.x);
         return objective.subtract(forward.scale(back)).add(right.scale(index % 2 == 0 ? -2 : 2));
     }

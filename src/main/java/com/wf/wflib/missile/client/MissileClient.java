@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.client;
 
+import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.missile.MissileFlightAudioPacket;
 import com.wf.wflib.missile.MissileSystem;
 import com.wf.wflib.missile.api.MissileEntity;
@@ -39,10 +40,10 @@ public final class MissileClient {
     }
 
     public static void register(IEventBus modBus) {
-        com.wf.wflib.missile.api.client.SimGhostEntities.KINDS.register(
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "missile"),
+        SimGhostEntities.KINDS.register(
+                ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "missile"),
                 (level, model, exhaust) -> {
-                    var m = new com.wf.wflib.missile.api.MissileEntity(MissileContent.STEALTH_MISSILE.get(), level);
+                    var m = new MissileEntity(MissileContent.STEALTH_MISSILE.get(), level);
                     m.setModelId(model);
                     m.setExhaustColor(exhaust);
                     return m;

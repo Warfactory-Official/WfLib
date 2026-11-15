@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import com.wf.wflib.core.api.WFLib;
+import java.util.function.BiPredicate;
 
 /**
  * Fullscreen events -> {@link WFMaps#tools()}. One subscriber per event for the whole mod: JM keys plugin
@@ -89,7 +90,7 @@ final class JourneyMapTools {
     }
 
     private void dispatch(MapPointer pointer, FullscreenMapEvent event,
-                          java.util.function.BiPredicate<MapTool, MapPointer> handler) {
+                          BiPredicate<MapTool, MapPointer> handler) {
         for (MapTool tool : WFMaps.tools()) {
             if (tool.available() && handler.test(tool, pointer)) {
                 event.cancel();

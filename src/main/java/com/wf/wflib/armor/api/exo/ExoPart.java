@@ -1,5 +1,6 @@
 package com.wf.wflib.armor.api.exo;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -13,7 +14,7 @@ public record ExoPart(String id, int maxHp, Set<ExoFeature> binds, Set<String> l
         if (id.isEmpty() || maxHp <= 0) {
             throw new IllegalArgumentException("exo part " + id + " maxHp " + maxHp);
         }
-        binds = binds.isEmpty() ? Set.of() : java.util.Collections.unmodifiableSet(EnumSet.copyOf(binds));
+        binds = binds.isEmpty() ? Set.of() : Collections.unmodifiableSet(EnumSet.copyOf(binds));
         limbs = Set.copyOf(limbs);
     }
 }

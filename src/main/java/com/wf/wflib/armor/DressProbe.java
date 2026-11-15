@@ -1,5 +1,6 @@
 package com.wf.wflib.armor;
 
+import com.wf.wflib.armor.api.ArmorPreset;
 import com.wf.wflib.armor.api.Dress;
 import com.wf.wflib.probe.api.ProbeAction;
 import com.wf.wflib.probe.api.ProbeActions;
@@ -93,7 +94,7 @@ final class DressProbe {
     }
 
     static void registerClient() {
-        ProbeProviders.addEntities(com.wf.wflib.armor.api.ArmorPreset.rl("dress"), e -> e instanceof Player || e instanceof ArmorStand,
+        ProbeProviders.addEntities(ArmorPreset.rl("dress"), e -> e instanceof Player || e instanceof ArmorStand,
                 (info, ctx, entity) -> {
                     Player self = ctx.player();
                     if (entity instanceof ArmorStand stand) {

@@ -27,6 +27,7 @@ import com.wf.wflib.round.api.ImpactContext;
 import com.wf.wflib.round.api.ImpactEffect;
 import com.wf.wflib.round.api.ImpactEffects;
 import com.wf.wflib.round.api.ImpactTrigger;
+import java.util.List;
 
 /**
  * | id | params | triggers |
@@ -77,8 +78,8 @@ public final class BuiltinEffects {
                 }
 
                 @Override
-                public java.util.List<ResourceLocation> warheads() {
-                    return java.util.List.of(warhead);
+                public List<ResourceLocation> warheads() {
+                    return List.of(warhead);
                 }
 
                 @Override

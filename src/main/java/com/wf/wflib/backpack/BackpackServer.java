@@ -3,6 +3,7 @@ package com.wf.wflib.backpack;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.wf.wflib.backpack.api.BackpackItem;
+import com.wf.wflib.backpack.api.BackpackMenu;
 import com.wf.wflib.backpack.api.Backpacks;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -108,7 +109,7 @@ final class BackpackServer {
             return false;
         }
         int slots = item.spec().slots();
-        viewer.openMenu(new SimpleMenuProvider((id, inv, p) -> new com.wf.wflib.backpack.api.BackpackMenu(id, inv, owner, worn, slots),
+        viewer.openMenu(new SimpleMenuProvider((id, inv, p) -> new BackpackMenu(id, inv, owner, worn, slots),
                 Component.translatable("wflib.backpack.of", owner.getDisplayName(), worn.getHoverName())), buf -> {
             buf.writeVarInt(owner.getId());
             buf.writeVarInt(slots);

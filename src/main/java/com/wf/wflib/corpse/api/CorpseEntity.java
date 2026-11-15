@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import net.minecraft.nbt.DoubleTag;
 
 /**
  * Dead player's body: entries = stack + the slot it was worn in ({@link CorpseSlot}); null kind => loose drop. Body =
@@ -396,7 +397,7 @@ public class CorpseEntity extends LivingEntity {
         if (body != null) {
             ListTag b = new ListTag();
             for (double d : body) {
-                b.add(net.minecraft.nbt.DoubleTag.valueOf(d));
+                b.add(DoubleTag.valueOf(d));
             }
             tag.put("Body", b);
         }

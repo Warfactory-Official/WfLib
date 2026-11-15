@@ -1,5 +1,6 @@
 package com.wf.wflib.ui.api;
 
+import com.wf.wflib.cam.api.client.FeedPass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -23,7 +24,7 @@ public final class ScreenProjection {
     @SubscribeEvent
     static void onStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL
-                || com.wf.wflib.cam.api.client.FeedPass.active()) {
+                || FeedPass.active()) {
             return;
         }
         VIEW_PROJECTION.set(event.getProjectionMatrix()).mul(event.getModelViewMatrix());

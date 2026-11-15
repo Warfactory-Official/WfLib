@@ -19,6 +19,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import com.wf.wflib.probe.ProbeJobPacket;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Channelled probe actions in progress, one per player; see {@link ProbeActions.TimedEntity}. */
 public final class ProbeJobs {
@@ -186,7 +188,7 @@ public final class ProbeJobs {
         if (JOBS.isEmpty()) {
             return;
         }
-        java.util.List<Job> done = new java.util.ArrayList<>();
+        List<Job> done = new ArrayList<>();
         for (Iterator<Job> it = JOBS.values().iterator(); it.hasNext(); ) {
             Job job = it.next();
             Reason reason = job.player.isRemoved() || !job.player.isAlive() ? Reason.TARGET_GONE : job.drift();

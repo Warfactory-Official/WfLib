@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.api;
 
+import com.wf.wflib.recon.api.ReconOwners;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -95,7 +96,7 @@ public class MissileItem extends Item implements ModelledItem {
             MissileEntity missile = preset.build(level, target);
             missile.setControlId(player.getUUID());
             missile.setOperatorId(player.getUUID());
-            missile.setTeamId(com.wf.wflib.recon.api.ReconOwners.owningEntity(player));
+            missile.setTeamId(ReconOwners.owningEntity(player));
             if (preset.isInterceptor()) {
                 Entity locked = InterceptBattery.lockCandidate(level, player.getEyePosition(), player.getLookAngle(),
                         AIM_RANGE, LOCK_CONE, e -> true);

@@ -9,6 +9,8 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 import com.wf.wflib.fx.api.WFDynamicLight;
 import com.wf.wflib.fx.api.WFLights;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.explosion.api.client.BlastDebris;
+import com.wf.wflib.explosion.api.client.Removals;
 
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class FireLightHandler {
@@ -31,8 +33,8 @@ public final class FireLightHandler {
         if (event.getLevel().isClientSide()) {
             WFDynamicLight.clear();
             WFLights.clear();
-            com.wf.wflib.explosion.api.client.Removals.clear();
-            com.wf.wflib.explosion.api.client.BlastDebris.clear();
+            Removals.clear();
+            BlastDebris.clear();
         }
     }
 }

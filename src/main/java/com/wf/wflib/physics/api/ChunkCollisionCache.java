@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
 import com.wf.wflib.physics.collision.DynamicTree;
+import java.util.Comparator;
 
 /**
  * Per-level cache of SectionCollision snapshots; physics asks geometry without touching a live
@@ -409,7 +410,7 @@ public final class ChunkCollisionCache implements SectionSource {
             if (retained > MAX_SECTIONS) {
                 Column[] idle = columns.values().stream()
                         .filter(column -> column.lastUseTick < now)
-                        .sorted(java.util.Comparator.comparingInt(column -> column.lastUseTick))
+                        .sorted(Comparator.comparingInt(column -> column.lastUseTick))
                         .toArray(Column[]::new);
                 for (int i = 0; i < idle.length && retained > MAX_SECTIONS; i++) {
                     columns.values().remove(idle[i]);

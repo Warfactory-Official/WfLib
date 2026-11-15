@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.wf.wflib.core.api.WFLib;
+import java.util.UUID;
 
 /**
  * Client {@link RadioCarrier}s: one {@link RadioEmitter} each while tuned to a catalogued station and the camera is
@@ -50,7 +51,7 @@ public final class RadioClient {
         tune(carrier.getUUID(), station);
     }
 
-    public static void tune(java.util.UUID carrier, String station) {
+    public static void tune(UUID carrier, String station) {
         PacketDistributor.sendToServer(new RadioTunePacket(carrier, station));
     }
 

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
 
 public final class BackpackClient {
     private static final int NODE = 0xFF9ACD60;
@@ -83,7 +84,7 @@ public final class BackpackClient {
         NeoForge.EVENT_BUS.addListener(BackpackPanel::pressed);
         NeoForge.EVENT_BUS.addListener(BackpackPanel::dragged);
         NeoForge.EVENT_BUS.addListener(BackpackPanel::released);
-        if (com.wf.wflib.core.api.WFSystems.enabled("probe")) {
+        if (WFSystems.enabled("probe")) {
             ProbeProviders.addEntityNodes(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "backpack"),
                     entity -> entity instanceof Player p && !Backpacks.worn(p).isEmpty(),
                     BackpackClient::node, ProbeProviders.CAPABILITY_PRIORITY);

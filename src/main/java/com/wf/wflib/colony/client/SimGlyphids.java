@@ -3,6 +3,7 @@ package com.wf.wflib.colony.client;
 import com.wf.wflib.fx.api.FlywheelEffectManager;
 import com.wf.wflib.colony.api.GlyphidCaste;
 import com.wf.wflib.colony.SimGlyphidSyncPacket;
+import java.util.Arrays;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
@@ -105,7 +106,7 @@ public final class SimGlyphids {
                     LevelRenderer.getLightColor(clientLevel, BlockPos.containing(x, y, z)));
         }
 
-        ghosts = i == next.length ? next : java.util.Arrays.copyOf(next, i);
+        ghosts = i == next.length ? next : Arrays.copyOf(next, i);
         sinceUpdate = 0;
         if (ghosts.length > 0) {
             idle = 0;

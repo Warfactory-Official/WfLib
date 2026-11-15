@@ -20,6 +20,8 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.PdaAlert;
+import com.wf.wflib.pda.api.client.PdaAlerts;
 
 /** Operator end of a TV link: which round, mouse -> seeker gimbal ({@link CameraLink}), view mode. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -91,8 +93,8 @@ public final class TvClient {
     private static void lose() {
         CameraLink.close();
         lostTicks = LOST_HOLD;
-        com.wf.wflib.pda.api.client.PdaAlerts.post(net.minecraft.network.chat.Component.translatable(
-                "wflib.pda.alert.tv_lost"), com.wf.wflib.pda.api.PdaAlert.Tier.WARNING);
+        PdaAlerts.post(Component.translatable(
+                "wflib.pda.alert.tv_lost"), PdaAlert.Tier.WARNING);
     }
 
     private static void unlink() {

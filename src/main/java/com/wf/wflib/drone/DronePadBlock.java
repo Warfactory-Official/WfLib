@@ -3,6 +3,7 @@ package com.wf.wflib.drone;
 import com.mojang.serialization.MapCodec;
 import com.wf.wflib.drone.api.DronePadBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
@@ -44,7 +46,7 @@ public class DronePadBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
-                                                                 net.minecraft.world.level.block.entity.BlockEntityType<T> type) {
+                                                                 BlockEntityType<T> type) {
         return level.isClientSide ? null
                 : createTickerHelper(type, DroneSystem.DRONE_PAD_BE.get(), DronePadBlockEntity::serverTick);
     }
@@ -68,7 +70,7 @@ public class DronePadBlock extends BaseEntityBlock {
         super.onPlace(state, level, pos, oldState, moved);
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof DronePadBlockEntity pad) {
             pad.initPowered(level.hasNeighborSignal(pos));
-            if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            if (level instanceof ServerLevel serverLevel) {
                 pad.stationCode(serverLevel);
             }
         }

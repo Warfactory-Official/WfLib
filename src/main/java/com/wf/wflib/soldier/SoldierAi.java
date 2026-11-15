@@ -44,9 +44,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
+import net.minecraft.core.particles.ParticleTypes;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 /**
  * Squad AI for scripted players (server thread): Carpet fakes in a filming world, and {@link SoldierPlayer}s from the
@@ -112,7 +118,7 @@ public final class SoldierAi {
         int smokes, pushes;
         ResourceLocation fragItem, smokeItem;
         /** A route search running on a worker, and what it is for. */
-        java.util.concurrent.Future<List<Vec3>> pendingRoute;
+        Future<List<Vec3>> pendingRoute;
         BlockPos pendingGoal;
         String planFor = "";
         long planAt = -1000;
@@ -340,7 +346,7 @@ public final class SoldierAi {
         Mode mode = a.has("mode") ? Mode.valueOf(a.get("mode").getAsString().toUpperCase(Locale.ROOT)) : Mode.ADVANCE;
         var members = BOTS.values().stream().filter(b -> !b.soldier && b.team.equals(team) && (group == null || b.squad.equals(group))).toList();
         if (members.isEmpty()) throw new IllegalArgumentException("No matching scripted squad");
-        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         Vec3 center = Vec3.ZERO;
         int count = 0;
         for (Bot b : members) {
@@ -364,7 +370,7 @@ public final class SoldierAi {
 
     /** Drops the filming bots' orders; spawn-egg soldiers keep theirs. */
     public static String clear() {
-        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         int n = 0;
         for (var it = BOTS.values().iterator(); it.hasNext(); ) {
             Bot b = it.next();
@@ -448,7 +454,7 @@ public final class SoldierAi {
             o.addProperty("cover", b.cover.cell().toShortString());
             o.addProperty("peek_lean", b.cover.peek().lean());
         }
-        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         ServerPlayer p = server == null ? null : server.getPlayerList().getPlayerByName(b.name);
         if (p != null) {
             JsonObject supplies = new JsonObject();
@@ -551,7 +557,7 @@ public final class SoldierAi {
         if (b.dead++ == 0) {
             b.deaths++;
             if (b.lastSeenAt != null) {    // Carpet removes the dead fake at once: mark where the body went
-                server.overworld().sendParticles(net.minecraft.core.particles.ParticleTypes.POOF, b.lastSeenAt.x,
+                server.overworld().sendParticles(ParticleTypes.POOF, b.lastSeenAt.x,
                         b.lastSeenAt.y + 0.4, b.lastSeenAt.z, 12, 0.3, 0.3, 0.3, 0.02);
             }
         }
@@ -788,7 +794,7 @@ public final class SoldierAi {
         Vec3 goal = b.medicalRetreat && !b.threats.isEmpty() || b.path.isEmpty() ? goal(server, p, b, now) : b.path.peek();
         SoldierProfiler.end("goal", t0);
         while (!b.path.isEmpty() && at(p, b.path.peek(), 0.45)) b.path.poll();
-        if (!java.util.Objects.equals(b.peekingCover, b.cover)) {
+        if (!Objects.equals(b.peekingCover, b.cover)) {
             b.peekingCover = b.cover;
             b.peek.reset(now);
         }
@@ -1554,7 +1560,7 @@ public final class SoldierAi {
             List<Vec3> found = job.get();
             b.route.clear();
             b.route.addAll(found);
-        } catch (java.util.concurrent.CancellationException | java.util.concurrent.ExecutionException | InterruptedException e) {
+        } catch (CancellationException | ExecutionException | InterruptedException e) {
             b.route.clear();
         }
     }
@@ -1846,7 +1852,7 @@ public final class SoldierAi {
     }
 
     /** Who saw whom this tick (the same pair is asked about several times a tick): cleared on the next tick. */
-    private static final java.util.Map<Long, Vec3> SEEN = new java.util.HashMap<>();
+    private static final Map<Long, Vec3> SEEN = new HashMap<>();
     private static final Vec3 NOT_SEEN = new Vec3(Double.NaN, 0, 0);
     private static long seenTick = Long.MIN_VALUE;
 

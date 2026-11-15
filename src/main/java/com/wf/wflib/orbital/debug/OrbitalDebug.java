@@ -9,12 +9,15 @@ import com.wf.wflib.orbital.api.OrbitElements;
 import com.wf.wflib.orbital.OrbitalConfig;
 import com.wf.wflib.orbital.api.OrbitalNet;
 import com.wf.wflib.orbital.OrbitalSelfTest;
+import com.wf.wflib.orbital.SurveyOpenPacket;
 import com.wf.wflib.orbital.api.SatHandle;
 import com.wf.wflib.orbital.api.SatPayloads;
 import com.wf.wflib.orbital.api.SatSpec;
 import com.wf.wflib.orbital.api.SatVerb;
 import com.wf.wflib.orbital.api.SatView;
+import com.wf.wflib.orbital.api.SurveyTile;
 import com.wf.wflib.orbital.api.TrackedObject;
+import com.wf.wflib.orbital.survey.SurveyRasterData;
 import com.wf.wflib.recon.api.ReconNet;
 import com.wf.wflib.recon.api.HubIndex;
 import net.minecraft.ChatFormatting;
@@ -34,6 +37,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import com.wf.wflib.recon.api.ReconContent;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class OrbitalDebug {
 
@@ -269,16 +274,16 @@ public final class OrbitalDebug {
             return 0;
         }
         long now = level.getGameTime();
-        List<com.wf.wflib.orbital.api.SurveyTile> tiles =
-                com.wf.wflib.orbital.survey.SurveyRasterData.get(level).tiles(hub.netId());
+        List<SurveyTile> tiles =
+                SurveyRasterData.get(level).tiles(hub.netId());
         source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                         "net %s survey: %d tile(s) of %d x %d blocks",
                         Long.toHexString(hub.netId()), tiles.size(),
-                        com.wf.wflib.orbital.api.SurveyTile.BLOCKS,
-                        com.wf.wflib.orbital.api.SurveyTile.BLOCKS))
+                        SurveyTile.BLOCKS,
+                        SurveyTile.BLOCKS))
                 .withStyle(ChatFormatting.GOLD), false);
-        int pixels = com.wf.wflib.orbital.api.SurveyTile.PIXELS;
-        for (com.wf.wflib.orbital.api.SurveyTile tile : tiles) {
+        int pixels = SurveyTile.PIXELS;
+        for (SurveyTile tile : tiles) {
             source.sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
                     "  tile %d,%d  %3d%% imaged  %ds old",
                     tile.tileX(), tile.tileZ(), tile.imaged() * 100 / (pixels * pixels),
@@ -289,9 +294,9 @@ public final class OrbitalDebug {
                             "  nothing imaged: put an imagery payload up and park it over something")
                     .withStyle(ChatFormatting.DARK_GRAY), false);
         }
-        if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
-                    new com.wf.wflib.orbital.SurveyOpenPacket(hub.netId(),
+        if (source.getEntity() instanceof ServerPlayer player) {
+            PacketDistributor.sendToPlayer(player,
+                    new SurveyOpenPacket(hub.netId(),
                             Mth.floor(source.getPosition().x), Mth.floor(source.getPosition().z)));
         }
         return tiles.size();

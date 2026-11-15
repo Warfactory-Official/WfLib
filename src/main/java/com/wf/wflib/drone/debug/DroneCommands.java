@@ -31,6 +31,7 @@ import com.wf.wflib.missile.api.WFTelemetryService;
 import com.wf.wflib.missile.api.WFTelemetry;
 import com.wf.wflib.drone.api.DroneSelfTest;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.wf.wflib.drone.api.DroneAiScheduler;
 import com.wf.wflib.drone.api.DroneSnapshot;
 import com.wf.wflib.drone.api.SquadView;
@@ -754,7 +755,7 @@ public final class DroneCommands {
     }
 
     /** Suggests the mines built to be dispensed, first and by themselves. */
-    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> SOWN_MINES =
+    private static final SuggestionProvider<CommandSourceStack> SOWN_MINES =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
                     MinePresets.sown().stream().map(preset -> preset.id().getPath()), builder);
 
@@ -830,7 +831,7 @@ public final class DroneCommands {
     }
 
     private static String load(boolean hasCrate, @Nullable ResourceLocation payloadId,
-                               @Nullable com.wf.wflib.drone.api.MineLoad mines) {
+                               @Nullable MineLoad mines) {
         if (payloadId != null) {
             return "armed:" + payloadId.getPath();
         }

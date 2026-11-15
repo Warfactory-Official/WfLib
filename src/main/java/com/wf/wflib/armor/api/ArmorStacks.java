@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.armor.ArmorComponents;
+import java.util.Arrays;
 
 /**
  * The one place that knows how a stack stores its condition, and the only place allowed to change it.
@@ -208,6 +209,6 @@ public final class ArmorStacks {
             }
         }
         return new WornArmor(slot, garment, inserts, layers,
-                java.util.Arrays.copyOf(owners, layers.size()));
+                Arrays.copyOf(owners, layers.size()));
     }
 }

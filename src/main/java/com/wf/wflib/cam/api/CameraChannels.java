@@ -2,6 +2,7 @@ package com.wf.wflib.cam.api;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.wf.wflib.cam.CamConfig;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -21,7 +22,7 @@ public record CameraChannels(List<FeedTarget> targets, int selected) {
 
     /** Cameras one panel may have bound ({@code wflib-cam.toml}). */
     public static int maxBound() {
-        return com.wf.wflib.cam.CamConfig.get().maxBound();
+        return CamConfig.get().maxBound();
     }
 
     public static final Codec<CameraChannels> CODEC = RecordCodecBuilder.create(i -> i.group(

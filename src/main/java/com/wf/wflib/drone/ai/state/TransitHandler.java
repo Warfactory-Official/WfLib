@@ -6,6 +6,8 @@ import com.wf.wflib.drone.api.DroneSnapshot;
 import com.wf.wflib.drone.api.DroneStateHandler;
 import com.wf.wflib.drone.api.SquadView;
 import com.wf.wflib.drone.ai.Steering;
+import com.wf.wflib.drone.api.MineLoad;
+import java.util.List;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,7 +51,7 @@ public final class TransitHandler implements DroneStateHandler {
 
     /** How far short of the lay point a minelayer breaks off cruise. */
     private static double minelayRunIn(DroneSnapshot self) {
-        com.wf.wflib.drone.api.MineLoad rack = self.mines();
+        MineLoad rack = self.mines();
         double halfLane = rack == null ? 0.0 : rack.laneLength() * 0.5;
         return Math.max(Tuning.PAYLOAD_RUN_IN, halfLane + LANE_ENTRY_MARGIN);
     }
@@ -58,7 +60,7 @@ public final class TransitHandler implements DroneStateHandler {
     private static final double LANE_ENTRY_MARGIN = 48.0;
 
     @Override
-    public void act(DroneSnapshot self, SquadView squad, java.util.List<DroneAction> out) {
+    public void act(DroneSnapshot self, SquadView squad, List<DroneAction> out) {
         if (self.onLeg() && self.horizontalDistanceTo(self.leg()) <= Tuning.LEG_ARRIVAL_RADIUS) {
             out.add(new DroneAction.AdvanceLeg());
             return;

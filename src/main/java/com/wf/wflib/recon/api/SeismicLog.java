@@ -5,6 +5,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,7 +73,7 @@ public final class SeismicLog {
      */
     public List<SeismicFix> recent() {
         List<SeismicFix> out = new ArrayList<>(entries.values());
-        java.util.Collections.reverse(out);
+        Collections.reverse(out);
         return out;
     }
 

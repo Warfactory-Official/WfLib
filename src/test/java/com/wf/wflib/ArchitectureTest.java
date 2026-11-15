@@ -10,17 +10,27 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
+import com.wf.wflib.core.api.OrderedRegistry;
+import com.wf.wflib.core.api.WFRegistry;
+import com.wf.wflib.core.api.WFSystem;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.neoforged.fml.common.EventBusSubscriber;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -117,7 +127,7 @@ class ArchitectureTest {
 
     @ArchTest
     static final ArchRule SYSTEM_ENTRIES_LOAD_ON_A_BARE_SERVER = noClasses()
-            .that().implement(com.wf.wflib.core.api.WFSystem.class)
+            .that().implement(WFSystem.class)
             .should().dependOnClassesThat().resideInAnyPackage(CLIENT_OR_OPTIONAL)
             .allowEmptyShould(true);
 
@@ -132,12 +142,12 @@ class ArchitectureTest {
                     return sys != null && !s.mandatory.contains(sys);
                 }
             })
-            .should().notBeAnnotatedWith(net.neoforged.fml.common.EventBusSubscriber.class)
+            .should().notBeAnnotatedWith(EventBusSubscriber.class)
             .allowEmptyShould(true);
 
     /** R5: shared mutable state goes through a Hook, a registry or an accessor. */
     @ArchTest
-    static final ArchRule NO_PUBLIC_STATIC_NON_FINAL_FIELDS = com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields()
+    static final ArchRule NO_PUBLIC_STATIC_NON_FINAL_FIELDS = ArchRuleDefinition.fields()
             .that().arePublic().and().areStatic().and().areNotFinal()
             .should().bePrivate()
             .allowEmptyShould(true);
@@ -146,25 +156,25 @@ class ArchitectureTest {
     @ArchTest
     static final ArchRule REGISTRY_NAME_IS_RESERVED = noClasses()
             .that().haveSimpleNameEndingWith("Registry")
-            .and().doNotHaveFullyQualifiedName(com.wf.wflib.core.api.WFRegistry.class.getName())
-            .and().doNotHaveFullyQualifiedName(com.wf.wflib.core.api.OrderedRegistry.class.getName())
+            .and().doNotHaveFullyQualifiedName(WFRegistry.class.getName())
+            .and().doNotHaveFullyQualifiedName(OrderedRegistry.class.getName())
             .should().bePublic()
             .allowEmptyShould(true);
 
     /** A mandatory system's {@code requires()} names mandatory systems only; else the target is silently mandatory. */
-    @org.junit.jupiter.api.Test
+    @Test
     void mandatorySystemsRequireOnlyMandatorySystems() {
         Systems s = Systems.INSTANCE;
         for (String sys : s.mandatory) {
             for (String need : s.requires.getOrDefault(sys, Set.of())) {
-                org.junit.jupiter.api.Assertions.assertTrue(s.mandatory.contains(need),
+                Assertions.assertTrue(s.mandatory.contains(need),
                         "mandatory '" + sys + "' requires switchable '" + need + "'");
             }
         }
     }
 
     /** A mutual {@code requires()} pair among switchable systems is one switch: merge or invert. */
-    @org.junit.jupiter.api.Test
+    @Test
     void switchableRequiresAreAcyclic() {
         Systems s = Systems.INSTANCE;
         for (String root : s.ids) {
@@ -172,20 +182,20 @@ class ArchitectureTest {
                 continue;
             }
             Set<String> seen = new HashSet<>();
-            java.util.ArrayDeque<String> work = new java.util.ArrayDeque<>(s.requires.getOrDefault(root, Set.of()));
+            ArrayDeque<String> work = new ArrayDeque<>(s.requires.getOrDefault(root, Set.of()));
             while (!work.isEmpty()) {
                 String next = work.poll();
                 if (s.mandatory.contains(next) || !seen.add(next)) {
                     continue;
                 }
-                org.junit.jupiter.api.Assertions.assertNotEquals(root, next, "requires() cycle through " + root);
+                Assertions.assertNotEquals(root, next, "requires() cycle through " + root);
                 work.addAll(s.requires.getOrDefault(next, Set.of()));
             }
         }
     }
 
     /** Every {@link #GUARDED} entry has a live {@code WFSystems.enabled("<target>")} call in the guarding system. */
-    @org.junit.jupiter.api.Test
+    @Test
     void guardedEdgesHaveALiveGuard() throws IOException {
         for (Map.Entry<String, Set<String>> entry : GUARDED.entrySet()) {
             Path dir = Path.of("src/main/java/com/wf/wflib", entry.getKey());
@@ -197,7 +207,7 @@ class ArchitectureTest {
             }
             for (String target : entry.getValue()) {
                 String guard = Character.toUpperCase(target.charAt(0)) + target.substring(1) + "System.active()";
-                org.junit.jupiter.api.Assertions.assertTrue(
+                Assertions.assertTrue(
                         text.toString().contains("enabled(\"" + target + "\")")
                                 || text.toString().contains("enabled(\"wflib:" + target + "\")")
                                 || text.toString().contains(guard),
@@ -207,11 +217,11 @@ class ArchitectureTest {
     }
 
     /** R9: no shipped text names a dependent mod. */
-    @org.junit.jupiter.api.Test
+    @Test
     void sourcesNameNoDependent() throws IOException {
         Pattern names = Pattern.compile("combinedassault|mineassault|wfmedical|wfcore|ywzj|"
                 + "\\b(CombinedAssault|MineAssault|WFMedical)\\b", Pattern.CASE_INSENSITIVE);
-        java.util.List<String> hits = new java.util.ArrayList<>();
+        List<String> hits = new ArrayList<>();
         for (String root : new String[] {"src/main/java", "src/test/java", "src/main/resources"}) {
             try (var files = Files.walk(Path.of(root))) {
                 for (Path f : (Iterable<Path>) files.filter(Files::isRegularFile)::iterator) {
@@ -231,7 +241,7 @@ class ArchitectureTest {
                 }
             }
         }
-        org.junit.jupiter.api.Assertions.assertTrue(hits.isEmpty(), "names a dependent: " + hits);
+        Assertions.assertTrue(hits.isEmpty(), "names a dependent: " + hits);
     }
 
     /** K-b: {@code <Sys>System.active()} is the guard a hot path reads instead of {@code WFSystems.enabled}. */

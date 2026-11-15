@@ -1,5 +1,6 @@
 package com.wf.wflib.round.api;
 
+import java.util.Arrays;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -92,7 +93,7 @@ public final class BlockPen {
                 raw[m++] = raw[k + 1];
             }
         }
-        return java.util.Arrays.copyOf(raw, m);
+        return Arrays.copyOf(raw, m);
     }
 
     /** Slab entry along one axis; parallel => -inf inside (+-1e-7), +inf outside. */

@@ -1,5 +1,6 @@
 package com.wf.wflib.view.api;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
@@ -46,7 +47,7 @@ public record ObjModelJson(ResourceLocation obj, ResourceLocation texture) {
 
         JsonObject textures = json.getAsJsonObject("textures");
         String chosen = null;
-        for (Map.Entry<String, com.google.gson.JsonElement> entry : textures.entrySet()) {
+        for (Map.Entry<String, JsonElement> entry : textures.entrySet()) {
             if (!"particle".equals(entry.getKey())) {
                 chosen = entry.getValue()
                         .getAsString();

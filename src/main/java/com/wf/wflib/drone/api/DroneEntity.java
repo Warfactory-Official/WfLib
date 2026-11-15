@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.build.api.BuildPilot;
 import com.wf.wflib.stream.api.DetachedAnchors;
 import com.wf.wflib.stream.api.DetachedBodyHost;
 import com.wf.wflib.missile.api.WFLibAPI;
@@ -11,6 +12,7 @@ import com.wf.wflib.missile.api.MissileAttitudes;
 import com.wf.wflib.missile.api.MissileChunkLoader;
 import com.wf.wflib.cam.api.CameraSpec;
 import com.wf.wflib.cam.api.Datalink;
+import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.drone.flight.Contacts;
 import com.wf.wflib.missile.api.InterceptTarget;
 import com.wf.wflib.geom.api.OBBEntity;
@@ -49,6 +51,10 @@ import com.wf.wflib.drone.DroneSystem;
 import com.wf.wflib.geom.api.flight.Airframe;
 import com.wf.wflib.geom.api.flight.FlightAttitude;
 import com.wf.wflib.geom.api.flight.Multirotor;
+import com.wf.wflib.recon.api.Telemetry;
+import com.wf.wflib.recon.api.TelemetryKind;
+import com.wf.wflib.recon.api.TelemetryLog;
+import com.wf.wflib.work.api.WorkData;
 
 /** An autonomous rotor drone. */
 public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, ControllableDrone, DetachedBodyHost {
@@ -176,8 +182,8 @@ public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, C
 
         this.damage.tick(serverLevel);
 
-        if (this.orders.assignment() != null && com.wf.wflib.core.api.WFSystems.enabled("build")) {
-            com.wf.wflib.build.api.BuildPilot.advance(serverLevel, this);
+        if (this.orders.assignment() != null && WFSystems.enabled("build")) {
+            BuildPilot.advance(serverLevel, this);
         }
 
         LivingEntity pilot = this.pilot();
@@ -514,13 +520,13 @@ public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, C
             }
             case DroneAction.Retarget retarget -> this.route.setDestination(retarget.destination());
             case DroneAction.FinishWork work -> {
-                if (com.wf.wflib.core.api.WFSystems.enabled("build")) {
-                    com.wf.wflib.build.api.BuildPilot.finish(level, this, work.at());
+                if (WFSystems.enabled("build")) {
+                    BuildPilot.finish(level, this, work.at());
                 }
             }
             case DroneAction.ExchangeSupplies ignored -> {
-                if (com.wf.wflib.core.api.WFSystems.enabled("build")) {
-                    com.wf.wflib.build.api.BuildPilot.exchange(level, this);
+                if (WFSystems.enabled("build")) {
+                    BuildPilot.exchange(level, this);
                 }
             }
             case DroneAction.Log log -> this.recordEvent(log.type(), log.detail());
@@ -578,9 +584,9 @@ public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, C
      */
     @Override
     @Nullable
-    public com.wf.wflib.recon.api.Telemetry datalink() {
-        return this.orders.isClassified() ? null : new com.wf.wflib.recon.api.Telemetry(
-                com.wf.wflib.recon.api.TelemetryKind.DRONE, this.callsign(), this.teamId, this.operatorId);
+    public Telemetry datalink() {
+        return this.orders.isClassified() ? null : new Telemetry(
+                TelemetryKind.DRONE, this.callsign(), this.teamId, this.operatorId);
     }
 
     @Override
@@ -767,7 +773,7 @@ public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, C
         }
         WFTelemetryService.record(this.telemetry, this.getUUID(), type, this.level().getGameTime(),
                 this.position(), false, detail);
-        com.wf.wflib.recon.api.TelemetryLog.post(this, type, detail);
+        TelemetryLog.post(this, type, detail);
     }
 
     @Override
@@ -885,7 +891,7 @@ public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, C
         if (this.level() instanceof ServerLevel serverLevel) {
             this.chunkLoader.releaseAll(this, serverLevel);
             if (this.orders.assignment() != null && !this.leavingWorld) {
-                com.wf.wflib.work.api.WorkData.get(serverLevel).abandonAll(this.getUUID());
+                WorkData.get(serverLevel).abandonAll(this.getUUID());
             }
         }
         super.remove(reason);

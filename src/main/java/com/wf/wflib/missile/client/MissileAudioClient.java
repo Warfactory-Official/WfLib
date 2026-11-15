@@ -11,12 +11,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import com.wf.wflib.core.api.WFLib;
+import java.util.HashMap;
 
 
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
 public final class MissileAudioClient {
 
-    private static final Map<UUID, RemoteMissileFlightSound> ACTIVE = new java.util.HashMap<>();
+    private static final Map<UUID, RemoteMissileFlightSound> ACTIVE = new HashMap<>();
 
     private MissileAudioClient() {
     }

@@ -72,7 +72,7 @@ public final class Smoking {
         }
         long tick = player.level().getGameTime() - s.start();
         if (tick >= SmokingTimeline.TICKS) {
-            NeoForge.EVENT_BUS.post(new com.wf.wflib.smoking.api.event.CigaretteSmokedEvent(player, stack.copy()));
+            NeoForge.EVENT_BUS.post(new CigaretteSmokedEvent(player, stack.copy()));
             if (!player.hasInfiniteMaterials()) {
                 stack.shrink(1);
             }

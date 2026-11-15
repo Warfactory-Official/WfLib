@@ -35,6 +35,7 @@ import com.wf.wflib.ui.api.UiSurfaces;
 import com.wf.wflib.ui.api.Widget;
 import com.wf.wflib.ui.api.WidgetDef;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.client.DebugGate;
 
 import static com.wf.wflib.ui.api.Ui.*;
 
@@ -58,7 +59,7 @@ public final class UiDebug {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
-        return Commands.literal("wfui").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed())
+        return Commands.literal("wfui").requires(s -> DebugGate.allowed())
                 .then(Commands.literal("demo").executes(ctx -> {
                     shown = !shown;
                     ctx.getSource().sendSuccess(() -> Component.literal("wfui demo " + (shown ? "on" : "off")), false);

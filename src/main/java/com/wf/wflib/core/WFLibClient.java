@@ -16,6 +16,7 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import com.wf.wflib.mist.api.WFFluids;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
 
 
 @Mod(value = WFLib.MODID, dist = Dist.CLIENT)
@@ -24,7 +25,7 @@ public class WFLibClient {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public WFLibClient(IEventBus modEventBus) {
-        com.wf.wflib.core.api.WFSystems.startClient(WFLib.MODID, modEventBus);
+        WFSystems.startClient(WFLib.MODID, modEventBus);
     }
 
     @SubscribeEvent

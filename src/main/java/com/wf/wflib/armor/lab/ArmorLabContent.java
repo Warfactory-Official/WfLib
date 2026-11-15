@@ -2,6 +2,7 @@ package com.wf.wflib.armor.lab;
 
 import com.wf.wflib.armor.ArmorCatalogue;
 import com.wf.wflib.labs.api.LabContent;
+import net.minecraft.resources.ResourceLocation;
 
 public final class ArmorLabContent implements LabContent {
     @Override
@@ -11,6 +12,6 @@ public final class ArmorLabContent implements LabContent {
 
     @Override
     public boolean dev(String contentId) {
-        return contentId.indexOf(':') > 0 && ArmorCatalogue.isDev(net.minecraft.resources.ResourceLocation.parse(contentId));
+        return contentId.indexOf(':') > 0 && ArmorCatalogue.isDev(ResourceLocation.parse(contentId));
     }
 }

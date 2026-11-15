@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Gate for every audio file entering the PDA player (server scan, served chunk set, local scan, playback): pure
@@ -242,7 +243,7 @@ public final class OggAudio {
                     }
                 }
                 if (eq > 0) {
-                    String key = new String(p, at, eq, StandardCharsets.US_ASCII).toUpperCase(java.util.Locale.ROOT);
+                    String key = new String(p, at, eq, StandardCharsets.US_ASCII).toUpperCase(Locale.ROOT);
                     int valueAt = at + eq + 1;
                     int valueLen = len - eq - 1;
                     switch (key) {
@@ -387,7 +388,7 @@ public final class OggAudio {
                 || name.contains("//")) {
             return false;
         }
-        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        String lower = name.toLowerCase(Locale.ROOT);
         if (!(lower.endsWith(".ogg") || lower.endsWith(".opus") || lower.endsWith(".oga"))) {
             return false;
         }

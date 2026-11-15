@@ -30,6 +30,10 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 
 /** Real blocks + the real rig; the solver's own behaviour is {@code RagdollTest}. Lanes kept apart, high up. */
 @PrefixGameTestTemplate(false)
@@ -164,13 +168,13 @@ public class RagdollGameTest {
                 .thenExecute(() -> {
                     // Posted by hand: a FakePlayer is invulnerable, so die() would never reach the event.
                     double[] seen = {Double.NaN};
-                    var bus = net.neoforged.neoforge.common.NeoForge.EVENT_BUS;
-                    java.util.function.Consumer<net.neoforged.neoforge.event.entity.living.LivingDeathEvent> read =
+                    var bus = NeoForge.EVENT_BUS;
+                    Consumer<LivingDeathEvent> read =
                             e -> seen[0] = e.getEntity().getY();
                     // Corpse reads the position at LOWEST, after this mod's HIGHEST lift.
-                    bus.addListener(net.neoforged.bus.api.EventPriority.LOWEST, true,
-                            net.neoforged.neoforge.event.entity.living.LivingDeathEvent.class, read);
-                    bus.post(new net.neoforged.neoforge.event.entity.living.LivingDeathEvent(p[0], p[0].damageSources().genericKill()));
+                    bus.addListener(EventPriority.LOWEST, true,
+                            LivingDeathEvent.class, read);
+                    bus.post(new LivingDeathEvent(p[0], p[0].damageSources().genericKill()));
                     helper.assertTrue(seen[0] >= Y + 1 - 1.0e-6, "died inside the floor at y " + seen[0]);
                     ForcedChunks.set(level, lane, false);
                 })

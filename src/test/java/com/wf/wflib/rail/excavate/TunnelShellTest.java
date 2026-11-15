@@ -1,5 +1,6 @@
 package com.wf.wflib.rail.excavate;
 
+import java.util.List;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -116,7 +117,7 @@ class TunnelShellTest {
         return new CarveVolume() {
             @Override
             public BoundingBox bounds() {
-                return BoundingBox.encapsulatingBoxes(java.util.List.of(a.bounds(), b.bounds())).orElseThrow();
+                return BoundingBox.encapsulatingBoxes(List.of(a.bounds(), b.bounds())).orElseThrow();
             }
 
             @Override

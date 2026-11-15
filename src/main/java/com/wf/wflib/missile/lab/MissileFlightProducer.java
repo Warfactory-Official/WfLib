@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.lab;
 
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.labs.api.LabContext;
 import com.wf.wflib.labs.api.LabProducer;
 import com.wf.wflib.labs.api.LabSink;
@@ -8,6 +9,7 @@ import com.wf.wflib.missile.api.IMissileListener;
 import com.wf.wflib.missile.api.MissileEntity;
 import com.wf.wflib.missile.api.MissileListenerData;
 import com.wf.wflib.missile.api.MissilePreset;
+import java.nio.charset.StandardCharsets;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -155,7 +157,7 @@ public final class MissileFlightProducer implements LabProducer {
             target = new Vec3(o.getX() + 0.5 + range, ground, o.getZ() + 0.5);
             Vec3 launch = new Vec3(o.getX() + 0.5, ground + 2.0, o.getZ() + 0.5);
             center = launch.lerp(target, 0.5);
-            listenerKey = UUID.nameUUIDFromBytes(("wflabs-listener-" + seed).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            listenerKey = UUID.nameUUIDFromBytes(("wflabs-listener-" + seed).getBytes(StandardCharsets.UTF_8));
             MissileListenerData.get(level).register(listenerKey, this);
             MissileEntity m = MissileProbe.build(level, preset, target, launch, null, seed);
             probe = new MissileProbe(m, level.getGameTime());
@@ -172,7 +174,7 @@ public final class MissileFlightProducer implements LabProducer {
         public void finish(ServerLevel level, boolean timedOut) {
             probe.finish(timedOut);
             if (trace) {
-                com.mojang.logging.LogUtils.getLogger().info("[labs-trace] {} r={} seed={} events={}", preset.id(), range, seed,
+                LogUtils.getLogger().info("[labs-trace] {} r={} seed={} events={}", preset.id(), range, seed,
                         probe.trace());
             }
             MissileListenerData.get(level).deregister(listenerKey);

@@ -1,17 +1,29 @@
 package com.wf.wflib.soldier;
 
+import com.mojang.serialization.Codec;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLib;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotResult;
 
 /**
  * The headlamp: a Curios {@code head} item soldiers wear, and the only source of a soldier's light. Without Curios
@@ -25,20 +37,20 @@ public final class Headlamp {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Boolean>> LIT = DeferredHolder.create(
             Registries.DATA_COMPONENT_TYPE, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "headlamp_on"));
     /** Players whose lamp the server last told clients is on. */
-    private static final java.util.Set<java.util.UUID> SHINING = new java.util.HashSet<>();
+    private static final Set<UUID> SHINING = new HashSet<>();
 
     private Headlamp() {}
 
     static void register(IEventBus modBus) {
         DeferredRegister<DataComponentType<?>> components = DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, WFLib.MODID);
         components.register("headlamp_on", () -> DataComponentType.<Boolean>builder()
-                .persistent(com.mojang.serialization.Codec.BOOL).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.BOOL).build());
+                .persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL).build());
         components.register(modBus);
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post.class, Headlamp::tick);
+        NeoForge.EVENT_BUS.addListener(PlayerTickEvent.Post.class, Headlamp::tick);
         DeferredRegister<Item> items = DeferredRegister.create(Registries.ITEM, WFLib.MODID);
         items.register("headlamp", () -> new Item(new Item.Properties().stacksTo(1)));
         items.register(modBus);
-        com.wf.wflib.core.api.CreativeTabs.contribute("soldier", 460, out -> out.accept(ITEM.get()));
+        CreativeTabs.contribute("soldier", 460, out -> out.accept(ITEM.get()));
     }
 
     /** Whether the soldier has a lamp on its head to light. */
@@ -67,8 +79,8 @@ public final class Headlamp {
         if (lamp.isEmpty()) return false;
         boolean now = !lamp.getOrDefault(LIT.get(), false);
         lamp.set(LIT.get(), now);
-        p.level().playSound(null, p.getX(), p.getEyeY(), p.getZ(), net.minecraft.sounds.SoundEvents.LEVER_CLICK,
-                net.minecraft.sounds.SoundSource.PLAYERS, 0.4F, now ? 1.6F : 1.2F);
+        p.level().playSound(null, p.getX(), p.getEyeY(), p.getZ(), SoundEvents.LEVER_CLICK,
+                SoundSource.PLAYERS, 0.4F, now ? 1.6F : 1.2F);
         shine(p, now);
         return true;
     }
@@ -86,7 +98,7 @@ public final class Headlamp {
     }
 
     /** Keeps nearby clients told while a player's lamp is on (they let it lapse), and tells them when it goes off. */
-    static void tick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
+    static void tick(PlayerTickEvent.Post e) {
         if (!(e.getEntity() instanceof ServerPlayer p) || p.tickCount % 10 != 0) return;
         // Every soldier carries its lamp: issue one to any that lost or never got it (a respawn, a reload).
         if (SoldierAi.scripted(p)) {
@@ -110,32 +122,32 @@ public final class Headlamp {
     private static final class Curios {
         static boolean has(Player p) {
             // No head slot at all (a pack removed it): nothing to wear a lamp on, so it counts as carried.
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
+            return CuriosApi.getCuriosInventory(p)
                     .map(inventory -> inventory.getStacksHandler("head").isEmpty()
                             || inventory.findFirstCurio(stack -> stack.is(ITEM.get())).isPresent())
                     .orElse(true);
         }
 
         static ItemStack stack(Player p) {
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
+            return CuriosApi.getCuriosInventory(p)
                     .flatMap(inventory -> inventory.findFirstCurio(stack -> stack.is(ITEM.get())))
-                    .map(top.theillusivec4.curios.api.SlotResult::stack).orElse(ItemStack.EMPTY);
+                    .map(SlotResult::stack).orElse(ItemStack.EMPTY);
         }
 
         static boolean wearing(Player p) {
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
+            return CuriosApi.getCuriosInventory(p)
                     .map(inventory -> inventory.findFirstCurio(stack -> stack.is(ITEM.get())).isPresent()).orElse(false);
         }
 
         static String describe(Player p) {
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p)
+            return CuriosApi.getCuriosInventory(p)
                     .map(inventory -> "slots " + inventory.getCurios().keySet() + ", head "
                             + inventory.getStacksHandler("head").map(h -> h.getSlots() + " slot(s), holding " + h.getStacks().getStackInSlot(0)).orElse("none"))
                     .orElse("no curios inventory");
         }
 
         static void give(Player p, ItemStack lamp) {
-            top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(p).flatMap(inventory -> inventory.getStacksHandler("head"))
+            CuriosApi.getCuriosInventory(p).flatMap(inventory -> inventory.getStacksHandler("head"))
                     .ifPresent(head -> head.getStacks().setStackInSlot(0, lamp));
         }
     }

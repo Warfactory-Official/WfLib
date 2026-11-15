@@ -1,10 +1,12 @@
 package com.wf.wflib.core.api;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Single-slot override; a second {@link #set}, or one after {@link #freezeAll}, throws. */
 public final class Hook<T> {
-    private static final java.util.List<Hook<?>> ALL = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static final List<Hook<?>> ALL = new CopyOnWriteArrayList<>();
 
     private final String name;
     private final T fallback;

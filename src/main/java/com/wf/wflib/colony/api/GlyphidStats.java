@@ -1,5 +1,6 @@
 package com.wf.wflib.colony.api;
 
+import com.wf.wflib.colony.ColonyConfig;
 import net.minecraft.world.damagesource.DamageSource;
 
 /** The per-caste numbers: health, speed, damage, and how much of a hit the chitin turns away. */
@@ -19,7 +20,7 @@ public abstract class GlyphidStats {
      * @return the multiplier every caste's speed is scaled by, on top of {@link #MOVEMENT_SPEED_SCALE}
      */
     public static double pace() {
-        return com.wf.wflib.colony.ColonyConfig.glyphidPace();
+        return ColonyConfig.glyphidPace();
     }
 
     protected StatBundle statsGrunt;

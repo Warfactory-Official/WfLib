@@ -4,6 +4,7 @@ import com.wf.wflib.anomaly.api.AnomalyCaves;
 import com.wf.wflib.anomaly.api.AnomalyContent;
 import com.wf.wflib.anomaly.api.AnomalySites;
 import com.wf.wflib.anomaly.client.AnomalyClientSetup;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
@@ -69,7 +70,7 @@ public final class AnomalySystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("anomaly", 1000, out -> com.wf.wflib.anomaly.api.AnomalyContent.ANOMALY_ITEMS.forEach(item -> out.accept(item.get())));
+        CreativeTabs.contribute("anomaly", 1000, out -> AnomalyContent.ANOMALY_ITEMS.forEach(item -> out.accept(item.get())));
         DeferredRegister<Block> blocks = DeferredRegister.create(Registries.BLOCK, WFLib.MODID);
         DeferredRegister<Item> items = DeferredRegister.create(Registries.ITEM, WFLib.MODID);
         for (DeferredHolder<Block, Block> holder : AnomalyContent.ANOMALIES) {

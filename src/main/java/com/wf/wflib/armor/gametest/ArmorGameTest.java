@@ -1,5 +1,6 @@
 package com.wf.wflib.armor.gametest;
 
+import com.mojang.authlib.GameProfile;
 import com.wf.wflib.armor.ArmorConfig;
 import com.wf.wflib.armor.api.ArmorExposure;
 import com.wf.wflib.armor.api.ArmorOutcome;
@@ -41,6 +42,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import com.wf.wflib.armor.api.ArmorContent;
 import com.wf.wflib.core.api.WFLib;
+import java.util.UUID;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.neoforged.neoforge.common.util.FakePlayerFactory;
 
 /** Armour system in the world; pure resolver math is {@code ArmorResolverTest} under plain JUnit. */
 @PrefixGameTestTemplate(false)
@@ -54,22 +59,22 @@ public class ArmorGameTest {
     /** Worn to nothing, a piece is still on the wearer after vanilla's armour pass, whose charge this system zeroes. */
     @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void aFullyWornPieceIsNotDestroyedByVanillasArmourPass(GameTestHelper helper) {
-        net.minecraft.server.level.ServerPlayer p = net.neoforged.neoforge.common.util.FakePlayerFactory.get(helper.getLevel(),
-                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "worn_out"));
+        ServerPlayer p = FakePlayerFactory.get(helper.getLevel(),
+                new GameProfile(UUID.randomUUID(), "worn_out"));
         ItemStack vest = new ItemStack(ArmorContent.item(ArmorPreset.rl("plate_carrier")));
         ArmorStacks.setCondition(vest, ArmorProfiles.specFor(vest), 0);
-        p.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, vest);
+        p.setItemSlot(EquipmentSlot.CHEST, vest);
         try {
-            var pass = net.minecraft.world.entity.LivingEntity.class.getDeclaredMethod("doHurtEquipment",
-                    net.minecraft.world.damagesource.DamageSource.class, float.class, net.minecraft.world.entity.EquipmentSlot[].class);
+            var pass = LivingEntity.class.getDeclaredMethod("doHurtEquipment",
+                    DamageSource.class, float.class, EquipmentSlot[].class);
             pass.setAccessible(true);
-            pass.invoke(p, p.damageSources().generic(), 28.0F, new net.minecraft.world.entity.EquipmentSlot[]{
-                    net.minecraft.world.entity.EquipmentSlot.CHEST});
+            pass.invoke(p, p.damageSources().generic(), 28.0F, new EquipmentSlot[]{
+                    EquipmentSlot.CHEST});
         } catch (ReflectiveOperationException e) {
             helper.fail(e.toString());
             return;
         }
-        helper.assertFalse(p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).isEmpty(), "a fully worn piece was destroyed by the armour pass");
+        helper.assertFalse(p.getItemBySlot(EquipmentSlot.CHEST).isEmpty(), "a fully worn piece was destroyed by the armour pass");
         helper.succeed();
     }
 
@@ -221,7 +226,7 @@ public class ArmorGameTest {
         LivingEntity jacket = victim(helper, 3);
         suited.setItemSlot(EquipmentSlot.CHEST, stack("mw_ghillie"));
         jacket.setItemSlot(EquipmentSlot.CHEST, stack("mw_bearsuit"));
-        DamageSource blunt = source(helper, net.minecraft.world.damagesource.DamageTypes.FALLING_BLOCK);
+        DamageSource blunt = source(helper, DamageTypes.FALLING_BLOCK);
 
         double legs = ArmorResolution.resolveSlot(suited, EquipmentSlot.LEGS, blunt, 10.0F, false).through();
         double feet = ArmorResolution.resolveSlot(suited, EquipmentSlot.FEET, blunt, 10.0F, false).through();

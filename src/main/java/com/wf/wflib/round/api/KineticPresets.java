@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
+import java.util.concurrent.ConcurrentHashMap;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 /**
  * Loadable {@link KineticPreset}s, keyed by {@link ResourceLocation}. Catalogue entries live once requested
@@ -28,7 +30,7 @@ public final class KineticPresets {
     private static volatile Map<ResourceLocation, KineticPreset> presets = Map.of();
     private static volatile List<KineticPreset> withItems = List.of();
     private static boolean frozen;
-    private static final java.util.Set<ResourceLocation> DEV = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<ResourceLocation> DEV = ConcurrentHashMap.newKeySet();
 
     private KineticPresets() {
     }
@@ -60,7 +62,7 @@ public final class KineticPresets {
             throw new IllegalStateException("kinetic preset " + preset.id() + " already registered");
         }
         into.register(preset.id(), preset);
-        if (!net.neoforged.fml.loading.FMLEnvironment.production && StackWalker.getInstance()
+        if (!FMLEnvironment.production && StackWalker.getInstance()
                 .walk(f -> f.anyMatch(x -> x.getClassName().contains(".gametest.")))) {
             DEV.add(preset.id());
         }

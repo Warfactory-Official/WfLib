@@ -1,14 +1,17 @@
 package com.wf.wflib.probe.client;
 
 import com.wf.gemrender.ui.Canvas;
+import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.probe.api.ProbeAction;
 import com.wf.wflib.probe.ProbeJobPacket;
+import java.util.Locale;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,8 +22,8 @@ public final class ProbeJobOverlay implements LayeredDraw.Layer {
     private static final int BAR_HEIGHT = 4;
     private static final int BELOW_CROSSHAIR = 14;
     private static final int NOTICE_TICKS = 40;
-    static final net.minecraft.resources.ResourceLocation STOP =
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "stop");
+    static final ResourceLocation STOP =
+            ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "stop");
 
     @Nullable
     private static ProbeAction pending;
@@ -91,7 +94,7 @@ public final class ProbeJobOverlay implements LayeredDraw.Layer {
             canvas.fill(x0, by, x0 + Math.round(BAR_WIDTH * t), by + BAR_HEIGHT, 0xFFE0E0E0);
             float left = Math.max(0, total * (1 - t)) / 20.0f;
             centred(canvas, font, Component.translatable("probe.wflib.job.remaining",
-                    String.format(java.util.Locale.ROOT, "%.1f", left)), cx, by + BAR_HEIGHT + 3, 0xFFA0A0A0);
+                    String.format(Locale.ROOT, "%.1f", left)), cx, by + BAR_HEIGHT + 3, 0xFFA0A0A0);
         } else {
             centred(canvas, font, notice, cx, y, 0xFFFF5555);
         }

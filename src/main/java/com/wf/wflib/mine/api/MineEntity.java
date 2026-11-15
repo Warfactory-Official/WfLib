@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.UUID;
 import com.wf.wflib.mine.MineSectionWatch;
+import com.wf.wflib.missile.api.Defusal;
 import com.wf.wflib.missile.api.DefuseMethod;
 
 /**
@@ -521,7 +522,7 @@ public class MineEntity extends Entity implements WarheadCarrier, IDetonatableEn
         }
         for (InteractionHand hand : InteractionHand.values()) {
             ItemStack held = player.getItemInHand(hand);
-            if (held.getItem() instanceof com.wf.wflib.mine.api.MineItem mine
+            if (held.getItem() instanceof MineItem mine
                     && wanted.equals(mine.preset()
                             .id())) {
                 return held;
@@ -1125,7 +1126,7 @@ public class MineEntity extends Entity implements WarheadCarrier, IDetonatableEn
 
     /** Begins (or restarts) a defusal. */
     public InteractionResult tryDefuse(Player player, InteractionHand hand) {
-        Component refusal = com.wf.wflib.missile.api.Defusal.refusal(player, this.defuseMethod, this.defuseTool);
+        Component refusal = Defusal.refusal(player, this.defuseMethod, this.defuseTool);
         if (refusal != null) {
             player.displayClientMessage(refusal.copy()
                     .withStyle(ChatFormatting.YELLOW), true);
@@ -1166,9 +1167,9 @@ public class MineEntity extends Entity implements WarheadCarrier, IDetonatableEn
         this.defuseProgress = 0;
         level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_PICKUP,
                 SoundSource.NEUTRAL, 0.7f, 1.2f);
-        ItemStack drop = com.wf.wflib.mine.api.MinePresets.stackFor(this.presetId);
+        ItemStack drop = MinePresets.stackFor(this.presetId);
         if (isRack() && !drop.isEmpty() && canisters() < canisterCapacity()) {
-            drop.set(com.wf.wflib.mine.api.MineContent.MINE_CANISTERS.get(), canisters());
+            drop.set(MineContent.MINE_CANISTERS.get(), canisters());
         }
         if (!drop.isEmpty() && !player.addItem(drop)) {
             this.spawnAtLocation(drop);

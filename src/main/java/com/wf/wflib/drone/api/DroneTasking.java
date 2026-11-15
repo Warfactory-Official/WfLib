@@ -1,10 +1,12 @@
 package com.wf.wflib.drone.api;
 
+import java.util.ArrayList;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /** One-step mission for a body already in the world: no pad, no spawn. */
@@ -42,7 +44,7 @@ public final class DroneTasking {
         }
         DroneState state = body.flight().getDroneState();
         if (state != DroneState.IDLE && !state.powered()) {
-            return body.callsign() + " is " + state.name().toLowerCase(java.util.Locale.ROOT);
+            return body.callsign() + " is " + state.name().toLowerCase(Locale.ROOT);
         }
         body.setOperatorId(operator);
         if (state == DroneState.IDLE) {
@@ -61,7 +63,7 @@ public final class DroneTasking {
      */
     public static DroneProgram holdAtEnd(List<DroneTask> tasks) {
         if (!tasks.isEmpty() && tasks.getLast() instanceof DroneTask.MoveTo last) {
-            List<DroneTask> out = new java.util.ArrayList<>(tasks);
+            List<DroneTask> out = new ArrayList<>(tasks);
             out.set(out.size() - 1, new DroneTask.Loiter(last.at(), 0, 0));
             return DroneProgram.of(out);
         }
@@ -104,6 +106,6 @@ public final class DroneTasking {
         }
         DroneState state = body.flight().getDroneState();
         return state.powered() ? null : body.callsign() + (state == DroneState.IDLE ? " is on the ground"
-                : " is " + state.name().toLowerCase(java.util.Locale.ROOT));
+                : " is " + state.name().toLowerCase(Locale.ROOT));
     }
 }

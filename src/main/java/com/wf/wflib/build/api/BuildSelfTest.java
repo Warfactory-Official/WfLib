@@ -51,6 +51,9 @@ import com.wf.wflib.build.PackedIndices;
 import com.wf.wflib.build.Placement;
 import com.wf.wflib.build.SiteRules;
 import com.wf.wflib.build.StructureNbtFormat;
+import java.util.HashSet;
+import java.util.Set;
+import net.minecraft.world.level.ChunkPos;
 
 /** Self-tests: blueprint readers, work-queue sharing rules, plan ordering. */
 public final class BuildSelfTest {
@@ -95,21 +98,21 @@ public final class BuildSelfTest {
                 "disabled allows: " + offAllows + ", restored to " + was));
 
         BoundingBox straddling = new BoundingBox(-20, 60, -20, 40, 70, 40);
-        java.util.Set<Long> seen = new java.util.HashSet<>();
+        Set<Long> seen = new HashSet<>();
         SiteRules.walk(straddling, null, pos -> {
-            seen.add(net.minecraft.world.level.ChunkPos.asLong(pos));
+            seen.add(ChunkPos.asLong(pos));
             return TerritoryVerdict.ALLOWED;
         });
-        java.util.Set<Long> needed = new java.util.HashSet<>();
+        Set<Long> needed = new HashSet<>();
         for (int x = straddling.minX(); x <= straddling.maxX(); x++) {
             for (int z = straddling.minZ(); z <= straddling.maxZ(); z++) {
-                needed.add(net.minecraft.world.level.ChunkPos.asLong(new BlockPos(x, 60, z)));
+                needed.add(ChunkPos.asLong(new BlockPos(x, 60, z)));
             }
         }
         out.add(new Result("territory/survey-covers-every-chunk", seen.equals(needed),
                 seen.size() + " chunks sampled, " + needed.size() + " touched by the box"));
 
-        java.util.List<BlockPos> samples = new java.util.ArrayList<>();
+        List<BlockPos> samples = new ArrayList<>();
         SiteRules.walk(straddling, null, pos -> {
             samples.add(pos);
             return TerritoryVerdict.ALLOWED;

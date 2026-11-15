@@ -1,5 +1,7 @@
 package com.wf.wflib.sight.api.client;
 
+import java.util.Collections;
+import java.util.List;
 import org.joml.Vector3fc;
 
 /**
@@ -93,8 +95,8 @@ public final class ScopeMath {
     public static final float ZOOM_STEP = 1.15F;
 
     /** {@code zoom} x {@link #ZOOM_STEP}^{@code notches}, clamped to the listed range. */
-    public static float adjust(float zoom, java.util.List<Float> levels, double notches) {
-        float lo = java.util.Collections.min(levels), hi = java.util.Collections.max(levels);
+    public static float adjust(float zoom, List<Float> levels, double notches) {
+        float lo = Collections.min(levels), hi = Collections.max(levels);
         return Math.min(Math.max(zoom * (float) Math.pow(ZOOM_STEP, notches), lo), hi);
     }
 

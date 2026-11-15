@@ -1,5 +1,6 @@
 package com.wf.wflib.radiation;
 
+import com.wf.wflib.core.api.WFLib;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -19,6 +20,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.nbt.Tag;
 
 final class RegionChunkRadiationStorage implements ChunkRadiationStorage {
     private static final String PAYLOAD_KEY = "payload";
@@ -44,7 +46,7 @@ final class RegionChunkRadiationStorage implements ChunkRadiationStorage {
             @Override
             public byte @Nullable [] read(ChunkPos pos) throws IOException {
                 CompoundTag tag = storage.read(pos);
-                return tag == null ? null : tag.contains(PAYLOAD_KEY, net.minecraft.nbt.Tag.TAG_BYTE_ARRAY) ? tag.getByteArray(PAYLOAD_KEY) : null;
+                return tag == null ? null : tag.contains(PAYLOAD_KEY, Tag.TAG_BYTE_ARRAY) ? tag.getByteArray(PAYLOAD_KEY) : null;
             }
 
             @Override
@@ -72,7 +74,7 @@ final class RegionChunkRadiationStorage implements ChunkRadiationStorage {
 
     private static Path dimensionRoot(ServerLevel level) {
         Path root = level.getServer().getWorldPath(LevelResource.ROOT);
-        return DimensionType.getStorageFolder(level.dimension(), root).resolve(com.wf.wflib.core.api.WFLib.MODID).resolve("radiation");
+        return DimensionType.getStorageFolder(level.dimension(), root).resolve(WFLib.MODID).resolve("radiation");
     }
 
     private static Path regionPath(Path root, ChunkPos pos) {

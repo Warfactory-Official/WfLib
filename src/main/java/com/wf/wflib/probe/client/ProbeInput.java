@@ -7,6 +7,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.LoggerFactory;
 
 /** Scrolling the action list, and running the chosen one. */
 public final class ProbeInput {
@@ -59,7 +60,7 @@ public final class ProbeInput {
         if (TRACE) {
             Minecraft mc = Minecraft.getInstance();
             long w = mc.getWindow().getWindow();
-            org.slf4j.LoggerFactory.getLogger("wfb-probe").info(
+            LoggerFactory.getLogger("wfb-probe").info(
                     "scroll dy={} scrolling={} lalt={} ralt={} actions={}",
                     event.getScrollDeltaY(), scrolling(),
                     InputConstants.isKeyDown(w, GLFW.GLFW_KEY_LEFT_ALT),

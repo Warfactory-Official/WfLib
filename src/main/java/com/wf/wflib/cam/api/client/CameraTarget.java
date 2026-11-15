@@ -22,6 +22,10 @@ import com.wf.wflib.cam.client.FeedGimbal;
 import com.wf.wflib.cam.client.FeedMotion;
 import com.wf.wflib.cam.client.GlMarkers;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.drone.api.DroneEntity;
+import com.wf.wflib.ui.api.UiInstance;
+import net.minecraft.util.Mth;
 
 /** One camera feed's picture: a framebuffer, the post chain that ages it, and the pass that fills it. */
 public final class CameraTarget implements AutoCloseable {
@@ -44,7 +48,7 @@ public final class CameraTarget implements AutoCloseable {
 
     private final int feedId;
     /** Feed OSD instance; smoothing and blink state per feed. */
-    public com.wf.wflib.ui.api.UiInstance osd;
+    public UiInstance osd;
     private final FeedTexture texture = new FeedTexture();
     private final ResourceLocation location;
     @Nullable
@@ -148,9 +152,9 @@ public final class CameraTarget implements AutoCloseable {
      */
     public static float exposure(CameraMode mode, float partial) {
         Minecraft mc = Minecraft.getInstance();
-        float day = mc.level == null ? 0.0f : net.minecraft.util.Mth.clamp((mc.level.getSkyDarken(partial) - 0.2f) / 0.8f, 0.0f, 1.0f);
+        float day = mc.level == null ? 0.0f : Mth.clamp((mc.level.getSkyDarken(partial) - 0.2f) / 0.8f, 0.0f, 1.0f);
         float dayFactor = mode == CameraMode.INTENSIFIER ? 0.02f : mode == CameraMode.IR ? 0.12f : 1.0f;
-        return net.minecraft.util.Mth.lerp(day, 1.0f, dayFactor);
+        return Mth.lerp(day, 1.0f, dayFactor);
     }
 
     static float degrade(float link, CameraMode mode) {
@@ -193,8 +197,8 @@ public final class CameraTarget implements AutoCloseable {
                 lens = missile.getPosition(partial)
                         .add(CameraSource.Guided.heading(missile).scale(missile.noseForward()))
                         .add(forward.scale(SEEKER_CLEAR));
-            } else if (com.wf.wflib.core.api.WFSystems.enabled("drone")
-                    && anchor instanceof com.wf.wflib.drone.api.DroneEntity drone
+            } else if (WFSystems.enabled("drone")
+                    && anchor instanceof DroneEntity drone
                     && drone.lensPosition(partial).distanceToSqr(FeedMotion.position(feed)) < LIVE_POSE_SQ) {
                 // Same per-frame pose its model is drawn at; the 5 Hz feed walk lags it and swings the body into
                 // view. Only while the client copy keeps up: outside the client's ticking chunks it freezes.

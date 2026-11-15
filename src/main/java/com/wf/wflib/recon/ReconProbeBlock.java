@@ -8,6 +8,7 @@ import com.wf.wflib.recon.api.Atmosphere;
 import com.wf.wflib.recon.api.ReconWeather;
 import com.wf.wflib.recon.api.GridNode;
 import com.wf.wflib.recon.api.RadarPropagator;
+import com.wf.wflib.recon.api.TrackQuality;
 import com.wf.wflib.recon.propagate.SeismicPropagator;
 import com.wf.wflib.recon.propagate.SonarPropagator;
 import com.wf.wflib.recon.propagate.ThermalPropagator;
@@ -32,6 +33,8 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 /** One of the probes: see {@link ProbeKind} for the table. */
 public class ReconProbeBlock extends BaseEntityBlock {
@@ -58,7 +61,7 @@ public class ReconProbeBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(ONLINE);
     }
 
@@ -135,7 +138,7 @@ public class ReconProbeBlock extends BaseEntityBlock {
         player.displayClientMessage(Component.literal(String.format(Locale.ROOT,
                 "  %d hop(s) from the hub, error x%.2f, quality capped at %s",
                 node.hops(), Math.pow(1.15, node.hops()),
-                com.wf.wflib.recon.api.TrackQuality.capFor(node.hops()))), false);
+                TrackQuality.capFor(node.hops()))), false);
         if (node.downstream() > 0) {
             player.displayClientMessage(Component.literal(String.format(Locale.ROOT,
                             "  %d node(s) route through this one - breaking it takes them all down",
@@ -152,7 +155,7 @@ public class ReconProbeBlock extends BaseEntityBlock {
                     .withStyle(ChatFormatting.RED), false);
             return;
         }
-        double depth = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+        double depth = level.getHeight(Heightmap.Types.WORLD_SURFACE,
                 pos.getX(), pos.getZ()) - (pos.getY() + 0.5);
         player.displayClientMessage(Component.literal(String.format(Locale.ROOT,
                         "  %s, %.0f blk down (%s the layer at %.0f)",

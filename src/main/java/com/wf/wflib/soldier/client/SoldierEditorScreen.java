@@ -2,6 +2,8 @@ package com.wf.wflib.soldier.client;
 
 import com.google.gson.*;
 import com.mojang.authlib.GameProfile;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 import com.wf.wflib.soldier.*;
 import com.wf.wflib.soldier.api.*;
 import net.minecraft.client.Minecraft;
@@ -19,6 +21,13 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import java.util.*;
 import java.util.function.DoubleConsumer;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.Team;
+import net.neoforged.neoforge.client.event.RenderNameTagEvent;
+import net.neoforged.neoforge.common.NeoForge;
 
 /** Search/scroll work touches only cached choices. No registry walk, network request, or model rebuild per frame. */
 public final class SoldierEditorScreen extends Screen {
@@ -47,8 +56,8 @@ public final class SoldierEditorScreen extends Screen {
     private boolean factionHostile;
 
     public static void registerNameTags() {
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderNameTagEvent.class,e->{
-            if(e.getEntity() instanceof net.minecraft.world.entity.player.Player p && p.hasCustomName()
+        NeoForge.EVENT_BUS.addListener(RenderNameTagEvent.class,e->{
+            if(e.getEntity() instanceof Player p && p.hasCustomName()
                     && e.getContent().getString().equals(p.getGameProfile().getName())) e.setContent(p.getCustomName());
         });
     }
@@ -87,7 +96,7 @@ public final class SoldierEditorScreen extends Screen {
         unitId=u.id(); unitName=u.name(); faction=u.faction(); role=u.role(); gun=u.gun(); armour.clear(); armour.putAll(u.armour());
         spares=u.spares(); range=u.range(); spread=u.spread(); frag=""; smoke=""; fragCount=0; smokeCount=0;
         for (var id:u.grenades()) {
-            if (SoldierServices.hasThrowables() && SoldierServices.throwables().kind(net.minecraft.resources.ResourceLocation.parse(id))==SoldierThrowables.Kind.SMOKE) { smoke=id; smokeCount++; }
+            if (SoldierServices.hasThrowables() && SoldierServices.throwables().kind(ResourceLocation.parse(id))==SoldierThrowables.Kind.SMOKE) { smoke=id; smokeCount++; }
             else { frag=id; fragCount++; }
         }
         dirty=false; existing=true; previewDirty=true;
@@ -110,8 +119,8 @@ public final class SoldierEditorScreen extends Screen {
         var guns=catalogue.all().stream().filter(c->c.slot().equals("gun") && available.contains(c.key())).toList();
         gun=guns.stream().min(Comparator.comparingInt(c->{ for(int i=0;i<prefer.length;i++) if(c.key().contains(prefer[i])) return i; return 100; })).map(SoldierCatalogue.Choice::key).orElse("");
         var grenades=catalogue.all().stream().filter(c->c.slot().equals("grenade") && available.contains(c.key())).toList();
-        frag=grenades.stream().filter(c->SoldierServices.throwables().kind(net.minecraft.resources.ResourceLocation.parse(c.key()))==SoldierThrowables.Kind.FRAG).map(SoldierCatalogue.Choice::key).findFirst().orElse("");
-        smoke=grenades.stream().filter(c->SoldierServices.throwables().kind(net.minecraft.resources.ResourceLocation.parse(c.key()))==SoldierThrowables.Kind.SMOKE).map(SoldierCatalogue.Choice::key).findFirst().orElse("");
+        frag=grenades.stream().filter(c->SoldierServices.throwables().kind(ResourceLocation.parse(c.key()))==SoldierThrowables.Kind.FRAG).map(SoldierCatalogue.Choice::key).findFirst().orElse("");
+        smoke=grenades.stream().filter(c->SoldierServices.throwables().kind(ResourceLocation.parse(c.key()))==SoldierThrowables.Kind.SMOKE).map(SoldierCatalogue.Choice::key).findFirst().orElse("");
         fragCount=r==SoldierRole.GRENADIER?3:1; smokeCount=r==SoldierRole.MEDIC?2:1;
         if (r==SoldierRole.HEAVY) catalogue.all().stream().filter(c->c.exo() && c.slot().equals("chest") && available.contains(c.key())).findFirst().ifPresent(c->{
             wear(c); var legs=catalogue.get(c.key().replace("_chest","_legs"));
@@ -132,7 +141,7 @@ public final class SoldierEditorScreen extends Screen {
     private Button button(String text,int x,int y,int width,Runnable run) {
         var b=Button.builder(Component.literal(text),v->run.run()).bounds(x,y,width,20).build(); addRenderableWidget(b); return b;
     }
-    private EditBox field(String label,String value,int x,int y,int width,int limit,java.util.function.Consumer<String> change) {
+    private EditBox field(String label,String value,int x,int y,int width,int limit,Consumer<String> change) {
         var e=new EditBox(font,x,y,width,18,Component.literal(label)); e.setMaxLength(limit); e.setValue(value); e.setResponder(change); addRenderableWidget(e); return e;
     }
     private void rebuild() {
@@ -214,7 +223,7 @@ public final class SoldierEditorScreen extends Screen {
     }
     private boolean matchesSlot(SoldierCatalogue.Choice c) {
         if(modal.equals("frag") || modal.equals("smoke")) return c.slot().equals("grenade") && SoldierServices.hasThrowables()
-            && SoldierServices.throwables().kind(net.minecraft.resources.ResourceLocation.parse(c.key()))==(modal.equals("smoke")?SoldierThrowables.Kind.SMOKE:SoldierThrowables.Kind.FRAG);
+            && SoldierServices.throwables().kind(ResourceLocation.parse(c.key()))==(modal.equals("smoke")?SoldierThrowables.Kind.SMOKE:SoldierThrowables.Kind.FRAG);
         return c.slot().equals(modal);
     }
     private void filterChoices() {
@@ -282,10 +291,10 @@ public final class SoldierEditorScreen extends Screen {
     }
     private void updatePreview(String hovered) {
         if(preview==null) {
-            var team=new net.minecraft.world.scores.PlayerTeam(new net.minecraft.world.scores.Scoreboard(),"soldier_preview");
-            team.setNameTagVisibility(net.minecraft.world.scores.Team.Visibility.NEVER);
-            preview=new RemotePlayer(minecraft.level,new GameProfile(UUID.nameUUIDFromBytes("wflib:soldier_preview".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"SoldierPreview")) {
-                @Override public net.minecraft.world.scores.PlayerTeam getTeam() { return team; }
+            var team=new PlayerTeam(new Scoreboard(),"soldier_preview");
+            team.setNameTagVisibility(Team.Visibility.NEVER);
+            preview=new RemotePlayer(minecraft.level,new GameProfile(UUID.nameUUIDFromBytes("wflib:soldier_preview".getBytes(StandardCharsets.UTF_8)),"SoldierPreview")) {
+                @Override public PlayerTeam getTeam() { return team; }
             };
         }
         if(!previewDirty && previewFor.equals(hovered))return;previewDirty=false;previewFor=hovered;

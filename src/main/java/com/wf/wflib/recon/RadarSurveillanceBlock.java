@@ -22,6 +22,8 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
 
 /** Example content: a standing surveillance radar with no weapon on it. */
 public class RadarSurveillanceBlock extends BaseEntityBlock {
@@ -41,7 +43,7 @@ public class RadarSurveillanceBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(ALERTING);
     }
 
@@ -62,7 +64,7 @@ public class RadarSurveillanceBlock extends BaseEntityBlock {
     }
 
     @Override
-    protected int getSignal(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos,
+    protected int getSignal(BlockState state, BlockGetter level, BlockPos pos,
                             Direction direction) {
         return level.getBlockEntity(pos) instanceof RadarSurveillanceBlockEntity be ? be.signal() : 0;
     }

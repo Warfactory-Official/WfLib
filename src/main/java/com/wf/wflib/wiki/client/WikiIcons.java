@@ -1,6 +1,7 @@
 package com.wf.wflib.wiki.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.logging.LogUtils;
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.wiki.api.Article;
 import com.wf.wflib.wiki.api.Wiki;
@@ -61,7 +62,7 @@ final class WikiIcons {
                 try (InputStream in = resource.get().open(); NativeImage image = NativeImage.read(in)) {
                     size = new float[]{image.getWidth(), image.getHeight()};
                 } catch (Exception e) {
-                    com.mojang.logging.LogUtils.getLogger().warn("Wiki image {}: unreadable: {}", texture, e.toString());
+                    LogUtils.getLogger().warn("Wiki image {}: unreadable: {}", texture, e.toString());
                 }
             }
             SIZES.put(texture, size);

@@ -1,6 +1,7 @@
 package com.wf.wflib.ragdoll.client;
 
 import com.wf.wflib.ragdoll.RagdollPackets;
+import com.wf.wflib.ragdoll.RagdollServer;
 import com.wf.wflib.ragdoll.RagdollStore;
 import com.wf.wflib.ragdoll.sim.RagdollPose;
 import com.wf.wflib.ragdoll.sim.Skeleton;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
 import java.util.Map;
+import net.minecraft.world.phys.Vec3;
 
 public final class RagdollClient {
 
@@ -55,7 +57,7 @@ public final class RagdollClient {
             if (self != null && e.getKey() == self.getId() && !track.released()) {
                 RagdollPose pose = track.sample(1.0F);
                 self.setPos(pose.x, pose.y - pose.footDrop, pose.z);
-                self.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+                self.setDeltaMovement(Vec3.ZERO);
             }
         }
     }
@@ -74,7 +76,7 @@ public final class RagdollClient {
             return null;
         }
         double[][] out = new double[3][3];
-        track.sample(pt).headFrame(com.wf.wflib.ragdoll.RagdollServer.skeleton(), out[0], out[1], out[2]);
+        track.sample(pt).headFrame(RagdollServer.skeleton(), out[0], out[1], out[2]);
         return out;
     }
 
@@ -85,7 +87,7 @@ public final class RagdollClient {
             return null;
         }
         double[] out = new double[3];
-        track.sample(pt).bodyCentre(com.wf.wflib.ragdoll.RagdollServer.skeleton(), head ? Skeleton.HEAD : Skeleton.CHEST, out);
+        track.sample(pt).bodyCentre(RagdollServer.skeleton(), head ? Skeleton.HEAD : Skeleton.CHEST, out);
         return out;
     }
 }

@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.Vec3;
 import com.wf.wflib.fx.InstancedTrailVisual;
+import net.minecraft.resources.ResourceLocation;
 
 /** A missile's exhaust trail, rendered through GemRender's particle instancer. */
 public class InstancedTrailEffect implements WFFlywheelEffect {
@@ -76,8 +77,8 @@ public class InstancedTrailEffect implements WFFlywheelEffect {
         private final double jetMaxPerTick;
         private final double scatter;
 
-        Kind(net.minecraft.resources.ResourceLocation vertexShader,
-             net.minecraft.resources.ResourceLocation cullShader,
+        Kind(ResourceLocation vertexShader,
+             ResourceLocation cullShader,
              double spacing, float lifeSeconds, double jetFraction, double jetMaxPerTick, double scatter) {
             this.instanceType = GemRenderParticleTypes.custom(vertexShader, cullShader);
             this.spacing = spacing;

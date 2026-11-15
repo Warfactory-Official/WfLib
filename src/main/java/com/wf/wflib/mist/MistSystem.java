@@ -1,5 +1,6 @@
 package com.wf.wflib.mist;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.mist.api.WFFluids;
 import com.wf.wflib.mist.api.MistEffects;
@@ -16,6 +17,12 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.mist.client.MistClientConfig;
+import com.wf.wflib.mist.lab.MistHazards;
+import com.wf.wflib.mist.spray.BuiltinSprayPayloads;
+import com.wf.wflib.mist.spray.SprayCurtainEntity;
+import net.neoforged.fml.config.ModConfig;
 
 public final class MistSystem implements WFSystem {
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
@@ -32,9 +39,9 @@ public final class MistSystem implements WFSystem {
             );
 
     /** Falling liquid curtain ({@code Sprays}). */
-    public static final DeferredHolder<EntityType<?>, EntityType<com.wf.wflib.mist.spray.SprayCurtainEntity>> SPRAY_CURTAIN =
+    public static final DeferredHolder<EntityType<?>, EntityType<SprayCurtainEntity>> SPRAY_CURTAIN =
             ENTITY_TYPES.register("spray_curtain", () -> EntityType.Builder
-                    .<com.wf.wflib.mist.spray.SprayCurtainEntity>of(com.wf.wflib.mist.spray.SprayCurtainEntity::new,
+                    .<SprayCurtainEntity>of(SprayCurtainEntity::new,
                             MobCategory.MISC)
                     .sized(1.0F, 1.0F)
                     .clientTrackingRange(10)
@@ -55,16 +62,16 @@ public final class MistSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("mist", 650, out -> { out.accept(com.wf.wflib.mist.api.WFFluids.KEROSENE_BUCKET.get()); out.accept(com.wf.wflib.mist.api.WFFluids.AGENT_ORANGE_BUCKET.get()); });
-        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT, com.wf.wflib.mist.client.MistClientConfig.SPEC, "wflib-mist-client.toml");
+        CreativeTabs.contribute("mist", 650, out -> { out.accept(WFFluids.KEROSENE_BUCKET.get()); out.accept(WFFluids.AGENT_ORANGE_BUCKET.get()); });
+        container.registerConfig(ModConfig.Type.CLIENT, MistClientConfig.SPEC, "wflib-mist-client.toml");
         ENTITY_TYPES.register(modBus);
         WFFluids.register(modBus);
         MistEffects.register(WFFluids.PHOSGENE.getId(), new PhosgeneMistEffect());
         MistEffects.register(WFFluids.MUSTARD_GAS.getId(), new MustardGasMistEffect());
         MistEffects.register(WFFluids.TEAR_GAS.getId(), new TearGasMistEffect());
-        com.wf.wflib.mist.spray.BuiltinSprayPayloads.register();
-        if (com.wf.wflib.core.api.WFSystems.enabled("labs")) {
-            com.wf.wflib.mist.lab.MistHazards.register();
+        BuiltinSprayPayloads.register();
+        if (WFSystems.enabled("labs")) {
+            MistHazards.register();
         }
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, MistDebug::onRegisterCommands);
     }

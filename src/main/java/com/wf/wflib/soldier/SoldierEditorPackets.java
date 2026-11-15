@@ -2,6 +2,15 @@ package com.wf.wflib.soldier;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.logging.LogUtils;
+import com.wf.wflib.soldier.api.SoldierServices;
+import com.wf.wflib.soldier.client.SoldierEditorScreen;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.chat.Component;
@@ -24,7 +33,7 @@ public final class SoldierEditorPackets {
     }
     static void send(ServerPlayer p,String message,boolean open) {
         if (!p.connection.hasChannel(State.TYPE)) { p.sendSystemMessage(Component.literal("Install the matching WFLib client to use the soldier editor")); return; }
-        var j=SoldierRoster.get(p.getServer()).json(); j.addProperty("message",message); j.addProperty("open",open); j.addProperty("medical",com.wf.wflib.soldier.api.SoldierServices.medical().present());
+        var j=SoldierRoster.get(p.getServer()).json(); j.addProperty("message",message); j.addProperty("open",open); j.addProperty("medical",SoldierServices.medical().present());
         if (open) j.add("catalogue",SoldierEditor.catalogue(p.getServer()).keys());
         PacketDistributor.sendToPlayer(p,new State(j.toString()));
     }
@@ -58,35 +67,35 @@ public final class SoldierEditorPackets {
                 }
                 send(p,message,false);
             } catch (RuntimeException e) {
-                com.mojang.logging.LogUtils.getLogger().debug("Soldier editor action rejected for {}",p.getUUID(),e);
+                LogUtils.getLogger().debug("Soldier editor action rejected for {}",p.getUUID(),e);
                 if (p.isCreative()) send(p,e.getMessage()==null ? "Invalid editor request" : e.getMessage(),false);
                 else p.sendSystemMessage(Component.literal("The soldier editor requires Creative mode"));
             }
         }); }
     }
     private static byte[] compress(String value) {
-        byte[] raw=value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] raw=value.getBytes(StandardCharsets.UTF_8);
         if(raw.length>2097152)throw new IllegalArgumentException("Soldier roster exceeds 2 MiB");
         try {
-            var bytes=new java.io.ByteArrayOutputStream();
-            try(var zip=new java.util.zip.GZIPOutputStream(bytes)){zip.write(raw);}
+            var bytes=new ByteArrayOutputStream();
+            try(var zip=new GZIPOutputStream(bytes)){zip.write(raw);}
             byte[] compressed=bytes.toByteArray();
             if(compressed.length>524288)throw new IllegalArgumentException("Soldier roster exceeds packet budget");
             return compressed;
-        }catch(java.io.IOException e){throw new IllegalStateException(e);}
+        }catch(IOException e){throw new IllegalStateException(e);}
     }
     private static String expand(byte[] value) {
-        try(var zip=new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(value))){
+        try(var zip=new GZIPInputStream(new ByteArrayInputStream(value))){
             byte[] raw=zip.readNBytes(2097153);
             if(raw.length>2097152)throw new IllegalArgumentException("Soldier roster exceeds 2 MiB");
-            return new String(raw,java.nio.charset.StandardCharsets.UTF_8);
-        }catch(java.io.IOException e){throw new IllegalArgumentException("Invalid soldier roster packet",e);}
+            return new String(raw,StandardCharsets.UTF_8);
+        }catch(IOException e){throw new IllegalArgumentException("Invalid soldier roster packet",e);}
     }
     public record State(String json) implements CustomPacketPayload {
         public static final Type<State> TYPE=new Type<>(ResourceLocation.parse("wflib:soldier_roster"));
         // Large pack catalogues share many ID prefixes; compression keeps the response below the game payload limit.
         static final StreamCodec<FriendlyByteBuf,State> CODEC=CustomPacketPayload.codec((p,b)->b.writeByteArray(compress(p.json)),b->new State(expand(b.readByteArray(524288))));
         @Override public Type<State> type() { return TYPE; }
-        static void handle(State packet,IPayloadContext ctx) { ctx.enqueueWork(()->com.wf.wflib.soldier.client.SoldierEditorScreen.receive(packet.json)); }
+        static void handle(State packet,IPayloadContext ctx) { ctx.enqueueWork(()->SoldierEditorScreen.receive(packet.json)); }
     }
 }

@@ -1,6 +1,7 @@
 package com.wf.wflib.missile.api;
 
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.core.api.ViewRange;
 import com.wf.wflib.missile.debug.MissileDebug;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -271,7 +272,7 @@ public final class SimMissileManager implements SimKind<SimMissile> {
             }
         }
         for (ServerPlayer p : level.players()) {
-            double t = RayMath.segmentSphereEntry(p0, p1, p.position(), com.wf.wflib.core.api.ViewRange.blocks());
+            double t = RayMath.segmentSphereEntry(p0, p1, p.position(), ViewRange.blocks());
             if (!Double.isNaN(t) && t < bestT) {
                 bestT = t;
             }
@@ -299,7 +300,7 @@ public final class SimMissileManager implements SimKind<SimMissile> {
             }
         }
         for (ServerPlayer p : level.players()) {
-            double r = com.wf.wflib.core.api.ViewRange.blocks() + MissileConfig.listenerSpawnMargin();
+            double r = ViewRange.blocks() + MissileConfig.listenerSpawnMargin();
             if (p.position().distanceToSqr(pos) <= r * r) {
                 return true;
             }

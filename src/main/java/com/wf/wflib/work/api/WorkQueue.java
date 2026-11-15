@@ -8,6 +8,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -140,7 +141,7 @@ public final class WorkQueue {
      *      need to do something per live claim should walk this rather than scanning the whole queue
      */
     public Set<Integer> claimedIds() {
-        return java.util.Collections.unmodifiableSet(this.claims.keySet());
+        return Collections.unmodifiableSet(this.claims.keySet());
     }
 
     public List<Integer> claimsOf(UUID worker) {

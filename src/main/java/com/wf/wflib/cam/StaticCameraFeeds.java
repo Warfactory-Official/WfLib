@@ -1,5 +1,6 @@
 package com.wf.wflib.cam;
 
+import com.wf.wflib.cam.api.VirtualFeeds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
@@ -62,7 +63,7 @@ public final class StaticCameraFeeds {
 
     /** @return true if this id belongs to a fixed camera (not a drone, not a virtual feed). */
     public static boolean isFixed(int feedId) {
-        return feedId < 0 && !com.wf.wflib.cam.api.VirtualFeeds.owns(feedId);
+        return feedId < 0 && !VirtualFeeds.owns(feedId);
     }
 
     public static int allocated() {

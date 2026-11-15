@@ -1,5 +1,7 @@
 package com.wf.wflib.pda.client.theme;
 
+import com.wf.gemrender.ui.Canvas;
+import com.wf.gemrender.ui.TextBuffer;
 import com.wf.wflib.pda.api.client.PdaShell;
 import com.wf.wflib.ui.*;
 import java.util.*;
@@ -65,7 +67,7 @@ public final class PdaControls {
         public Widget create(Binder binder) {
             TextProp template = binder.text(text);
             ColorProp ink = binder.color(colour);
-            var buffer = new com.wf.gemrender.ui.TextBuffer(template.capacity());
+            var buffer = new TextBuffer(template.capacity());
             return new Widget() {
                 String full = ""; List<String> lines = List.of();
                 public void measure(UiEval ev) {
@@ -81,7 +83,7 @@ public final class PdaControls {
             };
         }
     }
-    public static List<String> wrap(com.wf.gemrender.ui.Canvas c, String value, float w, int maxLines) {
+    public static List<String> wrap(Canvas c, String value, float w, int maxLines) {
         List<String> result = new ArrayList<>(); String rest = value;
         while (!rest.isEmpty() && result.size() < maxLines) {
             int end = 0; int space = -1;
@@ -104,7 +106,7 @@ public final class PdaControls {
         }
         return result;
     }
-    private static String fit(com.wf.gemrender.ui.Canvas c, String value, float width) {
+    private static String fit(Canvas c, String value, float width) {
         if (c.width(value) <= width) return value;
         String fitted = value;
         while (!fitted.isEmpty() && c.width(fitted + "...") > width)

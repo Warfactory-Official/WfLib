@@ -1,9 +1,11 @@
 package com.wf.wflib.mist.client;
 
+import com.wf.wflib.fx.api.FlywheelEffectManager;
 import com.wf.wflib.particle.api.client.MistParticle;
 import com.wf.wflib.mist.api.MistEntity;
 import com.wf.wflib.mist.api.MistEffect;
 import com.wf.wflib.mist.api.MistEffects;
+import com.wf.wflib.mist.spray.SprayPayloads;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.ParticleEngine;
@@ -21,7 +23,7 @@ public final class MistClientFX {
     }
 
     public static void spawn(MistEntity mist) {
-        if (com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(mist.level())) return;
+        if (FlywheelEffectManager.isAvailable(mist.level())) return;
         if (ParticleSprites.MIST.get() == null) return;
 
         ClientLevel level = (ClientLevel) mist.level();
@@ -50,7 +52,7 @@ public final class MistClientFX {
             int c = effect.color(mist);
             if (c != -1) return c & 0xFFFFFF;
         }
-        var payload = com.wf.wflib.mist.spray.SprayPayloads.get(mist.getFluid());
+        var payload = SprayPayloads.get(mist.getFluid());
         if (payload != null && payload.color() != -1) return payload.color() & 0xFFFFFF;
         return fluidTint(mist.getFluid());
     }

@@ -22,6 +22,8 @@ import java.util.function.Predicate;
 import com.wf.wflib.armor.ArmorConfig;
 import com.wf.wflib.armor.ArmorProjection;
 import com.wf.wflib.armor.ArmorResolver;
+import com.wf.wflib.armor.api.exo.ExoParts;
+import java.util.Locale;
 
 /**
  * The front door. One reduction step, one owner: everything that wants to know what armour did to a
@@ -192,7 +194,7 @@ public final class ArmorResolution {
             applyWear(result, owners, within, strike == null ? 1.0f : strike.threat().wearFactor());
         }
         if (applyWear) {
-            com.wf.wflib.armor.api.exo.ExoParts.hit(entity, worn, limb, result);
+            ExoParts.hit(entity, worn, limb, result);
             ArmorSounds.playHit(entity, worn, result);
         }
         return result;
@@ -273,7 +275,7 @@ public final class ArmorResolution {
         StrikeContext strike = StrikeContext.of(event.getSource());
         List<HitboxPart> parts = strike == null ? null : strike.parts();
         ArmorResult result = parts == null ? resolveWhole(entity, event.getSource(), type, amount, true)
-                : resolveSlot(entity, slotFor(parts.get(0)), parts.get(0).name().toLowerCase(java.util.Locale.ROOT),
+                : resolveSlot(entity, slotFor(parts.get(0)), parts.get(0).name().toLowerCase(Locale.ROOT),
                 event.getSource(), amount, true);
         if (result.absorbed() <= 0.0D) {
             return;

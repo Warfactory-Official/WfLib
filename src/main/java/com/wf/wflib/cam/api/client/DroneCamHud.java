@@ -138,7 +138,7 @@ public final class DroneCamHud {
     /** After every HUD source it must draw over. */
     public static void addToHud() {
         UiLayout hud = UiLayouts.get(LAYOUT);
-        UiHud.addSource(UiHud.Layer.MAIN, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "drone_cam"), 0, out -> {
+        UiHud.addSource(UiHud.Layer.MAIN, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "drone_cam"), 0, out -> {
             if (active() == null) {
                 return;
             }

@@ -8,6 +8,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /** Applies a {@link CarveVolume} to one chunk's stored NBT, off-thread. */
 public final class StoredChunkCarver {
@@ -92,7 +93,7 @@ public final class StoredChunkCarver {
                         mask(plan.volumeFor(), originX, baseY, originZ), plan.blockFor());
                 if (placed.refusal() != null) {
                     refusals.add("section y=" + section.getByte(SECTION_Y) + " "
-                            + plan.stage().name().toLowerCase(java.util.Locale.ROOT) + ": "
+                            + plan.stage().name().toLowerCase(Locale.ROOT) + ": "
                             + placed.refusal());
                     continue;
                 }

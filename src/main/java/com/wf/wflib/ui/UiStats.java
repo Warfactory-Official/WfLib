@@ -1,11 +1,15 @@
 package com.wf.wflib.ui;
 
 import com.mojang.logging.LogUtils;
+import com.sun.management.ThreadMXBean;
 import org.slf4j.Logger;
 
 import java.lang.management.ManagementFactory;
 import com.wf.wflib.ui.api.Signal;
 import com.wf.wflib.ui.api.UiHud;
+import java.util.Arrays;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 /**
  * HUD + {@link UiSurfaces} wall time and bytes allocated on the render thread per stage, averaged and logged every
@@ -13,8 +17,8 @@ import com.wf.wflib.ui.api.UiHud;
  */
 public final class UiStats {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final com.sun.management.ThreadMXBean THREADS =
-            (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
+    private static final ThreadMXBean THREADS =
+            (ThreadMXBean) ManagementFactory.getThreadMXBean();
     private static final int WINDOW = 600;
     public static final int COLLECT = 0;
     public static final int BEGIN = 1;
@@ -27,7 +31,7 @@ public final class UiStats {
     private static boolean enabled = Boolean.getBoolean("wflib.ui.stats");
     /** Per-signal allocation attribution ({@code /wfui stats detail}); its own bookkeeping allocates. */
     private static boolean detail;
-    private static final java.util.Map<Signal<?>, long[]> SIGNAL_BYTES = new java.util.IdentityHashMap<>();
+    private static final Map<Signal<?>, long[]> SIGNAL_BYTES = new IdentityHashMap<>();
     private static boolean active;
     private static long markNanos;
     private static long markBytes;
@@ -48,8 +52,8 @@ public final class UiStats {
         enabled = !enabled;
         detail = enabled && detailed;
         SIGNAL_BYTES.clear();
-        java.util.Arrays.fill(nanos, 0);
-        java.util.Arrays.fill(bytes, 0);
+        Arrays.fill(nanos, 0);
+        Arrays.fill(bytes, 0);
         frames = 0;
         return enabled;
     }
@@ -126,8 +130,8 @@ public final class UiStats {
                             String.format("%.1f", (double) e.getValue()[0] / frameCount)));
             SIGNAL_BYTES.clear();
         }
-        java.util.Arrays.fill(nanos, 0);
-        java.util.Arrays.fill(bytes, 0);
+        Arrays.fill(nanos, 0);
+        Arrays.fill(bytes, 0);
         frames = 0;
     }
 }

@@ -11,6 +11,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.network.codec.ByteBufCodecs;
 
 public final class ExoPackets {
     private ExoPackets() {
@@ -25,7 +26,7 @@ public final class ExoPackets {
     /** C2S: popup opened on the garment at inventory-menu index {@code index}, or closed ({@code -1}). */
     public record Popup(int index) implements CustomPacketPayload {
         public static final Type<Popup> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "exo_popup"));
-        public static final StreamCodec<ByteBuf, Popup> STREAM_CODEC = net.minecraft.network.codec.ByteBufCodecs.VAR_INT
+        public static final StreamCodec<ByteBuf, Popup> STREAM_CODEC = ByteBufCodecs.VAR_INT
                 .map(i -> new Popup(i - 1), p -> p.index + 1).cast();
 
         @Override

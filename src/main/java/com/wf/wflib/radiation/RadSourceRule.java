@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.Map;
 import java.util.Optional;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.core.api.WFSystems;
 
 /**
  * One continuous radiation source, as a datapack registry element: the {@code (emission, saturation)} pair
@@ -118,7 +119,7 @@ public record RadSourceRule(HolderSet<Block> targets, Optional<StatePropertiesPr
 
             // 1.7 stores the block's dose as a float, so the narrowing is part of the value.
             private static float rawRads(Block block) {
-                return com.wf.wflib.core.api.WFSystems.enabled("hazard") ? (float) HazardRules.getRawRadsFromBlock(block) : 0.0F;
+                return WFSystems.enabled("hazard") ? (float) HazardRules.getRawRadsFromBlock(block) : 0.0F;
             }
         }
     }

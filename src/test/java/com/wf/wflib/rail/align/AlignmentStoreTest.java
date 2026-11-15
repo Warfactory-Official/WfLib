@@ -11,6 +11,7 @@ import com.wf.wflib.rail.api.Alignment;
 import com.wf.wflib.rail.api.BuildProgress;
 import com.wf.wflib.rail.api.DesignClass;
 import com.wf.wflib.rail.api.RouteStatus;
+import net.minecraft.nbt.ListTag;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -145,7 +146,7 @@ class AlignmentStoreTest {
 
     /** One alignment tag wrapped as the store's save format. */
     private static CompoundTag listOf(CompoundTag alignment) {
-        net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+        ListTag list = new ListTag();
         list.add(alignment);
         CompoundTag root = new CompoundTag();
         root.put("alignments", list);

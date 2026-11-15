@@ -1,5 +1,6 @@
 package com.wf.wflib.rail.align;
 
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +17,7 @@ import java.util.UUID;
 import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.api.DesignClass;
 import com.wf.wflib.rail.api.RightOfWay;
+import java.util.Objects;
 
 /**
  * Walks a route and asks who owns the ground under it.
@@ -112,10 +114,10 @@ public final class RightOfWaySurvey {
         }
 
         if (System.getProperty("wflib.rowDebug") != null) {
-            com.mojang.logging.LogUtils.getLogger().info(
+            LogUtils.getLogger().info(
                     "[wflib] ROW DIAG warforge={} chunks={} owned={} blocked={} firstChunk={} ownerOfFirst={}",
                     WarforgeCompat.isActive(), crossed.size(),
-                    ownerCache.values().stream().filter(java.util.Objects::nonNull).count(),
+                    ownerCache.values().stream().filter(Objects::nonNull).count(),
                     blockedChunks.size(),
                     crossed.isEmpty() ? "none" : crossed.iterator().next(),
                     crossed.isEmpty() ? "none"

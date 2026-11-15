@@ -7,6 +7,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
 
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.world.level.ChunkPos;
 
 /**
  * The ground as the noise lays it, before anything is built on it: the same wherever a site's chunks generate, so
@@ -30,7 +31,7 @@ public final class GeneratorTerrain implements SiteLayout.Terrain {
     }
 
     private int[] sample(int gx, int gz) {
-        return samples.computeIfAbsent(net.minecraft.world.level.ChunkPos.asLong(gx, gz), k -> new int[] {
+        return samples.computeIfAbsent(ChunkPos.asLong(gx, gz), k -> new int[] {
                 generator.getFirstOccupiedHeight(gx * STEP, gz * STEP, Heightmap.Types.OCEAN_FLOOR_WG, heights, random),
                 generator.getFirstOccupiedHeight(gx * STEP, gz * STEP, Heightmap.Types.WORLD_SURFACE_WG, heights, random)});
     }

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import com.wf.wflib.wiki.api.Article;
 import com.wf.wflib.wiki.api.Wiki;
+import org.junit.jupiter.api.Assertions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -141,7 +142,7 @@ class WikiTest {
     }
 
     private static void assertSame(Object expected, Object actual) {
-        org.junit.jupiter.api.Assertions.assertSame(expected, actual);
+        Assertions.assertSame(expected, actual);
     }
 
     private static ArticleLayout.Page layout(String markdown, float width) {

@@ -3,6 +3,7 @@ package com.wf.wflib.physics.api;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /** Top of the tallest collision box in a block cell; NaN when it holds none. */
@@ -30,7 +31,11 @@ public interface CellTops {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         return (x, y, z) -> {
             pos.set(x, y, z);
-            VoxelShape shape = level.getBlockState(pos).getCollisionShape(level, pos);
+            BlockState state = level.getBlockState(pos);
+            if (state.is(PhysicsTags.VEHICLE_GHOST)) {
+                return Double.NaN;
+            }
+            VoxelShape shape = state.getCollisionShape(level, pos);
             return shape.isEmpty() ? Double.NaN : y + shape.max(Direction.Axis.Y);
         };
     }

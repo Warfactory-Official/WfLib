@@ -35,8 +35,11 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.neoforged.neoforge.common.util.FakePlayer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.IntStream;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Hazard x intensity x armour x shelter x duration on a player: damage hazards through the whole-entity armour door
@@ -74,7 +77,7 @@ public final class HazardsProducer implements LabProducer {
     @Override
     public void produce(LabContext ctx, LabSink sink) {
         List<ArmorSetups.Setup> sets = LabArmors.sets(ctx);
-        double[] durations = java.util.Arrays.stream(ctx.param("durations", "10,60,300").split(","))
+        double[] durations = Arrays.stream(ctx.param("durations", "10,60,300").split(","))
                 .mapToDouble(Double::parseDouble).toArray();
         List<LabShelter> shelters = LabShelters.all();
         List<Cell> cells = new ArrayList<>();
@@ -85,7 +88,7 @@ public final class HazardsProducer implements LabProducer {
         }
         ServerLevel level = ctx.level();
         double[][] sheltered = LabShelters.shield(level, shelters, cells, c -> c.hazard().kind(), HazardsProducer::in);
-        List<Integer> ix = java.util.stream.IntStream.range(0, cells.size()).boxed().toList();
+        List<Integer> ix = IntStream.range(0, cells.size()).boxed().toList();
         LabRows.eachWithVictim(ctx.executor(), level, ix,
                 (i, victim) -> cell(level, cells.get(i), sets, durations, shelters, sheltered[i], sink, victim));
     }
@@ -128,7 +131,7 @@ public final class HazardsProducer implements LabProducer {
                             String modifier, LabShelter shelter, double in, double after, DamageSource src,
                             ArmorSetups.Setup set, double[] durations, FakePlayer victim) {
         for (EquipmentSlot z : ArmorSetups.worn()) {
-            victim.setItemSlot(z, net.minecraft.world.item.ItemStack.EMPTY);
+            victim.setItemSlot(z, ItemStack.EMPTY);
         }
         victim.removeAllEffects();
         if (set != null) {

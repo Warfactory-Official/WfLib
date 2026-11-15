@@ -8,13 +8,16 @@ import com.wf.wflib.drone.api.DroneMission;
 import com.wf.wflib.drone.api.DroneProgram;
 import com.wf.wflib.drone.api.DronePadBlockEntity;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.wf.wflib.drone.api.ExchangeMode;
 import com.wf.wflib.drone.api.StationCode;
 import com.wf.wflib.build.api.Blueprint;
 import com.wf.wflib.build.api.BlueprintFormat;
+import com.wf.wflib.build.api.BlueprintFormats;
 import com.wf.wflib.build.api.BuildJobs;
 import com.wf.wflib.compat.api.TerritoryVerdict;
 import com.wf.wflib.build.api.WorkPlan;
+import com.wf.wflib.recon.api.ReconOwners;
 import com.wf.wflib.work.api.WorkJob;
 import com.wf.wflib.work.api.WorkData;
 import net.minecraft.ChatFormatting;
@@ -47,10 +50,10 @@ public final class BuildCommands {
 
     // --- stations, blueprints and work ---
 
-    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> BLUEPRINTS =
+    private static final SuggestionProvider<CommandSourceStack> BLUEPRINTS =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
                     BlueprintLibrary.names(ctx.getSource().getServer()), builder);
-    private static final com.mojang.brigadier.suggestion.SuggestionProvider<CommandSourceStack> JOBS =
+    private static final SuggestionProvider<CommandSourceStack> JOBS =
             (ctx, builder) -> SharedSuggestionProvider.suggest(
                     WorkData.get(ctx.getSource().getServer()).all().stream()
                             .map(job -> job.id().toString().substring(0, 8)).toList(), builder);
@@ -130,7 +133,7 @@ public final class BuildCommands {
     @Nullable
     private static UUID factionOf(CommandSourceStack src) {
         ServerPlayer player = src.getPlayer();
-        return player == null ? null : com.wf.wflib.recon.api.ReconOwners.owningEntity(player);
+        return player == null ? null : ReconOwners.owningEntity(player);
     }
 
     /**
@@ -153,7 +156,7 @@ public final class BuildCommands {
         List<String> names = BlueprintLibrary.names(src.getServer());
         if (names.isEmpty()) {
             src.sendSuccess(() -> Component.literal("No blueprints. Put " + String.join("/",
-                            com.wf.wflib.build.api.BlueprintFormats.extensions())
+                            BlueprintFormats.extensions())
                     + " files in " + BlueprintLibrary.FOLDER + " inside the world folder.")
                     .withStyle(ChatFormatting.GRAY), false);
             return 0;
@@ -366,7 +369,7 @@ public final class BuildCommands {
     @Nullable
     private static WorkJob findJob(CommandSourceStack src, String prefix) {
         List<WorkJob> matches = WorkData.get(src.getServer()).all().stream()
-                .filter(job -> job.id().toString().startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
+                .filter(job -> job.id().toString().startsWith(prefix.toLowerCase(Locale.ROOT)))
                 .toList();
         if (matches.isEmpty()) {
             src.sendFailure(Component.literal("No job starting '" + prefix + "'."));

@@ -9,6 +9,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
+import java.util.function.Function;
 
 /** Whether a job is allowed to happen where it is. */
 public final class SiteRules {
@@ -43,7 +44,7 @@ public final class SiteRules {
      * @param where set to the first refused position, if given.
      */
     public static TerritoryVerdict walk(BoundingBox box, @Nullable BlockPos.MutableBlockPos where,
-                                 java.util.function.Function<BlockPos, TerritoryVerdict> probe) {
+                                 Function<BlockPos, TerritoryVerdict> probe) {
         int minChunkX = SectionPos.blockToSectionCoord(box.minX());
         int maxChunkX = SectionPos.blockToSectionCoord(box.maxX());
         int minChunkZ = SectionPos.blockToSectionCoord(box.minZ());

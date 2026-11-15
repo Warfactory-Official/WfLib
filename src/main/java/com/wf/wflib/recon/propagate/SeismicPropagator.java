@@ -10,6 +10,7 @@ import com.wf.wflib.recon.api.SensorSnapshot;
 import com.wf.wflib.recon.api.TargetSnapshot;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.recon.api.Propagator;
+import java.util.Locale;
 
 /** The seismic model: range without bearing, through rock, from things that are moving it. */
 public final class SeismicPropagator implements Propagator {
@@ -123,7 +124,7 @@ public final class SeismicPropagator implements Propagator {
                 return "not moving enough rock";
             }
             if (snr < 1.0) {
-                return String.format(java.util.Locale.ROOT,
+                return String.format(Locale.ROOT,
                         "below the noise floor (amplitude %.4f, absorption %.3f/16blk, weather x%.2f)",
                         amplitude, absorption, environment);
             }

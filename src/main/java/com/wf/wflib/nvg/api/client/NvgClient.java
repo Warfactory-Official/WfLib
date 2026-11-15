@@ -2,6 +2,8 @@ package com.wf.wflib.nvg.api.client;
 
 import com.wf.gemrender.light.Lights;
 import com.wf.wflib.cam.api.client.FeedPass;
+import com.wf.wflib.cam.api.client.ScreenSensor;
+import com.wf.wflib.core.api.NightKey;
 import com.wf.wflib.nvg.NvgActionPacket;
 import com.wf.wflib.nvg.NvgServer;
 import com.wf.wflib.nvg.api.NvgWorn;
@@ -48,7 +50,7 @@ public final class NvgClient {
         boolean worn = !NvgWorn.nvg(player).isEmpty();
         while (NvgKeys.FLIP.consumeClick()) {
             if (!worn) {
-                com.wf.wflib.core.api.NightKey.UNHANDLED.get().getAsBoolean();
+                NightKey.UNHANDLED.get().getAsBoolean();
             } else if (flip(0.0f) < 0.0f) {
                 flipStart = now;
                 PacketDistributor.sendToServer(new NvgActionPacket(NvgActionPacket.Action.FLIP));
@@ -125,7 +127,7 @@ public final class NvgClient {
         if (FeedPass.active()) {
             return FeedPass.amplifying() ? Lights.IrView.MERGED : Lights.IrView.OFF;
         }
-        if (com.wf.wflib.cam.api.client.ScreenSensor.amplifying()) {
+        if (ScreenSensor.amplifying()) {
             return Lights.IrView.MERGED;
         }
         return viewing() ? Lights.IrView.SPLIT : Lights.IrView.OFF;

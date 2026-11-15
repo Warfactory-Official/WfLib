@@ -2,6 +2,7 @@ package com.wf.wflib.mixin.soldier;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.wf.wflib.core.api.WFSystems;
+import com.wf.wflib.soldier.client.HeadlampLayer;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -22,7 +23,7 @@ public abstract class MixinHumanoidArmorLayerLamp {
                             float c, float d, float e, float f, CallbackInfo ci) {
         if (entity instanceof AbstractClientPlayer player
                 && ((RenderLayer<?, ?>) (Object) this).getParentModel() instanceof HumanoidModel<?> parent && WFSystems.enabled("soldier")) {
-            com.wf.wflib.soldier.client.HeadlampLayer.draw(pose, light, player, parent, c);
+            HeadlampLayer.draw(pose, light, player, parent, c);
         }
     }
 }

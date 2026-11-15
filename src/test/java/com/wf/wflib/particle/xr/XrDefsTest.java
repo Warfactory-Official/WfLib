@@ -1,5 +1,6 @@
 package com.wf.wflib.particle.xr;
 
+import com.wf.wflib.particle.api.XrBlend;
 import net.minecraft.util.RandomSource;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +25,7 @@ class XrDefsTest {
                 resource("anomaly2/effects/electra2_flash_new_00.pe"));
         assertEquals(24, e.maxParticles());
         assertEquals(0.1F, e.timeLimit(), 1e-6);
-        assertEquals(com.wf.wflib.particle.api.XrBlend.ALPHA_ADD, e.blend());
+        assertEquals(XrBlend.ALPHA_ADD, e.blend());
         assertEquals("wflib:textures/xray/unrealengine/electricblast2.png", e.texture().toString());
         assertEquals(8, e.frameDimX());
         assertEquals(64, e.frameCount());

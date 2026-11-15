@@ -61,6 +61,9 @@ import com.wf.wflib.pda.api.client.PdaText;
 import com.wf.wflib.pda.api.client.PdaLog;
 import com.wf.wflib.pda.api.client.PdaTheme;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.client.PdaPopup;
+import com.wf.wflib.pda.api.client.PdaSounds;
+import com.wf.wflib.ui.api.widget.Text;
 
 import static com.wf.wflib.ui.api.Ui.at;
 import static com.wf.wflib.ui.api.Ui.drag;
@@ -880,12 +883,12 @@ public final class DronesApp implements PdaApp {
     /** Mission / control chip, 42 wide. */
     private static WidgetDef chip(String label, String enabled, String fill, Runnable action) {
         return new Button(item -> action.run(), enabled, fill, PdaShell.HOVER, PdaShell.PRESS, PdaShell.EDGE, 1, 0, 3, 2,
-                42, 0, Point.CENTER, new com.wf.wflib.ui.api.widget.Text(label, enabled + " ? " + PdaShell.TEXT + " : "
+                42, 0, Point.CENTER, new Text(label, enabled + " ? " + PdaShell.TEXT + " : "
                         + PdaShell.DIM, false, "0.8", "36"));
     }
 
     private static WidgetDef tab(String label, String active, Runnable action, float right, float y) {
-        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> { com.wf.wflib.pda.api.client.PdaSounds.tab(); action.run(); }, "true",
+        return place(Float.toString(right), Float.toString(y), Point.TOP_RIGHT, new Button(item -> { PdaSounds.tab(); action.run(); }, "true",
                 active + " ? " + PdaShell.PRESS + " : " + PdaShell.PANEL, PdaShell.HOVER, PdaShell.PRESS,
                 PdaShell.EDGE, 1, 0, 4, 1, 0, 0, Point.TOP_RIGHT, text(label, PdaShell.TEXT)));
     }
@@ -1006,7 +1009,7 @@ public final class DronesApp implements PdaApp {
                         cx += cw + GAP;
                     }
                     if (ev.input != null && ev.input.over(x, y, x + w, y + CELL_H))
-                        com.wf.wflib.pda.api.client.PdaPopup.show("SYSTEMS", "", String.join("; ",
+                        PdaPopup.show("SYSTEMS", "", String.join("; ",
                                 row.entry().cells().stream().map(cell -> cell.label() + " " + Math.round(cell.ratio() * 100) + "%").toList()));
                 }
             };

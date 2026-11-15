@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 import com.wf.wflib.orbital.api.SatPayloads;
 import com.wf.wflib.orbital.api.Satellite;
+import java.util.Map;
 
 public final class OrbitalManager {
 
@@ -44,7 +45,7 @@ public final class OrbitalManager {
             return;
         }
         SimTier<SimMissile> missiles = SimMissileManager.tier(level);
-        for (java.util.Map.Entry<java.util.UUID, OrbitalDescentData.Descent> entry : descents.entries()) {
+        for (Map.Entry<UUID, OrbitalDescentData.Descent> entry : descents.entries()) {
             SimMissile flying = SimMissileManager.find(level, entry.getKey());
             if (flying == null) {
                 descents.remove(entry.getKey());

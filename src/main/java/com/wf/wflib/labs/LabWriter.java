@@ -12,6 +12,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CancellationException;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -67,7 +68,7 @@ final class LabWriter implements LabSink, Closeable {
                     + table.columns().size() + " columns");
         }
         if (tap != null && tap.cancelled()) {
-            throw new java.util.concurrent.CancellationException(table.name());
+            throw new CancellationException(table.name());
         }
         StringBuilder sb = LINE.get();
         sb.setLength(0);

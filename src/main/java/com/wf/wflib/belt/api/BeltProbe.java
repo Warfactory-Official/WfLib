@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -174,7 +175,7 @@ public final class BeltProbe {
     }
 
     public void clearCounts() {
-        java.util.Arrays.fill(counts, 0);
+        Arrays.fill(counts, 0);
     }
 
     void record(BeltChain c, Input in, Mode mode, int need, boolean clamped) {

@@ -2,6 +2,7 @@ package com.wf.wflib.mixin.soldier;
 
 import com.wf.wflib.soldier.SoldierSections;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Final;
@@ -16,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class MixinLevelChunkSoldier {
     @Shadow
     @Final
-    net.minecraft.world.level.Level level;
+    Level level;
 
     @Inject(method = "setBlockState(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Z)Lnet/minecraft/world/level/block/state/BlockState;",
             at = @At("RETURN"))

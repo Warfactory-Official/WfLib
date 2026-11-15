@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Where a soldier tick goes: rays, searches and time per phase, over the last {@link #WINDOW} ticks. Server thread only.
@@ -15,8 +16,8 @@ public final class SoldierProfiler {
 
     // counters of the tick in progress
     /** Nanos workers spent on searches since the last report (any thread). */
-    static final java.util.concurrent.atomic.LongAdder asyncNanos = new java.util.concurrent.atomic.LongAdder();
-    static final java.util.concurrent.atomic.LongAdder asyncJobs = new java.util.concurrent.atomic.LongAdder();
+    static final LongAdder asyncNanos = new LongAdder();
+    static final LongAdder asyncJobs = new LongAdder();
     static long rays, routes, nodes, covers, routeNanos, coverNanos, driveNanos;
 
     private static final long[] TICK = new long[WINDOW], DRIVE = new long[WINDOW], ROUTE = new long[WINDOW],

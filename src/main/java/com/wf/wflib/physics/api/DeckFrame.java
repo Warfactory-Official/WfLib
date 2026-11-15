@@ -53,26 +53,26 @@ public final class DeckFrame {
         if (sinPitch > GIMBAL_LIMIT || sinPitch < -GIMBAL_LIMIT) {
             // Gimbal lock: cos(pitch)=0 => both quotients 0/0, yaw/roll conflated. All to yaw, roll=0;
             // matches what the rest of the physics does with a vertical hull anyway.
-            pitch = sinPitch > 0 ? (float) java.lang.Math.PI * 0.5f : (float) -java.lang.Math.PI * 0.5f;
-            yawRad = (float) java.lang.Math.atan2(-m.m02, m.m00);
+            pitch = sinPitch > 0 ? (float) Math.PI * 0.5f : (float) -Math.PI * 0.5f;
+            yawRad = (float) Math.atan2(-m.m02, m.m00);
             rollRad = 0;
         } else {
-            pitch = (float) java.lang.Math.asin(sinPitch);
-            yawRad = (float) java.lang.Math.atan2(m.m20, m.m22);
-            rollRad = (float) java.lang.Math.atan2(m.m01, m.m11);
+            pitch = (float) Math.asin(sinPitch);
+            yawRad = (float) Math.atan2(m.m20, m.m22);
+            rollRad = (float) Math.atan2(m.m01, m.m11);
         }
-        out[0] = (float) -java.lang.Math.toDegrees(yawRad);
-        out[1] = (float) java.lang.Math.toDegrees(pitch);
-        out[2] = (float) java.lang.Math.toDegrees(rollRad);
+        out[0] = (float) -Math.toDegrees(yawRad);
+        out[1] = (float) Math.toDegrees(pitch);
+        out[2] = (float) Math.toDegrees(rollRad);
         return out;
     }
 
     /** Inverse of toEulerYXZ. */
     public static Quaternionf fromEulerYXZ(float yaw, float pitch, float roll, Quaternionf dest) {
         return dest.identity()
-                .rotateY((float) java.lang.Math.toRadians(-yaw))
-                .rotateX((float) java.lang.Math.toRadians(pitch))
-                .rotateZ((float) java.lang.Math.toRadians(roll));
+                .rotateY((float) Math.toRadians(-yaw))
+                .rotateX((float) Math.toRadians(pitch))
+                .rotateZ((float) Math.toRadians(roll));
     }
 
     // ---------------------------------------------------------------- box selection

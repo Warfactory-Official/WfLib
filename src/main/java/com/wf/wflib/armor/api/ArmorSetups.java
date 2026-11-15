@@ -93,7 +93,7 @@ public final class ArmorSetups {
     }
 
     /** True for the armour test fixtures that must not appear in player-facing catalogues. */
-    public static boolean isDev(net.minecraft.resources.ResourceLocation id) {
+    public static boolean isDev(ResourceLocation id) {
         return ArmorCatalogue.isDev(id);
     }
 

@@ -9,6 +9,9 @@ import com.wf.wflib.armor.api.hull.HullWear;
 import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.geom.api.OBB;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -29,7 +32,7 @@ class HullGoldenTest {
     static final float[] PEN = {5, 40, 120, 300, 900};
 
     long h = 17;
-    final java.util.Set<Object> seen = new java.util.HashSet<>();
+    final Set<Object> seen = new HashSet<>();
 
     void f(float x) {
         h = h * 31 + Float.floatToIntBits(x);
@@ -108,7 +111,7 @@ class HullGoldenTest {
         v(p.normal());
         f(p.face().ordinal());
         v(p.faceNormal());
-        h = h * 31 + java.util.Objects.hashCode(p.part()) + 7L * java.util.Objects.hashCode(p.zone());
+        h = h * 31 + Objects.hashCode(p.part()) + 7L * Objects.hashCode(p.zone());
         f(p.nominal());
         f(p.plateId() == null ? 0 : 1);
         f(p.wear());

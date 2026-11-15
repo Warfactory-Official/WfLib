@@ -25,7 +25,7 @@ class AmmoCatalogueTest {
 
     @BeforeAll
     static void defineCatalogue() {
-        com.wf.wflib.ammo.AmmoCatalogue.define();
+        AmmoCatalogue.define();
     }
 
     private static ResourceLocation rl(String p) {

@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiPredicate;
+import xaero.map.WorldMapSession;
 
 /**
  * Xaero's World Map. No overlay or toolbar API: layers and tool graphics draw from one element renderer (under
@@ -91,8 +92,8 @@ public final class XaeroWorldMapHost implements MapHost {
     @Override
     public void openFullscreen() {
         Minecraft mc = Minecraft.getInstance();
-        mc.setScreen(new xaero.map.gui.GuiMap(null, null,
-                xaero.map.WorldMapSession.getCurrentSession().getMapProcessor(), mc.getCameraEntity()));
+        mc.setScreen(new GuiMap(null, null,
+                WorldMapSession.getCurrentSession().getMapProcessor(), mc.getCameraEntity()));
     }
 
     @Override

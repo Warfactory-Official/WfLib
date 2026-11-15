@@ -20,6 +20,7 @@ import com.wf.wflib.armor.api.ArmorExposure;
 import com.wf.wflib.armor.api.ArmorProfiles;
 import com.wf.wflib.armor.api.ArmorResolution;
 import com.wf.wflib.armor.api.ArmorStacks;
+import com.wf.wflib.armor.api.exo.ExoServer;
 
 /** Armour/game event glue. Reduction itself runs in {@code DamageEventHandler} at {@code HIGH} priority, so later listeners read the post-armour amount. */
 public final class ArmorEvents {
@@ -58,7 +59,7 @@ public final class ArmorEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         ArmorExposure.tick(event.getServer());
-        com.wf.wflib.armor.api.exo.ExoServer.tick(event.getServer());
+        ExoServer.tick(event.getServer());
         BLOCKED.forEach((entity, slots) -> {
             for (EquipmentSlot slot : slots) {
                 ItemStack stack = entity.getItemBySlot(slot);

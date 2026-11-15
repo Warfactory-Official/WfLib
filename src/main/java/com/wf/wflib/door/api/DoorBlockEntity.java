@@ -30,6 +30,10 @@ import com.wf.wflib.door.DoorKeyItem;
 import com.wf.wflib.door.DoorLockItem;
 import com.wf.wflib.door.DoorRole;
 import com.wf.wflib.door.DoorContent;
+import com.wf.wflib.door.client.DoorLoops;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
+import net.minecraft.world.InteractionHand;
 
 /**
  * The one block of a door that thinks: its state machine, the blocks it clears as it swings, its lock, and the
@@ -292,7 +296,7 @@ public class DoorBlockEntity extends BlockEntity {
         setChanged();
     }
 
-    public ItemInteractionResult useItem(ItemStack stack, Player player, net.minecraft.world.InteractionHand hand) {
+    public ItemInteractionResult useItem(ItemStack stack, Player player, InteractionHand hand) {
         if (level == null) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
@@ -392,7 +396,7 @@ public class DoorBlockEntity extends BlockEntity {
         pins = tag.getInt("Pins");
         pickChance = tag.contains("PickChance") ? tag.getDouble("PickChance") : 0.1;
         poweredBy.clear();
-        ListTag list = tag.getList("PoweredBy", net.minecraft.nbt.Tag.TAG_COMPOUND);
+        ListTag list = tag.getList("PoweredBy", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             CompoundTag entry = list.getCompound(i);
             poweredBy.add(new BlockPos(entry.getInt("x"), entry.getInt("y"), entry.getInt("z")));
@@ -441,12 +445,12 @@ public class DoorBlockEntity extends BlockEntity {
      * motor.
      */
     @Override
-    public void onDataPacket(net.minecraft.network.Connection net, ClientboundBlockEntityDataPacket packet,
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket packet,
                              HolderLookup.Provider registries) {
         DoorState previous = state;
         super.onDataPacket(net, packet, registries);
         if (previous != state && level != null && level.isClientSide) {
-            com.wf.wflib.door.client.DoorLoops.onStateChanged(this, previous, state);
+            DoorLoops.onStateChanged(this, previous, state);
         }
     }
 }

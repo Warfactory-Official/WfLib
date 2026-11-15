@@ -7,6 +7,14 @@ import net.minecraft.world.item.ArmorItem;
 import java.util.Map;
 import com.wf.wflib.armor.api.ArmorPreset;
 import com.wf.wflib.armor.api.ProtectionType;
+import com.wf.wflib.armor.api.exo.ExoFeature;
+import com.wf.wflib.armor.api.exo.ExoPart;
+import com.wf.wflib.armor.api.exo.ExoSpec;
+import com.wf.wflib.armor.api.exo.ExoStats;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Dev-only test pieces: Modular Warfare archive models ({@code modular-archive-gltf}) via GemRender.
@@ -17,14 +25,14 @@ final class MwTestArmor {
     private MwTestArmor() {
     }
 
-    private static final java.util.Set<ResourceLocation> IDS = new java.util.HashSet<>();
+    private static final Set<ResourceLocation> IDS = new HashSet<>();
 
     static boolean isDev(ResourceLocation id) {
         return IDS.contains(id);
     }
 
     static void addTo(Map<ResourceLocation, ArmorPreset> presets) {
-        java.util.Set<ResourceLocation> before = new java.util.HashSet<>(presets.keySet());
+        Set<ResourceLocation> before = new HashSet<>(presets.keySet());
         addAll(presets);
         IDS.addAll(presets.keySet());
         IDS.removeAll(before);
@@ -47,24 +55,24 @@ final class MwTestArmor {
     }
 
     /** Repairs with logs; every feature on one piece. */
-    static com.wf.wflib.armor.api.exo.ExoSpec testExo() {
-        com.wf.wflib.armor.api.exo.ExoStats on = new com.wf.wflib.armor.api.exo.ExoStats(true, 30.0D,
+    static ExoSpec testExo() {
+        ExoStats on = new ExoStats(true, 30.0D,
                 Map.of("grenades", 4), 0.6D, 0.4D, true, true);
-        com.wf.wflib.armor.api.exo.ExoStats off = new com.wf.wflib.armor.api.exo.ExoStats(false, 0.0D, Map.of(),
+        ExoStats off = new ExoStats(false, 0.0D, Map.of(),
                 0.0D, 0.0D, false, false);
-        java.util.List<com.wf.wflib.armor.api.exo.ExoPart> parts = java.util.List.of(
-                new com.wf.wflib.armor.api.exo.ExoPart("arms", 100, java.util.EnumSet.of(
-                        com.wf.wflib.armor.api.exo.ExoFeature.RECOIL, com.wf.wflib.armor.api.exo.ExoFeature.SWAY,
-                        com.wf.wflib.armor.api.exo.ExoFeature.TRIGGER, com.wf.wflib.armor.api.exo.ExoFeature.SHOULDER),
-                        java.util.Set.of("left_arm", "right_arm")),
-                new com.wf.wflib.armor.api.exo.ExoPart("legs", 100, java.util.EnumSet.of(
-                        com.wf.wflib.armor.api.exo.ExoFeature.SPRINT, com.wf.wflib.armor.api.exo.ExoFeature.CARRY),
-                        java.util.Set.of("left_leg", "right_leg")),
-                new com.wf.wflib.armor.api.exo.ExoPart("core", 100, java.util.EnumSet.of(
-                        com.wf.wflib.armor.api.exo.ExoFeature.REACTOR, com.wf.wflib.armor.api.exo.ExoFeature.LIFE_SUPPORT),
-                        java.util.Set.of("torso")));
-        return new com.wf.wflib.armor.api.exo.ExoSpec(on, off, 20.0D, parts, true, true,
-                java.util.Set.of(ResourceLocation.fromNamespaceAndPath("minecraft", "logs")));
+        List<ExoPart> parts = List.of(
+                new ExoPart("arms", 100, EnumSet.of(
+                        ExoFeature.RECOIL, ExoFeature.SWAY,
+                        ExoFeature.TRIGGER, ExoFeature.SHOULDER),
+                        Set.of("left_arm", "right_arm")),
+                new ExoPart("legs", 100, EnumSet.of(
+                        ExoFeature.SPRINT, ExoFeature.CARRY),
+                        Set.of("left_leg", "right_leg")),
+                new ExoPart("core", 100, EnumSet.of(
+                        ExoFeature.REACTOR, ExoFeature.LIFE_SUPPORT),
+                        Set.of("torso")));
+        return new ExoSpec(on, off, 20.0D, parts, true, true,
+                Set.of(ResourceLocation.fromNamespaceAndPath("minecraft", "logs")));
     }
 
     private static void add(Map<ResourceLocation, ArmorPreset> presets, String path, ArmorItem.Type type,

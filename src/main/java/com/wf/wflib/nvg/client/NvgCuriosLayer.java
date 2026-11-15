@@ -1,6 +1,7 @@
 package com.wf.wflib.nvg.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.wf.wflib.core.client.WearerScope;
 import com.wf.wflib.nvg.NvgCurios;
 import com.wf.wflib.nvg.api.NvgItem;
 import com.wf.wflib.nvg.api.NvgWorn;
@@ -27,11 +28,11 @@ public final class NvgCuriosLayer {
         if (nvg.isEmpty()) return;
         HumanoidModel m = (HumanoidModel) NvgItemClient.INSTANCE.getHumanoidArmorModel(player, nvg, EquipmentSlot.HEAD, null);
         parent.copyPropertiesTo(m);
-        com.wf.wflib.core.client.WearerScope.begin(parent);
+        WearerScope.begin(parent);
         try {
             m.renderToBuffer(pose, null, light, OverlayTexture.NO_OVERLAY, -1);
         } finally {
-            com.wf.wflib.core.client.WearerScope.end();
+            WearerScope.end();
         }
     }
 }

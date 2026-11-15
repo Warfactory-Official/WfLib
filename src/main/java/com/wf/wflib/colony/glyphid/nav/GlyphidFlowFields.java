@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.wf.wflib.colony.api.GlyphidFlowField;
+import java.util.Locale;
 
 /** The few flow fields a level has going, and the budget they are built inside. */
 public final class GlyphidFlowFields {
@@ -151,7 +152,7 @@ public final class GlyphidFlowFields {
         }
         long now = level.getGameTime();
         for (Entry entry : entries) {
-            lines.add(String.format(java.util.Locale.ROOT,
+            lines.add(String.format(Locale.ROOT,
                     "  field at (%d, %d): %d columns, %s%s, read %d ticks ago",
                     entry.field.centreX(), entry.field.centreZ(), entry.field.filled(),
                     entry.field.complete() ? "complete" : "building",

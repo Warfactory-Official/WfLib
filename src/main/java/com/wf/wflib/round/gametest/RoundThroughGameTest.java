@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import net.minecraft.core.BlockPos;
 
 /**
  * What a round does after the armour owner answers its strike. The victim is a cart: a body with volume that a slow
@@ -394,7 +395,7 @@ public class RoundThroughGameTest {
 
     /** Middle of the 3x3 footprint, {@link #HEIGHT} up. */
     private static Vec3 spot(GameTestHelper helper) {
-        net.minecraft.core.BlockPos origin = helper.absolutePos(net.minecraft.core.BlockPos.ZERO);
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
         return new Vec3(origin.getX() + 1.5, origin.getY() + HEIGHT, origin.getZ() + 1.5);
     }
 }

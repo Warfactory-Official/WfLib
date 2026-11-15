@@ -1,6 +1,7 @@
 package com.wf.wflib.corpse.api;
 
 import com.mojang.datafixers.util.Pair;
+import java.util.List;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -177,7 +178,7 @@ public class CorpseMenu extends AbstractContainerMenu {
         private @Nullable CorpseEntity.Entry entry(int pos) {
             if (pos >= EXTRA) {
                 int i = data.get(1) * EXTRA_COLS + pos - EXTRA;
-                java.util.List<CorpseEntity.Entry> extras = corpse.extras();
+                List<CorpseEntity.Entry> extras = corpse.extras();
                 return i < extras.size() ? extras.get(i) : null;
             }
             for (CorpseEntity.Entry e : corpse.entries()) {

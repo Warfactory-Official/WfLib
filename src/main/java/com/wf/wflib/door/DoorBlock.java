@@ -33,6 +33,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.door.api.DoorBlockEntity;
 import com.wf.wflib.door.api.DoorType;
+import net.minecraft.world.InteractionHand;
 
 /** Every block of every door. */
 public class DoorBlock extends BaseEntityBlock {
@@ -203,7 +204,7 @@ public class DoorBlock extends BaseEntityBlock {
 
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
-                                              Player player, net.minecraft.world.InteractionHand hand,
+                                              Player player, InteractionHand hand,
                                               BlockHitResult hit) {
         BlockPos core = DoorFrame.findCore(level, pos, this);
         if (core == null || !(level.getBlockEntity(core) instanceof DoorBlockEntity door)) {

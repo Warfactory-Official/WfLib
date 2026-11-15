@@ -18,6 +18,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import net.minecraft.commands.CommandSourceStack;
 
 /** {@code /soldiers spawn|clear|profile|check|routebench|async}: bench and debug tools (permission level 2). */
 final class SoldierCommands {
@@ -67,14 +68,14 @@ final class SoldierCommands {
         event.getDispatcher().register(root);
     }
 
-    private static int light(net.minecraft.commands.CommandSourceStack source, String mode) {
+    private static int light(CommandSourceStack source, String mode) {
         int n = SoldierAi.lightAll(mode);
         source.sendSuccess(() -> Component.literal("weapon lights " + mode + " for " + n + " soldiers"
                 + ("auto".equals(mode) ? " (on in the dark: night, storms, caves)" : "")), false);
         return n;
     }
 
-    private static int spawn(net.minecraft.commands.CommandSourceStack source, String side, int count, int radius) {
+    private static int spawn(CommandSourceStack source, String side, int count, int radius) {
         SoldierSpec spec = SoldierServices.spec(side);
         if (spec == null) {
             source.sendFailure(Component.literal("sides: " + SoldierServices.sides() + " (and a usable gun must be installed)"));
@@ -96,7 +97,7 @@ final class SoldierCommands {
         return made;
     }
 
-    private static int profile(net.minecraft.commands.CommandSourceStack source, boolean reset) {
+    private static int profile(CommandSourceStack source, boolean reset) {
         var report = SoldierProfiler.report(reset);
         report.addProperty("server_tick_ms_avg", Math.round(source.getServer().getAverageTickTimeNanos() / 1e4) / 100.0);
         source.sendSuccess(() -> Component.literal(report.toString()), false);
@@ -104,7 +105,7 @@ final class SoldierCommands {
     }
 
     /** Compares the live world with its block copy on random cells and sight lines around the caller. */
-    private static int check(ServerLevel level, Vec3 centre, int radius, net.minecraft.commands.CommandSourceStack source) {
+    private static int check(ServerLevel level, Vec3 centre, int radius, CommandSourceStack source) {
         BlockPos min = BlockPos.containing(centre).offset(-radius - 2, -8, -radius - 2);
         BlockPos max = BlockPos.containing(centre).offset(radius + 2, 8, radius + 2);
         boolean complete = false;
@@ -144,7 +145,7 @@ final class SoldierCommands {
     }
 
     /** Random routes within 30 blocks of the caller: the live search, the same search over the copy, and what handing it to a worker costs the tick thread. */
-    private static int routeBench(net.minecraft.commands.CommandSourceStack source) {
+    private static int routeBench(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
         Vec3 centre = source.getPosition();
         BlockPos base = BlockPos.containing(centre);

@@ -10,6 +10,7 @@ import com.wf.wflib.recon.api.SensorSnapshot;
 import com.wf.wflib.recon.api.TargetSnapshot;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.recon.api.Propagator;
+import java.util.Locale;
 
 /** The thermal model: a very good bearing, a very bad range, and nothing to jam. */
 public final class ThermalPropagator implements Propagator {
@@ -113,7 +114,7 @@ public final class ThermalPropagator implements Propagator {
                 return "cold";
             }
             if (range > detectionRange) {
-                return String.format(java.util.Locale.ROOT,
+                return String.format(Locale.ROOT,
                         "out of range (%.0f > %.0f, ambient %.0fC, weather x%.2f)",
                         range, detectionRange, ambientC, environment);
             }

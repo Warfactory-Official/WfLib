@@ -5,6 +5,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.logging.LogUtils;
 import com.wf.gemrender.lens.Lenses;
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
+import com.wf.wflib.anomaly.api.SitePlan;
+import com.wf.wflib.artifact.api.Artifact;
+import com.wf.wflib.artifact.api.ArtifactItem;
+import com.wf.wflib.artifact.api.ZoneArtifact;
+import com.wf.wflib.artifact.api.client.ArtifactRenderer;
+import com.wf.wflib.artifact.api.client.DetectorProbe;
+import com.wf.wflib.core.api.client.DebugGate;
+import com.wf.wflib.particle.api.client.XrParticles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -23,8 +31,26 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import net.minecraft.client.CameraType;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
+import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import org.joml.Vector3f;
 
 /**
  * Anomaly test bench, client side. {@code /wfdebug anomaly status} dumps the chain from anomaly to screen (config,
@@ -68,7 +94,7 @@ public final class AnomalyDebug {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
-        return Commands.literal("wfdebug").requires(s -> com.wf.wflib.core.api.client.DebugGate.allowed()).then(Commands.literal("anomaly")
+        return Commands.literal("wfdebug").requires(s -> DebugGate.allowed()).then(Commands.literal("anomaly")
                 .then(Commands.literal("status").executes(c -> {
                     status().forEach(line -> c.getSource().sendSuccess(() -> Component.literal(line), false));
                     status().forEach(line -> LOGGER.info("[anomaly-test] {}", line));
@@ -99,7 +125,7 @@ public final class AnomalyDebug {
         List<String> out = new ArrayList<>();
         long now = System.nanoTime();
         out.add(Lenses.getInstance().report());
-        out.add(com.wf.wflib.particle.api.client.XrParticles.report());
+        out.add(XrParticles.report());
         out.add("live set: " + AnomalyClient.live().size());
         Vec3 eye = mc.player == null ? Vec3.ZERO : mc.player.getEyePosition();
         for (AnomalyBlockEntity be : List.copyOf(AnomalyClient.live())) {
@@ -307,7 +333,7 @@ public final class AnomalyDebug {
         final boolean bolt;
         int wait;
         @Nullable
-        net.minecraft.world.entity.animal.Pig pig;
+        Pig pig;
         float startHealth;
         double startY;
         double peakY = -1.0E9D;
@@ -334,8 +360,8 @@ public final class AnomalyDebug {
             }
             if (pig == null) {
                 Vec3 c = Vec3.atBottomCenterOf(target);
-                pig = mc.level.getEntitiesOfClass(net.minecraft.world.entity.animal.Pig.class,
-                        new net.minecraft.world.phys.AABB(c, c).inflate(3.0D)).stream().findFirst().orElse(null);
+                pig = mc.level.getEntitiesOfClass(Pig.class,
+                        new AABB(c, c).inflate(3.0D)).stream().findFirst().orElse(null);
                 if (pig != null) {
                     startHealth = pig.getHealth();
                     startY = pig.getY();
@@ -422,7 +448,7 @@ public final class AnomalyDebug {
         // forced lifts, and the switch itself by where the lift ends up, not by filmstrip.
         if (holding >= 50 && holding < 100 && (holding - 50) % 10 == 0) {
             float lift = (holding - 50) / 40.0F;
-            com.wf.wflib.artifact.api.client.ArtifactRenderer.forceLift(lift);
+            ArtifactRenderer.forceLift(lift);
         } else if (holding >= 50 && holding < 100 && (holding - 50) % 10 == 8) {
             shot(String.format(Locale.ROOT, "artifact-lift-%.2f", (holding - 58) / 40.0F));
         }
@@ -430,9 +456,9 @@ public final class AnomalyDebug {
             case 40 -> {
                 shot("artifact-first-person");
                 // The light must be at the artefact: ahead along the view, about half a block from the eyes.
-                net.minecraft.world.phys.Vec3 eye = mc.gameRenderer.getMainCamera().getPosition();
-                org.joml.Vector3f l = com.wf.wflib.artifact.api.client.ArtifactRenderer.LAST_LIGHT;
-                net.minecraft.world.phys.Vec3 to = new net.minecraft.world.phys.Vec3(l.x, l.y, l.z).subtract(eye);
+                Vec3 eye = mc.gameRenderer.getMainCamera().getPosition();
+                Vector3f l = ArtifactRenderer.LAST_LIGHT;
+                Vec3 to = new Vec3(l.x, l.y, l.z).subtract(eye);
                 double ahead = to.normalize().dot(mc.player.getLookAngle());
                 // At the artefact (~0.4 out) plus the set-back behind it (0.35).
                 lightOk = ahead > 0.7D && to.length() > 0.5D && to.length() < 1.1D;
@@ -441,25 +467,25 @@ public final class AnomalyDebug {
             }
             case 42, 44 -> shot("artifact-first-person-" + holding);
             case 100 -> {
-                com.wf.wflib.artifact.api.client.ArtifactRenderer.forceLift(-1.0F);
+                ArtifactRenderer.forceLift(-1.0F);
                 select(mc, 1);
             }
             case 140 -> {
-                switchChecks.add(com.wf.wflib.artifact.api.client.ArtifactRenderer.lift() == 0.0F
-                        || !(mc.player.getMainHandItem().getItem() instanceof com.wf.wflib.artifact.api.ArtifactItem)
-                        && com.wf.wflib.artifact.api.client.ArtifactRenderer.lift() <= 0.05F);
+                switchChecks.add(ArtifactRenderer.lift() == 0.0F
+                        || !(mc.player.getMainHandItem().getItem() instanceof ArtifactItem)
+                        && ArtifactRenderer.lift() <= 0.05F);
                 select(mc, 0);
             }
-            case 180 -> switchChecks.add(com.wf.wflib.artifact.api.client.ArtifactRenderer.lift() >= 0.999F);
-            case 185 -> mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
+            case 180 -> switchChecks.add(ArtifactRenderer.lift() >= 0.999F);
+            case 185 -> mc.setScreen(new InventoryScreen(mc.player));
             case 205 -> {
                 shot("artifact-inventory");
                 mc.setScreen(null);
             }
             case 215 -> {
                 // Dropped, close: 1.2 blocks ahead, looked down at (where a flat glow would show its edges).
-                mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
-                net.minecraft.world.phys.Vec3 at = mc.player.position().add(
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+                Vec3 at = mc.player.position().add(
                         mc.player.getLookAngle().multiply(1, 0, 1).normalize().scale(1.2D));
                 mc.player.connection.sendCommand(String.format(Locale.ROOT,
                         "summon item %.2f %.2f %.2f {Item:{id:\"%s\",count:1},PickupDelay:32767,NoGravity:0b}",
@@ -470,11 +496,11 @@ public final class AnomalyDebug {
             case 228 -> {
                 mc.player.connection.sendCommand("kill @e[type=item,distance=..4]");
                 mc.player.setXRot(10.0F);
-                mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+                mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
             }
             case 235 -> {
                 shot("artifact-third-person");
-                mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
                 // Worn: one in an artifact slot, in survival with no natural regeneration.
                 mc.player.connection.sendCommand("gamemode survival");
                 mc.player.connection.sendCommand("gamerule naturalRegeneration false");
@@ -485,12 +511,12 @@ public final class AnomalyDebug {
             case 260 -> {
                 healthBefore = mc.player.getHealth();
                 // Shock: 4 should land as 4 x (1 - shock). Healing: knocked down 6 first, then measured.
-                mc.player.connection.sendCommand(wornArtifact().immunity(com.wf.wflib.artifact.api.Artifact.Hit.SHOCK) != 0.0F ? "damage @s 4 wflib:electric"
+                mc.player.connection.sendCommand(wornArtifact().immunity(Artifact.Hit.SHOCK) != 0.0F ? "damage @s 4 wflib:electric"
                         : "damage @s 6 minecraft:generic");
             }
             case 270 -> healthHealing = mc.player.getHealth();
             case 370 -> {
-                com.wf.wflib.artifact.api.Artifact a = wornArtifact();
+                Artifact a = wornArtifact();
                 // Taken just after the hit: a draining artefact keeps taking health over the healing window.
                 float lost = healthBefore - healthHealing;
                 float healed = mc.player.getHealth() - healthHealing;
@@ -501,7 +527,7 @@ public final class AnomalyDebug {
                 // Shock: as above. Healing: 5 s at its rate (ticks counted server side, so a tick either way).
                 float expectHeal = a.healthPerSecond(mc.player.getMaxHealth()) * 5.0F;
                 float perSecond = Math.abs(a.healthPerSecond(mc.player.getMaxHealth()));
-                boolean worn = a.immunity(com.wf.wflib.artifact.api.Artifact.Hit.SHOCK) != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.immunity(com.wf.wflib.artifact.api.Artifact.Hit.SHOCK))) < 0.05F + perSecond
+                boolean worn = a.immunity(Artifact.Hit.SHOCK) != 0.0F ? Math.abs(lost - 4.0F * (1.0F - a.immunity(Artifact.Hit.SHOCK))) < 0.05F + perSecond
                         : Math.abs(healed - expectHeal) <= perSecond + 0.01F;
                 boolean away = switchChecks.size() == 2 && switchChecks.get(0);
                 boolean back = switchChecks.size() == 2 && switchChecks.get(1);
@@ -511,9 +537,9 @@ public final class AnomalyDebug {
                         "  " + (lit ? "ok  " : "FAIL") + " its light is at it, ahead of the eyes",
                         "  " + (away ? "ok  " : "FAIL") + " switched away, it was put away (lift 0)",
                         "  " + (back ? "ok  " : "FAIL") + " switched back, it came up (lift 1)",
-                        "  " + (worn ? "ok  " : "FAIL") + (a.immunity(com.wf.wflib.artifact.api.Artifact.Hit.SHOCK) != 0.0F
+                        "  " + (worn ? "ok  " : "FAIL") + (a.immunity(Artifact.Hit.SHOCK) != 0.0F
                                 ? " worn, 4 shock took " + String.format(Locale.ROOT, "%.2f (%.2f)", lost,
-                                4.0F * (1.0F - a.immunity(com.wf.wflib.artifact.api.Artifact.Hit.SHOCK)))
+                                4.0F * (1.0F - a.immunity(Artifact.Hit.SHOCK)))
                                 : " worn, 5 s healed " + String.format(Locale.ROOT, "%.3f (%.3f)", healed,
                                 expectHeal))), status());
             }
@@ -539,14 +565,14 @@ public final class AnomalyDebug {
         int step = gallery / GALLERY_STEP;
         int phase = gallery % GALLERY_STEP;
         gallery++;
-        List<com.wf.wflib.artifact.api.Artifact> all = com.wf.wflib.artifact.api.Artifact.ALL;
+        List<Artifact> all = Artifact.ALL;
         if (step >= all.size() * GALLERY_TURNS.length) {
             gallery = -1;
             mc.options.hideGui = false;
             finish(List.of("[PASS] artifact gallery: " + step + " shots"), status());
             return;
         }
-        com.wf.wflib.artifact.api.Artifact a = all.get(step / GALLERY_TURNS.length);
+        Artifact a = all.get(step / GALLERY_TURNS.length);
         int turn = step % GALLERY_TURNS.length;
         if (phase == 0) {
             mc.options.hideGui = true;
@@ -567,15 +593,15 @@ public final class AnomalyDebug {
     private static float healthHealing;
     private static boolean lightOk;
 
-    private static com.wf.wflib.artifact.api.Artifact wornArtifact() {
-        net.minecraft.world.item.Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                net.minecraft.resources.ResourceLocation.parse(HOLD_ITEM));
-        return ((com.wf.wflib.artifact.api.ArtifactItem) item).artifact();
+    private static Artifact wornArtifact() {
+        Item item = BuiltInRegistries.ITEM.get(
+                ResourceLocation.parse(HOLD_ITEM));
+        return ((ArtifactItem) item).artifact();
     }
 
     private static void select(Minecraft mc, int slot) {
         mc.player.getInventory().selected = slot;
-        mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket(slot));
+        mc.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
     }
 
     @Nullable
@@ -605,12 +631,12 @@ public final class AnomalyDebug {
     /** {@code -Dwflib.anomalyTest.tier}: the cluster test's tier (each design at least its own). */
     private static final int CLUSTER_TIER = Integer.getInteger("wflib.anomalyTest.tier", 3);
     /** {@code -Dwflib.anomalyTest.motifs=ravine,pit}: only these (default all). */
-    private static final com.wf.wflib.anomaly.api.SitePlan.Motif[] CLUSTER_DESIGNS =
-            java.util.Arrays.stream(com.wf.wflib.anomaly.api.SitePlan.Motif.values())
+    private static final SitePlan.Motif[] CLUSTER_DESIGNS =
+            Arrays.stream(SitePlan.Motif.values())
                     .filter(d -> System.getProperty("wflib.anomalyTest.motifs", "").isEmpty()
                             || List.of(System.getProperty("wflib.anomalyTest.motifs").split(","))
                             .contains(d.name().toLowerCase(Locale.ROOT)))
-                    .toArray(com.wf.wflib.anomaly.api.SitePlan.Motif[]::new);
+                    .toArray(SitePlan.Motif[]::new);
     private static int[] clustering;
     private static final List<String> clusterLines = new ArrayList<>();
 
@@ -623,8 +649,8 @@ public final class AnomalyDebug {
         BlockPos p = Minecraft.getInstance().player.blockPosition();
         // design, ticks into it, first site x z, this site's middle x z, retry offset, tries
         clustering = new int[]{0, 0, p.getX() + 400, p.getZ(), 0, 0, 0, 0};
-        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
-                (net.neoforged.neoforge.client.event.ClientChatReceivedEvent.System e) -> {
+        NeoForge.EVENT_BUS.addListener(
+                (ClientChatReceivedEvent.System e) -> {
                     String line = e.getMessage().getString();
                     if (line.startsWith("Tier ") || line.startsWith("No ground")) {
                         clusterReply = line;
@@ -642,8 +668,8 @@ public final class AnomalyDebug {
     /** The server's answer to the last cluster command ("Tier 3 crater at x z, ..." or "No ground ..."). */
     @Nullable
     private static volatile String clusterReply;
-    private static final java.util.regex.Pattern CLUSTER_AT =
-            java.util.regex.Pattern.compile(" at (-?\\d+) (-?\\d+), radius (\\d+): (\\d+) anomalies");
+    private static final Pattern CLUSTER_AT =
+            Pattern.compile(" at (-?\\d+) (-?\\d+), radius (\\d+): (\\d+) anomalies");
 
     private static void clusterTick(Minecraft mc) {
         if (clustering == null) {
@@ -676,7 +702,7 @@ public final class AnomalyDebug {
             }
             clusterLines.add(name + ": " + reply);
             say(name + ": " + reply);
-            java.util.regex.Matcher m = CLUSTER_AT.matcher(reply);
+            Matcher m = CLUSTER_AT.matcher(reply);
             if (!m.find()) {
                 nextCluster();
                 return;
@@ -690,7 +716,7 @@ public final class AnomalyDebug {
             x = clustering[4];
             z = clustering[5];
             // Above whichever is higher, the middle or where the camera stands (a pit's middle is its floor).
-            var surface = net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE;
+            var surface = Heightmap.Types.WORLD_SURFACE;
             int back = (int) (clusterRadius * 1.1D) + 4;
             int y = Math.max(mc.level.getHeight(surface, x, z), mc.level.getHeight(surface, x - back, z - back));
             mc.player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %d %.1f -45 33", x - back + 0.5D,
@@ -699,7 +725,7 @@ public final class AnomalyDebug {
             x = clustering[4];
             z = clustering[5];
             shot("cluster-" + name + "-corner");
-            var surface = net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE;
+            var surface = Heightmap.Types.WORLD_SURFACE;
             int y = Math.max(mc.level.getHeight(surface, x, z), mc.level.getHeight(surface, x + 12, z + 12));
             mc.player.connection.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 90", x + 0.5D,
                     y + clusterRadius * 2, z + 0.5D));
@@ -719,7 +745,7 @@ public final class AnomalyDebug {
         }
         clustering = null;
         boolean all = clusterLines.size() == CLUSTER_DESIGNS.length && clusterLines.stream().allMatch(l -> {
-            java.util.regex.Matcher m = CLUSTER_AT.matcher(l);
+            Matcher m = CLUSTER_AT.matcher(l);
             return m.find() && Integer.parseInt(m.group(4)) > 0;
         });
         finish(List.of((all ? "[PASS]" : "[FAIL]") + " anomaly sites: every motif placed anomalies"),
@@ -738,7 +764,7 @@ public final class AnomalyDebug {
             return;
         }
         int t = hands++;
-        var send = (java.util.function.Consumer<String>) mc.player.connection::sendCommand;
+        var send = (Consumer<String>) mc.player.connection::sendCommand;
         BlockPos at = mc.player.blockPosition();
         switch (t) {
             case 0 -> {
@@ -761,7 +787,7 @@ public final class AnomalyDebug {
             case 110 -> shot("hands-bear");
             case 112 -> send.accept("item replace entity @s weapon.offhand with wflib:detector_echo");
             case 160 -> shot("hands-echo");
-            case 170 -> mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            case 170 -> mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
             case 171 -> shot("hands-throw-1");
             case 173 -> shot("hands-throw-2");
             case 178 -> shot("hands-throw-3");
@@ -804,7 +830,7 @@ public final class AnomalyDebug {
         int t = detecting++;
         LocalPlayer p = mc.player;
         BlockPos at = p.blockPosition();
-        var send = (java.util.function.Consumer<String>) p.connection::sendCommand;
+        var send = (Consumer<String>) p.connection::sendCommand;
         switch (t) {
             case 0 -> {
                 send.accept("gamemode survival");
@@ -819,39 +845,39 @@ public final class AnomalyDebug {
                 send.accept("tp @s ~ ~ ~ 0 20");
             }
             case 40 -> {
-                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.api.ZoneArtifact.class,
+                var arts = mc.level.getEntitiesOfClass(ZoneArtifact.class,
                         p.getBoundingBox().inflate(16));
                 check(arts.size() == 1, "an artefact lies 10 blocks off (" + arts.size() + " seen by the client)");
-                check(arts.stream().noneMatch(com.wf.wflib.artifact.api.ZoneArtifact::shownHere),
+                check(arts.stream().noneMatch(ZoneArtifact::shownHere),
                         "without a detector it is hidden");
                 shot("detect-1-no-detector");
                 send.accept("item replace entity @s weapon.offhand with wflib:detector_veles");
             }
             case 80 -> {
-                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.api.ZoneArtifact.class,
+                var arts = mc.level.getEntitiesOfClass(ZoneArtifact.class,
                         p.getBoundingBox().inflate(16));
-                check(com.wf.wflib.artifact.api.client.DetectorProbe.heard() == 1,
+                check(DetectorProbe.heard() == 1,
                         "the Veles hears it at 10 blocks");
-                check(arts.stream().noneMatch(com.wf.wflib.artifact.api.ZoneArtifact::shownHere),
+                check(arts.stream().noneMatch(ZoneArtifact::shownHere),
                         "but 10 blocks is past its 5 m reveal: still hidden");
                 shot("detect-2-veles-far");
                 send.accept(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 30", at.getX() + 0.5D, at.getY(),
                         at.getZ() + 8.0D));
             }
             case 120 -> {
-                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.api.ZoneArtifact.class,
+                var arts = mc.level.getEntitiesOfClass(ZoneArtifact.class,
                         p.getBoundingBox().inflate(16));
-                check(arts.stream().anyMatch(com.wf.wflib.artifact.api.ZoneArtifact::shownHere),
+                check(arts.stream().anyMatch(ZoneArtifact::shownHere),
                         "within reach it shows");
                 shot("detect-3-revealed");
-                arts.forEach(a -> mc.gameMode.interact(p, a, net.minecraft.world.InteractionHand.MAIN_HAND));
+                arts.forEach(a -> mc.gameMode.interact(p, a, InteractionHand.MAIN_HAND));
             }
             case 150 -> {
-                var arts = mc.level.getEntitiesOfClass(com.wf.wflib.artifact.api.ZoneArtifact.class,
+                var arts = mc.level.getEntitiesOfClass(ZoneArtifact.class,
                         p.getBoundingBox().inflate(16));
                 boolean has = p.getInventory().items.stream().anyMatch(st -> st.is(
-                        net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                                net.minecraft.resources.ResourceLocation.parse("wflib:battery"))));
+                        BuiltInRegistries.ITEM.get(
+                                ResourceLocation.parse("wflib:battery"))));
                 check(arts.isEmpty() && has, "a use takes it: the Battery is in the inventory");
                 send.accept(String.format(Locale.ROOT, "setblock %d %d %d wflib:springboard", at.getX(), at.getY(),
                         at.getZ() + 6));
@@ -859,12 +885,12 @@ public final class AnomalyDebug {
                 send.accept(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 35", at.getX() + 0.5D, at.getY(),
                         at.getZ() + 0.5D));
             }
-            case 190 -> mc.gameMode.useItem(p, net.minecraft.world.InteractionHand.MAIN_HAND);
+            case 190 -> mc.gameMode.useItem(p, InteractionHand.MAIN_HAND);
             case 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
                  211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230 -> {
                 BlockPos sb = new BlockPos(at.getX(), at.getY(), at.getZ() + 6);
-                if (mc.level.getBlockEntity(sb) instanceof com.wf.wflib.anomaly.AnomalyBlockEntity be
-                        && be.phase() == com.wf.wflib.anomaly.AnomalyBlockEntity.Phase.BLOWOUT && !detectLines
+                if (mc.level.getBlockEntity(sb) instanceof AnomalyBlockEntity be
+                        && be.phase() == AnomalyBlockEntity.Phase.BLOWOUT && !detectLines
                         .stream().anyMatch(l -> l.contains("bolt"))) {
                     check(true, "a thrown bolt sets the Springboard off");
                     shot("detect-4-bolt");
@@ -884,7 +910,7 @@ public final class AnomalyDebug {
 
     private static void shot(String name) {
         Minecraft mc = Minecraft.getInstance();
-        net.minecraft.client.Screenshot.grab(mc.gameDirectory, "anomaly-" + name + ".png", mc.getMainRenderTarget(),
+        Screenshot.grab(mc.gameDirectory, "anomaly-" + name + ".png", mc.getMainRenderTarget(),
                 message -> LOGGER.info("[anomaly-test] screenshot {}", name));
     }
 

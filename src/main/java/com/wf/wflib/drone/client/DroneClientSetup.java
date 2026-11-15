@@ -4,7 +4,10 @@ import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.drone.DroneDebrisEntity;
 import com.wf.wflib.drone.DroneSystem;
 import com.wf.wflib.drone.api.DroneEntity;
+import com.wf.wflib.drone.api.client.PartRigs;
 import com.wf.wflib.map.api.client.WFMaps;
+import com.wf.wflib.missile.api.client.SimGhostEntities;
+import com.wf.wflib.pda.api.client.FullscreenControl;
 import dev.engine_room.flywheel.api.visual.EntityVisual;
 import dev.engine_room.flywheel.api.visualization.EntityVisualizer;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -31,7 +34,7 @@ public final class DroneClientSetup {
         });
         modBus.addListener(RegisterMenuScreensEvent.class, event -> event.register(DroneSystem.DRONE_PAD_MENU.get(), DronePadScreen::new));
         modBus.addListener(FMLClientSetupEvent.class, event -> event.enqueueWork(() -> {
-            com.wf.wflib.drone.api.client.PartRigs.init();
+            PartRigs.init();
             VisualizerRegistry.setVisualizer(DroneSystem.DRONE.get(), new EntityVisualizer<DroneEntity>() {
                             public EntityVisual<? super DroneEntity> createVisual(VisualizationContext ctx, DroneEntity entity,
                                                                       float partialTick) {
@@ -57,15 +60,15 @@ public final class DroneClientSetup {
                     new DroneMapLayer());
             RadioApp.register();
         }));
-        com.wf.wflib.missile.api.client.SimGhostEntities.KINDS.register(
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "drone"),
+        SimGhostEntities.KINDS.register(
+                ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "drone"),
                 (level, model, exhaust) -> {
                     DroneEntity d = new DroneEntity(DroneSystem.DRONE.get(), level);
                     d.setModelId(model);
                     return d;
                 });
-        com.wf.wflib.pda.api.client.FullscreenControl.HOOK.set(com.wf.wflib.core.api.WFLib.MODID,
-                new com.wf.wflib.pda.api.client.FullscreenControl() {
+        FullscreenControl.HOOK.set(WFLib.MODID,
+                new FullscreenControl() {
                     @Override
                     public boolean controllable(int feedId) {
                         return DronesApp.controllable(feedId);

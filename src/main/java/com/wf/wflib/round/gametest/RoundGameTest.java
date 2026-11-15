@@ -1,5 +1,8 @@
 package com.wf.wflib.round.gametest;
 
+import com.wf.wflib.ammo.api.Ammo;
+import com.wf.wflib.ammo.api.AmmoItems;
+import com.wf.wflib.ammo.api.AmmoVariant;
 import com.wf.wflib.missile.api.MissileModels;
 import com.wf.wflib.damage.api.StrikeContext;
 import com.wf.wflib.round.api.KineticPreset;
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.round.api.RoundContent;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Arrays;
 
 /** Entity-less rounds fly the preset's contract and fuze, drill and strike like the shell entity did. */
 @PrefixGameTestTemplate(false)
@@ -94,9 +98,9 @@ public class RoundGameTest {
             if (preset.id().getPath().startsWith("test_")) {
                 continue;
             }
-            com.wf.wflib.ammo.api.AmmoVariant variant = com.wf.wflib.ammo.api.Ammo.variant(preset.id());
+            AmmoVariant variant = Ammo.variant(preset.id());
             if (variant != null) {
-                if (com.wf.wflib.ammo.api.AmmoItems.item(variant.calibre()) == null) {
+                if (AmmoItems.item(variant.calibre()) == null) {
                     helper.fail("no cartridge carrying variant " + preset.id());
                     return;
                 }
@@ -182,7 +186,7 @@ public class RoundGameTest {
             long[] held = Rounds.heldChunks(level, key);
             Rounds.destroy(level, key);
             if (held.length != 1 || held[0] != ChunkPos.asLong(BlockPos.containing(far))) {
-                helper.fail("the shell holds no ticket for the ground under it: " + java.util.Arrays.toString(held));
+                helper.fail("the shell holds no ticket for the ground under it: " + Arrays.toString(held));
                 return;
             }
             helper.succeed();

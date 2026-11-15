@@ -12,6 +12,7 @@ import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -172,7 +173,7 @@ public class BlastTargetGameTest {
     public static void aShapedChargeRoundHitsABlastTargetWithoutPenetration(GameTestHelper helper) {
         Vec3 c = centre(helper);
         TargetCow target = place(helper, new TargetCow(helper.getLevel()), c.add(4.0, 0.0, 0.0));
-        var preset = KineticPresets.get(net.minecraft.resources.ResourceLocation.parse("wflib:rpg7/heat"));
+        var preset = KineticPresets.get(ResourceLocation.parse("wflib:rpg7/heat"));
         helper.assertTrue(preset.payload() != null && preset.payload().jet() != null, "PG-7V carries no jet payload");
         Rounds.launch((ServerLevel) helper.getLevel(), preset, c, new Vec3(1.0, 0.0, 0.0).scale(1.5), null, null);
         helper.startSequence().thenIdle(12).thenExecute(() -> {

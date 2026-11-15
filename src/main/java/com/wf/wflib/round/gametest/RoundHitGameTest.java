@@ -67,6 +67,9 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.armor.api.ArmorContent;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /** Round hits through AHF: rewind, parts, headshot rules, pass-through, pierce, energy damage, wire fields. */
 @PrefixGameTestTemplate(false)
@@ -107,13 +110,13 @@ public class RoundHitGameTest {
     private static final List<Hurt> LANDED = new CopyOnWriteArrayList<>();
     /** Recorders run only inside {@link #record} or for {@link #WATCHED} rounds: other tests' never grow the lists. */
     private static boolean recording;
-    private static final java.util.Set<Long> WATCHED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<Long> WATCHED = ConcurrentHashMap.newKeySet();
     /** Runs inside each recorded strike's hurt. */
     @Nullable
     private static Runnable duringHit;
     /** Runs inside each recorded strike event. */
     @Nullable
-    private static java.util.function.Consumer<ProjectileStrikeEvent> duringStrike;
+    private static Consumer<ProjectileStrikeEvent> duringStrike;
 
     /** {@code pierceDT/DR}: what armour resolves this damage with; {@code when}: the source's hit tick. */
     private record Hurt(Entity victim, float amount, float pierceDT, float pierceDR,

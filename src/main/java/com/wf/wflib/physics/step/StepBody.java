@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * One body's share of {@link RigidStep}: inputs captured on the tick thread ({@link PhysicsBody#capture}), contacts
@@ -843,11 +844,11 @@ public final class StepBody {
                     along += (float) ((c.normal.x * hx + c.normal.z * hz) / hl * c.totalNormalImpulse * inverseMass);
                 }
                 if (Boolean.getBoolean("wflib.physics.debugAll") || c.totalNormalImpulse > 1e-5 && Math.abs(c.normal.y) < 0.999f) {
-                    line.append(String.format(java.util.Locale.ROOT, " [%s n %.2f,%.2f,%.2f s %.3f dv %.4f p %.2f,%.2f,%.2f]", c.lift ? "L" : "", c.normal.x, c.normal.y, c.normal.z,
+                    line.append(String.format(Locale.ROOT, " [%s n %.2f,%.2f,%.2f s %.3f dv %.4f p %.2f,%.2f,%.2f]", c.lift ? "L" : "", c.normal.x, c.normal.y, c.normal.z,
                             c.debugSeparation(), c.totalNormalImpulse * inverseMass, c.anchorB.x + b.com.x + origin[0], c.anchorB.y + b.com.y + origin[1], c.anchorB.z + b.com.z + origin[2]));
                 }
             }
-            LOGGER.info(String.format(java.util.Locale.ROOT,
+            LOGGER.info(String.format(Locale.ROOT,
                     "[climbdbg] %d com %.2f,%.2f,%.2f up %.3f w %.4f,%.4f,%.4f vin %.3f,%.3f,%.3f vout %.3f,%.3f,%.3f load %.4f contacts %d along %.4f%s",
                     owner.getId(), b.com.x + origin[0], b.com.y + origin[1], b.com.z + origin[2], hullRotation.transform(new Vector3f(0, 1, 0)).y, b.spin.x, b.spin.y, b.spin.z,
                     velocity.x, velocity.y, velocity.z, b.velocity.x, b.velocity.y, b.velocity.z,

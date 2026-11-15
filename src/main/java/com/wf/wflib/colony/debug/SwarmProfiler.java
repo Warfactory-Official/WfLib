@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.IntToDoubleFunction;
 
 /** Per-tick cost accounting for a swarm, broken down by what the entities were doing. */
 public final class SwarmProfiler {
@@ -493,7 +494,7 @@ public final class SwarmProfiler {
     }
 
     private static void spikeLine(List<String> lines, Integer[] order, int spikes, String label,
-                                  java.util.function.IntToDoubleFunction value) {
+                                  IntToDoubleFunction value) {
         double worst = 0.0;
         for (int i = 0; i < spikes; i++) {
             worst += value.applyAsDouble(order[i]);

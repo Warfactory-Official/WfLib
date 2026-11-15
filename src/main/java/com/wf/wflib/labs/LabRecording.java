@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -79,7 +80,7 @@ public final class LabRecording {
         }
         JsonObject manifest = new JsonObject();
         manifest.addProperty("schema", LabRun.SCHEMA);
-        manifest.addProperty("created", java.time.Instant.now().toString());
+        manifest.addProperty("created", Instant.now().toString());
         manifest.addProperty("millis", ms);
         manifest.add("tables", tables);
         manifest.add("mods", LabRun.mods());

@@ -3,6 +3,7 @@ package com.wf.wflib.soldier.api;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.wf.wflib.soldier.SoldierAi;
+import com.wf.wflib.soldier.SoldierProfiler;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -52,7 +53,7 @@ public final class SoldierControl {
 
     /** Where a soldier tick goes (rays, searches, ms per phase) over the last 400 ticks; {@code reset} starts a new window. */
     public static JsonObject profile(boolean reset) {
-        return com.wf.wflib.soldier.SoldierProfiler.report(reset);
+        return SoldierProfiler.report(reset);
     }
 
     public static int soldierCount() {

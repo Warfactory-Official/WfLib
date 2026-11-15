@@ -5,12 +5,16 @@ import com.wf.wflib.armor.api.hull.HullMesh;
 import com.wf.wflib.armor.api.hull.HullProfile;
 import com.wf.wflib.armor.api.hull.HullWear;
 import com.wf.wflib.geom.api.OBB;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.List;
+import java.util.Set;
 
 /** Main box + yawed turret box far from the origin; node 0 = hull, 1 = turret ({@link #TURRET}); turret roof = plate {@code roof} when the profile declares it, all strikes = {@link #plate} when set. */
 public final class FakeHull implements HullBody, HullMesh {
@@ -30,7 +34,7 @@ public final class FakeHull implements HullBody, HullMesh {
     @Nullable
     public String plate;
     /** Bricks {@code plate:cell} that are spent; the rest live. */
-    public final java.util.Set<String> spent = new java.util.HashSet<>();
+    public final Set<String> spent = new HashSet<>();
 
     @Override
     public boolean eraLive(String plateId, int cell) {
@@ -114,7 +118,7 @@ public final class FakeHull implements HullBody, HullMesh {
             out.addAll(script);
             return script.size();
         }
-        List<Hit> found = new java.util.ArrayList<>();
+        List<Hit> found = new ArrayList<>();
         for (int node = 0; node < 2; node++) {
             OBB box = node == 0 ? main : turret;
             Vec3 in = box.clip(from, to), leave = box.clip(to, from);
@@ -132,7 +136,7 @@ public final class FakeHull implements HullBody, HullMesh {
             found.add(new Hit(node, in, n, id, true));
             found.add(new Hit(node, leave, box.faceNormal(leave), plate, false));
         }
-        found.sort(java.util.Comparator.comparingDouble(h -> h.point().distanceToSqr(from)));
+        found.sort(Comparator.comparingDouble(h -> h.point().distanceToSqr(from)));
         out.addAll(found);
         return found.size();
     }

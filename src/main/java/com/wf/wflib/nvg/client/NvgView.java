@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import com.wf.wflib.nvg.api.client.NvgClient;
 import com.wf.wflib.core.api.WFLib;
+import java.io.IOException;
 
 import static org.lwjgl.opengl.GL33C.*;
 
@@ -254,7 +255,7 @@ public final class NvgView {
         return created;
     }
 
-    private static Program program(String name, String vert, String frag, String... samplers) throws java.io.IOException {
+    private static Program program(String name, String vert, String frag, String... samplers) throws IOException {
         int id = GlPrograms.link(name, vert, VERSION + GlPrograms.resource(WFLib.MODID, "shaders/nvg/" + frag + ".frag"));
         GlStateManager._glUseProgram(id);
         for (int unit = 0; unit < samplers.length; unit++) {

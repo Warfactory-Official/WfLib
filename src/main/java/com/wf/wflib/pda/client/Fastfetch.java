@@ -1,6 +1,7 @@
 package com.wf.wflib.pda.client;
 
 import com.mojang.blaze3d.platform.GlStateManager;
+import com.sun.management.OperatingSystemMXBean;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.neoforged.fml.ModList;
@@ -144,7 +145,7 @@ public final class Fastfetch {
     }
 
     private static String memory() {
-        if (ManagementFactory.getOperatingSystemMXBean() instanceof com.sun.management.OperatingSystemMXBean os) {
+        if (ManagementFactory.getOperatingSystemMXBean() instanceof OperatingSystemMXBean os) {
             long total = os.getTotalMemorySize();
             return size(total - os.getFreeMemorySize()) + " / " + size(total);
         }

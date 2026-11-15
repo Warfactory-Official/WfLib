@@ -65,7 +65,7 @@ public final class PdaFullscreen {
                         "x{pda_full.zoom|.1}  scroll zoom  [{key:key.attack}] take control  [{key:key.use}] / Esc",
                         PdaShell.TEXT), shadowed("x{pda_full.zoom|.1}  scroll zoom  [{key:key.use}] / Esc",
                         PdaShell.TEXT))))));
-        UiHud.addSource(UiHud.Layer.MAIN, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "pda_fullscreen"), 0, out -> {
+        UiHud.addSource(UiHud.Layer.MAIN, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "pda_fullscreen"), 0, out -> {
             int feed = PdaClient.fullscreenFeed();
             DroneCamHud.watch(feed, feed == 0 ? null : FullscreenControl.HOOK.get().name(feed));
             if (feed == 0) {

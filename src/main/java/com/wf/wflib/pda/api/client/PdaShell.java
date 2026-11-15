@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import com.wf.wflib.pda.client.PdaBackground;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.client.theme.PdaControls;
+import com.wf.wflib.ui.api.widget.Text;
 
 import static com.wf.wflib.ui.api.Ui.at;
 import static com.wf.wflib.ui.api.Ui.grid;
@@ -100,11 +102,11 @@ public final class PdaShell {
 
     /** Bound native app labels to their actual column; full text stays available on hover. */
     public static WidgetDef fit(String value, String colour, float w) {
-        return new com.wf.wflib.ui.api.widget.Text(value, colour, false, "1", Float.toString(Math.max(1, w)));
+        return new Text(value, colour, false, "1", Float.toString(Math.max(1, w)));
     }
 
     public static WidgetDef wrap(String value, String colour, float w, int lines) {
-        return new com.wf.wflib.pda.client.theme.PdaControls.Paragraph(value, w, lines, "DETAILS", "", colour);
+        return new PdaControls.Paragraph(value, w, lines, "DETAILS", "", colour);
     }
 
     private static String title(PdaApp app) {
@@ -133,7 +135,7 @@ public final class PdaShell {
                             text("{world.hour|02}:{world.minute|02}", TEXT)))),
                     when("pda_theme.gamma", GammaHeader.build()),
                     at("0", Float.toString(BAR), new AppHost(apps, roots, home())),
-                    com.wf.wflib.pda.api.client.PdaPopup.layer(),
+                    PdaPopup.layer(),
                     ThemeMenu.panel(),
                     ThemeMenu.gear(),
                     new ThemeLayer(),

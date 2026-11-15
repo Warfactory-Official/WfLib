@@ -35,6 +35,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import com.wf.wflib.fx.BlockChipModels;
 import com.wf.wflib.fx.InstancedBurst;
 import com.wf.wflib.fx.ShatterScheduler;
+import org.joml.Quaternionf;
 
 public final class WFBursts {
 
@@ -136,7 +137,7 @@ public final class WFBursts {
 
     /** The fireball an explosion throws up: {@code RocketFlameParticle} as spawned by {@code explosionLarge}; {@code vent}: +y -> open side. */
     public static InstancedBurst cloud(Level level, double x, double y, double z, int count, float scale,
-                                       float speed, org.joml.Quaternionf vent, RandomSource random) {
+                                       float speed, Quaternionf vent, RandomSource random) {
         return new InstancedBurst(level, SMOKE,
                 ParticleModels.glowing(WFParticleTextures.SMOKE),
                 WFParticleStyles.cloud(), count, x, y, z,

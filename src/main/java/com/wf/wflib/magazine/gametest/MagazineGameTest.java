@@ -20,6 +20,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 @PrefixGameTestTemplate(false)
 public class MagazineGameTest {
@@ -65,7 +66,7 @@ public class MagazineGameTest {
     @GameTest(templateNamespace = WFLib.MODID, template = TEMPLATE)
     public static void podTubesRoundTripAndCompareByContent(GameTestHelper h) {
         PodItem item = MagazineItems.POD_GMLRS.get();
-        ItemStack gmlrs = new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(rl("missile_gmlrs")));
+        ItemStack gmlrs = new ItemStack(BuiltInRegistries.ITEM.get(rl("missile_gmlrs")));
         h.assertTrue(item.accepts(gmlrs), "GMLRS fits the pod");
         h.assertFalse(MagazineItems.POD_ATACMS.get().accepts(gmlrs), "GMLRS != ATACMS tube");
         ItemStack a = new ItemStack(item);

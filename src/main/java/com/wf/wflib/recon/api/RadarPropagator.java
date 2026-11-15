@@ -1,5 +1,6 @@
 package com.wf.wflib.recon.api;
 
+import java.util.Locale;
 import org.jetbrains.annotations.Nullable;
 
 /** The radar model, in four equations. */
@@ -103,14 +104,14 @@ public final class RadarPropagator implements Propagator {
                 return "no signature";
             }
             if (range > detectionRange) {
-                return String.format(java.util.Locale.ROOT, "out of range (%.0f > %.0f, weather x%.2f)",
+                return String.format(Locale.ROOT, "out of range (%.0f > %.0f, weather x%.2f)",
                         range, detectionRange, environment);
             }
             if (masked) {
                 return "masked by terrain";
             }
             if (notched) {
-                return String.format(java.util.Locale.ROOT,
+                return String.format(Locale.ROOT,
                         "in the notch (radial %.3f b/t, clutter floor %.1f blk)", radial, clutterMargin);
             }
             return "detected";

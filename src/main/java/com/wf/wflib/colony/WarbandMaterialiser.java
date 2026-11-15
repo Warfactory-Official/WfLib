@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import com.wf.wflib.colony.api.Colony;
+import net.minecraft.world.phys.Vec3;
 
 /** Warband record -> real glyphids once somebody is there to be attacked; T2 -> T0 step. */
 public final class WarbandMaterialiser {
@@ -172,7 +173,7 @@ public final class WarbandMaterialiser {
         if (warband.flying) {
             glyphid.setAirborne(true);
             glyphid.setFlightTarget(
-                    new net.minecraft.world.phys.Vec3(warband.targetX + 0.5, y, warband.targetZ + 0.5), false);
+                    new Vec3(warband.targetX + 0.5, y, warband.targetZ + 0.5), false);
         }
     }
 }

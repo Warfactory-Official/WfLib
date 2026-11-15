@@ -9,6 +9,7 @@ import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 /** Which action of the current target's list is selected, and the scrolling that moves it. */
 public final class ProbeSelection {
@@ -38,7 +39,7 @@ public final class ProbeSelection {
 
     static void offer(BlockPos pos, int entityId, @Nullable String node, List<ProbeAction> offered) {
         boolean sameTarget = entityId == targetEntity && (entityId >= 0 || pos.equals(targetPos))
-                && java.util.Objects.equals(node, targetNode);
+                && Objects.equals(node, targetNode);
         ProbeAction chosen = sameTarget ? current() : null;
 
         targetPos = pos.immutable();

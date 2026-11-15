@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.colony.api.SimGlyphid;
 import com.wf.wflib.colony.api.SimGlyphidManager;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Ships the record tier to the clients that can see it. */
 public final class SimGlyphidTracking {
@@ -76,8 +80,8 @@ public final class SimGlyphidTracking {
      */
     private static final class SimGlyphidClientState {
 
-        private static final java.util.Set<java.util.UUID> SENDING =
-                java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+        private static final Set<UUID> SENDING =
+                Collections.newSetFromMap(new ConcurrentHashMap<>());
 
         static boolean wasSending(ServerPlayer player) {
             return SENDING.contains(player.getUUID());

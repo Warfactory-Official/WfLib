@@ -1,11 +1,13 @@
 package com.wf.wflib.armor.hull;
 
+import com.wf.wflib.armor.api.hull.EraType;
 import com.wf.wflib.armor.api.hull.PlateMaterial;
 import com.wf.wflib.armor.api.hull.PlateMaterials;
 import com.wf.wflib.armor.api.hull.PlateWalk;
 import com.wf.wflib.armor.api.hull.WalkResult;
 import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
+import com.wf.wflib.explosion.api.BlastPayload;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -214,7 +216,7 @@ class PlateWalkTest {
         }
     }
 
-    private static final com.wf.wflib.armor.api.hull.EraType BRICK = new com.wf.wflib.armor.api.hull.EraType("t:brick",
+    private static final EraType BRICK = new EraType("t:brick",
             0.5f, 0.2f, 0.0f, 20, 40, 1000, 0.1f, 0, 0, 0.1f, null, null);
 
     @Test
@@ -259,7 +261,7 @@ class PlateWalkTest {
 
     @Test
     void tandemCutAppliesOnlyWhereTheTypeDeclaresIt() {
-        com.wf.wflib.armor.api.hull.EraType relikt = new com.wf.wflib.armor.api.hull.EraType("t:relikt", 0.5f, 0.2f,
+        EraType relikt = new EraType("t:relikt", 0.5f, 0.2f,
                 0.4f, 20, 40, 1000, 0.1f, 0, 0, 0.1f, null, null);
         float full = 1.0f;
         assertEquals(200, new PlateWalk(threat(ThreatKind.TANDEM_HEAT, 80, 200, 1.0f)).era("p", 0, BRICK, true, full, 0.5f)
@@ -270,9 +272,9 @@ class PlateWalkTest {
 
     @Test
     void aThinBackPlateTakesTheFlyerInsteadOfTheBrickFragments() {
-        com.wf.wflib.armor.api.hull.EraType type = new com.wf.wflib.armor.api.hull.EraType("t:flyer", 0.5f, 0.2f, 0, 20,
-                40, 1000, 0.1f, 30, 0, 0.1f, new com.wf.wflib.explosion.api.BlastPayload.Fragments(6, 3, 900),
-                new com.wf.wflib.explosion.api.BlastPayload.Fragments(1, 150, 1100));
+        EraType type = new EraType("t:flyer", 0.5f, 0.2f, 0, 20,
+                40, 1000, 0.1f, 30, 0, 0.1f, new BlastPayload.Fragments(6, 3, 900),
+                new BlastPayload.Fragments(1, 150, 1100));
         assertEquals(150, type.payload(10).fragments().massG(), EPS);
         assertEquals(3, type.payload(60).fragments().massG(), EPS);
         assertEquals(0.1f, type.payload(60).blast().tntKg(), EPS);

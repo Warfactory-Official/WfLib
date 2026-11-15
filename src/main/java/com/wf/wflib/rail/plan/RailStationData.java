@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import net.minecraft.core.HolderLookup;
 
 /**
  * The named places a railway is dispatched from and to.
@@ -117,7 +118,7 @@ public final class RailStationData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         ListTag list = new ListTag();
         for (Station station : this.stations.values()) {
             CompoundTag one = new CompoundTag();

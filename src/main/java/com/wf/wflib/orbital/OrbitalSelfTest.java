@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital;
 
+import com.wf.wflib.missile.api.MissileConfig;
 import com.wf.wflib.orbital.payload.InertPayload;
 import com.wf.wflib.orbital.payload.ReconPayload;
 import com.wf.wflib.orbital.payload.RelayPayload;
@@ -23,6 +24,10 @@ import com.wf.wflib.orbital.api.SatSpec;
 import com.wf.wflib.orbital.api.SatVerb;
 import com.wf.wflib.orbital.api.Satellite;
 import com.wf.wflib.orbital.api.TrackedObject;
+import com.wf.wflib.orbital.payload.LaserPayload;
+import com.wf.wflib.recon.api.Atmosphere;
+import com.wf.wflib.recon.api.ReconGrid;
+import net.minecraft.world.item.ItemStack;
 
 public final class OrbitalSelfTest {
 
@@ -166,7 +171,7 @@ public final class OrbitalSelfTest {
                             + "day/night swing stops being the mechanic",
                     OrbitalConfig.SOLAR_PER_TICK, workingDraw));
         }
-        if (OrbitalConfig.RELAY_HOP_COST <= com.wf.wflib.recon.api.ReconGrid.MAX_HOPS) {
+        if (OrbitalConfig.RELAY_HOP_COST <= ReconGrid.MAX_HOPS) {
             failures.add("a relayed contact is not distinguishable from a locally measured one by hop count, "
                     + "so a relay carries its own output back and each round makes the origin's own track "
                     + "one hop worse");
@@ -448,7 +453,7 @@ public final class OrbitalSelfTest {
             failures.add("no cargo table registered - a miner has nothing to mine");
             return;
         }
-        List<net.minecraft.world.item.ItemStack> manifest = CargoTable.roll(level.getRandom(), 200);
+        List<ItemStack> manifest = CargoTable.roll(level.getRandom(), 200);
         if (manifest.isEmpty()) {
             failures.add("a 200-unit roll produced nothing");
             return;
@@ -458,7 +463,7 @@ public final class OrbitalSelfTest {
                     + CargoTable.SLOTS + " a shuttle can carry");
         }
         int total = 0;
-        for (net.minecraft.world.item.ItemStack stack : manifest) {
+        for (ItemStack stack : manifest) {
             total += stack.getCount();
             if (stack.getCount() > stack.getMaxStackSize()) {
                 failures.add("merging overflowed a stack: " + stack.getCount() + " of "
@@ -472,7 +477,7 @@ public final class OrbitalSelfTest {
             failures.add("an empty hold produced cargo");
         }
 
-        if (OrbitalConfig.RELEASE_DISTANCE <= com.wf.wflib.missile.api.MissileConfig.destinationRange()) {
+        if (OrbitalConfig.RELEASE_DISTANCE <= MissileConfig.destinationRange()) {
             failures.add("things released from orbit start inside DESTINATION_RANGE, so they become real "
                     + "entities on the tick they are fired and have no flight to be detected during");
         }
@@ -488,12 +493,12 @@ public final class OrbitalSelfTest {
     }
 
     private static void weather(List<String> failures) {
-        com.wf.wflib.recon.api.Atmosphere clear =
-                new com.wf.wflib.recon.api.Atmosphere(0.0, 0.0, 0.0, 0.0);
-        com.wf.wflib.recon.api.Atmosphere storm =
-                new com.wf.wflib.recon.api.Atmosphere(0.0, 1.0, 1.0, 0.0);
-        double dry = com.wf.wflib.orbital.payload.LaserPayload.transmission(clear);
-        double wet = com.wf.wflib.orbital.payload.LaserPayload.transmission(storm);
+        Atmosphere clear =
+                new Atmosphere(0.0, 0.0, 0.0, 0.0);
+        Atmosphere storm =
+                new Atmosphere(0.0, 1.0, 1.0, 0.0);
+        double dry = LaserPayload.transmission(clear);
+        double wet = LaserPayload.transmission(storm);
         if (dry < 0.99) {
             failures.add(String.format(Locale.ROOT,
                     "clear air only passes %.2f of the beam", dry));

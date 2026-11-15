@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.damage.api.WFDamageTypes;
 
 /** Registry objects of the hazard port. NTM armour sets / reacher / gas masks -> item tags here. */
 public final class HazardContent {
@@ -52,7 +53,7 @@ public final class HazardContent {
 
     public static final DeferredHolder<Item, Item> GEIGER_COUNTER_ITEM = DeferredHolder.create(Registries.ITEM, id("geiger_counter"));
 
-    public static final ResourceKey<DamageType> DAMAGE_RADIATION = com.wf.wflib.damage.api.WFDamageTypes.RADIATION;
+    public static final ResourceKey<DamageType> DAMAGE_RADIATION = WFDamageTypes.RADIATION;
     public static final ResourceKey<DamageType> DAMAGE_DIGAMMA = damage("digamma");
     public static final ResourceKey<DamageType> DAMAGE_ASBESTOS = damage("asbestos");
     public static final ResourceKey<DamageType> DAMAGE_BLACKLUNG = damage("blacklung");

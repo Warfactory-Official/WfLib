@@ -22,6 +22,9 @@ import com.wf.wflib.anomaly.site.CaveFieldStructure;
 import com.wf.wflib.anomaly.site.CaveLayout;
 import com.wf.wflib.anomaly.site.CavePainter;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.level.levelgen.structure.StructureType;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 
 /**
  * Cave anomaly fields: registration, the slot hook, and building one on demand (the command). A world's fields and
@@ -95,7 +98,7 @@ public final class AnomalyCaves {
         public static final MapCodec<Placement> CODEC = MapCodec.unit(Placement::new);
 
         Placement() {
-            super(net.minecraft.core.Vec3i.ZERO, FrequencyReductionMethod.DEFAULT, 1.0F, 0, Optional.empty());
+            super(Vec3i.ZERO, FrequencyReductionMethod.DEFAULT, 1.0F, 0, Optional.empty());
         }
 
         @Override
@@ -111,17 +114,17 @@ public final class AnomalyCaves {
 
     static final DeferredRegister<StructurePlacementType<?>> PLACEMENTS = DeferredRegister.create(
             Registries.STRUCTURE_PLACEMENT, WFLib.MODID);
-    public static final DeferredRegister<net.minecraft.world.level.levelgen.structure.StructureType<?>> TYPES =
+    public static final DeferredRegister<StructureType<?>> TYPES =
             DeferredRegister.create(Registries.STRUCTURE_TYPE, WFLib.MODID);
-    public static final DeferredRegister<net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType> PIECES =
+    public static final DeferredRegister<StructurePieceType> PIECES =
             DeferredRegister.create(Registries.STRUCTURE_PIECE, WFLib.MODID);
     public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<Placement>> PLACEMENT =
             PLACEMENTS.register("cave_slot", () -> () -> Placement.CODEC);
-    public static final DeferredHolder<net.minecraft.world.level.levelgen.structure.StructureType<?>,
-            net.minecraft.world.level.levelgen.structure.StructureType<CaveFieldStructure>> TYPE = TYPES.register(
+    public static final DeferredHolder<StructureType<?>,
+            StructureType<CaveFieldStructure>> TYPE = TYPES.register(
             "anomaly_cave", () -> () -> CaveFieldStructure.CODEC);
-    public static final DeferredHolder<net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType,
-            net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType> PIECE = PIECES.register(
+    public static final DeferredHolder<StructurePieceType,
+            StructurePieceType> PIECE = PIECES.register(
             "anomaly_cave", () -> CaveFieldPiece::new);
 
     public static void register(IEventBus modBus) {

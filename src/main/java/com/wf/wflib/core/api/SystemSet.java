@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -60,7 +61,7 @@ public final class SystemSet {
 
     /** Ids as {@code <modid>:<sys>}. */
     public Set<String> qualifiedEffective() {
-        Set<String> out = new java.util.TreeSet<>();
+        Set<String> out = new TreeSet<>();
         for (String id : effective) {
             out.add(modId + ":" + id);
         }

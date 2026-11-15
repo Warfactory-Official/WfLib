@@ -20,6 +20,8 @@ import java.util.Map;
 import com.wf.wflib.anomaly.api.AnomalyMix;
 import com.wf.wflib.anomaly.api.SitePlan;
 import com.wf.wflib.anomaly.api.SiteStyle;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.level.block.Block;
 
 /**
  * Where everything in one site goes, worked out from its plan and the untouched terrain alone, so every chunk the
@@ -39,7 +41,7 @@ public final class SiteLayout {
     /** Vanilla templates' sizes (null: no such template), for ruins; tests pass one that knows none. */
     public interface Templates {
         @Nullable
-        net.minecraft.core.Vec3i size(ResourceLocation id);
+        Vec3i size(ResourceLocation id);
     }
 
 
@@ -298,7 +300,7 @@ public final class SiteLayout {
         props.put(new BlockPos(x, y, z), state);
     }
 
-    void put(int x, int y, int z, net.minecraft.world.level.block.Block block) {
+    void put(int x, int y, int z, Block block) {
         put(x, y, z, block.defaultBlockState());
     }
 
@@ -411,7 +413,7 @@ public final class SiteLayout {
 
     /** A surface pick: weighted states, chosen by smooth noise so like stays with like. */
     record Palette(BlockState[] states, double scale) {
-        static Palette of(net.minecraft.world.level.block.Block... blocks) {
+        static Palette of(Block... blocks) {
             BlockState[] s = new BlockState[blocks.length];
             for (int i = 0; i < blocks.length; i++) {
                 s[i] = blocks[i].defaultBlockState();

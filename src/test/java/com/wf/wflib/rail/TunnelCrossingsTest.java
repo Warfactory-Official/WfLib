@@ -10,6 +10,7 @@ import com.wf.wflib.rail.demo.FivePoints;
 import com.wf.wflib.rail.excavate.CarveVolume;
 import com.wf.wflib.rail.excavate.ProfileVolume;
 import com.wf.wflib.rail.excavate.TunnelProfile;
+import java.util.ArrayList;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -206,7 +207,7 @@ class TunnelCrossingsTest {
     @Test
     @DisplayName("a crossing the other line reports built is exempted")
     void whatIsReportedIsSpared() {
-        List<Alignment> routes = new java.util.ArrayList<>(network());
+        List<Alignment> routes = new ArrayList<>(network());
         RouteMeeting crossing = someCrossing(routes);
         assertNotNull(crossing);
         UUID mine = crossing.a().route();
@@ -256,7 +257,7 @@ class TunnelCrossingsTest {
     @Test
     @DisplayName("a crossing the slice cannot reach is not even looked up")
     void theWindowKeepsItCheap() {
-        List<Alignment> routes = new java.util.ArrayList<>(network());
+        List<Alignment> routes = new ArrayList<>(network());
         RouteMeeting crossing = someCrossing(routes);
         assertNotNull(crossing);
         UUID mine = crossing.a().route();

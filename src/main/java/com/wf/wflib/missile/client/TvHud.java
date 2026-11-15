@@ -15,6 +15,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.locale.Language;
 import net.minecraft.resources.ResourceLocation;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.network.chat.Component;
 
 import static com.wf.wflib.ui.api.Ui.*;
 
@@ -47,7 +48,7 @@ public final class TvHud {
         long now = System.currentTimeMillis();
         if (now - hintAt > 1000) {
             hintAt = now;
-            hint = net.minecraft.network.chat.Component.translatable("wflib.tv.hint",
+            hint = Component.translatable("wflib.tv.hint",
                     TvKeys.LINK.getTranslatedKeyMessage(), TvKeys.VIEW.getTranslatedKeyMessage()).getString();
         }
         return hint;
@@ -84,7 +85,7 @@ public final class TvHud {
                         new Feed("tv.lost ? 0 : tv.missile", w, h)))),
                 when("tv.full", at(x + " + 8", y + " + (" + h + ") - 12", text("{tv.hint}", DIM)),
                         place(x + " + (" + w + ")", y + " + (" + h + ") + 3", Point.TOP_RIGHT, text("{tv.hint}", DIM)))))));
-        UiHud.addSource(UiHud.Layer.MAIN, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "tv"), 0, out -> {
+        UiHud.addSource(UiHud.Layer.MAIN, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "tv"), 0, out -> {
             if (TvClient.missileId() == 0 || Minecraft.getInstance().player == null) {
                 return;
             }

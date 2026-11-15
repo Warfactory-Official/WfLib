@@ -1,5 +1,10 @@
 package com.wf.wflib.rail.excavate;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 
@@ -43,8 +48,8 @@ public interface CarveVolume {
     }
 
     /** Everything in any of them, for a volume made of several separate pieces. */
-    static CarveVolume union(java.util.List<CarveVolume> parts) {
-        return new Union(java.util.List.copyOf(parts));
+    static CarveVolume union(List<CarveVolume> parts) {
+        return new Union(List.copyOf(parts));
     }
 
     /** One course of a volume: everything in it at exactly this height and nothing above or below. */
@@ -53,7 +58,7 @@ public interface CarveVolume {
     }
 
     /** Exactly these block positions and nothing else, for work that is a list rather than a shape. */
-    static CarveVolume positions(java.util.Collection<net.minecraft.core.BlockPos> positions) {
+    static CarveVolume positions(Collection<BlockPos> positions) {
         return new Positions(positions);
     }
 
@@ -388,17 +393,17 @@ public interface CarveVolume {
     /** @see #positions */
     final class Positions implements CarveVolume {
 
-        private final java.util.Set<Long> packed = new java.util.HashSet<>();
+        private final Set<Long> packed = new HashSet<>();
         private final BoundingBox bounds;
 
-        Positions(java.util.Collection<net.minecraft.core.BlockPos> positions) {
+        Positions(Collection<BlockPos> positions) {
             int minX = Integer.MAX_VALUE;
             int minY = Integer.MAX_VALUE;
             int minZ = Integer.MAX_VALUE;
             int maxX = Integer.MIN_VALUE;
             int maxY = Integer.MIN_VALUE;
             int maxZ = Integer.MIN_VALUE;
-            for (net.minecraft.core.BlockPos pos : positions) {
+            for (BlockPos pos : positions) {
                 this.packed.add(pos.asLong());
                 minX = Math.min(minX, pos.getX());
                 minY = Math.min(minY, pos.getY());
@@ -423,7 +428,7 @@ public interface CarveVolume {
 
         @Override
         public boolean contains(int x, int y, int z) {
-            return this.packed.contains(net.minecraft.core.BlockPos.asLong(x, y, z));
+            return this.packed.contains(BlockPos.asLong(x, y, z));
         }
     }
 
@@ -452,10 +457,10 @@ public interface CarveVolume {
     /** @see #union */
     final class Union implements CarveVolume {
 
-        private final java.util.List<CarveVolume> parts;
+        private final List<CarveVolume> parts;
         private final BoundingBox bounds;
 
-        Union(java.util.List<CarveVolume> parts) {
+        Union(List<CarveVolume> parts) {
             this.parts = parts;
             int minX = Integer.MAX_VALUE;
             int minY = Integer.MAX_VALUE;

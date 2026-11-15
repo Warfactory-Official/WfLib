@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 import com.wf.wflib.mine.api.MineContent;
+import com.wf.wflib.missile.api.Defusal;
 
 /** What the probe says about a mine, and what you can do to it from where you are standing. */
 public final class MineProbe {
@@ -163,7 +164,7 @@ public final class MineProbe {
         ProbeAction defuse = ProbeAction.of(MineProbeActions.DEFUSE,
                 Component.translatable(mine.isRack() ? "probe.wflib.mine.action.pack_up"
                         : "probe.wflib.mine.action.defuse"));
-        Component refusal = com.wf.wflib.missile.api.Defusal.refusal(player, preset.defuseMethod(), preset.defuseTool());
+        Component refusal = Defusal.refusal(player, preset.defuseMethod(), preset.defuseTool());
         info.action(refusal == null ? defuse : defuse.unavailable(refusal));
     }
 

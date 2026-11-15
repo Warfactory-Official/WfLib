@@ -7,6 +7,7 @@ import com.warfactory.ultimateweight.v1211.WeightViews1211;
 import com.wf.wflib.backpack.api.BackpackItem;
 import com.wf.wflib.backpack.api.BackpackSpec;
 import com.wf.wflib.backpack.api.Backpacks;
+import com.wf.wflib.core.api.WFLib;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.OptionalDouble;
@@ -29,7 +30,7 @@ public final class BackpackWeight implements IWeightCompatProvider {
                 out.add(worn);
             }
         });
-        Backpacks.WEIGHER.set(com.wf.wflib.core.api.WFLib.MODID, WeightViews1211::weightOf);
+        Backpacks.WEIGHER.set(WFLib.MODID, WeightViews1211::weightOf);
     }
 
     @Override

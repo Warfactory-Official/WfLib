@@ -3,6 +3,8 @@ package com.wf.wflib.missile.api;
 import com.wf.wflib.audio.api.AudioCategory;
 import com.wf.wflib.audio.api.Blasts;
 import com.wf.wflib.audio.api.WfAudio;
+import com.wf.wflib.core.api.ViewRange;
+import com.wf.wflib.explosion.api.BlastParticles;
 import com.wf.wflib.missile.api.MissileEntity.InterceptMode;
 import com.wf.wflib.recon.api.ContactClass;
 import com.wf.wflib.sim.api.SimTargets;
@@ -215,10 +217,10 @@ public final class MissileInterceptor {
 
     /** Readable at range: big burst + boom on a kill, small puff + pop on a miss. */
     private static void burst(ServerLevel level, Vec3 p, boolean kill) {
-        double range = com.wf.wflib.core.api.ViewRange.blocks();
-        com.wf.wflib.explosion.api.BlastParticles.burst(level, ParticleTypes.EXPLOSION, p.x, p.y, p.z, kill ? 3 : 1, 1.0, 1.0, 1.0, 0.0, range);
-        com.wf.wflib.explosion.api.BlastParticles.burst(level, ParticleTypes.FLAME, p.x, p.y, p.z, kill ? 24 : 6, 1.4, 1.4, 1.4, 0.06, range);
-        com.wf.wflib.explosion.api.BlastParticles.burst(level, ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, kill ? 14 : 5, 1.6, 1.6, 1.6, 0.02, range);
+        double range = ViewRange.blocks();
+        BlastParticles.burst(level, ParticleTypes.EXPLOSION, p.x, p.y, p.z, kill ? 3 : 1, 1.0, 1.0, 1.0, 0.0, range);
+        BlastParticles.burst(level, ParticleTypes.FLAME, p.x, p.y, p.z, kill ? 24 : 6, 1.4, 1.4, 1.4, 0.06, range);
+        BlastParticles.burst(level, ParticleTypes.LARGE_SMOKE, p.x, p.y, p.z, kill ? 14 : 5, 1.6, 1.6, 1.6, 0.02, range);
         WfAudio.at(level, p, AudioCategory.EXPLOSIONS, kill ? Blasts.small() : Blasts.pop(150, 1.5F));
     }
 

@@ -13,6 +13,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Predicate;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
 
 /** Who gets asked about what. */
 public final class ProbeProviders {
@@ -221,8 +223,8 @@ public final class ProbeProviders {
         return supported;
     }
 
-    public static void collectData(net.minecraft.nbt.CompoundTag data,
-                                   net.minecraft.server.level.ServerPlayer player,
+    public static void collectData(CompoundTag data,
+                                   ServerPlayer player,
                                    Level level, BlockPos pos, BlockState state,
                                    @Nullable BlockEntity blockEntity) {
         ProbeDataProvider.Blocks attached =
@@ -237,8 +239,8 @@ public final class ProbeProviders {
         }
     }
 
-    public static void collectData(net.minecraft.nbt.CompoundTag data,
-                                   net.minecraft.server.level.ServerPlayer player, Entity entity) {
+    public static void collectData(CompoundTag data,
+                                   ServerPlayer player, Entity entity) {
         ProbeDataProvider.Entities attached = entity.getCapability(ProbeCapabilities.ENTITY_DATA);
         if (attached != null) {
             attached.append(data, player, entity);

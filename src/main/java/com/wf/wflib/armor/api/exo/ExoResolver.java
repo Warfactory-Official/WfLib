@@ -1,5 +1,8 @@
 package com.wf.wflib.armor.api.exo;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /** Pure: spec + power + part states -> effect. */
 public final class ExoResolver {
     public static final double PENALTY = 1.5;
@@ -58,7 +61,7 @@ public final class ExoResolver {
                 }
             }
         }
-        java.util.Map<String, Integer> groups = new java.util.HashMap<>();
+        Map<String, Integer> groups = new HashMap<>();
         final double scale = carryScale;
         base.groupLimits().forEach((k, v) -> groups.put(k, (int) Math.floor(v * scale)));
         return new ExoEffect(sprint, carry * carryScale, groups, recoil, sway, life, shoulder, trigger);

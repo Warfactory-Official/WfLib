@@ -2,6 +2,7 @@ package com.wf.wflib.audio.api;
 
 import com.wf.wflib.stream.api.ChunkMaps;
 import com.wf.wflib.audio.SoundAtPacket;
+import com.wf.wflib.explosion.api.FxMute;
 import com.wf.wflib.stream.api.StreamTracked;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,7 +32,7 @@ public final class WfAudio {
     /** {@code skip}: players that play it themselves (shooter prediction, entity trackers). */
     public static void at(ServerLevel level, Vec3 at, AudioCategory category, @Nullable Predicate<ServerPlayer> skip,
                           List<SoundSpec> layers) {
-        if (com.wf.wflib.explosion.api.FxMute.active()) {
+        if (FxMute.active()) {
             return;
         }
         double reach = 0;

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.audio.client.AudioOptions;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.sounds.SoundSource;
 
 /**
  * Per-source OpenAL state the engine lacks: direct low-pass = {@link Emitter} air absorption x cabin muffle
@@ -128,7 +129,7 @@ public final class AudioMixer {
         }
         float share = s.isRelative() ? 0 : m;
         boolean exempt = s instanceof Cue c ? c.ignoresHearing()
-                : s.isRelative() && s.getSource() == net.minecraft.sounds.SoundSource.MASTER;
+                : s.isRelative() && s.getSource() == SoundSource.MASTER;
         float loss = exempt ? 0 : h;
         return new Params((1 - 0.65F * share) * (1 - 0.9F * loss), (1 - 0.85F * share) * (1 - 0.98F * loss), false,
                 0, 0, 0);

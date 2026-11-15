@@ -13,9 +13,11 @@ import net.minecraft.world.level.saveddata.SavedData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** The code-to-station directory, and the only thing that knows what a station code means. */
 public final class StationData extends SavedData {
@@ -122,7 +124,7 @@ public final class StationData extends SavedData {
      *
      * @return true if anything changed
      */
-    public boolean setRoles(String code, java.util.Set<StationRole> roles) {
+    public boolean setRoles(String code, Set<StationRole> roles) {
         StationRecord record = byCode(code);
         if (record == null || !record.setRoles(roles)) {
             return false;
@@ -155,7 +157,7 @@ public final class StationData extends SavedData {
                 found.add(record);
             }
         }
-        found.sort(java.util.Comparator.comparingDouble(record -> record.pos().distSqr(near)));
+        found.sort(Comparator.comparingDouble(record -> record.pos().distSqr(near)));
         return found;
     }
 

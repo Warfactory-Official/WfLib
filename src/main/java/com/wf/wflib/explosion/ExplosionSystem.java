@@ -19,6 +19,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.explosion.api.EntityNukeTorex;
+import com.wf.wflib.explosion.api.ExplosionSounds;
 
 public final class ExplosionSystem implements WFSystem {
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
@@ -67,7 +68,7 @@ public final class ExplosionSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.explosion.api.ExplosionSounds.register(modBus);
+        ExplosionSounds.register(modBus);
         active = true;
         ENTITY_TYPES.register(modBus);
         SOUND_EVENTS.register(modBus);

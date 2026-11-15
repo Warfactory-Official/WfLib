@@ -9,9 +9,11 @@ import com.wf.wflib.door.DoorBlock;
 import com.wf.wflib.door.api.DoorBlockEntity;
 import com.wf.wflib.door.DoorRole;
 import com.wf.wflib.door.api.DoorState;
+import dev.engine_room.flywheel.api.instance.Instance;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.lib.visual.AbstractBlockEntityVisual;
 import dev.engine_room.flywheel.lib.visual.SimpleDynamicVisual;
+import java.util.function.Consumer;
 import net.minecraft.core.Direction;
 import org.joml.Matrix4f;
 
@@ -96,7 +98,7 @@ public class DoorVisual extends AbstractBlockEntityVisual<DoorBlockEntity> imple
     }
 
     @Override
-    public void collectCrumblingInstances(java.util.function.Consumer<dev.engine_room.flywheel.api.instance.Instance> consumer) {
+    public void collectCrumblingInstances(Consumer<Instance> consumer) {
         if (instance != null) {
             consumer.accept(instance);
         }

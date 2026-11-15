@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import com.wf.wflib.cam.api.client.FeedPass;
+import java.util.Arrays;
 
 /**
  * {@code /wffeed cull skip|evict}: forces a feed cull on the next frame and records frames
@@ -147,8 +148,8 @@ public final class FeedProbe {
         s.put("rs.sorting", "" + RenderSystem.getVertexSorting());
         s.put("rs.modelview", RenderSystem.getModelViewMatrix().toString().replace('\n', ' '));
         s.put("rs.fog", RenderSystem.getShaderFogStart() + ".." + RenderSystem.getShaderFogEnd() + " "
-                + RenderSystem.getShaderFogShape() + " " + java.util.Arrays.toString(RenderSystem.getShaderFogColor()));
-        s.put("rs.color", java.util.Arrays.toString(RenderSystem.getShaderColor()));
+                + RenderSystem.getShaderFogShape() + " " + Arrays.toString(RenderSystem.getShaderFogColor()));
+        s.put("rs.color", Arrays.toString(RenderSystem.getShaderColor()));
         s.put("panoramic", "" + mc.gameRenderer.isPanoramicMode());
         s.put("feed.pass", "" + FeedPass.active());
         return s;

@@ -29,6 +29,8 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import java.util.Map;
 import com.wf.wflib.artifact.api.ArtifactContent;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.radiation.gametest.NeutronActivationGameTest;
+import net.minecraft.world.phys.AABB;
 
 /**
  * Damage types -> STALKER hit kinds; a Zone artefact shows to, and is taken by, only a detector that finds it; drifts
@@ -120,7 +122,7 @@ public class ArtifactGameTest {
                 new ItemStack(ArtifactContent.ARTIFACTS.get("battery").get()));
         item.setDeltaMovement(0.15D, 0.0D, 0.0D);
         helper.getLevel().addFreshEntity(item);
-        net.minecraft.world.phys.AABB around = new net.minecraft.world.phys.AABB(at, at).inflate(4.0D);
+        AABB around = new AABB(at, at).inflate(4.0D);
         helper.assertTrue(helper.getLevel().getEntitiesOfClass(ItemEntity.class, around).isEmpty(),
                 "an item entity stayed");
         var found = helper.getLevel().getEntitiesOfClass(ZoneArtifact.class, around);
@@ -134,7 +136,7 @@ public class ArtifactGameTest {
             player.setPos(a.getX(), a.getY(), a.getZ());
             a.playerTouch(player);
             helper.assertTrue(a.isAlive(), "walked up");
-            helper.assertTrue(a.interact(player, net.minecraft.world.InteractionHand.MAIN_HAND).consumesAction(),
+            helper.assertTrue(a.interact(player, InteractionHand.MAIN_HAND).consumesAction(),
                     "use did not take it");
             helper.assertFalse(a.isAlive(), "use left it");
             helper.assertTrue(player.getInventory().contains(new ItemStack(ArtifactContent.ARTIFACTS.get("battery").get())),
@@ -190,7 +192,7 @@ public class ArtifactGameTest {
         ZoneArtifact a = new ZoneArtifact(helper.getLevel(), new ItemStack(ArtifactContent.ARTIFACTS.get("soul").get()),
                 at.x, at.y, at.z, BlockPos.containing(at));
         helper.getLevel().addFreshEntity(a);
-        ServerPlayer player = com.wf.wflib.radiation.gametest.NeutronActivationGameTest.mockServerPlayer(helper);
+        ServerPlayer player = NeutronActivationGameTest.mockServerPlayer(helper);
         player.setPos(at.x + 2.0D, at.y, at.z);
         player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(ArtifactContent.DETECTOR_VELES.get()));
         helper.runAfterDelay(150, () -> {
@@ -199,7 +201,7 @@ public class ArtifactGameTest {
                 helper.assertTrue(a.position().subtract(at).horizontalDistance() < 1.0D, "drifted while shown: "
                         + a.position().subtract(at));
             } finally {
-                com.wf.wflib.radiation.gametest.NeutronActivationGameTest.remove(player);
+                NeutronActivationGameTest.remove(player);
             }
             helper.succeed();
         });

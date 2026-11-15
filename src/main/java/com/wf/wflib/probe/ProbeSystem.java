@@ -2,6 +2,7 @@ package com.wf.wflib.probe;
 
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.probe.api.ProbeJobs;
+import com.wf.wflib.probe.api.client.ObjMeshes;
 import com.wf.wflib.probe.client.ProbeClient;
 import com.wf.wflib.probe.client.ProbeConfig;
 import com.wf.wflib.probe.client.ProbeInput;
@@ -11,6 +12,7 @@ import com.wf.wflib.probe.client.ProbeNodes;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -40,7 +42,7 @@ public final class ProbeSystem implements WFSystem {
         modBus.register(ProbeModels.class);
         NeoForge.EVENT_BUS.register(ProbeInput.class);
         NeoForge.EVENT_BUS.register(ProbeNodes.class);
-        modBus.addListener(net.neoforged.neoforge.client.event.ModelEvent.BakingCompleted.class,
-                com.wf.wflib.probe.api.client.ObjMeshes::onBakingComplete);
+        modBus.addListener(ModelEvent.BakingCompleted.class,
+                ObjMeshes::onBakingComplete);
     }
 }

@@ -1,9 +1,12 @@
 package com.wf.wflib.labs;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.wf.wflib.labs.api.LabContext;
 import com.wf.wflib.labs.api.LabCover;
 import com.wf.wflib.labs.api.LabLauncher;
 import com.wf.wflib.labs.api.ScenarioStage;
+import com.wf.wflib.labs.api.ScenarioState;
 import com.wf.wflib.round.api.KineticPreset;
 import com.wf.wflib.round.api.KineticPresets;
 import com.wf.wflib.round.lab.CoverStage;
@@ -15,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -132,7 +136,7 @@ class ScenarioProducerTest {
 
     @Test
     void sweepsExpandToTheCartesianProduct() {
-        ScenarioPlan plan = ScenarioPlan.parse(com.google.gson.JsonParser.parseString("""
+        ScenarioPlan plan = ScenarioPlan.parse(JsonParser.parseString("""
                 {"launcher":["a","b"],"range":[0,100,200],"layers":[
                   {"stage":"cover","block":"x","thickness":[0.5,1],"angle":0}]}""").getAsJsonObject());
         assertEquals(12, plan.cases().size());
@@ -146,7 +150,7 @@ class ScenarioProducerTest {
     @Test
     void caseCountIsCapped() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> ScenarioPlan.parse(
-                com.google.gson.JsonParser.parseString("""
+                JsonParser.parseString("""
                         {"layers":[{"stage":"cover","block":"x","thickness":[%s],"angle":[%s]}]}"""
                         .formatted(seq(500), seq(500))).getAsJsonObject()));
         assertTrue(e.getMessage().contains("200000"), e.getMessage());
@@ -197,7 +201,7 @@ class ScenarioProducerTest {
         List<Object[]> b = run(TWO_WALLS);
         assertEquals(a.size(), b.size());
         for (int i = 0; i < a.size(); i++) {
-            assertTrue(java.util.Arrays.equals(a.get(i), b.get(i)), "row " + i);
+            assertTrue(Arrays.equals(a.get(i), b.get(i)), "row " + i);
         }
     }
 
@@ -208,7 +212,7 @@ class ScenarioProducerTest {
                 return "wall";
             }
 
-            public Result apply(LabContext ctx, com.wf.wflib.labs.api.ScenarioState in, com.google.gson.JsonObject spec) {
+            public Result apply(LabContext ctx, ScenarioState in, JsonObject spec) {
                 return new Result(0.0, 0.0, "STOP", "wall", Map.of());
             }
         };

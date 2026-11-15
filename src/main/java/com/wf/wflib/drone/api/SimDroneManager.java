@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import com.wf.wflib.core.api.WFLib;
+import java.util.UUID;
+import java.util.function.Predicate;
 
 /** Drones entity <-> {@link SimDrone} record. Records keep flying on the real AI ({@link DroneAiScheduler}). */
 public final class SimDroneManager implements SimKind<SimDrone> {
@@ -148,19 +150,19 @@ public final class SimDroneManager implements SimKind<SimDrone> {
     }
 
     @Override
-    public boolean wake(ServerLevel level, java.util.UUID id) {
+    public boolean wake(ServerLevel level, UUID id) {
         return onload(level, id);
     }
 
     @Override
-    public void wakeWhere(ServerLevel level, java.util.function.Predicate<net.minecraft.world.phys.Vec3> where) {
-        List<java.util.UUID> hit = new ArrayList<>();
+    public void wakeWhere(ServerLevel level, Predicate<Vec3> where) {
+        List<UUID> hit = new ArrayList<>();
         for (SimDrone sd : tier(level).view()) {
             if (where.test(sd.pos)) {
                 hit.add(sd.id);
             }
         }
-        for (java.util.UUID id : hit) {
+        for (UUID id : hit) {
             SimTargets.onload(level, id);
         }
     }
@@ -171,7 +173,7 @@ public final class SimDroneManager implements SimKind<SimDrone> {
      * @return true if it was off-world and is now a real entity again. False means it was never in the
      *      simulation, and the caller should try the slower recovery.
      */
-    public static boolean onload(ServerLevel level, java.util.UUID id) {
+    public static boolean onload(ServerLevel level, UUID id) {
         SimTier<SimDrone> registry = tier(level);
         SimDrone sd = registry.find(d -> d.id.equals(id));
         if (sd == null) {

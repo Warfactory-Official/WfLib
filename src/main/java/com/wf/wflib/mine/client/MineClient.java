@@ -9,12 +9,14 @@ import dev.engine_room.flywheel.api.visual.EntityVisual;
 import dev.engine_room.flywheel.api.visualization.EntityVisualizer;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.api.visualization.VisualizerRegistry;
+import net.minecraft.Util;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.entity.NoopRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
@@ -29,7 +31,7 @@ public final class MineClient {
     public static void register(IEventBus modBus) {
         NeoForge.EVENT_BUS.register(MineDebugRenderer.class);
         if (WFSystems.enabled("probe")) {
-            modBus.addListener(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent.class,
+            modBus.addListener(RegisterCapabilitiesEvent.class,
                     MineProbe::onRegisterCapabilities);
         }
         // Mines draw through flywheel (see MineVisual); vanilla still needs a renderer or the dispatcher NPEs.
@@ -37,7 +39,7 @@ public final class MineClient {
                 event.registerEntityRenderer(MineContent.MINE.get(), NoopRenderer::new));
         modBus.addListener(RegisterClientReloadListenersEvent.class, event ->
                 event.registerReloadListener((barrier, manager, prepProfiler, reloadProfiler, background, game) ->
-                        barrier.wait(net.minecraft.Util.NIL_UUID).thenRunAsync(MineRigs::init, game)));
+                        barrier.wait(Util.NIL_UUID).thenRunAsync(MineRigs::init, game)));
         modBus.addListener(FMLClientSetupEvent.class, event -> event.enqueueWork(() -> {
             MineRigs.init();
             MineItemRenderers.init();

@@ -11,6 +11,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.wf.wflib.orbital.api.SurveyTilePacket;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.Uplink;
+import com.wf.wflib.recon.api.ReconMapService;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public record SurveyRequestPacket(long netId, int tileX, int tileZ) implements CustomPacketPayload {
 
@@ -36,15 +39,15 @@ public record SurveyRequestPacket(long netId, int tileX, int tileZ) implements C
                 return;
             }
             // Debug survey screen (operators) may name any net; everyone else: own net, uplinked.
-            if (!com.wf.wflib.pda.api.Uplink.allows(player, netId)
-                    && !com.wf.wflib.recon.api.ReconMapService.mayChooseAnyNet(player)) {
+            if (!Uplink.allows(player, netId)
+                    && !ReconMapService.mayChooseAnyNet(player)) {
                 return;
             }
             SurveyTile tile = SurveyRasterData.get(level).existing(netId, tileX, tileZ);
             if (tile == null) {
                 return;
             }
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+            PacketDistributor.sendToPlayer(player,
                     new SurveyTilePacket(netId, tileX, tileZ, tile.stamped(), tile.imaged(),
                             tile.material(), tile.height(), tile.changed()));
         });

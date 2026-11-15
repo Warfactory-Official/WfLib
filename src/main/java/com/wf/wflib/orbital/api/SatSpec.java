@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 import com.wf.wflib.orbital.OrbitalConfig;
+import com.wf.wflib.recon.api.ReconNet;
 
 /**
  * Everything a satellite is, as data.
@@ -49,7 +50,7 @@ public record SatSpec(ResourceLocation payload, long netId, @Nullable UUID owner
      * A bird with a full tank, a full battery, panels, and everything else derived from the orbit it ends up in.
      */
     public static SatSpec of(ResourceLocation payload) {
-        return new SatSpec(payload, com.wf.wflib.recon.api.ReconNet.UNAFFILIATED, null, null, "SAT",
+        return new SatSpec(payload, ReconNet.UNAFFILIATED, null, null, "SAT",
                 OrbitalConfig.FUEL_CAPACITY, OrbitalConfig.FUEL_CAPACITY,
                 OrbitalConfig.POWER_CAPACITY, OrbitalConfig.POWER_CAPACITY, OrbitalConfig.SOLAR_PER_TICK,
                 0.0, 0.0, 0, 0);

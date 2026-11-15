@@ -26,6 +26,8 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Hand charges: flight, contact, warheads. Each test on its own floor 26 apart in height (template lid ~5): frag
@@ -64,8 +66,8 @@ public class GrenadeGameTest {
         for (BlockPos p : BlockPos.betweenClosed(o.offset(-3, 0, -3), o.offset(3, 4, 3))) {
             level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
         }
-        for (var e : level.getEntities((net.minecraft.world.entity.Entity) null,
-                new AABB(o).inflate(12), e -> !(e instanceof net.minecraft.world.entity.player.Player))) {
+        for (var e : level.getEntities((Entity) null,
+                new AABB(o).inflate(12), e -> !(e instanceof Player))) {
             e.discard();
         }
     }

@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Collections;
 
 /** Tracks heard by this player's PDA, with the trail each has flown; drawn on every map host and the PDA. */
 @EventBusSubscriber(modid = WFLib.MODID, value = Dist.CLIENT)
@@ -111,7 +112,7 @@ public final class TelemetryClient {
 
     private static final Map<Long, Track> TRACKS = new LinkedHashMap<>();
     private static final List<Track> LIST = new ArrayList<>();
-    private static final List<Track> VIEW = java.util.Collections.unmodifiableList(LIST);
+    private static final List<Track> VIEW = Collections.unmodifiableList(LIST);
     @Nullable
     private static ResourceKey<Level> dimension;
     private static long clock;

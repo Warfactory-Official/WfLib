@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import com.wf.wflib.recon.api.ReconMapService;
+import com.wf.wflib.recon.api.ReconOwners;
 
 /** {@code /reconmap}: turn the grid overlay on, and for an operator, point it at a network. */
 public final class ReconMapCommand {
@@ -101,7 +102,7 @@ public final class ReconMapCommand {
         if (!view.isEmpty()) {
             return;
         }
-        boolean unaffiliated = com.wf.wflib.recon.api.ReconOwners.owningEntity(player) == null;
+        boolean unaffiliated = ReconOwners.owningEntity(player) == null;
         source.sendSuccess(() -> Component.literal(unaffiliated
                         ? "  you are in no faction, so this is the unaffiliated network"
                         : "  nothing is on your faction's network here - a hub joins it only if it was built "

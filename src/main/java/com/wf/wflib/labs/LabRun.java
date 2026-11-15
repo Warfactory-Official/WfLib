@@ -1,15 +1,19 @@
 package com.wf.wflib.labs;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.labs.api.LabContents;
 import com.wf.wflib.labs.api.LabContext;
 import com.wf.wflib.labs.api.LabLauncher;
 import com.wf.wflib.labs.api.LabLaunchers;
 import com.wf.wflib.labs.api.LabProducer;
 import com.wf.wflib.labs.api.LabProducers;
+import com.wf.wflib.labs.api.LabRows;
 import com.wf.wflib.labs.api.LabTable;
+import com.wf.wflib.labs.api.LabTicks;
 import com.wf.wflib.round.api.KineticPreset;
 import com.wf.wflib.round.api.KineticPresets;
 import net.minecraft.resources.ResourceLocation;
@@ -23,20 +27,28 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.DoubleStream;
 
 /** One lab run: producers over one grid into {@code <gameDir>/lab/<timestamp>/}. */
 public final class LabRun {
@@ -69,7 +81,7 @@ public final class LabRun {
                 .sorted(Map.Entry.comparingByKey()).map(Map.Entry::getValue).toList());
         if (what.equals("all")) {
             return all.stream().filter(p -> !p.explicitOnly())
-                    .filter(p -> !p.ticksWorld() || com.wf.wflib.labs.api.LabTicks.available()).toList();
+                    .filter(p -> !p.ticksWorld() || LabTicks.available()).toList();
         }
         List<LabProducer> out = new ArrayList<>();
         for (String want : what.split(",")) {
@@ -119,7 +131,7 @@ public final class LabRun {
             throw new IllegalStateException("overworld not loaded");
         }
         List<LabProducer> producers = select(what);
-        java.util.Map<String, String> owners = new java.util.HashMap<>();
+        Map<String, String> owners = new HashMap<>();
         for (LabProducer p : producers) {
             String prev = owners.putIfAbsent(p.table().name(), p.id());
             if (prev != null) {
@@ -148,7 +160,7 @@ public final class LabRun {
         }
         JsonObject manifest = new JsonObject();
         manifest.addProperty("schema", SCHEMA);
-        manifest.addProperty("created", java.time.Instant.now().toString());
+        manifest.addProperty("created", Instant.now().toString());
         manifest.addProperty("millis", (System.nanoTime() - t0) / 1_000_000L);
         manifest.add("tables", tables);
         manifest.add("grid", grid(args));
@@ -183,7 +195,7 @@ public final class LabRun {
                 Path dir = base.resolve(n == 1 ? stamp : stamp + "-" + n);
                 try {
                     return Files.createDirectory(dir);
-                } catch (java.nio.file.FileAlreadyExistsException e) {
+                } catch (FileAlreadyExistsException e) {
                     continue;
                 }
             }
@@ -241,8 +253,8 @@ public final class LabRun {
             JsonObject j = new JsonObject();
             j.addProperty("name", c.name());
             j.addProperty("unit", c.unit());
-            j.addProperty("role", c.role().name().toLowerCase(java.util.Locale.ROOT));
-            j.addProperty("kind", c.kind().name().toLowerCase(java.util.Locale.ROOT));
+            j.addProperty("role", c.role().name().toLowerCase(Locale.ROOT));
+            j.addProperty("kind", c.kind().name().toLowerCase(Locale.ROOT));
             cols.add(j);
         }
         o.add("columns", cols);
@@ -263,9 +275,9 @@ public final class LabRun {
     static JsonObject grid(Map<String, String> args) {
         JsonObject g = new JsonObject();
         g.addProperty("seed", seedOf(args));
-        g.add("ranges", new com.google.gson.Gson().toJsonTree(ranges(args)));
+        g.add("ranges", new Gson().toJsonTree(ranges(args)));
         args.forEach(g::addProperty);
-        g.add("armor_exclude", new com.google.gson.Gson().toJsonTree(LabsConfig.snapshot().armorExclude()));
+        g.add("armor_exclude", new Gson().toJsonTree(LabsConfig.snapshot().armorExclude()));
         return g;
     }
 
@@ -311,7 +323,7 @@ public final class LabRun {
             for (Future<JsonObject> f : futures) {
                 out.add(f.get());
             }
-        } catch (InterruptedException | java.util.concurrent.ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new IllegalStateException(e);
         } finally {
             ex.shutdownNow();
@@ -333,9 +345,9 @@ public final class LabRun {
             double a = Double.parseDouble(p[0]);
             double b = Double.parseDouble(p[1]);
             double step = Double.parseDouble(p[2]);
-            return java.util.stream.DoubleStream.iterate(a, x -> x <= b + 1.0e-9, x -> x + step).toArray();
+            return DoubleStream.iterate(a, x -> x <= b + 1.0e-9, x -> x + step).toArray();
         }
-        return java.util.Arrays.stream(r.split(",")).mapToDouble(Double::parseDouble).toArray();
+        return Arrays.stream(r.split(",")).mapToDouble(Double::parseDouble).toArray();
     }
 
     static Predicate<String> roundFilter(String spec) {
@@ -378,7 +390,7 @@ public final class LabRun {
             this.ranges = ranges;
             this.rounds = rounds;
             this.params = params;
-            this.executor = executor != null ? executor : java.util.concurrent.ForkJoinPool.commonPool();
+            this.executor = executor != null ? executor : ForkJoinPool.commonPool();
         }
 
         @Override
@@ -422,7 +434,7 @@ public final class LabRun {
             }
             out.removeIf(l -> !idFilter.test(l.id()));
             if (!includeDev()) {
-                out.removeIf(l -> com.wf.wflib.labs.api.LabContents.DEV_ORIGIN.equals(com.wf.wflib.labs.api.LabRows.origin(l)));
+                out.removeIf(l -> LabContents.DEV_ORIGIN.equals(LabRows.origin(l)));
             }
             out.sort(Comparator.comparing(LabLauncher::id));
             return List.copyOf(out);

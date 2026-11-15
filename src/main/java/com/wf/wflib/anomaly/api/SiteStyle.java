@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.Locale;
 import java.util.Map;
 import com.wf.wflib.anomaly.site.SiteLayout;
+import net.minecraft.world.level.block.RotatedPillarBlock;
 
 /**
  * The biome a site sits in, as far as its look goes: which motifs suit it (a bog in a swamp, a ravine in the
@@ -147,8 +148,8 @@ public enum SiteStyle {
 
     private static BlockState copyAxis(BlockState from, Block to) {
         BlockState s = to.defaultBlockState();
-        return from.hasProperty(net.minecraft.world.level.block.RotatedPillarBlock.AXIS)
-                ? s.setValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS,
-                from.getValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS)) : s;
+        return from.hasProperty(RotatedPillarBlock.AXIS)
+                ? s.setValue(RotatedPillarBlock.AXIS,
+                from.getValue(RotatedPillarBlock.AXIS)) : s;
     }
 }

@@ -5,9 +5,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /** Parsed scenario JSON with every array-valued launcher / range / layer value expanded into cases. */
 record ScenarioPlan(String name, int samples, List<Case> cases) {
@@ -30,7 +32,7 @@ record ScenarioPlan(String name, int samples, List<Case> cases) {
     static ScenarioPlan parse(JsonObject root) {
         for (String k : root.keySet()) {
             if (!KEYS.contains(k)) {
-                throw new IllegalArgumentException("unknown scenario key " + k + "; have " + new java.util.TreeSet<>(KEYS));
+                throw new IllegalArgumentException("unknown scenario key " + k + "; have " + new TreeSet<>(KEYS));
             }
         }
         String name = root.has("name") ? string(root.get("name"), "name") : "scenario";
@@ -102,7 +104,7 @@ record ScenarioPlan(String name, int samples, List<Case> cases) {
     }
 
     private static Case build(int id, JsonObject root, JsonArray layers, List<Axis> axes, JsonElement[] pick) {
-        Map<String, JsonElement> chosen = new java.util.HashMap<>();
+        Map<String, JsonElement> chosen = new HashMap<>();
         StringBuilder label = new StringBuilder();
         for (int a = 0; a < axes.size(); a++) {
             chosen.put(axes.get(a).label, pick[a]);

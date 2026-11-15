@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.missile.api.WFEventType;
 import com.wf.wflib.warhead.api.BombletEntity;
 import com.wf.wflib.drone.exchange.ExchangeManager;
@@ -30,6 +31,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
+import net.minecraft.world.level.gameevent.GameEvent;
 
 /** What is slung under a drone: a crate and its hold, a strike payload, a mine rack. */
 public final class DroneHold {
@@ -137,7 +139,7 @@ public final class DroneHold {
 
     /** Put one mine off the rack down. */
     void layMine(ServerLevel level, Vec3 aim) {
-        if (this.mines == null || this.mines.empty() || !com.wf.wflib.core.api.WFSystems.enabled("mine")) {
+        if (this.mines == null || this.mines.empty() || !WFSystems.enabled("mine")) {
             return;
         }
         MinePreset preset = MinePresets.get(this.mines.preset());
@@ -272,8 +274,8 @@ public final class DroneHold {
             this.giveItem(new ItemStack(item));
             return false;
         }
-        level.gameEvent(net.minecraft.world.level.gameevent.GameEvent.BLOCK_PLACE, at,
-                net.minecraft.world.level.gameevent.GameEvent.Context.of(this.drone, state));
+        level.gameEvent(GameEvent.BLOCK_PLACE, at,
+                GameEvent.Context.of(this.drone, state));
         return true;
     }
 

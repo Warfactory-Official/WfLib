@@ -1,5 +1,13 @@
 package com.wf.wflib.explosion.client;
 
+import com.wf.gemrender.particle.LevelContactProbe;
+import com.wf.gemrender.particle.ParticleCollision;
+import com.wf.wflib.explosion.api.client.BlastDebris;
+import com.wf.wflib.fx.InstancedBurst;
+import com.wf.wflib.fx.api.FlywheelEffectManager;
+import com.wf.wflib.fx.api.InstancedParticleEffect;
+import com.wf.wflib.fx.api.SkeletonBoneEffect;
+import com.wf.wflib.fx.api.WFBursts;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.ParticleEngine;
@@ -76,10 +84,10 @@ public final class WFEffects {
         float scale = data.contains("scale") ? data.getFloat("scale") : 2F;
         float speed = data.contains("speed") ? data.getFloat("speed") : 0.5F;
 
-        if (com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level)) {
+        if (FlywheelEffectManager.isAvailable(level)) {
             if (!waterFoam(level, x, y, z, scale * 1.5F)) {
-                com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                        new com.wf.wflib.fx.api.InstancedParticleEffect(
+                FlywheelEffectManager.spawn(
+                        new InstancedParticleEffect(
                                 level, x, y, z, count * INSTANCED_SMOKE_DENSITY, scale, speed, BlastFrame.of(level, x, y, z)));
             }
             spawnDebris(level, x, y, z, data); // smoke is instanced; debris stays on the normal path
@@ -93,7 +101,7 @@ public final class WFEffects {
      * @return true if the charge went off underwater (no fireball to draw above)
      */
     private static boolean waterFoam(ClientLevel level, double x, double y, double z, float reach) {
-        if (!com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level)) {
+        if (!FlywheelEffectManager.isAvailable(level)) {
             return false;
         }
         double surface = WaterSurface.find(level, x, y, z);
@@ -111,11 +119,11 @@ public final class WFEffects {
         int plume = Math.max(24, Math.round(vented * FOAM_PLUME_PER_BLOCK));
         int surge = Math.max(20, Math.round(vented * FOAM_SURGE_PER_BLOCK));
 
-        com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                com.wf.wflib.fx.api.WFBursts.foamPlume(level, x, surface, z, plume, vented,
+        FlywheelEffectManager.spawn(
+                WFBursts.foamPlume(level, x, surface, z, plume, vented,
                         level.random));
-        com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                com.wf.wflib.fx.api.WFBursts.foamSurge(level, x, surface, z, surge, vented,
+        FlywheelEffectManager.spawn(
+                WFBursts.foamSurge(level, x, surface, z, surge, vented,
                         level.random));
         return depth > 0.2;
     }
@@ -169,9 +177,9 @@ public final class WFEffects {
         }
         if (submerged) {
             // Submerged: no fireball draw; the foam is what's visible of it.
-        } else if (com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level)) {
-            com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                    com.wf.wflib.fx.api.WFBursts.cloud(level, x, y, z,
+        } else if (FlywheelEffectManager.isAvailable(level)) {
+            FlywheelEffectManager.spawn(
+                    WFBursts.cloud(level, x, y, z,
                             cloudCount * INSTANCED_CLOUD_DENSITY, cloudScale, cloudSpeed, vent, rand));
         } else if (ParticleSprites.ROCKET_FLAME.get() != null) {
             for (int i = 0; i < cloudCount; i++) {
@@ -187,7 +195,7 @@ public final class WFEffects {
         }
 
         if (!far(x, y, z)) {
-            com.wf.wflib.explosion.api.client.BlastDebris.schedule(level, x, y, z, debrisCount * INSTANCED_DEBRIS_DENSITY,
+            BlastDebris.schedule(level, x, y, z, debrisCount * INSTANCED_DEBRIS_DENSITY,
                     debrisVelocity, vent);
         }
 
@@ -201,11 +209,11 @@ public final class WFEffects {
 
         int plumes = 30 + radius * 12;
         WFLights.blast(x, y, z, 6 + 2 * radius, 5);
-        boolean instanced = com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level);
+        boolean instanced = FlywheelEffectManager.isAvailable(level);
 
         if (instanced) {
-            com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                    com.wf.wflib.fx.api.WFBursts.plume(level, x, y, z, plumes, radius, rand));
+            FlywheelEffectManager.spawn(
+                    WFBursts.plume(level, x, y, z, plumes, radius, rand));
         } else {
             handTickedPlume(level, x, y, z, plumes, radius, rand);
         }
@@ -217,8 +225,8 @@ public final class WFEffects {
         float spread = radius * 0.55F;
         int perType = Math.max(120, 110 / debris.length);
 
-        com.wf.gemrender.particle.ParticleCollision.Probe probe = instanced
-                ? com.wf.gemrender.particle.LevelContactProbe.of(level)
+        ParticleCollision.Probe probe = instanced
+                ? LevelContactProbe.of(level)
                 : null;
 
         for (int id : debris) {
@@ -228,11 +236,11 @@ public final class WFEffects {
             }
 
             if (instanced) {
-                com.wf.wflib.fx.InstancedBurst burst =
-                        com.wf.wflib.fx.api.WFBursts.blockChunks(level, x, y, z, perType,
+                InstancedBurst burst =
+                        WFBursts.blockChunks(level, x, y, z, perType,
                                 spread, 0.45F, state, rand, probe);
                 if (burst != null) {
-                    com.wf.wflib.fx.api.FlywheelEffectManager.spawn(burst);
+                    FlywheelEffectManager.spawn(burst);
                     continue;
                 }
             }
@@ -284,13 +292,13 @@ public final class WFEffects {
     }
 
     private static void skeleton(ClientLevel level, double x, double y, double z, CompoundTag data) {
-        if (!com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level)) return;
+        if (!FlywheelEffectManager.isAvailable(level)) return;
         float bodyYaw = data.getFloat("bodyYaw");
         float headYaw = data.getFloat("headYaw");
         float height = data.contains("height") ? data.getFloat("height") : 1.8F;
         float brightness = data.contains("brightness") ? data.getFloat("brightness") : 0.85F;
-        com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                com.wf.wflib.fx.api.SkeletonBoneEffect.biped(level, x, y, z, bodyYaw, headYaw, height, brightness));
+        FlywheelEffectManager.spawn(
+                SkeletonBoneEffect.biped(level, x, y, z, bodyYaw, headYaw, height, brightness));
     }
 
     private static void spawnDebris(ClientLevel level, double x, double y, double z, CompoundTag data) {
@@ -300,9 +308,9 @@ public final class WFEffects {
         BlockState surface = nearbySurface(level, x, y, z);
         if (surface != null && !surface.isAir()) {
             int debris = data.contains("debris") ? data.getInt("debris") : 15;
-            if (com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level)) {
-                com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                        com.wf.wflib.fx.api.WFBursts.shrapnel(level, x, y, z, debris, surface,
+            if (FlywheelEffectManager.isAvailable(level)) {
+                FlywheelEffectManager.spawn(
+                        WFBursts.shrapnel(level, x, y, z, debris, surface,
                                 level.random));
             } else {
                 ParticleEngine engine = Minecraft.getInstance().particleEngine;
@@ -344,15 +352,15 @@ public final class WFEffects {
 
     /** Invoked by {@code BlastCorpses}. */
     private static void splatter(ClientLevel level, double x, double y, double z, CompoundTag data) {
-        if (!com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level)) {
+        if (!FlywheelEffectManager.isAvailable(level)) {
             return;
         }
         float width = data.getFloat("width");
-        com.wf.wflib.fx.api.FlywheelEffectManager.spawn(com.wf.wflib.fx.api.WFBursts.bloodSpray(
+        FlywheelEffectManager.spawn(WFBursts.bloodSpray(
                 level, x, y, z, width, data.getFloat("speed"), level.random));
         if (!data.getBoolean("water")) {
-            com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                    com.wf.wflib.fx.api.WFBursts.bloodPool(level, x, y, z, width, level.random));
+            FlywheelEffectManager.spawn(
+                    WFBursts.bloodPool(level, x, y, z, width, level.random));
         }
     }
 
@@ -360,10 +368,10 @@ public final class WFEffects {
         int count = data.getInt("count");
         float scale = data.contains("scale") ? data.getFloat("scale") : 0.125F;
 
-        boolean instanced = com.wf.wflib.fx.api.FlywheelEffectManager.isAvailable(level);
+        boolean instanced = FlywheelEffectManager.isAvailable(level);
         if (instanced) {
-            com.wf.wflib.fx.api.FlywheelEffectManager.spawn(
-                    com.wf.wflib.fx.api.WFBursts.ash(level, x, y, z, count, scale,
+            FlywheelEffectManager.spawn(
+                    WFBursts.ash(level, x, y, z, count, scale,
                             level.random));
         }
 

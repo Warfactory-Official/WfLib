@@ -10,6 +10,7 @@ import com.wf.wflib.recon.api.SensorSnapshot;
 import com.wf.wflib.recon.api.TargetSnapshot;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.recon.api.Propagator;
+import java.util.Locale;
 
 /**
  * The sonar model: a very good bearing, no range at all until you ping, and nothing outside the water.
@@ -154,7 +155,7 @@ public final class SonarPropagator implements Propagator {
                 return active ? "no echo" : "silent";
             }
             if (snr < 1.0) {
-                return String.format(java.util.Locale.ROOT,
+                return String.format(Locale.ROOT,
                         "out of range (%.0f > %.0f, %.0f blk of water x%.2f, layer x%.2f, weather x%.2f)",
                         range, detectionRange, meanDepth, depthFactor, layer, weather);
             }

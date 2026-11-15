@@ -1,6 +1,7 @@
 package com.wf.wflib.armor.api.hull;
 
 import com.wf.wflib.geom.api.OBB;
+import java.util.Locale;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -37,7 +38,7 @@ public final class HullWear {
         }
 
         public String key() {
-            return name().toLowerCase(java.util.Locale.ROOT);
+            return name().toLowerCase(Locale.ROOT);
         }
     }
 

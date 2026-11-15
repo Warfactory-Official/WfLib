@@ -3,9 +3,13 @@ package com.wf.wflib.carry;
 import com.wf.wflib.carry.api.Carry;
 import com.wf.wflib.carry.api.Shoulder;
 import com.wf.wflib.ragdoll.api.Ragdolls;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -34,8 +38,8 @@ final class CarryServer {
     private CarryServer() {
     }
 
-    private static final java.util.Map<java.util.UUID, Integer> LOCKED_SLOT = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final java.util.Map<java.util.UUID, Integer> SYNCED_GUN = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> LOCKED_SLOT = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> SYNCED_GUN = new ConcurrentHashMap<>();
     private static final int GUN_SYNC_TICKS = 5;
 
     /** Arms the carried kit when permitted; gun held => hotbar slot locked, gun state re-synced when it changes. */
@@ -52,7 +56,7 @@ final class CarryServer {
         int locked = LOCKED_SLOT.computeIfAbsent(player.getUUID(), u -> player.getInventory().selected);
         if (player.getInventory().selected != locked) {
             player.getInventory().selected = locked;
-            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(locked));
+            player.connection.send(new ClientboundSetCarriedItemPacket(locked));
         }
         if (player.tickCount % GUN_SYNC_TICKS == 0) {
             int hash = ItemStack.hashItemAndComponents(gun);

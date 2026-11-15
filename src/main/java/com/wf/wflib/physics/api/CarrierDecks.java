@@ -4,6 +4,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +100,7 @@ public final class CarrierDecks {
                 continue;
             }
             if (out.size() == overlaps.length) {
-                overlaps = java.util.Arrays.copyOf(overlaps, overlaps.length * 2);
+                overlaps = Arrays.copyOf(overlaps, overlaps.length * 2);
                 OVERLAPS.set(overlaps);
             }
             int at = out.size();

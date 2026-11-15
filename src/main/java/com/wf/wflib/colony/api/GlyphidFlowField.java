@@ -6,6 +6,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
 import com.wf.wflib.colony.glyphid.nav.GlyphidBridges;
+import java.util.Arrays;
+import java.util.Comparator;
 
 /** One shared answer to "which way from here", for every glyphid walking to the same place. */
 public final class GlyphidFlowField {
@@ -62,8 +64,8 @@ public final class GlyphidFlowField {
         this.centreX = x;
         this.centreY = y;
         this.centreZ = z;
-        java.util.Arrays.fill(floor, UNSAMPLED);
-        java.util.Arrays.fill(distance, UNREACHED);
+        Arrays.fill(floor, UNSAMPLED);
+        Arrays.fill(distance, UNREACHED);
         // Before the flood, so a finished deck is already ordinary floor by the time anything walks into it.
         GlyphidBridges.stampInto(level, this);
 
@@ -262,8 +264,8 @@ public final class GlyphidFlowField {
         if (found == null) {
             return;
         }
-        java.util.Arrays.sort(found, 0, candidateCount,
-                java.util.Comparator.comparingLong(Candidate::rank));
+        Arrays.sort(found, 0, candidateCount,
+                Comparator.comparingLong(Candidate::rank));
         for (int i = 0; i < candidateCount; i++) {
             Candidate candidate = found[i];
             GlyphidBridges.propose(level, candidate.bankX(), candidate.bankZ(), candidate.deckY(),

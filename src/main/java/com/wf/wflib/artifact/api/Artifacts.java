@@ -3,6 +3,9 @@ package com.wf.wflib.artifact.api;
 import com.wf.wflib.core.api.Hook;
 import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.damage.api.WFDamageTypes;
+import com.wf.wflib.hazard.api.LivingHazardProps;
+import com.wf.wflib.round.api.RoundDamageSource;
+import java.util.ArrayList;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -23,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotResult;
 
 /**
  * Artefacts at work: each worn in a Curios {@code artifact} slot scales the hits of its kinds by
@@ -77,7 +83,7 @@ public final class Artifacts {
      * Once a second: worn artefacts' health back or drained ({@code health_restore_speed}), wounds closed, radiation
      * dosed or cleared ({@code radiation_restore_speed}), hunger ({@code satiety_restore_speed} as exhaustion).
      */
-    private static void onPlayerTick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post e) {
+    private static void onPlayerTick(PlayerTickEvent.Post e) {
         Player player = e.getEntity();
         if (!(e.getEntity() instanceof ServerPlayer server) || player.tickCount % 20 != 0 || player.isDeadOrDying()) {
             return;
@@ -99,7 +105,7 @@ public final class Artifacts {
             CLOTTER.get().accept(server, clot);
         }
         if (rad != 0.0F && WFSystems.enabled("hazard")) {
-            com.wf.wflib.hazard.api.LivingHazardProps.incrementRadiation(player, rad);
+            LivingHazardProps.incrementRadiation(player, rad);
         }
         if (food < 0.0F) {
             player.causeFoodExhaustion(-food * 4.0F);
@@ -197,7 +203,7 @@ public final class Artifacts {
         if (source.is(WFDamageTypes.ACID) || source.is(WFDamageTypes.GAS)) {
             return Artifact.Hit.CHEMICAL;
         }
-        if (source instanceof com.wf.wflib.round.api.RoundDamageSource || source.is(DamageTypeTags.IS_PROJECTILE)) {
+        if (source instanceof RoundDamageSource || source.is(DamageTypeTags.IS_PROJECTILE)) {
             return Artifact.Hit.BULLET;
         }
         if (source.is(WFDamageTypes.GRAVITY_ANOMALY) || source.is(DamageTypeTags.IS_FALL)
@@ -217,7 +223,7 @@ public final class Artifacts {
         if (worn.isEmpty()) {
             return List.of();
         }
-        List<Artifact> out = new java.util.ArrayList<>(worn.size());
+        List<Artifact> out = new ArrayList<>(worn.size());
         for (ItemStack stack : worn) {
             if (stack.getItem() instanceof ArtifactItem item) {
                 out.add(item.artifact());
@@ -234,9 +240,9 @@ public final class Artifacts {
     /** Optional linkage boundary: only this class references Curios. */
     private static final class Loaded {
         static List<ItemStack> worn(Player player) {
-            return top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player)
+            return CuriosApi.getCuriosInventory(player)
                     .map(inventory -> inventory.findCurios("artifact").stream()
-                            .map(top.theillusivec4.curios.api.SlotResult::stack).toList())
+                            .map(SlotResult::stack).toList())
                     .orElse(List.of());
         }
     }

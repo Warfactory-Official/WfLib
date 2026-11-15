@@ -5,6 +5,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.world.level.block.Block;
 
 /** Holders dependents name; registered by {@code CamSystem}. */
 public final class CameraContent {
@@ -13,7 +14,7 @@ public final class CameraContent {
             DeferredHolder.create(Registries.DATA_COMPONENT_TYPE,
                     ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "camera_channels"));
 
-    public static final DeferredHolder<net.minecraft.world.level.block.Block, net.minecraft.world.level.block.Block>
+    public static final DeferredHolder<Block, Block>
             CAMERA_MONITOR = DeferredHolder.create(Registries.BLOCK,
                     ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "camera_monitor"));
 

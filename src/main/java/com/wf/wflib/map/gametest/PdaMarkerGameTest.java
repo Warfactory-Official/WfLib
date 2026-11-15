@@ -11,6 +11,7 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import java.util.UUID;
 import com.wf.wflib.pda.gametest.PdaUplinkGameTest;
 import com.wf.wflib.core.api.WFLib;
+import java.util.List;
 
 /** Markers are per side: a teammate shares them, another side never sees them, the cap holds. */
 @PrefixGameTestTemplate(false)
@@ -30,7 +31,7 @@ public class PdaMarkerGameTest {
         }
         int teammate = store.of(MarkerData.side(a2)).size();
         int other = store.of(MarkerData.side(b1)).size();
-        for (var m : java.util.List.copyOf(store.of(sideA))) {
+        for (var m : List.copyOf(store.of(sideA))) {
             store.remove(sideA, m.id());
         }
         if (before != 0 || teammate != MarkerData.CAP || other != 0) {

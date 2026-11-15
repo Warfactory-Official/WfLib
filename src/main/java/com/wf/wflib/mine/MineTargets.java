@@ -8,6 +8,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import com.wf.wflib.mine.api.MineTarget;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.world.entity.Entity;
 
 /** The stock entity matchers, and the tag generation every {@link MineTarget} memo is keyed against. */
 public final class MineTargets {
@@ -32,7 +33,7 @@ public final class MineTargets {
 
     /** Anything heavy enough to set off an anti-armour fuze. */
     public static final MineTarget HEAVY = MineTarget.builder()
-            .type(net.minecraft.world.entity.Entity.class)
+            .type(Entity.class)
             .where(entity -> entity.isVehicle()
                     || entity.getBbWidth() * entity.getBbWidth() * entity.getBbHeight() >= HEAVY_VOLUME)
             .build();

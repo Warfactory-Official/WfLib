@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier;
 
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.soldier.client.VoiceScreen;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
@@ -71,7 +72,7 @@ public final class VoicePackets {
         public Type<Menu> type() { return TYPE; }
 
         static void handle(Menu packet, IPayloadContext context) {
-            context.enqueueWork(() -> com.wf.wflib.soldier.client.VoiceScreen.show(packet));
+            context.enqueueWork(() -> VoiceScreen.show(packet));
         }
     }
 

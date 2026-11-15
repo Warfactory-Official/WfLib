@@ -3,6 +3,7 @@ package com.wf.wflib.pda.music.client;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.pda.music.OggAudio;
 import net.minecraft.Util;
 import net.neoforged.fml.loading.FMLPaths;
 import org.slf4j.Logger;
@@ -94,7 +95,7 @@ final class MusicPlaylists {
                 Playlist clean = new Playlist(p.name.length() > MAX_NAME ? p.name.substring(0, MAX_NAME) : p.name);
                 if (p.tracks != null) {
                     for (Ref r : p.tracks) {
-                        if (r != null && r.file != null && com.wf.wflib.pda.music.OggAudio.validName(r.file)
+                        if (r != null && r.file != null && OggAudio.validName(r.file)
                                 && ("SERVER".equals(r.src) || "LOCAL".equals(r.src))
                                 && clean.tracks.size() < MAX_TRACKS) {
                             clean.tracks.add(r);

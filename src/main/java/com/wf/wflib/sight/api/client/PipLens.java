@@ -1,6 +1,7 @@
 package com.wf.wflib.sight.api.client;
 
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -669,7 +670,7 @@ public final class PipLens {
     /** Default reticle texture: fine cross, heavy posts from 0.35 to the rim (lens coords over [-1, 1]). */
     private static ResourceLocation duplex() {
         if (!duplexReady) {
-            com.mojang.blaze3d.platform.NativeImage img = new com.mojang.blaze3d.platform.NativeImage(DUPLEX_PX,
+            NativeImage img = new NativeImage(DUPLEX_PX,
                     DUPLEX_PX, true);
             for (int y = 0; y < DUPLEX_PX; y++) {
                 for (int x = 0; x < DUPLEX_PX; x++) {

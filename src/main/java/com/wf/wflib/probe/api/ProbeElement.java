@@ -1,5 +1,6 @@
 package com.wf.wflib.probe.api;
 
+import com.wf.gemrender.ui.Canvas;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -7,6 +8,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import net.minecraft.world.inventory.InventoryMenu;
 
 /** One thing a probe panel can draw. */
 public sealed interface ProbeElement {
@@ -51,7 +53,7 @@ public sealed interface ProbeElement {
                        int tint) implements ProbeElement {
 
         public static AtlasSprite blocks(ResourceLocation sprite, int size) {
-            return new AtlasSprite(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS,
+            return new AtlasSprite(InventoryMenu.BLOCK_ATLAS,
                     sprite, size, size, 0xFFFFFFFF);
         }
     }
@@ -147,6 +149,6 @@ public sealed interface ProbeElement {
     /** Draws in canvas units at the element's top-left; vanilla 3D drawing needs {@code canvas.suspend()} first. */
     @FunctionalInterface
     interface Drawable {
-        void draw(com.wf.gemrender.ui.Canvas canvas, int x, int y, int w, int h, float partialTick);
+        void draw(Canvas canvas, int x, int y, int w, int h, float partialTick);
     }
 }

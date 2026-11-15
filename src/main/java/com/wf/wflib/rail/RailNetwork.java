@@ -7,6 +7,11 @@ import com.wf.wflib.rail.align.AlignmentData;
 import com.wf.wflib.rail.align.RightOfWaySurvey;
 import com.wf.wflib.rail.align.AlignmentEdits;
 import com.wf.wflib.rail.align.AlignmentService;
+import com.wf.wflib.rail.client.PublishedAlignments;
+import com.wf.wflib.rail.client.RouteOwnership;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -68,17 +73,17 @@ public final class RailNetwork {
                 }));
         registrar.playToClient(RailRightOfWayPacket.TYPE, RailRightOfWayPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.rail.client.RouteOwnership.accept(pkt)));
+                        () -> RouteOwnership.accept(pkt)));
         registrar.playToClient(RailAlignmentPacket.TYPE, RailAlignmentPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.rail.client.PublishedAlignments.accept(pkt)));
+                        () -> PublishedAlignments.accept(pkt)));
         registrar.playToClient(RailSaveResultPacket.TYPE, RailSaveResultPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.rail.client.PublishedAlignments.acceptResult(pkt)));
+                        () -> PublishedAlignments.acceptResult(pkt)));
     }
 
     /** The version a route is at now, which is what the client must save against next. */
-    private static int revisionOf(ServerLevel level, java.util.UUID id) {
+    private static int revisionOf(ServerLevel level, UUID id) {
         Alignment alignment = AlignmentData.of(level).get(id);
         return alignment == null ? 0 : alignment.revision().number();
     }
@@ -101,10 +106,10 @@ public final class RailNetwork {
      */
     private static final long SAVE_MIN_INTERVAL_MS = 400L;
 
-    private static final java.util.Map<java.util.UUID, Long> LAST_ROW = new java.util.HashMap<>();
-    private static final java.util.Map<java.util.UUID, Long> LAST_SAVE = new java.util.HashMap<>();
+    private static final Map<UUID, Long> LAST_ROW = new HashMap<>();
+    private static final Map<UUID, Long> LAST_SAVE = new HashMap<>();
 
-    private static boolean allow(java.util.Map<java.util.UUID, Long> seen, ServerPlayer player,
+    private static boolean allow(Map<UUID, Long> seen, ServerPlayer player,
                                  long interval) {
         long now = System.currentTimeMillis();
         Long last = seen.get(player.getUUID());

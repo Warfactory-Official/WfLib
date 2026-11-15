@@ -24,6 +24,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import com.wf.wflib.anomaly.api.AnomalyCaves;
 import com.wf.wflib.core.api.WFLib;
+import net.minecraft.util.RandomSource;
 
 /**
  * Writes the part of a site that falls in {@code box} (one chunk): the reshaped ground, props, rotted ruins,
@@ -96,7 +97,7 @@ public final class SitePainter {
                         .addProcessor(JigsawReplacementProcessor.INSTANCE)
                         .addProcessor(new BlockRotProcessor(r.integrity()))
                         .addProcessor(new BlockAgeProcessor(r.moss()));
-                t.placeInWorld(level, r.origin(), r.origin(), settings, net.minecraft.util.RandomSource.create(
+                t.placeInWorld(level, r.origin(), r.origin(), settings, RandomSource.create(
                         r.origin().asLong()), FLAGS);
             });
         }

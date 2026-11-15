@@ -21,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import com.wf.wflib.core.api.WFLib;
+import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
 
 /**
  * Client-only playback controller: queue (shuffle / repeat), load -> {@link OggAudio#probe} -> {@link PcmSource} ->
@@ -158,7 +162,7 @@ final class MusicPlayer {
             o.add(i);
         }
         if (MusicPlaylists.shuffle()) {
-            java.util.Collections.shuffle(o);
+            Collections.shuffle(o);
             o.remove(Integer.valueOf(first));
             o.addFirst(first);
         }
@@ -306,7 +310,7 @@ final class MusicPlayer {
                 try {
                     return MusicLibrary.readLocal(track.name());
                 } catch (IOException e) {
-                    throw new java.io.UncheckedIOException(e);
+                    throw new UncheckedIOException(e);
                 }
             }, Util.backgroundExecutor());
         } else {
@@ -355,7 +359,7 @@ final class MusicPlayer {
             }
             return new Opened(new Loaded(track, source, probe), data, cover);
         } catch (IOException e) {
-            throw new java.io.UncheckedIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -366,12 +370,12 @@ final class MusicPlayer {
     }
 
     private static void failed(Throwable e) {
-        Throwable cause = e instanceof java.util.concurrent.CompletionException && e.getCause() != null
+        Throwable cause = e instanceof CompletionException && e.getCause() != null
                 ? e.getCause() : e;
-        if (cause instanceof java.io.UncheckedIOException u && u.getCause() != null) {
+        if (cause instanceof UncheckedIOException u && u.getCause() != null) {
             cause = u.getCause();
         }
-        if (cause instanceof java.util.concurrent.CancellationException) {
+        if (cause instanceof CancellationException) {
             return;
         }
         LOGGER.warn("PDA music '{}' failed: {}", current == null ? "?" : current.name(), cause.toString());

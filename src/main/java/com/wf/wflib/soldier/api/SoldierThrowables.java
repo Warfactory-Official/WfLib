@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier.api;
 
 import com.wf.wflib.grenade.api.ThrownCharge;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 /** Grenade handling for the soldier AI, over whatever mod owns the grenade items. Server thread only. */
@@ -11,7 +12,7 @@ public interface SoldierThrowables {
     }
 
     /** What a grenade item is for: the AI throws frags at hidden contacts and smoke to cover movement. */
-    Kind kind(net.minecraft.resources.ResourceLocation item);
+    Kind kind(ResourceLocation item);
 
     boolean smoke(ThrownCharge charge);
 

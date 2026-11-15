@@ -1,5 +1,6 @@
 package com.wf.wflib.countermeasure;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.countermeasure.api.ApsGrenadeEntity;
 import com.wf.wflib.core.api.WFLibContent;
@@ -18,6 +19,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Set;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 /** Holders named through {@link com.wf.wflib.countermeasure.api.Countermeasures}. */
 public final class CountermeasureSystem implements WFSystem {
@@ -40,14 +43,14 @@ public final class CountermeasureSystem implements WFSystem {
     }
 
     @Override
-    public java.util.Set<String> requires() {
-        return java.util.Set.of("grenade", "missile", "round");
+    public Set<String> requires() {
+        return Set.of("grenade", "missile", "round");
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("countermeasure", 260, out -> com.wf.wflib.countermeasure.api.Countermeasures.live().forEach(id ->
-                out.accept(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(id))));
+        CreativeTabs.contribute("countermeasure", 260, out -> Countermeasures.live().forEach(id ->
+                out.accept(BuiltInRegistries.ITEM.get(id))));
         ENTITIES.register("flare",
                 () -> EntityType.Builder.<FlareEntity>of(FlareEntity::new, MobCategory.MISC).sized(0.25f, 0.25f)
                         .clientTrackingRange(16).updateInterval(1).noSave().build("flare"));

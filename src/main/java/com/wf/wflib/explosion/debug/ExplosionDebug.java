@@ -3,6 +3,7 @@ package com.wf.wflib.explosion.debug;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.wf.wflib.explosion.api.ExplosionAEF;
 import com.wf.wflib.explosion.api.ExplosionCreator;
@@ -61,7 +62,7 @@ public final class ExplosionDebug {
                         .then(explosionsNode())));
     }
 
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> explosionsNode() {
+    private static LiteralArgumentBuilder<CommandSourceStack> explosionsNode() {
         return Commands.literal("explosions")
                 .executes(ctx -> setExplosionDebug(ctx.getSource(), !ExplosionTrace.enabled()))
                 .then(Commands.literal("on").executes(ctx -> setExplosionDebug(ctx.getSource(), true)))

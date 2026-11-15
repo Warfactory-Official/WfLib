@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
@@ -155,7 +156,7 @@ public class LabServeGameTest {
                 for (String line; (line = r.readLine()) != null; ) {
                     JsonObject f = JsonParser.parseString(line).getAsJsonObject();
                     frames.add(f);
-                    if (java.util.Arrays.asList(terminal).contains(f.get("type").getAsString())) {
+                    if (Arrays.asList(terminal).contains(f.get("type").getAsString())) {
                         break;
                     }
                 }

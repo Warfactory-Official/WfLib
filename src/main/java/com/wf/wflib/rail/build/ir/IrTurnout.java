@@ -26,9 +26,15 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.logging.LogUtils;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import org.slf4j.Logger;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds a real Immersive Railroading turnout where a branch leaves a main line.
@@ -184,7 +190,7 @@ public final class IrTurnout {
         if (probe == null) {
             return Built.no("Immersive Railroading has no builder for a switch of this shape");
         }
-        java.util.List<TrackBase> laid = probe.getTracksForRender();
+        List<TrackBase> laid = probe.getTracksForRender();
 
         // The switch is the branch's own first stretch, carrying both roads. Anything the branch laid
         // there itself is taken back out before the switch goes in, because two anchors in one place is
@@ -206,7 +212,7 @@ public final class IrTurnout {
         if (builder == null || !builder.canBuild()) {
             return Built.no(blockage(level, laid));
         }
-        java.util.List<BlockPos> cells = footprint(laid);
+        List<BlockPos> cells = footprint(laid);
         int before = 0;
         for (BlockPos cell : cells) {
             if (level.getBlockEntity(cell) != null) {
@@ -242,7 +248,7 @@ public final class IrTurnout {
      * refusal for the message: it names the position, which turns an invisible stop into somewhere a
      * person can walk to.</p>
      */
-    private static String foreignAnchor(World world, java.util.List<TrackBase> laid) {
+    private static String foreignAnchor(World world, List<TrackBase> laid) {
         for (TrackBase track : laid) {
             Vec3i at = track.getPos();
             if (world.getBlockEntity(at, TileRail.class) == null || track.isOverTileRail()) {
@@ -272,9 +278,9 @@ public final class IrTurnout {
      * water nobody would have to dig by hand, and a junction under an aquifer is exactly the case the
      * lining pass exists for. Nothing is opened until everything against it is lining.</p>
      */
-    private static Cut clear(ServerLevel level, java.util.List<TrackBase> laid) {
-        java.util.List<BlockPos> opening = new java.util.ArrayList<>();
-        java.util.Set<Long> inside = new java.util.HashSet<>();
+    private static Cut clear(ServerLevel level, List<TrackBase> laid) {
+        List<BlockPos> opening = new ArrayList<>();
+        Set<Long> inside = new HashSet<>();
         for (TrackBase track : laid) {
             if (track.canPlaceTrack()) {
                 continue;
@@ -330,7 +336,7 @@ public final class IrTurnout {
         return new Cut(blocks, null);
     }
 
-    private static String blockage(ServerLevel level, java.util.List<TrackBase> laid) {
+    private static String blockage(ServerLevel level, List<TrackBase> laid) {
         StringBuilder blocked = new StringBuilder();
         int named = 0;
         for (TrackBase track : laid) {
@@ -358,8 +364,8 @@ public final class IrTurnout {
      *
      * @return the position of the missing anchor, or null when every sleeper has one
      */
-    private static String orphaned(World world, java.util.List<BlockPos> cells) {
-        java.util.Map<Vec3i, Integer> missing = new java.util.LinkedHashMap<>();
+    private static String orphaned(World world, List<BlockPos> cells) {
+        Map<Vec3i, Integer> missing = new LinkedHashMap<>();
         int anchors = 0;
         for (BlockPos cell : cells) {
             Vec3i at = new Vec3i(cell.getX(), cell.getY(), cell.getZ());
@@ -382,7 +388,7 @@ public final class IrTurnout {
         }
         StringBuilder out = new StringBuilder();
         int named = 0;
-        for (java.util.Map.Entry<Vec3i, Integer> entry : missing.entrySet()) {
+        for (Map.Entry<Vec3i, Integer> entry : missing.entrySet()) {
             Vec3i at = entry.getKey();
             if (named++ > 0) {
                 out.append(", ");
@@ -402,8 +408,8 @@ public final class IrTurnout {
     }
 
     /** Every block the switch would occupy, which is the ground it has to be given. */
-    private static java.util.List<BlockPos> footprint(java.util.List<TrackBase> laid) {
-        java.util.List<BlockPos> out = new java.util.ArrayList<>();
+    private static List<BlockPos> footprint(List<TrackBase> laid) {
+        List<BlockPos> out = new ArrayList<>();
         for (TrackBase track : laid) {
             Vec3i at = track.getPos();
             out.add(new BlockPos(at.x, at.y, at.z));

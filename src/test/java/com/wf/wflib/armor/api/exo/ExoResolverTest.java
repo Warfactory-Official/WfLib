@@ -3,6 +3,7 @@ package com.wf.wflib.armor.api.exo;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,8 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ExoResolverTest {
-    private static final ExoStats ON = new ExoStats(true, 30, java.util.Map.of("grenades", 4), 0.6, 0.4, true, true);
-    private static final ExoStats OFF = new ExoStats(false, 0, java.util.Map.of(), 0, 0, false, false);
+    private static final ExoStats ON = new ExoStats(true, 30, Map.of("grenades", 4), 0.6, 0.4, true, true);
+    private static final ExoStats OFF = new ExoStats(false, 0, Map.of(), 0, 0, false, false);
     private static final ExoSpec SPEC = new ExoSpec(ON, OFF, 2, List.of(
             new ExoPart("arms", 100, Set.of(ExoFeature.RECOIL, ExoFeature.SWAY, ExoFeature.TRIGGER, ExoFeature.SHOULDER), Set.of("left_arm", "right_arm")),
             new ExoPart("legs", 100, Set.of(ExoFeature.SPRINT, ExoFeature.CARRY), Set.of("left_leg", "right_leg")),
@@ -54,7 +55,7 @@ class ExoResolverTest {
                 .combine(ExoResolver.effective(SPEC, true, ok()));
         assertTrue(piles.recoilFactor() < 0.1);
         assertEquals(0.1, piles.recoilMul(0.1), 1e-9);
-        assertTrue(new ExoEffect(true, 0, java.util.Map.of(), 0, 0, false, false, false).recoilMul(0.05) > 0);
+        assertTrue(new ExoEffect(true, 0, Map.of(), 0, 0, false, false, false).recoilMul(0.05) > 0);
     }
 
     @Test

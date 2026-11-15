@@ -1,5 +1,7 @@
 package com.wf.wflib.physics.rigid;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.joml.Matrix3f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -38,7 +40,7 @@ class RigidSolverTest {
         final Polytope ground = new Polytope().box(-50, -1, -50, 50, 0, 50);
         final Polytope shape = new Polytope();
         final Polytope other = new Polytope();
-        final java.util.List<Box> boxes = new java.util.ArrayList<>();
+        final List<Box> boxes = new ArrayList<>();
         float deepest;
 
         Box add(Box box) {

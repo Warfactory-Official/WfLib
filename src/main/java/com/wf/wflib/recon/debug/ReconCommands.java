@@ -3,6 +3,7 @@ package com.wf.wflib.recon.debug;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.wf.wflib.recon.api.SeismicLog;
 import net.minecraft.commands.Commands;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
@@ -30,7 +31,7 @@ public final class ReconCommands {
                         .then(Commands.literal("events")
                                 .executes(ctx -> ReconDebug.events(ctx.getSource(), 20))
                                 .then(Commands.argument("count", IntegerArgumentType.integer(1,
-                                                com.wf.wflib.recon.api.SeismicLog.MAX_CAPACITY))
+                                                SeismicLog.MAX_CAPACITY))
                                         .executes(ctx -> ReconDebug.events(ctx.getSource(),
                                                 IntegerArgumentType.getInteger(ctx, "count")))))
                         .then(Commands.literal("weather")

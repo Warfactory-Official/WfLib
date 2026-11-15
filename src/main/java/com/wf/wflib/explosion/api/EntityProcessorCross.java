@@ -2,6 +2,8 @@ package com.wf.wflib.explosion.api;
 
 import com.wf.wflib.damage.api.BlastDamageSource;
 import com.wf.wflib.explosion.BlastCorpses;
+import com.wf.wflib.explosion.debug.ExplosionTrace;
+import java.util.ArrayList;
 import net.minecraft.core.Direction;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -83,14 +85,14 @@ public class EntityProcessorCross implements IEntityProcessor {
         for (Entity entity : list) {
             double distanceScaled = nearestSurfaceDistanceScaled(entity, x, y, z, size);
             if (distanceScaled > 1.0D) {
-                com.wf.wflib.explosion.debug.ExplosionTrace.victim(entity,
-                        com.wf.wflib.explosion.debug.ExplosionTrace.Verdict.OUT_OF_RANGE, 0.0f);
+                ExplosionTrace.victim(entity,
+                        ExplosionTrace.Verdict.OUT_OF_RANGE, 0.0f);
                 continue;
             }
             Vec3 aim = shapeAim(explosion, entity, x, y, z);
             if (aim == null) {
-                com.wf.wflib.explosion.debug.ExplosionTrace.victim(entity,
-                        com.wf.wflib.explosion.debug.ExplosionTrace.Verdict.OUTSIDE_CONE, 0.0f);
+                ExplosionTrace.victim(entity,
+                        ExplosionTrace.Verdict.OUTSIDE_CONE, 0.0f);
                 continue;
             }
 
@@ -113,15 +115,15 @@ public class EntityProcessorCross implements IEntityProcessor {
             float dmg = calculateDamage(distanceScaled, density, knockback, size);
             if (entity instanceof BlastTarget target) {
                 if (selfResolving == null) {
-                    selfResolving = new java.util.ArrayList<>();
+                    selfResolving = new ArrayList<>();
                 }
                 selfResolving.add(target);
             } else {
                 damageMap.merge(entity, dmg, Math::max);
                 aims.put(entity, aim);
             }
-            com.wf.wflib.explosion.debug.ExplosionTrace.victim(entity,
-                    com.wf.wflib.explosion.debug.ExplosionTrace.Verdict.HIT, dmg);
+            ExplosionTrace.victim(entity,
+                    ExplosionTrace.Verdict.HIT, dmg);
 
             double enchKnockback = entity instanceof LivingEntity living
                     ? knockback * (1.0 - living.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE))

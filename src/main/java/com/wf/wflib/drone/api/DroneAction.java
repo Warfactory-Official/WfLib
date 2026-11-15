@@ -1,6 +1,7 @@
 package com.wf.wflib.drone.api;
 
 import com.wf.wflib.missile.api.WFEventType;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 
 /** A world change the brain decided on but is not allowed to perform itself. */
@@ -62,7 +63,7 @@ public sealed interface DroneAction {
     }
 
     /** The drone is on station over the block it claimed and has stopped moving: do the work. */
-    record FinishWork(net.minecraft.core.BlockPos at) implements DroneAction {
+    record FinishWork(BlockPos at) implements DroneAction {
     }
 
     /** The drone is on station over its supply station: move items, whichever way this job moves them. */

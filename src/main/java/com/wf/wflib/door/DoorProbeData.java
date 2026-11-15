@@ -6,6 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import com.wf.wflib.door.api.DoorBlockEntity;
+import net.minecraft.core.BlockPos;
 
 /** The one thing about a door the client is not told: how many of its blocks are being powered. */
 public final class DoorProbeData {
@@ -16,7 +17,7 @@ public final class DoorProbeData {
     }
 
     private static final ProbeDataProvider.Blocks DATA = (data, player, level, pos, state, blockEntity) -> {
-        net.minecraft.core.BlockPos core = DoorFrame.findCore(level, pos, state.getBlock());
+        BlockPos core = DoorFrame.findCore(level, pos, state.getBlock());
         if (core != null && level.getBlockEntity(core) instanceof DoorBlockEntity door) {
             data.putInt(POWERED, door.poweredBlocks());
         }

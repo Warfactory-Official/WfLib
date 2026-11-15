@@ -1,5 +1,6 @@
 package com.wf.wflib.rail.demo;
 
+import com.wf.wflib.rail.RailCommands;
 import com.wf.wflib.rail.RailCompat;
 import com.wf.wflib.rail.RailConfig;
 import com.wf.wflib.rail.api.Alignment;
@@ -21,6 +22,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -187,7 +189,7 @@ public final class FivePointsFixture {
         }
         List<FivePoints.Route> order = new ArrayList<>(FivePoints.routes());
         if (reverse) {
-            java.util.Collections.reverse(order);
+            Collections.reverse(order);
         }
         UUID faction = routes.get(0).ownerFaction();
         RUNNING.put(level.dimension(),
@@ -432,7 +434,7 @@ public final class FivePointsFixture {
         // and both of them sit in the last stretch of a route that the route deliberately did not lay:
         // until every route that meets here is on the ground there is nothing to connect.
         if (RailCompat.trackGraphAvailable()) {
-            int[] junctions = com.wf.wflib.rail.RailCommands.junctions(this.level, this.floorY,
+            int[] junctions = RailCommands.junctions(this.level, this.floorY,
                     line -> say("  " + line), line -> say("  " + line));
             say(String.format(Locale.ROOT, "junctions: %d built%s", junctions[0],
                     junctions[1] > 0 ? ", " + junctions[1] + " not" : ""));

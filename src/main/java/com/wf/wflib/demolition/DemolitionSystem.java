@@ -1,5 +1,6 @@
 package com.wf.wflib.demolition;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.demolition.api.DemolitionContent;
@@ -24,6 +25,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.List;
 import java.util.UUID;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.demolition.client.ExplosiveOverlayRenderer;
 
 /** Mining charges and the detonator that fires them and other detonatables. */
 public final class DemolitionSystem implements WFSystem {
@@ -34,12 +36,12 @@ public final class DemolitionSystem implements WFSystem {
 
     @Override
     public void registerClient(IEventBus modBus) {
-        NeoForge.EVENT_BUS.register(com.wf.wflib.demolition.client.ExplosiveOverlayRenderer.class);
+        NeoForge.EVENT_BUS.register(ExplosiveOverlayRenderer.class);
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("demolition", 370, out -> {
+        CreativeTabs.contribute("demolition", 370, out -> {
             out.accept(DemolitionContent.MINING_CHARGE_ITEM.get());
             out.accept(DemolitionContent.DEEP_MINING_CHARGE_ITEM.get());
             out.accept(DemolitionContent.DETONATOR.get());

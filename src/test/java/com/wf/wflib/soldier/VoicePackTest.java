@@ -1,15 +1,19 @@
 package com.wf.wflib.soldier;
 
+import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+import net.minecraft.network.FriendlyByteBuf;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +32,7 @@ class VoicePackTest {
     }
 
     private static void entry(ZipOutputStream zip, String name, String value) throws IOException {
-        zip.putNextEntry(new ZipEntry(name)); zip.write(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)); zip.closeEntry();
+        zip.putNextEntry(new ZipEntry(name)); zip.write(value.getBytes(StandardCharsets.UTF_8)); zip.closeEntry();
     }
 
     private static String manifest(String event, String sound, int ticks) {
@@ -94,9 +98,9 @@ class VoicePackTest {
     }
 
     @Test void menuSurvivesTheWire() {
-        var menu = new VoicePackets.Menu(java.util.List.of(new VoicePackets.Pack("one", java.util.List.of("a", "b")),
-                new VoicePackets.Pack("two", java.util.List.of())), "one/a", "");
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        var menu = new VoicePackets.Menu(List.of(new VoicePackets.Pack("one", List.of("a", "b")),
+                new VoicePackets.Pack("two", List.of())), "one/a", "");
+        var buf = new FriendlyByteBuf(Unpooled.buffer());
         VoicePackets.Menu.CODEC.encode(buf, menu);
         assertEquals(menu, VoicePackets.Menu.CODEC.decode(buf));
     }

@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -46,7 +47,7 @@ public final class TrackReporter {
         report(event.getPlayer(), event.getState(), event.getPos(), false);
     }
 
-    private static void report(net.minecraft.world.entity.player.Player player, BlockState state,
+    private static void report(Player player, BlockState state,
                                BlockPos pos, boolean laid) {
         // Deliberately not gated on Immersive Railroading: routes are the planning layer and exist
         // without it, and vanilla rails on a planned route are still track on the ground.

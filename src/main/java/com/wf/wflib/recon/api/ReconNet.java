@@ -9,6 +9,7 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -84,7 +85,7 @@ public final class ReconNet {
      * over a footprint, or a picture carried in over a relay.
      */
     public static void contributePlots(ServerLevel level, long netId,
-                                       List<com.wf.wflib.recon.api.Plot> plots) {
+                                       List<Plot> plots) {
         WorldThread.assertOn("recon plot contribution");
         if (plots.isEmpty()) {
             return;
@@ -125,7 +126,7 @@ public final class ReconNet {
      *      not exist. What a hub files into its {@code SeismicLog}, and the seam an implementer's own machine uses
      *      to do the same without naming anything inside the pass.
      */
-    public static java.util.Collection<com.wf.wflib.recon.api.SeismicFix> events(
+    public static Collection<SeismicFix> events(
             ServerLevel level, long netId) {
         ReconNetwork net = existing(level, netId);
         return net == null ? List.of() : net.events();
@@ -179,7 +180,7 @@ public final class ReconNet {
         BY_LEVEL.clear();
         ReconTerrainCache.clear();
         ReconWeather.clear();
-        com.wf.wflib.recon.api.SeismicEvents.shutdown();
+        SeismicEvents.shutdown();
     }
 
     private static ReconNetwork network(ServerLevel level, long netId) {

@@ -9,6 +9,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.wf.wflib.core.api.WFLib;
+import java.util.List;
 
 /** Condition/inserts components. See {@link ArmorStacks} for the vanilla-durability encoding they back. */
 public final class ArmorComponents {
@@ -38,8 +39,8 @@ public final class ArmorComponents {
                     .build());
 
     /** Hit points per {@code ExoSpec.parts()} entry; absent = pristine. */
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<java.util.List<Integer>>> EXO_PARTS =
-            COMPONENTS.register("exo_parts", () -> DataComponentType.<java.util.List<Integer>>builder()
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<List<Integer>>> EXO_PARTS =
+            COMPONENTS.register("exo_parts", () -> DataComponentType.<List<Integer>>builder()
                     .persistent(ExtraCodecs.NON_NEGATIVE_INT.listOf())
                     .networkSynchronized(ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list()))
                     .build());

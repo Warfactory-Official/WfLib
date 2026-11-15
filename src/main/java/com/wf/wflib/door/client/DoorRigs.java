@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import com.wf.wflib.core.api.WFLib;
+import java.util.EnumMap;
 
 /**
  * Every door as a GemRender model: the meshes NTM ships, given a skeleton, and the motion its renderers did by hand
@@ -561,7 +562,7 @@ public final class DoorRigs {
         return skinTexture(names[Math.floorMod(skin, names.length)]);
     }
 
-    private static final Map<DoorType, String[]> SKINS = new java.util.EnumMap<>(DoorType.class);
+    private static final Map<DoorType, String[]> SKINS = new EnumMap<>(DoorType.class);
 
     static {
         SKINS.put(DoorType.FIRE_DOOR, new String[] {"fire_door", "fire_door_black", "fire_door_orange",

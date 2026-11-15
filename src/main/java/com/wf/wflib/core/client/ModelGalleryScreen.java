@@ -17,6 +17,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 /** Looks at every model in the mod, out of every registry that holds one. */
 public class ModelGalleryScreen extends Screen {
@@ -345,7 +346,7 @@ public class ModelGalleryScreen extends Screen {
 
     /** Draws one row of chips and returns the y of the row above it, so rows stack upwards. */
     private int chips(GuiGraphics gg, List<String> names, int y, int selected,
-                      java.util.function.IntConsumer pick, int mouseX, int mouseY) {
+                      IntConsumer pick, int mouseX, int mouseY) {
         if (names.isEmpty()) {
             return y;
         }

@@ -1,5 +1,6 @@
 package com.wf.wflib.door;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.door.api.DoorBlockEntity;
 import com.wf.wflib.door.api.DoorSounds;
@@ -36,7 +37,7 @@ public final class DoorSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("door", 360, out -> {
+        CreativeTabs.contribute("door", 360, out -> {
             DoorContent.creativeStacks().forEach(out::accept);
             out.accept(DoorContent.DOOR_LOCK.get());
             out.accept(DoorContent.DOOR_KEY.get());

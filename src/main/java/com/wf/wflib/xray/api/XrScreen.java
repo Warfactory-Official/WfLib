@@ -1,6 +1,7 @@
 package com.wf.wflib.xray.api;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.xray.XrClientConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.PostChain;
@@ -29,7 +30,7 @@ import com.wf.wflib.core.api.WFLib;
  * Strength: {@link XrClientConfig#STRENGTH} / {@link XrClientConfig#CAMERA_SHAKE}.
  */
 public final class XrScreen {
-    private static final Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final ResourceLocation CHAIN = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
             "shaders/post/xray_pp.json");
 

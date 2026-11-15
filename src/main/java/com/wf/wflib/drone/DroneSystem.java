@@ -7,6 +7,7 @@ import com.wf.wflib.drone.api.DroneAiScheduler;
 import com.wf.wflib.drone.exchange.ExchangeManager;
 import com.wf.wflib.cam.api.CameraSources;
 import com.wf.wflib.cam.api.FeedHost;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.drone.ai.DroneStateHandlers;
 import com.wf.wflib.drone.api.CoordinationModels;
@@ -64,6 +65,13 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.drone.api.CoordinationModel;
+import com.wf.wflib.drone.api.DroneContent;
+import com.wf.wflib.drone.api.Formation;
+import com.wf.wflib.missile.api.SimGhosts;
+import com.wf.wflib.pda.api.TerminalNoun;
+import com.wf.wflib.radio.api.RadioTuning;
+import java.util.Set;
 
 /** Holders dependents name: {@link com.wf.wflib.drone.api.DroneContent}. */
 public final class DroneSystem implements WFSystem {
@@ -78,7 +86,7 @@ public final class DroneSystem implements WFSystem {
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<DronePadBlockEntity>> DRONE_PAD_BE =
             BLOCK_ENTITIES.register("drone_pad", () -> BlockEntityType.Builder.of(
-                    DronePadBlockEntity::new, com.wf.wflib.drone.api.DroneContent.DRONE_PAD.get()).build(null));
+                    DronePadBlockEntity::new, DroneContent.DRONE_PAD.get()).build(null));
 
     public static final DeferredHolder<MenuType<?>, MenuType<DronePadMenu>> DRONE_PAD_MENU =
             MENUS.register("drone_pad", () -> IMenuTypeExtension.create(DronePadMenu::new));
@@ -122,15 +130,15 @@ public final class DroneSystem implements WFSystem {
     }
 
     @Override
-    public java.util.Set<String> requires() {
-        return java.util.Set.of("work");
+    public Set<String> requires() {
+        return Set.of("work");
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("drone", 800, out -> {
-            out.accept(com.wf.wflib.drone.api.DroneContent.DRONE_PAD_ITEM.get());
-            out.accept(com.wf.wflib.drone.api.DroneContent.DRONE_NET_ITEM.get());
+        CreativeTabs.contribute("drone", 800, out -> {
+            out.accept(DroneContent.DRONE_PAD_ITEM.get());
+            out.accept(DroneContent.DRONE_NET_ITEM.get());
         });
         ServerTicks.LEVEL_POST.register(ResourceLocation.fromNamespaceAndPath("wflib", "drone"), TickOrder.DRONE, level -> {
             DroneLaunchQueue.tick(level);
@@ -141,11 +149,11 @@ public final class DroneSystem implements WFSystem {
         BLOCKS.register("drone_net", () -> new DroneNetBlock(BlockBehaviour.Properties.of()
                 .mapColor(MapColor.WOOL).strength(0.8f).sound(SoundType.WOOL).noOcclusion()));
         ITEMS.register("drone_net", () -> new BlockItem(
-                com.wf.wflib.drone.api.DroneContent.DRONE_NET.get(), new Item.Properties()));
+                DroneContent.DRONE_NET.get(), new Item.Properties()));
         BLOCKS.register("drone_pad", () -> new DronePadBlock(
                 BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.0f)));
         ITEMS.register("drone_pad", () -> new BlockItem(
-                com.wf.wflib.drone.api.DroneContent.DRONE_PAD.get(), new Item.Properties()));
+                DroneContent.DRONE_PAD.get(), new Item.Properties()));
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         ENTITY_TYPES.register(modBus);
@@ -163,14 +171,14 @@ public final class DroneSystem implements WFSystem {
             return null;
         });
         RemoteBody.PROVIDERS.register(id, 0, PdaDrones::bodyOf);
-        com.wf.wflib.pda.api.TerminalNoun.NOUNS.register(id, 300, DronePdaLinks.TERMINAL);
-        com.wf.wflib.radio.api.RadioTuning.LINKS.register(id, 0, DronePdaLinks.RADIO);
+        TerminalNoun.NOUNS.register(id, 300, DronePdaLinks.TERMINAL);
+        RadioTuning.LINKS.register(id, 0, DronePdaLinks.RADIO);
         DroneAiScheduler.SOURCES.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "tracker"), 100,
                 DroneTracker::collect);
         DroneAiScheduler.SOURCES.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "sim"), 0,
                 SimDroneManager::collect);
         SimKinds.register(SimDroneManager.KIND);
-        com.wf.wflib.missile.api.SimGhosts.SOURCES.register(id, (level, sink) -> {
+        SimGhosts.SOURCES.register(id, (level, sink) -> {
             for (var sd : SimDroneManager.tier(level).view()) {
                 sink.accept(sd.id, sd.pos, sd.modelId, 0);
             }
@@ -206,11 +214,11 @@ public final class DroneSystem implements WFSystem {
     }
 
     private static void defineFormations() {
-        for (var formation : new com.wf.wflib.drone.api.Formation[] {Formations.VEE, Formations.COLUMN,
+        for (var formation : new Formation[] {Formations.VEE, Formations.COLUMN,
                 Formations.LINE, Formations.GRID}) {
             Formations.REGISTRY.register(Formations.rl(formation.id()), formation);
         }
-        for (var model : new com.wf.wflib.drone.api.CoordinationModel[] {VirtualStructure.INSTANCE,
+        for (var model : new CoordinationModel[] {VirtualStructure.INSTANCE,
                 LeaderFollower.INSTANCE, Consensus.INSTANCE, Flocking.INSTANCE}) {
             CoordinationModels.REGISTRY.register(CoordinationModels.rl(model.id()), model);
         }

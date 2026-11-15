@@ -18,6 +18,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import com.wf.wflib.particle.api.client.ParticleSprites;
+import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class Debris {
 
@@ -93,7 +94,7 @@ public class Debris {
             Vec3 to = new Vec3(this.x + this.vx, this.y + this.vy, this.z + this.vz);
             BlockHitResult hit = level.clip(new ClipContext(from, to,
                     ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE,
-                    net.minecraft.world.phys.shapes.CollisionContext.empty()));
+                    CollisionContext.empty()));
             if (hit.getType() != HitResult.Type.MISS) {
                 Vec3 loc = hit.getLocation();
                 this.x = loc.x;

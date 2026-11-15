@@ -1,5 +1,6 @@
 package com.wf.wflib.nvg;
 
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLibContent;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.nvg.api.NvgComponents;
@@ -30,6 +31,7 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 
 import java.util.Set;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.nvg.api.NvgItem;
 
 /** Night-vision goggles; holders named through {@link NvgContent}. */
 public final class NvgSystem implements WFSystem {
@@ -52,8 +54,8 @@ public final class NvgSystem implements WFSystem {
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("nvg", 230, out -> com.wf.wflib.nvg.api.NvgContent.live().forEach(id ->
-                out.accept(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(id))));
+        CreativeTabs.contribute("nvg", 230, out -> NvgContent.live().forEach(id ->
+                out.accept(BuiltInRegistries.ITEM.get(id))));
         NvgComponents.register(modBus);
         SERIALIZERS.register(modBus);
         modBus.addListener(NvgSystem::onRegister);
@@ -85,7 +87,7 @@ public final class NvgSystem implements WFSystem {
         }));
         modBus.addListener(RegisterClientExtensionsEvent.class, event -> {
             for (Item item : BuiltInRegistries.ITEM) {
-                if (item instanceof com.wf.wflib.nvg.api.NvgItem && !event.isItemRegistered(item)) {
+                if (item instanceof NvgItem && !event.isItemRegistered(item)) {
                     event.registerItem(NvgItemClient.INSTANCE, item);
                 }
             }

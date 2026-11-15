@@ -6,6 +6,7 @@ import com.wf.wflib.ragdoll.sim.RagdollPose;
 import com.wf.wflib.ragdoll.sim.Skeleton;
 import org.joml.Matrix3d;
 import org.joml.Quaterniond;
+import org.joml.Vector3d;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -266,8 +267,8 @@ class RagdollTest {
             double t = Math.toRadians(yaw), c = Math.cos(t), s = Math.sin(t);
             Matrix3d y = new Matrix3d(c, 0, s, 0, -1, 0, s, 0, -c);
             // Left leg upper half centre: pivot + R (0, 3, 0) px -> world, against the sim's thigh.
-            org.joml.Vector3d p = new org.joml.Vector3d(0, 3, 0);
-            new org.joml.Matrix3d().rotationZYX(out[PoseClip.LEFT_LEG][5], out[PoseClip.LEFT_LEG][4], out[PoseClip.LEFT_LEG][3]).transform(p);
+            Vector3d p = new Vector3d(0, 3, 0);
+            new Matrix3d().rotationZYX(out[PoseClip.LEFT_LEG][5], out[PoseClip.LEFT_LEG][4], out[PoseClip.LEFT_LEG][3]).transform(p);
             p.add(out[PoseClip.LEFT_LEG][0], out[PoseClip.LEFT_LEG][1] - Skeleton.Y_SHIFT_PX, out[PoseClip.LEFT_LEG][2]);
             y.transform(p);
             p.mul(Skeleton.S).add(ex, ey, ez);

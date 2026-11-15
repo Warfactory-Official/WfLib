@@ -2,6 +2,7 @@ package com.wf.wflib.labs;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.wf.wflib.labs.api.LabProducer;
+import com.wf.wflib.labs.api.LabProducers;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -18,7 +19,7 @@ final class LabsCommands {
         event.getDispatcher().register(Commands.literal("wflabs")
                 .requires(s -> s.hasPermission(2))
                 .then(Commands.literal("list").executes(ctx -> {
-                    com.wf.wflib.labs.api.LabProducers.REGISTRY.values().forEach(p -> ctx.getSource()
+                    LabProducers.REGISTRY.values().forEach(p -> ctx.getSource()
                             .sendSuccess(() -> Component.literal(p.id() + " -> " + p.table().name()), false));
                     return 1;
                 }))

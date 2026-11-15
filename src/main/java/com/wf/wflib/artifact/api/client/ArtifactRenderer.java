@@ -37,6 +37,10 @@ import java.util.HashMap;
 import java.util.Map;
 import com.wf.wflib.artifact.client.HeldArtifactPose;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.view.api.ArmLimits;
+import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
 
 /**
  * Artefacts as seen: held, the right hand is held out palm up and the artefact floats a hand's breadth over it,
@@ -52,7 +56,7 @@ public final class ArtifactRenderer {
     private static final float ICON_TILT = 15.0F;
 
     private static final Map<ResourceLocation, ModelCache.Handle<GemRenderGltfModel>> MODELS = new HashMap<>();
-    private static final Map<Artifact, net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer> ITEM_RENDERERS =
+    private static final Map<Artifact, BlockEntityWithoutLevelRenderer> ITEM_RENDERERS =
             new HashMap<>();
     /** Centre x, y, z and fitting scale in the tilted inventory view, of {@code model}. */
     private record IconFit(GemRenderGltfModel model, float[] fit) {
@@ -159,7 +163,7 @@ public final class ArtifactRenderer {
         return MODELS.computeIfAbsent(artifact.model(), GemRenderModels::handle).get();
     }
 
-    public static net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer itemRenderer(ArtifactItem item) {
+    public static BlockEntityWithoutLevelRenderer itemRenderer(ArtifactItem item) {
         return ITEM_RENDERERS.computeIfAbsent(item.artifact(), artifact -> new CoreItemRenderer(artifact,
                 new GemRenderItemRenderer(new ItemAppearance() {
                     @Override
@@ -236,7 +240,7 @@ public final class ArtifactRenderer {
      * The GemRender item renderer, plus the core sprite where an artefact has one: at the model's centre, turned to
      * whoever looks (the camera in the level, the screen in the inventory), spinning in its plane.
      */
-    private static final class CoreItemRenderer extends net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer {
+    private static final class CoreItemRenderer extends BlockEntityWithoutLevelRenderer {
         private final Artifact artifact;
         private final GemRenderItemRenderer body;
         private final Matrix4f core = new Matrix4f();
@@ -249,7 +253,7 @@ public final class ArtifactRenderer {
 
         @Override
         public void renderByItem(ItemStack stack, ItemDisplayContext context, PoseStack pose,
-                                 net.minecraft.client.renderer.MultiBufferSource buffers, int light, int overlay) {
+                                 MultiBufferSource buffers, int light, int overlay) {
             body.renderByItem(stack, context, pose, buffers, light, overlay);
             GemRenderGltfModel quad = coreModel();
             if (quad == null) {
@@ -430,7 +434,7 @@ public final class ArtifactRenderer {
                             ArmViewPose.LOCKED, null, 0, UPPER, LOWER, ELBOW)
                     : ArmViewPose.solve(WRIST, null, SHOULDER, ArmViewPose.LEFT_POLE, arms.lengths, UPPER, LOWER, ELBOW);
             arms.pose(side, UPPER, LOWER, twist, ArmViewPose.swing(hand, LOWER),
-                    side == 0 ? HeldArtifactPose.TWIST_LIMIT : com.wf.wflib.view.api.ArmLimits.DEFAULT.twist());
+                    side == 0 ? HeldArtifactPose.TWIST_LIMIT : ArmLimits.DEFAULT.twist());
         }
         arms.submit(VIEW, light, 0xFFFFFFFF, player);
     }
@@ -442,7 +446,7 @@ public final class ArtifactRenderer {
             if (mc.level == null || mc.player == null) {
                 return;
             }
-            net.minecraft.client.Camera camera = mc.gameRenderer.getMainCamera();
+            Camera camera = mc.gameRenderer.getMainCamera();
             Vec3 eye = camera.getPosition();
             for (Player player : mc.level.players()) {
                 ArtifactItem item = held(player);

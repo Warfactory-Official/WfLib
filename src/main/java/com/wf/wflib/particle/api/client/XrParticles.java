@@ -36,6 +36,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.particle.api.XrBlend;
+import java.util.IdentityHashMap;
+import net.minecraft.server.packs.resources.Resource;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Plays STALKER particle groups ({@link XrDefs}) as X-Ray does: each effect stepped at its fixed 33 ms
@@ -71,7 +75,7 @@ public final class XrParticles {
         /** Started by particles ({@link GroupEntry#birthChild} ...), offset to where they were. */
         private final List<Running> children = new ArrayList<>();
         /** A particle -> the play child following it. */
-        private final Map<P, Running> following = new java.util.IdentityHashMap<>();
+        private final Map<P, Running> following = new IdentityHashMap<>();
         private final float timeLimit;
         private final boolean loop;
         private Vec3 origin;
@@ -216,7 +220,7 @@ public final class XrParticles {
             }
         }
 
-        @org.jetbrains.annotations.Nullable
+        @Nullable
         private Running child(String name, Running from, P p, boolean free) {
             Optional<Effect> def = effect(name);
             // A free child has to end by itself (StartFreeChild refuses looped ones).
@@ -258,7 +262,7 @@ public final class XrParticles {
         final GroupEntry entry;
         final Playing owner;
         /** The effect whose particle started this one; null for the group's own. */
-        @org.jetbrains.annotations.Nullable
+        @Nullable
         Running parent;
         /** Where this effect's particles are relative to (a child: its particle). */
         float ox;
@@ -522,7 +526,7 @@ public final class XrParticles {
     }
 
     private static Optional<String> read(ResourceLocation location) {
-        Optional<net.minecraft.server.packs.resources.Resource> resource = Minecraft.getInstance().getResourceManager()
+        Optional<Resource> resource = Minecraft.getInstance().getResourceManager()
                 .getResource(location);
         if (resource.isEmpty()) {
             // Distortion effects are left out by the asset tool on purpose; anything else missing is worth saying.
@@ -651,11 +655,11 @@ public final class XrParticles {
             u1 = u0 + def.frameU();
             v1 = v0 + def.frameV();
         }
-        float add = def.blend() == com.wf.wflib.particle.api.XrBlend.ADD ? playing.glow : 1.0F;
+        float add = def.blend() == XrBlend.ADD ? playing.glow : 1.0F;
         float cr = clamp(clamp(p.r) * add * playing.tintR);
         float cg = clamp(clamp(p.g) * add * playing.tintG);
         float cb = clamp(clamp(p.b) * add * playing.tintB);
-        float ca = clamp(p.a) * (def.blend() == com.wf.wflib.particle.api.XrBlend.ALPHA_ADD ? playing.glow : 1.0F);
+        float ca = clamp(p.a) * (def.blend() == XrBlend.ALPHA_ADD ? playing.glow : 1.0F);
         // d (-vt-vr), a (vt-vr), b (vt+vr), c (-vt+vr): lt/rb as FillSprite assigns them.
         out.addVertex(matrix, px - vt[0] - vr[0], py - vt[1] - vr[1], pz - vt[2] - vr[2]).setUv(u0, v1)
                 .setColor(cr, cg, cb, ca);

@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 /**
  * Blast/muzzle flashes + lingering fire -> GemRender shadowed point lights. {@link Lights#shading()}==false:
@@ -93,8 +95,8 @@ public final class WFLights {
     }
 
     /** Lift along the vent normal ({@link BlastFrame}): wall blast centre => light inside the wall. */
-    public static void blast(double x, double y, double z, org.joml.Quaternionf vent, float range, float life) {
-        org.joml.Vector3f lift = vent.transform(new org.joml.Vector3f(0, (float) FLASH_LIFT, 0));
+    public static void blast(double x, double y, double z, Quaternionf vent, float range, float life) {
+        Vector3f lift = vent.transform(new Vector3f(0, (float) FLASH_LIFT, 0));
         flash(x + lift.x, y + lift.y, z + lift.z, range, FLASH_RGB, range * range * 0.5F, life);
     }
 

@@ -3,6 +3,7 @@ package com.wf.wflib.soldier;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.Collections;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
@@ -26,8 +27,8 @@ public final class SoldierRoster extends SavedData {
     public static SoldierRoster get(MinecraftServer s) {
         return s.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(SoldierRoster::new, (tag,reg)->load(tag)),"wflib_soldier_roster");
     }
-    public Map<String,Faction> factions() { return java.util.Collections.unmodifiableMap(factions); }
-    public Map<String,SoldierTemplate> units() { return java.util.Collections.unmodifiableMap(units); }
+    public Map<String,Faction> factions() { return Collections.unmodifiableMap(factions); }
+    public Map<String,SoldierTemplate> units() { return Collections.unmodifiableMap(units); }
     public int revision() { return revision; }
     private void changed() { revision++; setDirty(); }
     public void put(Faction f) {

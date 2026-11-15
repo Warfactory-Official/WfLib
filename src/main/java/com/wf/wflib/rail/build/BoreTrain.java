@@ -2,6 +2,8 @@ package com.wf.wflib.rail.build;
 
 import com.mojang.logging.LogUtils;
 import com.wf.wflib.compat.api.TerritoryVerdict;
+import com.wf.wflib.rail.RailCompat;
+import com.wf.wflib.rail.RailConfig;
 import com.wf.wflib.rail.TunnelBuilder;
 import com.wf.wflib.rail.TunnelCrossings;
 import com.wf.wflib.rail.TunnelTerritory;
@@ -46,6 +48,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.tags.BlockTags;
 
 /**
  * A machine that drives a tunnel and lays the track in it, a few blocks at a time, while you watch.
@@ -200,7 +206,7 @@ public final class BoreTrain {
     private final Bill bill;
     private final Stores stores;
     /** Told what the train is doing, so a player who dispatched one is not watching a silent tunnel. */
-    private final java.util.function.Consumer<String> told;
+    private final Consumer<String> told;
 
     /** What a work train is doing. A machine with no depot is only ever {@link Stage#WORKING}. */
     public enum Stage { WORKING, INBOUND, LOADING, OUTBOUND }
@@ -251,7 +257,7 @@ public final class BoreTrain {
 
     private BoreTrain(List<Leg> legs, TunnelProfile profile, String lining, int floorY, boolean lit,
                       double blocksPerSecond, int boostSpacing, UUID faction, int maxCars, Depot depot,
-                      java.util.function.Consumer<String> told) {
+                      Consumer<String> told) {
         this.legs = List.copyOf(legs);
         this.maxCars = Math.max(1, maxCars);
         this.faction = faction;
@@ -263,7 +269,7 @@ public final class BoreTrain {
         this.speed = Math.max(0.05, blocksPerSecond / 20.0);
         this.boostSpacing = boostSpacing;
         this.depot = depot;
-        this.bill = Bill.of(profile, lining, com.wf.wflib.rail.RailConfig.TRACK_MATERIAL.get());
+        this.bill = Bill.of(profile, lining, RailConfig.TRACK_MATERIAL.get());
         this.stores = new Stores(this.holds);
         this.told = told;
         // A work train starts at the depot, because it starts empty. An engineer's drive starts at the
@@ -372,7 +378,7 @@ public final class BoreTrain {
     public static Launch launch(ServerLevel level, Alignment route, TunnelProfile profile, String lining,
                                 int floorY, boolean lit, double blocksPerSecond, int boostSpacing,
                                 UUID faction, Depot depot,
-                                java.util.function.Consumer<String> told) {
+                                Consumer<String> told) {
         return launch(level, List.of(Leg.of(route)), profile, lining, floorY, lit, blocksPerSecond,
                 boostSpacing, faction, depot, told);
     }
@@ -388,7 +394,7 @@ public final class BoreTrain {
     public static Launch launch(ServerLevel level, List<Leg> legs, TunnelProfile profile, String lining,
                                 int floorY, boolean lit, double blocksPerSecond, int boostSpacing,
                                 UUID faction, Depot depot,
-                                java.util.function.Consumer<String> told) {
+                                Consumer<String> told) {
         if (legs == null || legs.isEmpty()) {
             return new Launch(null, null, "there is no route to build");
         }
@@ -411,7 +417,7 @@ public final class BoreTrain {
             first = first == null ? survey : first;
         }
         BoreTrain train = new BoreTrain(legs, profile, lining, floorY, lit, blocksPerSecond,
-                boostSpacing, faction, com.wf.wflib.rail.RailConfig.SPOIL_CARS.get(), depot, told);
+                boostSpacing, faction, RailConfig.SPOIL_CARS.get(), depot, told);
         if (!train.onto(level, legs.get(0))) {
             return new Launch(null, first, "that route has been deleted");
         }
@@ -675,7 +681,7 @@ public final class BoreTrain {
         cap(level, 0.0);
         double[] at = pointAt(0.0);
         MinecartFurnace head = new MinecartFurnace(level, at[0], this.floorY + RIDE_HEIGHT, at[1]);
-        head.setCustomName(net.minecraft.network.chat.Component.literal(this.routeName + " bore"));
+        head.setCustomName(Component.literal(this.routeName + " bore"));
         add(level, head);
         couple(level);
         if (this.depot == null) {
@@ -951,11 +957,11 @@ public final class BoreTrain {
      * reports nothing. That cost a live run to find.</p>
      */
     private static boolean isRailway(BlockState state) {
-        if (state.is(net.minecraft.tags.BlockTags.RAILS)) {
+        if (state.is(BlockTags.RAILS)) {
             return true;
         }
-        var id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
-        return id != null && com.wf.wflib.rail.RailCompat.MODID.equals(id.getNamespace());
+        var id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        return id != null && RailCompat.MODID.equals(id.getNamespace());
     }
 
     private void lightUp(ServerLevel level, double reach) {

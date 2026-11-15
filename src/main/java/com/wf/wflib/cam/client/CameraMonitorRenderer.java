@@ -2,6 +2,7 @@ package com.wf.wflib.cam.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import com.wf.wflib.cam.api.CameraMonitorBlock;
 import com.wf.wflib.cam.api.CameraMonitorBlockEntity;
 import com.wf.wflib.cam.api.client.CameraFeedCache;
@@ -61,7 +62,7 @@ public class CameraMonitorRenderer implements BlockEntityRenderer<CameraMonitorB
 
         pose.pushPose();
         pose.translate(0.5f, 0.5f, 0.5f);
-        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-facing.toYRot()));
+        pose.mulPose(Axis.YP.rotationDegrees(-facing.toYRot()));
         pose.translate((CameraMonitorBlock.WIDTH - 1) * 0.5f, (CameraMonitorBlock.HEIGHT - 1) * 0.5f,
                 0.5f + STANDOFF);
 

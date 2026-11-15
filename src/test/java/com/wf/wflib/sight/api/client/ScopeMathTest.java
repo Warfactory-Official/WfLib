@@ -147,7 +147,7 @@ class ScopeMathTest {
     /** Ctrl + wheel: geometric per notch, clamped to the listed range in either list order. */
     @Test
     void wheelAdjustClampsToListedRange() {
-        java.util.List<Float> vudu = java.util.List.of(6.5F, 1.35F);
+        List<Float> vudu = List.of(6.5F, 1.35F);
         assertEquals(6.5F / (1.15F * 1.15F * 1.15F), ScopeMath.adjust(6.5F, vudu, -3), 1e-4F);
         assertEquals(1.35F, ScopeMath.adjust(2F, vudu, -20), 0);
         assertEquals(6.5F, ScopeMath.adjust(2F, vudu, 30), 0);

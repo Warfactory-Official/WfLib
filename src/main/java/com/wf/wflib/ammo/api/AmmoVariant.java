@@ -5,6 +5,8 @@ import com.wf.wflib.damage.api.Penetrator;
 import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.round.api.ImpactTrigger;
+import com.wf.wflib.round.api.Rounds;
+import java.util.ArrayList;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,7 +81,7 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
 
     /** {@code coneMul}, 1 when {@code RoundConfig.ammoAccuracy} is off. */
     public float effectiveConeMul() {
-        return com.wf.wflib.round.api.Rounds.ammoAccuracy() ? coneMul : 1f;
+        return Rounds.ammoAccuracy() ? coneMul : 1f;
     }
 
     public record Pierce(float dt, float dr) {
@@ -125,7 +127,7 @@ public record AmmoVariant(ResourceLocation id, ResourceLocation calibre, String 
         private Motor motor;
         private float blockPen;
         private float armorPenMm;
-        private final List<Effect> effects = new java.util.ArrayList<>();
+        private final List<Effect> effects = new ArrayList<>();
         private ProjectileLook.Override look = ProjectileLook.Override.NONE;
         @Nullable
         private ThreatKind threat;

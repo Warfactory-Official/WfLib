@@ -3,6 +3,7 @@ package com.wf.wflib.grenade.api;
 import com.wf.wflib.mist.api.MistEntity;
 import com.wf.wflib.geom.api.OBBEntity;
 import com.wf.wflib.geom.api.OBB;
+import com.wf.wflib.grenade.client.ChargeClient;
 import com.wf.wflib.warhead.api.WarheadCarrier;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.core.BlockPos;
@@ -282,7 +283,7 @@ public class ThrownCharge extends Projectile implements WarheadCarrier, IEntityW
                 discard();
                 return;
             }
-            com.wf.wflib.grenade.client.ChargeClient.tick(this);
+            ChargeClient.tick(this);
             return;
         }
         if (stuckBlock != null && level().getBlockState(stuckBlock).getCollisionShape(level(), stuckBlock).isEmpty()) {

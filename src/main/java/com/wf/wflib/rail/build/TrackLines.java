@@ -6,6 +6,7 @@ import com.wf.wflib.rail.RailConfig;
 import com.wf.wflib.rail.api.Centreline;
 import com.wf.wflib.rail.align.RouteMeeting;
 import com.wf.wflib.rail.align.RouteMeetings;
+import com.wf.wflib.rail.build.ir.IrTrackLine;
 import com.wf.wflib.rail.excavate.CarveVolume;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
@@ -55,7 +56,7 @@ public final class TrackLines {
                 // block rather than a fixed margin left off every route whether it needs one or not.
                 List<Double> breaks = RouteMeetings.breaksOn(meetings, routeId);
                 double lead = RailConfig.TURNOUT_LEAD.get();
-                return new com.wf.wflib.rail.build.ir.IrTrackLine(centreline,
+                return new IrTrackLine(centreline,
                         TrackPieces.along(centreline, MAX_PIECE,
                                 leftToTheJunction(meetings, routeId, RouteMeeting.End.START, lead),
                                 leftToTheJunction(meetings, routeId, RouteMeeting.End.FINISH, lead),

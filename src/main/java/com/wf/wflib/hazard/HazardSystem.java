@@ -38,7 +38,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 import com.mojang.serialization.Codec;
+import com.wf.wflib.core.api.CreativeTabs;
 import com.wf.wflib.core.api.WFLib;
+import java.util.Set;
 
 /** Item and entity hazards (NTM hazard port): datapack-assigned rows, transformers, per-player inventory scan, geiger counter. */
 public final class HazardSystem implements WFSystem {
@@ -55,13 +57,13 @@ public final class HazardSystem implements WFSystem {
     }
 
     @Override
-    public java.util.Set<String> requires() {
-        return java.util.Set.of("radiation", "xray");
+    public Set<String> requires() {
+        return Set.of("radiation", "xray");
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
-        com.wf.wflib.core.api.CreativeTabs.contribute("hazard", 390, out -> out.accept(com.wf.wflib.hazard.api.HazardContent.GEIGER_COUNTER_ITEM.get()));
+        CreativeTabs.contribute("hazard", 390, out -> out.accept(HazardContent.GEIGER_COUNTER_ITEM.get()));
         active = true;
         container.registerConfig(ModConfig.Type.COMMON, HazardConfig.SPEC, "wflib-hazard.toml");
         modBus.addListener(HazardConfig::onLoad);

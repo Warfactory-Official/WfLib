@@ -1,11 +1,14 @@
 package com.wf.wflib.armor.hull;
 
 import com.google.gson.Gson;
+import com.wf.wflib.armor.api.hull.EraType;
+import com.wf.wflib.armor.api.hull.EraTypes;
 import com.wf.wflib.armor.api.hull.HullOutcome;
 import com.wf.wflib.armor.api.hull.HullProfile;
 import com.wf.wflib.armor.api.hull.HullResolver;
 import com.wf.wflib.armor.api.hull.HullResult;
 import com.wf.wflib.armor.api.hull.PlateWalk;
+import com.wf.wflib.armor.api.hull.WalkResult;
 import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.damage.api.ThreatKind;
 import net.minecraft.world.phys.Vec3;
@@ -87,8 +90,8 @@ class HullWalkTest {
         assertEquals(0, none().crossings());
     }
 
-    private static com.wf.wflib.armor.api.hull.WalkResult none() {
-        return com.wf.wflib.armor.api.hull.WalkResult.NONE;
+    private static WalkResult none() {
+        return WalkResult.NONE;
     }
 
     @Test
@@ -213,11 +216,11 @@ class HullWalkTest {
         assertEquals(2, r.walk().layers());
     }
 
-    private static final com.wf.wflib.armor.api.hull.EraType K5 = new com.wf.wflib.armor.api.hull.EraType("t:k5", 0.5f,
+    private static final EraType K5 = new EraType("t:k5", 0.5f,
             0.3f, 0.0f, 20, 40, 1000, 0.1f, 0, 0, 0.1f, null, null);
 
     private static FakeHull arrayHull() {
-        com.wf.wflib.armor.api.hull.EraTypes.register(K5);
+        EraTypes.register(K5);
         FakeHull h = hull("{\"arr\":{\"layers\":[{\"era\":\"t:k5\",\"cells\":8},{\"mm\":10,\"mat\":\"rha\"}]}}");
         h.script = List.of(centre(h, 3, "arr", true), centre(h, -3, "arr", false));
         return h;

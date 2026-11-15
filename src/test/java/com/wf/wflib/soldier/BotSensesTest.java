@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier;
 
 import net.minecraft.world.phys.Vec3;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,7 +21,7 @@ class BotSensesTest {
         }
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     void awarenessBuildsOverTimeAndDependsOnDistanceAndMotion() {
         assertEquals(1f, BotSenses.detectionGain(3, 80, 0, true, 0));
         float near = BotSenses.detectionGain(10, 80, 0, false, 0);
@@ -28,13 +29,13 @@ class BotSensesTest {
         float runningFar = BotSenses.detectionGain(60, 80, 0.25, false, 0);
         float crouched = BotSenses.detectionGain(10, 80, 0, true, 0);
         float underFire = BotSenses.detectionGain(10, 80, 0, false, 1);
-        org.junit.jupiter.api.Assertions.assertTrue(near < 1 && near > far, "a glimpse is not yet noticed, and nearer is faster");
-        org.junit.jupiter.api.Assertions.assertTrue(runningFar > far, "movement draws the eye");
-        org.junit.jupiter.api.Assertions.assertTrue(crouched < near && underFire < near);
-        org.junit.jupiter.api.Assertions.assertTrue(1 / near > 3 && 1 / near < 14, "noticing a standing person at 10 blocks takes well under a second");
+        Assertions.assertTrue(near < 1 && near > far, "a glimpse is not yet noticed, and nearer is faster");
+        Assertions.assertTrue(runningFar > far, "movement draws the eye");
+        Assertions.assertTrue(crouched < near && underFire < near);
+        Assertions.assertTrue(1 / near > 3 && 1 / near < 14, "noticing a standing person at 10 blocks takes well under a second");
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     void aLitLampMakesSomeoneStandOutAndDarknessHidesThem() {
         float day = BotSenses.exposure(15, false), dusk = BotSenses.exposure(7, false), night = BotSenses.exposure(2, false);
         assertEquals(1f, day, 1e-6);

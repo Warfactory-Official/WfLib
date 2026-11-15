@@ -5,6 +5,7 @@ import com.wf.wflib.anomaly.AnomalyBlockEntity;
 import com.wf.wflib.anomaly.AnomalyBlockEntity.Phase;
 import com.wf.wflib.anomaly.BlastTuning;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -148,7 +149,7 @@ final class FuzzStrands {
         if (level == null) {
             return lowest;
         }
-        net.minecraft.core.BlockPos.MutableBlockPos at = new net.minecraft.core.BlockPos.MutableBlockPos();
+        BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
         for (int by = Mth.floor(y) - 1; by >= Mth.floor(lowest); by--) {
             at.set(Mth.floor(x), by, Mth.floor(z));
             if (!level.getBlockState(at).getCollisionShape(level, at).isEmpty()) {

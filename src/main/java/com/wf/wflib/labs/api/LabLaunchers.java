@@ -1,6 +1,8 @@
 package com.wf.wflib.labs.api;
 
 import com.wf.wflib.core.api.WFRegistry;
+import java.util.List;
+import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -12,14 +14,14 @@ public final class LabLaunchers {
     public static final WFRegistry<LabLauncher> REGISTRY = WFRegistry.create("labs", "lab launchers");
 
     /** Suppliers evaluated at run time (after every registry is frozen); register at construction or in common setup. */
-    public static final WFRegistry<java.util.function.Supplier<java.util.List<LabLauncher>>> LAZY =
+    public static final WFRegistry<Supplier<List<LabLauncher>>> LAZY =
             WFRegistry.create("labs", "lab launcher suppliers");
 
     private LabLaunchers() {
     }
 
     /** {@code id} only names the supplier. */
-    public static void registerLazy(String id, java.util.function.Supplier<java.util.List<LabLauncher>> launchers) {
+    public static void registerLazy(String id, Supplier<List<LabLauncher>> launchers) {
         LAZY.register(ResourceLocation.parse(id), launchers);
     }
 

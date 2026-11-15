@@ -13,6 +13,8 @@ import com.wf.wflib.orbital.OrbitalConfig;
 import com.wf.wflib.orbital.OrbitalData;
 import com.wf.wflib.orbital.OrbitalDrop;
 import com.wf.wflib.orbital.OrbitalManager;
+import java.util.UUID;
+import net.minecraft.world.item.ItemStack;
 
 /** The entry point for everything in orbit. */
 public final class OrbitalNet {
@@ -216,10 +218,10 @@ public final class OrbitalNet {
      *      craters, damages the ground it lands on, and loses a quarter of what it was carrying.
      * @return the shuttle's id, which is also the key its manifest is held under until it lands.
      */
-    public static java.util.UUID dropCargo(ServerLevel level, Satellite self, double x, double z,
-                                           List<net.minecraft.world.item.ItemStack> manifest, boolean propelled) {
+    public static UUID dropCargo(ServerLevel level, Satellite self, double x, double z,
+                                           List<ItemStack> manifest, boolean propelled) {
         WorldThread.assertOn("orbital cargo drop");
-        java.util.UUID shuttle = OrbitalDrop.release(level, self, x, z,
+        UUID shuttle = OrbitalDrop.release(level, self, x, z,
                 propelled ? OrbitalDrop.CARGO_LANDING_SOFT : OrbitalDrop.CARGO_LANDING,
                 OrbitalConfig.SHUTTLE_SPEED, 2.0f);
         CargoData.get(level).put(shuttle, manifest);
@@ -231,7 +233,7 @@ public final class OrbitalNet {
      *
      * @return the rod's id.
      */
-    public static java.util.UUID dropRod(ServerLevel level, Satellite self, double x, double z) {
+    public static UUID dropRod(ServerLevel level, Satellite self, double x, double z) {
         WorldThread.assertOn("orbital rod release");
         return OrbitalDrop.release(level, self, x, z, OrbitalDrop.KINETIC_ROD, OrbitalConfig.ROD_SPEED, 0.6f);
     }

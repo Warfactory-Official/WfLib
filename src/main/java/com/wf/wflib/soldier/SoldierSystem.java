@@ -1,7 +1,11 @@
 package com.wf.wflib.soldier;
 
+import com.mojang.logging.LogUtils;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.soldier.api.Soldiers;
+import com.wf.wflib.soldier.client.SoldierEditorScreen;
+import com.wf.wflib.soldier.client.SoldierLightClient;
+import java.io.IOException;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -9,6 +13,12 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 import java.util.Set;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
 /**
  * Soldiers: server players with no client, driven by a squad AI (vision with reaction time, hearing, cover, peeking,
@@ -28,30 +38,30 @@ public final class SoldierSystem implements WFSystem {
 
     @Override
     public void registerClient(IEventBus modBus) {
-        com.wf.wflib.soldier.client.SoldierLightClient.register(modBus);
-        com.wf.wflib.soldier.client.SoldierEditorScreen.registerNameTags();
+        SoldierLightClient.register(modBus);
+        SoldierEditorScreen.registerNameTags();
     }
 
     @Override
     public void register(IEventBus modBus, ModContainer container) {
         Headlamp.register(modBus);
         SoldierEditorEgg.register(modBus);
-        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+        modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> SoldierEditorPackets.register(e.registrar("soldier-editor-1").optional()));
-        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, VoiceDelivery.SPEC, "wflib-voices.toml");
+        container.registerConfig(ModConfig.Type.COMMON, VoiceDelivery.SPEC, "wflib-voices.toml");
         try { SoldierVoices.reload(); }
-        catch (java.io.IOException e) { com.mojang.logging.LogUtils.getLogger().error("NPC voice packs failed to load", e); }
+        catch (IOException e) { LogUtils.getLogger().error("NPC voice packs failed to load", e); }
         modBus.addListener(VoiceResources::add);
-        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+        modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> VoicePackets.register(e.registrar("soldier-voices-1").optional()));
-        modBus.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent.class,
+        modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> SoldierLights.register(e.registrar("soldier-lights-1").optional()));
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.server.ServerStartedEvent.class,
+        NeoForge.EVENT_BUS.addListener(ServerStartedEvent.class,
                 e -> VoiceDelivery.start(e.getServer()));
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.class,
-                e -> { if (e.getEntity() instanceof net.minecraft.server.level.ServerPlayer p) VoiceDelivery.offer(p); });
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.living.LivingDeathEvent.class, e -> {
-            if (e.getEntity() instanceof net.minecraft.server.level.ServerPlayer p && SoldierAi.scripted(p)) {
+        NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class,
+                e -> { if (e.getEntity() instanceof ServerPlayer p) VoiceDelivery.offer(p); });
+        NeoForge.EVENT_BUS.addListener(LivingDeathEvent.class, e -> {
+            if (e.getEntity() instanceof ServerPlayer p && SoldierAi.scripted(p)) {
                 var bot = SoldierAi.botOf(p.getGameProfile().getName());
                 if (bot != null) SoldierVoices.say(p, bot, "death");
             }

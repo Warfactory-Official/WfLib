@@ -29,8 +29,10 @@ import org.slf4j.Logger;
 import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -92,7 +94,7 @@ public final class RigidStep {
     /** Per stepped tick since the last drain: step us, islands, bodies, contacts. */
     public static String drainStats() {
         long ticks = Math.max(1, statTicks);
-        String line = String.format(java.util.Locale.ROOT, "step %.0f us islands %.1f bodies %.1f contacts %.1f",
+        String line = String.format(Locale.ROOT, "step %.0f us islands %.1f bodies %.1f contacts %.1f",
                 statNanos / 1000.0 / ticks, (double) statIslands / ticks, (double) statBodies / ticks, (double) statContacts / ticks);
         statNanos = statTicks = statIslands = statBodies = statContacts = 0;
         return line;
@@ -464,7 +466,7 @@ public final class RigidStep {
                 union(parent, i, j);
             }
         }
-        java.util.Arrays.sort(pairKeys.elements(), 0, pairKeys.size());
+        Arrays.sort(pairKeys.elements(), 0, pairKeys.size());
     }
 
     private static void union(int[] parent, int a, int b) {
@@ -511,7 +513,7 @@ public final class RigidStep {
                 RigidSolver.Joint joint = solver.joint(member.couplingJoint);
                 member.storeCoupling(joint);
                 if (DEBUG) {
-                    LOGGER.info(String.format(java.util.Locale.ROOT, "[towjoint] %d J %.4f,%.4f,%.4f yaw %.4f axle %.4f",
+                    LOGGER.info(String.format(Locale.ROOT, "[towjoint] %d J %.4f,%.4f,%.4f yaw %.4f axle %.4f",
                             member.owner.getId(), joint.impulse.x, joint.impulse.y, joint.impulse.z,
                             joint.yawImpulse, joint.axleImpulse));
                 }
@@ -626,10 +628,10 @@ public final class RigidStep {
         }
         cache.count = count;
         if (DEBUG) {
-            StringBuilder line = new StringBuilder(String.format(java.util.Locale.ROOT, "[rigid] pair %d-%d n=%d", a.owner.getId(), b.owner.getId(), count));
+            StringBuilder line = new StringBuilder(String.format(Locale.ROOT, "[rigid] pair %d-%d n=%d", a.owner.getId(), b.owner.getId(), count));
             for (int k = 0; k < count; k++) {
                 RigidSolver.Contact c = solver.contact(from + k);
-                line.append(String.format(java.util.Locale.ROOT, " (%d/%d n %.2f %.2f %.2f s0 %.3f J %.3f m %.1f rA %.2f %.2f %.2f rB %.2f %.2f %.2f)", c.debugTagA, c.debugTagB, c.normal.x, c.normal.y, c.normal.z, c.debugSeparation(), c.totalNormalImpulse, c.debugMass(), c.anchorA.x, c.anchorA.y, c.anchorA.z, c.anchorB.x, c.anchorB.y, c.anchorB.z));
+                line.append(String.format(Locale.ROOT, " (%d/%d n %.2f %.2f %.2f s0 %.3f J %.3f m %.1f rA %.2f %.2f %.2f rB %.2f %.2f %.2f)", c.debugTagA, c.debugTagB, c.normal.x, c.normal.y, c.normal.z, c.debugSeparation(), c.totalNormalImpulse, c.debugMass(), c.anchorA.x, c.anchorA.y, c.anchorA.z, c.anchorB.x, c.anchorB.y, c.anchorB.z));
             }
             line.append(" invI_b ").append(solver.body(b.body).inverseInertia).append(" invM_b ").append(solver.body(b.body).inverseMass);
             LOGGER.info(line.toString());

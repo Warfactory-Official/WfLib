@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Output of {@link ConstructionPlan#of} or {@link SalvagePlan#of}.
@@ -49,9 +51,9 @@ public record WorkPlan(List<WorkOrder> orders, Map<Item, Integer> bill, Bounding
     }
 
     /** The item a block state is placed from, or null if there is not one. */
-    public static Item itemFor(net.minecraft.world.level.block.state.BlockState state) {
+    public static Item itemFor(BlockState state) {
         Item item = state.getBlock().asItem();
-        return item == net.minecraft.world.item.Items.AIR ? null : item;
+        return item == Items.AIR ? null : item;
     }
 
     public static final class Bill {

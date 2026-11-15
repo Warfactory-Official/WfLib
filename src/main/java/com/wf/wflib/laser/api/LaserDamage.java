@@ -9,6 +9,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.laser.LaserBeamPacket;
+import net.minecraft.core.registries.Registries;
 
 /**
  * Directed energy: {@code damage = rated / (1 + resistance (m / 2 kg)^1.5 (1 + armour / 5 mm))}.
@@ -51,7 +52,7 @@ public final class LaserDamage {
         double armor = target instanceof LaserTarget t ? t.laserArmorMm(dir) : 0.0;
         double resistance = target instanceof LaserTarget t ? t.laserResistance() : 1.0;
         float damage = perTick(rated, massOf(target), armor, resistance);
-        DamageSource source = new DamageSource(level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.DAMAGE_TYPE)
+        DamageSource source = new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
                 .getHolderOrThrow(WFDamageTypes.LASER), shooter, shooter, from);
         target.invulnerableTime = 0;
         target.hurt(source, damage);

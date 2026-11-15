@@ -1,6 +1,7 @@
 package com.wf.wflib.round.gametest;
 
 import com.mojang.authlib.GameProfile;
+import com.wf.wflib.core.api.ViewRange;
 import com.wf.wflib.round.RoundConfig;
 import com.wf.wflib.damage.api.StrikeContext;
 import com.wf.wflib.round.api.KineticPreset;
@@ -62,6 +63,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.explosion.api.FxMute;
+import net.minecraft.gametest.framework.GameTestSequence;
 
 /**
  * Non-chunk-loading rounds over unloaded ground: on-disk terrain, deferred impacts, re-entry, fast-forward. Lanes run
@@ -104,8 +107,8 @@ public class VirtualFlightGameTest {
 
     public static void register() {
         Warheads.register(RECORDING_WARHEAD, (source, pos) -> DETONATIONS.add(pos));
-        Warheads.register(RECORD_BIG, (source, pos) -> BIG_MUTED.add(com.wf.wflib.explosion.api.FxMute.active()));
-        Warheads.register(RECORD_SMALL, (source, pos) -> SMALL_MUTED.add(com.wf.wflib.explosion.api.FxMute.active()));
+        Warheads.register(RECORD_BIG, (source, pos) -> BIG_MUTED.add(FxMute.active()));
+        Warheads.register(RECORD_SMALL, (source, pos) -> SMALL_MUTED.add(FxMute.active()));
         KineticPresets.registerItemless(KineticPreset.builder(SHELL_BIG, null, RECORD_BIG).speed(12.0)
                 .drag(0.0).gravity(0.0).life(200).caliber(120.0).blast(RoundConfig.snapshot().preloadBlast() + 2.0, false)
                 .noChunkLoading().build());
@@ -332,7 +335,7 @@ public class VirtualFlightGameTest {
     }
 
     /** Stone 5x5 at {@code wall} saved into unloaded {@code chunk} (built in a far chunk, planted). */
-    private static net.minecraft.gametest.framework.GameTestSequence plantWall(GameTestHelper helper, ServerLevel level,
+    private static GameTestSequence plantWall(GameTestHelper helper, ServerLevel level,
                                                                                BlockPos wall, ChunkPos chunk) {
         ChunkPos build = new ChunkPos(chunk.x, chunk.z + BUILD_OFFSET);
         BlockPos built = wall.offset(0, 0, BUILD_OFFSET * 16);
@@ -469,7 +472,7 @@ public class VirtualFlightGameTest {
                     RoundEnded end = packets.stream().flatMap(p -> p.ends().stream())
                             .filter(e -> e.key() == key[0]).findFirst().orElse(null);
                     double gone = end == null ? Double.NaN : Math.abs(end.x() - watcher.getX());
-                    helper.assertTrue(spawned && end != null && end.reason() == RoundEnd.EXPIRED && gone > com.wf.wflib.core.api.ViewRange.blocks(),
+                    helper.assertTrue(spawned && end != null && end.reason() == RoundEnd.EXPIRED && gone > ViewRange.blocks(),
                             "watcher: spawn " + spawned + ", end " + end + " at " + gone + " blocks");
                 })
                 .thenSucceed();

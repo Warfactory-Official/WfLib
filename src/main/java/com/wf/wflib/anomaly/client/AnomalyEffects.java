@@ -2,6 +2,7 @@ package com.wf.wflib.anomaly.client;
 
 import com.wf.wflib.anomaly.AnomalyBlockEntity;
 import com.wf.wflib.anomaly.AnomalyLook;
+import com.wf.wflib.anomaly.BlastTuning;
 import com.wf.wflib.anomaly.MincerTuning;
 import com.wf.wflib.particle.api.WFParticles;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -67,7 +68,7 @@ final class AnomalyEffects {
         double r = Math.sqrt(random.nextDouble()) * radius;
         double x = c.x + Math.cos(a) * r;
         double z = c.z + Math.sin(a) * r;
-        double length = 0.8D + random.nextDouble() * (com.wf.wflib.anomaly.BlastTuning.HAIRS_DROP - 1.0D);
+        double length = 0.8D + random.nextDouble() * (BlastTuning.HAIRS_DROP - 1.0D);
         for (double d = 0.0D; d < length; d += 0.15D) {
             double sway = 0.06D * d * d;
             level.addParticle(FUZZ_DUST, x + random.nextGaussian() * sway, c.y + 0.95D - d,

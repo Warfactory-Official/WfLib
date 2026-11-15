@@ -5,6 +5,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import com.wf.wflib.probe.api.ProbeActions;
+import com.wf.wflib.probe.client.ProbeClientData;
+import com.wf.wflib.probe.client.ProbeJobOverlay;
 
 /** Payloads of {@code probe-1}; optional, so a client without wflib may still join. */
 public final class ProbeNetwork {
@@ -29,9 +31,9 @@ public final class ProbeNetwork {
                 }));
         registrar.playToClient(ProbeDataPacket.TYPE, ProbeDataPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(
-                        () -> com.wf.wflib.probe.client.ProbeClientData.accept(pkt)));
+                        () -> ProbeClientData.accept(pkt)));
         registrar.playToClient(ProbeJobPacket.TYPE, ProbeJobPacket.STREAM_CODEC,
-                (pkt, ctx) -> ctx.enqueueWork(() -> com.wf.wflib.probe.client.ProbeJobOverlay.accept(pkt)));
+                (pkt, ctx) -> ctx.enqueueWork(() -> ProbeJobOverlay.accept(pkt)));
     }
 
     static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
