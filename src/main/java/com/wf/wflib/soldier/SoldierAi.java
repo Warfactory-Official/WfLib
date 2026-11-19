@@ -741,7 +741,7 @@ public final class SoldierAi {
 
     /** Soldiers treat hostile mobs as enemies: the ones in range are looked for twice a second, then watched like any contact. */
     static void perceiveMobs(ServerPlayer p, Bot b, long now) {
-        if (!ENGAGE_MOBS) return;
+        if (!engageMobs) return;
         if ((p.tickCount + b.name.hashCode()) % 10 == 0) b.mobs = nearbyMobs(p, b);
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (LivingEntity m : b.mobs) {
@@ -758,7 +758,12 @@ public final class SoldierAi {
     }
 
     /** Whether soldiers fight hostile mobs; the farthest, and how many, one soldier watches. */
-    public static boolean ENGAGE_MOBS = true;
+    private static volatile boolean engageMobs = true;
+
+    public static void engageMobs(boolean on) {
+        engageMobs = on;
+    }
+
     static final double MOB_RANGE = 48;
     static final int MOB_LIMIT = 4;
 

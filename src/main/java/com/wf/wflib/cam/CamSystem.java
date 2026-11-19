@@ -153,13 +153,9 @@ public final class CamSystem implements WFSystem {
             CameraOsd.register();
             DroneCamHud.registerLayout();
             CamerasApp.register();
-            dev.engine_room.flywheel.lib.visualization.SimpleBlockEntityVisualizer.builder(SECURITY_CAMERA_BE.get())
-                    .factory(com.wf.wflib.cam.client.SecurityCameraVisual::new)
-                    .skipVanillaRender(be -> true)
-                    .apply();
+            com.wf.wflib.cam.client.SecurityCameraClient.visualize(SECURITY_CAMERA_BE.get());
         }));
-        modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class,
-                event -> event.registerItem(com.wf.wflib.cam.client.SecurityCameraItem.extensions(), SECURITY_CAMERA_ITEM.get()));
+        com.wf.wflib.cam.client.SecurityCameraClient.registerItem(modBus, SECURITY_CAMERA_ITEM);
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
