@@ -11,6 +11,7 @@ public final class StatsConfig {
     public static final ModConfigSpec.IntValue X, Y, BACKGROUND;
     public static final ModConfigSpec.DoubleValue SCALE;
     public static final ModConfigSpec.ConfigValue<String> UNITS;
+    public static final ModConfigSpec.ConfigValue<String> ANCHOR;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> LINES;
 
     /** Tags: fps day time dimension chunks biome temp humidity entities cx cz ox oz y facing light moon storm. */
@@ -32,9 +33,11 @@ public final class StatsConfig {
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         SHOWN = b.comment("Show the overlay (the toggle key flips this for the session).").define("shown", true);
-        X = b.comment("Distance from the left edge, pixels.").defineInRange("x", 2, 0, 4000);
-        Y = b.comment("Distance from the top edge, pixels.").defineInRange("y", 2, 0, 4000);
-        SCALE = b.comment("Text scale.").defineInRange("scale", 0.75, 0.4, 3.0);
+        ANCHOR = b.comment("Which corner of the screen the overlay hangs from: top_left, top_right, bottom_left, bottom_right.")
+                .define("anchor", "top_left", o -> o instanceof String s && List.of("top_left", "top_right", "bottom_left", "bottom_right").contains(s));
+        X = b.comment("Distance from that corner's side edge, pixels.").defineInRange("x", 2, 0, 4000);
+        Y = b.comment("Distance from that corner's top or bottom edge, pixels.").defineInRange("y", 2, 0, 4000);
+        SCALE = b.comment("Text scale (also /worldstats scale, and shift or ctrl with the toggle key).").defineInRange("scale", 0.75, 0.4, 4.0);
         BACKGROUND = b.comment("Background shade behind the text, 0-255 alpha; 0 = none.").defineInRange("background", 96, 0, 255);
         UNITS = b.comment("Temperature units shown, any of C, F, K in order.").define("units", "FCK");
         LINES = b.comment("One template per line. Tags: {fps} {day} {time} {dimension} {chunks} {biome} {temp} {humidity} {entities} {cx} {cz} {ox} {oz} {y} {facing} {light} {moon} {storm}. Other mods add tags through WorldStats.tag; a line whose tag nothing provides is left out (e.g. {threat} without PMCLib).")

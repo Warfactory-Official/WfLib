@@ -51,9 +51,72 @@ public final class StatsHud {
         modBus.addListener(RegisterGuiLayersEvent.class, e -> e.registerAboveAll(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "worldstats"), StatsHud::render));
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, e -> {
             while (TOGGLE.consumeClick()) {
-                shown = !shown;
+                long window = Minecraft.getInstance().getWindow().getWindow();
+                boolean shift = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
+                boolean ctrl = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_CONTROL);
+                if (shift || ctrl) {
+                    setScale(StatsConfig.SCALE.get() * (shift ? 1.15 : 1 / 1.15));        // shift+key bigger, ctrl+key smaller
+                } else {
+                    shown = !shown;
+                }
             }
         });
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RegisterClientCommandsEvent.class, StatsHud::commands);
+    }
+
+    private static void setScale(double v) {
+        StatsConfig.SCALE.set(Math.max(0.4, Math.min(4.0, Math.round(v * 100) / 100.0)));
+        StatsConfig.SPEC.save();
+    }
+
+    /** {@code /worldstats scale|pos|anchor|background|toggle|reset}: the same settings as the config file, live. */
+    private static void commands(net.neoforged.neoforge.client.event.RegisterClientCommandsEvent e) {
+        var d = e.getDispatcher();
+        d.register(net.minecraft.commands.Commands.literal("worldstats")
+                .then(net.minecraft.commands.Commands.literal("toggle").executes(x -> {
+                    shown = !shown;
+                    return 1;
+                }))
+                .then(net.minecraft.commands.Commands.literal("scale").then(net.minecraft.commands.Commands.argument("value", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg(0.4, 4.0)).executes(x -> {
+                    setScale(com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(x, "value"));
+                    return 1;
+                })))
+                .then(net.minecraft.commands.Commands.literal("pos")
+                        .then(net.minecraft.commands.Commands.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 4000))
+                                .then(net.minecraft.commands.Commands.argument("y", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 4000)).executes(x -> {
+                                    StatsConfig.X.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(x, "x"));
+                                    StatsConfig.Y.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(x, "y"));
+                                    StatsConfig.SPEC.save();
+                                    return 1;
+                                }))))
+                .then(net.minecraft.commands.Commands.literal("anchor")
+                        .then(net.minecraft.commands.Commands.argument("corner", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                .suggests((x, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(List.of("top_left", "top_right", "bottom_left", "bottom_right"), b))
+                                .executes(x -> {
+                                    String corner = com.mojang.brigadier.arguments.StringArgumentType.getString(x, "corner");
+                                    if (!List.of("top_left", "top_right", "bottom_left", "bottom_right").contains(corner)) {
+                                        return 0;
+                                    }
+                                    StatsConfig.ANCHOR.set(corner);
+                                    StatsConfig.SPEC.save();
+                                    return 1;
+                                })))
+                .then(net.minecraft.commands.Commands.literal("background")
+                        .then(net.minecraft.commands.Commands.argument("alpha", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 255)).executes(x -> {
+                            StatsConfig.BACKGROUND.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(x, "alpha"));
+                            StatsConfig.SPEC.save();
+                            return 1;
+                        })))
+                .then(net.minecraft.commands.Commands.literal("reset").executes(x -> {
+                    StatsConfig.SCALE.set(0.75);
+                    StatsConfig.X.set(2);
+                    StatsConfig.Y.set(2);
+                    StatsConfig.ANCHOR.set("top_left");
+                    StatsConfig.BACKGROUND.set(96);
+                    StatsConfig.SPEC.save();
+                    shown = true;
+                    return 1;
+                })));
     }
 
     private static void render(GuiGraphics g, net.minecraft.client.DeltaTracker delta) {
@@ -73,8 +136,12 @@ public final class StatsHud {
         for (String line : lines) {
             width = Math.max(width, mc.font.width(line));
         }
+        int boxW = (int) ((width + 4) * scale), boxH = (int) ((lines.size() * lineHeight + 3) * scale);
+        String anchor = StatsConfig.ANCHOR.get();
+        float px = anchor.endsWith("right") ? g.guiWidth() - StatsConfig.X.get() - boxW + 2 * scale : StatsConfig.X.get() + 2 * scale;
+        float py = anchor.startsWith("bottom") ? g.guiHeight() - StatsConfig.Y.get() - boxH + 2 * scale : StatsConfig.Y.get() + 2 * scale;
         g.pose().pushPose();
-        g.pose().translate(StatsConfig.X.get(), StatsConfig.Y.get(), 0);
+        g.pose().translate(px, py, 0);
         g.pose().scale(scale, scale, 1);
         int alpha = StatsConfig.BACKGROUND.get();
         if (alpha > 0 && !lines.isEmpty()) {
