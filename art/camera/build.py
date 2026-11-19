@@ -8,7 +8,8 @@ if "WFCamera" in bpy.data.scenes:
         bpy.data.objects.remove(o, do_unlink=True)
 else:
     sc = bpy.data.scenes.new("WFCamera")
-bpy.context.window.scene = sc
+if bpy.context.window:
+    bpy.context.window.scene = sc
 col = sc.collection
 
 def mat(name, rgb, metal=0.0, rough=0.5):

@@ -64,9 +64,11 @@ final class CameraRenderer {
                 pose.translate(0.0f, 0.04f, 0.0f);
             }
             case FIRST_PERSON_RIGHT_HAND, FIRST_PERSON_LEFT_HAND -> {
-                pose.translate(0.0f, -0.02f, 0.0f);
-                pose.scale(5.0f, 5.0f, 5.0f);
-                pose.mulPose(Axis.YP.rotationDegrees(180.0f));
+                // The hand sits low and to the right of the view: bring it toward the middle, screen toward the eye.
+                pose.translate(-0.22f, 0.20f, 0.05f);
+                pose.scale(3.4f, 3.4f, 3.4f);
+                pose.mulPose(Axis.XP.rotationDegrees(-8.0f));
+                pose.mulPose(Axis.YP.rotationDegrees(192.0f));
             }
             default -> { // third person
                 pose.scale(4.5f, 4.5f, 4.5f);
