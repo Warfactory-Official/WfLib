@@ -11,6 +11,7 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.util.Mth;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
@@ -61,6 +62,7 @@ public final class CameraScreen {
     private static float fov = 70.0f;
     private static float zoom = 1.0f;
     private static float zoomMax = 4.0f;
+    private static float flash;
 
     private CameraScreen() {
     }
@@ -69,6 +71,11 @@ public final class CameraScreen {
     public static void request(float fovDegrees) {
         requested = Util.getNanos();
         fov = fovDegrees;
+    }
+
+    /** White flash over the back screen, 0..1; set by the host each frame it draws the screen (a shot's flash). */
+    public static void flash(float amount) {
+        flash = amount;
     }
 
     /** What the display's lens readout shows; call along with {@link #request}. */
@@ -124,6 +131,12 @@ public final class CameraScreen {
         Matrix4f saved = RenderSystem.getProjectionMatrix();
         VertexSorting sorting = RenderSystem.getVertexSorting();
         target.bindWrite(true);
+        // The level clears with alpha 0 and leaves it wherever neither sky nor terrain draws (the seam at the horizon);
+        // make the picture opaque before the HUD blends into it.
+        RenderSystem.colorMask(false, false, false, true);
+        RenderSystem.clearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        RenderSystem.clear(16384, Minecraft.ON_OSX);
+        RenderSystem.colorMask(true, true, true, true);
         RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0.0f, WIDTH, HEIGHT, 0.0f, 1000.0f, 21000.0f),
                 VertexSorting.ORTHOGRAPHIC_Z);
         var modelView = RenderSystem.getModelViewStack();
@@ -134,7 +147,10 @@ public final class CameraScreen {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         GuiGraphics g = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, zoomMax, shots()));
+        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, shots()));
+        if (flash > 0.01f) {
+            g.fill(0, 0, WIDTH, HEIGHT, ((int) (Mth.clamp(flash, 0.0f, 1.0f) * 200) << 24) | 0xFFFFFF);
+        }
         g.flush();
         modelView.popMatrix();
         RenderSystem.applyModelViewMatrix();

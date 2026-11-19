@@ -120,7 +120,7 @@ if os.environ.get("CAMERA_RIG", "1") == "1":
     names = [n.get("name") for n in js["nodes"]]
     root = js["nodes"][names.index("camera")]
     root["extras"] = {"mineassaultRole": "root"}
-    for role, pos in (("grip_right", [-0.0420, -0.0020, 0.0100]), ("grip_left", [0.0400, -0.0260, -0.0020])):
+    for role, pos in (("grip_right", [-0.0660, -0.0040, 0.0040]), ("grip_left", [0.0660, -0.0040, 0.0040])):
         js["nodes"].append({"name": role, "translation": pos, "rotation": q, "extras": {"mineassaultRole": role}})
         root.setdefault("children", []).append(len(js["nodes"]) - 1)
 js["samplers"] = [{"magFilter": 9728, "minFilter": 9728, "wrapS": 33071, "wrapT": 33071}]

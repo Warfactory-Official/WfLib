@@ -1,165 +1,129 @@
 package com.wf.wflib.photo.api.client;
 
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.util.Mth;
-import net.minecraft.world.level.LightLayer;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.ResourceLocation;
+import java.util.Random;
 
 /**
- * The camera's shooting display, drawn in a fixed {@link #WIDTH} x {@link #HEIGHT} space (scale the pose to fit a
- * bigger area): mode, size, shots and battery on top; framing grid, AF frame and an electronic level (a green horizon
- * that follows pitch, level when it meets the fixed ticks) in the middle; exposure meter, shutter, aperture, ISO,
- * audio levels and a zoom scale at the bottom. Values come from the game: the light at the player sets ISO, shutter
- * and the exposure pointer; pitch moves the horizon; zoom drives the lens readout.
+ * The camera's shooting display, in the drone view's style (flat green text with a shadow on the screen edges, a small
+ * centre cross, no panels): shots taken and whether the shutter is ready (top left), the lens field of view (top right),
+ * zoom (bottom left), heading / pitch (bottom right), inside a border (frame + corner brackets) over film grain, a
+ * soft vignette and faint scanlines. Drawn in a {@link #WIDTH} x {@link #HEIGHT} design space or any
+ * bigger one (edge items stay on the edges, so a bigger space draws it smaller on the same frame).
  */
 public final class CameraHud {
     public static final int WIDTH = 256;
     public static final int HEIGHT = 144;
 
-    private static final int WHITE = 0xFFFFFFFF;
-    private static final int DIM = 0xB0FFFFFF;
-    private static final int GRID = 0x38FFFFFF;
-    private static final int GREEN = 0xFF4CE070;
-    private static final int RED = 0xFFD8302A;
-    private static final int AMBER = 0xFFFFC040;
-    private static final int PANEL = 0x78000000;
+    private static final int GREEN = 0xDD00FF00;
+    private static final int DIM = 0x9966FF99;
+    private static final int AMBER = 0xDDFFAA00;
+    private static final int MARGIN = 8;
+    private static final int GRAIN_SIZE = 512;
+    private static final ResourceLocation GRAIN_ID = ResourceLocation.fromNamespaceAndPath("wflib", "camera_grain");
+    private static final Random RANDOM = new Random();
+    private static DynamicTexture grain;
 
-    /** What the display shows. {@code light} 0..15, {@code speed} 0..1 (how fast the player moves: the audio meter). */
-    public record Info(float fov, float zoom, float zoomMax, float pitchDegrees, int light, int shots, float battery,
-                       float speed, String mode) {
-        /** Reads the local player's surroundings; {@code zoom} 1 = the lens at its widest. */
-        public static Info of(LocalPlayer player, float fov, float zoom, float zoomMax, int shots) {
-            int light = Math.max(player.level().getBrightness(LightLayer.BLOCK, player.blockPosition()),
-                    player.level().getBrightness(LightLayer.SKY, player.blockPosition())
-                            - player.level().getSkyDarken());
-            double speed = player.getDeltaMovement().horizontalDistance();
-            return new Info(fov, zoom, zoomMax, player.getXRot(), Mth.clamp(light, 0, 15), shots, 1.0f,
-                    (float) Math.min(1.0, speed * 5.0), "P");
+    /** What the display shows; {@code ready}: the shutter is not cooling down. */
+    public record Info(float fov, float zoom, float yawDegrees, float pitchDegrees, int shots, boolean ready) {
+        /** Reads the local player; {@code zoom} 1 = the lens at its widest. */
+        public static Info of(LocalPlayer player, float fov, float zoom, int shots) {
+            boolean ready = !player.getCooldowns().isOnCooldown(player.getMainHandItem().getItem());
+            return new Info(fov, zoom, player.getYRot(), player.getXRot(), shots, ready);
         }
     }
 
     private CameraHud() {
     }
 
-    /** ISO for a light level: 100 in daylight, a stop more for every 2.5 levels darker, to 6400. */
-    static int iso(int light) {
-        int stops = Math.round((15 - light) * 0.4f);
-        return Math.min(6400, 100 << Math.max(0, Math.min(6, stops)));
-    }
-
     public static void draw(GuiGraphics g, Info in) {
+        draw(g, in, WIDTH, HEIGHT);
+    }
+
+    public static void draw(GuiGraphics g, Info in, int w, int h) {
         var font = Minecraft.getInstance().font;
-        int w = WIDTH, h = HEIGHT, cx = w / 2, cy = h / 2;
+        int cx = w / 2, cy = h / 2, line = font.lineHeight + 1;
 
-        // framing grid
-        for (int i = 1; i < 3; i++) {
-            g.fill(w * i / 3, 0, w * i / 3 + 1, h, GRID);
-            g.fill(0, h * i / 3, w, h * i / 3 + 1, GRID);
-        }
-        // top and bottom panels
-        g.fill(0, 0, w, 15, PANEL);
-        g.fill(0, h - 16, w, h, PANEL);
+        effects(g, w, h);
+        border(g, w, h);
 
-        // ---- top row: mode, size, shots, battery
-        g.fill(3, 3, 16, 12, RED);
-        g.drawString(font, in.mode(), 7, 4, WHITE, false);
-        g.drawString(font, "L", 22, 4, WHITE, false);
-        g.fill(31, 4, 32, 11, DIM);
-        g.drawString(font, "16:9", 36, 4, DIM, false);
-        // metering icon: a ring with a dot
-        ring(g, 66, 4, 8, WHITE);
-        g.fill(69, 7, 71, 9, WHITE);
-        String shots = String.format("%04d", Math.min(9999, in.shots()));
-        g.drawString(font, shots, w - 44 - font.width(shots) + 26, 4, WHITE, false);
-        battery(g, w - 20, 4, in.battery());
+        g.drawString(font, String.format("PHOTO %04d", Math.min(9999, in.shots())), MARGIN, MARGIN, GREEN, true);
+        g.drawString(font, in.ready() ? "READY" : "WAIT", MARGIN, MARGIN + line, in.ready() ? GREEN : AMBER, true);
 
-        // ---- AF frame
-        int fw = 22, fh = 13, arm = 6;
-        corner(g, cx - fw, cy - fh, arm, 1, 1, WHITE);
-        corner(g, cx + fw, cy - fh, arm, -1, 1, WHITE);
-        corner(g, cx - fw, cy + fh, arm, 1, -1, WHITE);
-        corner(g, cx + fw, cy + fh, arm, -1, -1, WHITE);
-        g.fill(cx - 1, cy, cx + 1, cy + 1, DIM);
+        String fov = "FOV " + Math.round(in.fov());
+        g.drawString(font, fov, w - MARGIN - font.width(fov), MARGIN, DIM, true);
 
-        // ---- electronic level: horizon follows pitch, fixed ticks at the centre line
-        double half = Math.tan(Math.toRadians(in.fov() * 0.5));
-        double horizon = cy - Math.tan(Math.toRadians(in.pitchDegrees())) / half * (h * 0.5);
-        int hy = (int) Mth.clamp(horizon, 18, h - 20);
-        boolean level = Math.abs(hy - cy) <= 1;
-        int lc = level ? GREEN : AMBER;
-        g.fill(cx - 62, hy, cx - 18, hy + 1, lc);
-        g.fill(cx + 18, hy, cx + 62, hy + 1, lc);
-        g.fill(cx - 78, cy, cx - 66, cy + 1, WHITE);
-        g.fill(cx + 66, cy, cx + 78, cy + 1, WHITE);
-        // curved brackets either side of the horizon, as short chamfered bars
-        for (int side = -1; side <= 1; side += 2) {
-            int x = cx + side * 34;
-            g.fill(x, hy - 12, x + 1, hy + 12, DIM);
-            g.fill(x - side, hy - 14, x - side + 1, hy - 12, DIM);
-            g.fill(x - side, hy + 12, x - side + 1, hy + 14, DIM);
-            g.fill(x + side * 6, hy - 9, x + side * 6 + 2, hy + 9, level ? GREEN : DIM);
-        }
+        g.drawString(font, String.format("ZOOM x%.1f", in.zoom()), MARGIN, h - MARGIN - font.lineHeight, GREEN, true);
 
-        // ---- bottom row: audio, exposure triplet, exposure meter
-        int by = h - 12;
-        for (int row = 0; row < 2; row++) {
-            int lit = (int) (in.speed() * 12 + (row == 0 ? 0 : -1) + 1.5 * Math.sin(System.nanoTime() * 1e-8 + row));
-            for (int i = 0; i < 12; i++) {
-                g.fill(4 + i * 3, by + row * 4, 6 + i * 3, by + row * 4 + 2, i < lit ? (i > 9 ? RED : GREEN) : 0x40FFFFFF);
+        String heading = String.format("%03d / %+03d", Math.floorMod(Math.round(in.yawDegrees()) + 180, 360),
+                Math.round(-in.pitchDegrees()));
+        g.drawString(font, heading, w - MARGIN - font.width(heading), h - MARGIN - font.lineHeight, GREEN, true);
+
+        // centre cross with a gap, as the drone view's
+        g.fill(cx - 8, cy, cx - 2, cy + 1, GREEN);
+        g.fill(cx + 3, cy, cx + 9, cy + 1, GREEN);
+        g.fill(cx, cy - 8, cx + 1, cy - 2, GREEN);
+        g.fill(cx, cy + 3, cx + 1, cy + 9, GREEN);
+    }
+
+    /** Grain (a fresh window of a noise texture every draw), vignette, scanlines. */
+    private static void effects(GuiGraphics g, int w, int h) {
+        if (grain == null) {
+            NativeImage image = new NativeImage(GRAIN_SIZE, GRAIN_SIZE, false);
+            Random r = new Random(7);
+            for (int y = 0; y < GRAIN_SIZE; y++) {
+                for (int x = 0; x < GRAIN_SIZE; x++) {
+                    float a = r.nextFloat();
+                    int alpha = (int) (a * a * 18);
+                    int v = r.nextBoolean() ? 0xFF : 0x00;
+                    image.setPixelRGBA(x, y, (alpha << 24) | (v << 16) | (v << 8) | v);
+                }
             }
+            grain = new DynamicTexture(image);
+            grain.setFilter(false, false);
+            Minecraft.getInstance().getTextureManager().register(GRAIN_ID, grain);
         }
-        int iso = iso(in.light());
-        double shutter = Math.max(30.0, 500.0 / (iso / 100.0));
-        double aperture = 3.3 + (in.zoom() - 1) / Math.max(1, in.zoomMax() - 1) * 3.6;
-        g.drawString(font, "1/" + (int) shutter, 46, by, WHITE, false);
-        g.drawString(font, String.format("F%.1f", aperture), 84, by, WHITE, false);
-        g.drawString(font, "ISO " + iso, 118, by, WHITE, false);
-        // exposure meter, centre aligned on the right of the readouts
-        int mx = 178, my = by + 7;
-        for (int i = -3; i <= 3; i++) {
-            g.fill(mx + i * 6, my - (i == 0 ? 4 : 2), mx + i * 6 + 1, my, DIM);
-        }
-        g.fill(mx - 18, my, mx + 19, my + 1, DIM);
-        double ev = Mth.clamp((in.light() - 10) / 5.0 * 0.6, -3.0, 3.0);
-        int px = mx + (int) Math.round(ev * 6);
-        g.fill(px - 1, my + 2, px + 2, my + 3, AMBER);
-        g.fill(px, my + 1, px + 1, my + 4, AMBER);
+        int sw = Math.min(GRAIN_SIZE, w * 3 / 4), sh = Math.min(GRAIN_SIZE, h * 3 / 4);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        g.blit(GRAIN_ID, 0, 0, w, h, RANDOM.nextInt(GRAIN_SIZE - sw + 1), RANDOM.nextInt(GRAIN_SIZE - sh + 1),
+                sw, sh, GRAIN_SIZE, GRAIN_SIZE);
 
-        // ---- zoom readout and scale
-        g.drawString(font, String.format("x%.1f", in.zoom()), w - 30, by, WHITE, false);
-        int zx = w - 8, zt = 28, zb = h - 30;
-        g.fill(zx, zt, zx + 1, zb, DIM);
-        for (int i = 0; i <= 4; i++) {
-            int y = zt + (zb - zt) * i / 4;
-            g.fill(zx - (i % 2 == 0 ? 3 : 1), y, zx + 1, y + 1, DIM);
+        // vignette: darker toward the edges, in steps
+        int depth = Math.max(8, Math.min(w, h) / 6);
+        for (int i = 0; i < depth; i += 2) {
+            int a = (int) (70.0f * (1.0f - (float) i / depth) * (1.0f - (float) i / depth));
+            int c = a << 24;
+            g.fill(i, i, w - i, i + 2, c);
+            g.fill(i, h - i - 2, w - i, h - i, c);
+            g.fill(i, i + 2, i + 2, h - i - 2, c);
+            g.fill(w - i - 2, i + 2, w - i, h - i - 2, c);
         }
-        float t = (in.zoom() - 1) / Math.max(1e-3f, in.zoomMax() - 1);
-        int zy = zb - (int) ((zb - zt) * Mth.clamp(t, 0, 1));
-        g.fill(zx - 5, zy - 1, zx + 3, zy + 1, WHITE);
+        // scanlines
+        for (int y = 0; y < h; y += 2) {
+            g.fill(0, y, w, y + 1, 0x14000000);
+        }
     }
 
-    private static void corner(GuiGraphics g, int x, int y, int arm, int dx, int dy, int c) {
-        g.fill(Math.min(x, x + dx * arm), y, Math.max(x, x + dx * arm) + 1, y + 1, c);
-        g.fill(x, Math.min(y, y + dy * arm), x + 1, Math.max(y, y + dy * arm) + 1, c);
-    }
-
-    private static void ring(GuiGraphics g, int x, int y, int size, int c) {
-        g.fill(x + 2, y, x + size - 2, y + 1, c);
-        g.fill(x + 2, y + size - 1, x + size - 2, y + size, c);
-        g.fill(x, y + 2, x + 1, y + size - 2, c);
-        g.fill(x + size - 1, y + 2, x + size, y + size - 2, c);
-    }
-
-    private static void battery(GuiGraphics g, int x, int y, float level) {
-        g.fill(x, y, x + 15, y + 1, WHITE);
-        g.fill(x, y + 7, x + 15, y + 8, WHITE);
-        g.fill(x, y, x + 1, y + 8, WHITE);
-        g.fill(x + 14, y, x + 15, y + 8, WHITE);
-        g.fill(x + 15, y + 2, x + 17, y + 6, WHITE);
-        int segs = Math.max(1, Math.round(level * 3));
-        for (int i = 0; i < 3; i++) {
-            g.fill(x + 2 + i * 4, y + 2, x + 5 + i * 4, y + 6, i < segs ? (level < 0.34f ? RED : GREEN) : 0x30FFFFFF);
+    /** Thin frame with heavier corner brackets. */
+    private static void border(GuiGraphics g, int w, int h) {
+        int in = 3, arm = Math.max(10, Math.min(w, h) / 14);
+        g.fill(in, in, w - in, in + 1, DIM);
+        g.fill(in, h - in - 1, w - in, h - in, DIM);
+        g.fill(in, in, in + 1, h - in, DIM);
+        g.fill(w - in - 1, in, w - in, h - in, DIM);
+        for (int sx = 0; sx < 2; sx++) {
+            for (int sy = 0; sy < 2; sy++) {
+                int x = sx == 0 ? in : w - in, y = sy == 0 ? in : h - in;
+                int dx = sx == 0 ? 1 : -1, dy = sy == 0 ? 1 : -1;
+                g.fill(Math.min(x, x + dx * arm), Math.min(y, y + 2 * dy), Math.max(x, x + dx * arm) + 1, Math.max(y, y + 2 * dy) + 1, GREEN);
+                g.fill(Math.min(x, x + 2 * dx), Math.min(y, y + dy * arm), Math.max(x, x + 2 * dx) + 1, Math.max(y, y + dy * arm) + 1, GREEN);
+            }
         }
     }
 }
