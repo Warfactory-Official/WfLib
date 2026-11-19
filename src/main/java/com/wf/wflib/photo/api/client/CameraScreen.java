@@ -61,7 +61,6 @@ public final class CameraScreen {
     private static float fov = 70.0f;
     private static float zoom = 1.0f;
     private static float zoomMax = 4.0f;
-    private static int shots;
 
     private CameraScreen() {
     }
@@ -72,11 +71,15 @@ public final class CameraScreen {
         fov = fovDegrees;
     }
 
-    /** What the display's lens readout and shot counter show; call along with {@link #request}. */
-    public static void readout(float zoomNow, float zoomMaxNow, int shotsTaken) {
+    /** What the display's lens readout shows; call along with {@link #request}. */
+    public static void readout(float zoomNow, float zoomMaxNow) {
         zoom = zoomNow;
         zoomMax = zoomMaxNow;
-        shots = shotsTaken;
+    }
+
+    /** Photographs in the local player's gallery (the display's shot counter). */
+    public static int shots() {
+        return com.wf.wflib.photo.client.PhotoClient.rows().size();
     }
 
     /** The texture to bind to the screen slot. */
@@ -131,7 +134,7 @@ public final class CameraScreen {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         GuiGraphics g = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, zoomMax, shots));
+        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, zoomMax, shots()));
         g.flush();
         modelView.popMatrix();
         RenderSystem.applyModelViewMatrix();

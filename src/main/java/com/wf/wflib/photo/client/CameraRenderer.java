@@ -51,7 +51,7 @@ final class CameraRenderer {
                 boolean held = context.firstPerson();
                 if (held) {
                     CameraScreen.request(PhotoLimits.FOV);
-                    CameraScreen.readout(1.0f, 4.0f, com.wf.wflib.photo.client.PhotoClient.rows().size());
+                    CameraScreen.readout(1.0f, 4.0f);
                 }
                 ResourceLocation screen = held && CameraScreen.live() ? CameraScreen.texture() : STILL;
                 return new TextureSlots() {
