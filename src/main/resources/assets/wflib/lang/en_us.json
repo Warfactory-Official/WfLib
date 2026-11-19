@@ -58,7 +58,7 @@
   "block.wflib.probe_weather": "Weather Station Probe (Example)",
   "block.wflib.grid_power_cell": "Grid Power Cell (Creative)",
   "block.wflib.camera_monitor": "Camera Monitor (Example)",
-  "block.wflib.security_camera": "Security Camera (Example)",
+  "block.wflib.security_camera": "Security Camera",
   "item.wflib.grid_key": "Grid Key (Example)",
   "item.wflib.camera_linker": "Camera Linker (Example)",
   "block.wflib.cargo_shuttle": "Cargo Shuttle",

@@ -75,6 +75,10 @@ public final class CamSystem implements WFSystem {
             BLOCK_ENTITIES.register("camera_monitor", () -> BlockEntityType.Builder.of(
                     CameraMonitorBlockEntity::new, CAMERA_MONITOR.get()).build(null));
 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SecurityCameraBlockEntity>> SECURITY_CAMERA_BE =
+            BLOCK_ENTITIES.register("security_camera", () -> BlockEntityType.Builder.of(
+                    SecurityCameraBlockEntity::new, SECURITY_CAMERA.get()).build(null));
+
     /** Picks a camera up and puts it down on a monitor. */
     public static final DeferredHolder<Item, Item> CAMERA_LINKER =
             ITEMS.register("camera_linker", () -> new CameraLinkerItem(new Item.Properties().stacksTo(1)));
@@ -149,7 +153,13 @@ public final class CamSystem implements WFSystem {
             CameraOsd.register();
             DroneCamHud.registerLayout();
             CamerasApp.register();
+            dev.engine_room.flywheel.lib.visualization.SimpleBlockEntityVisualizer.builder(SECURITY_CAMERA_BE.get())
+                    .factory(com.wf.wflib.cam.client.SecurityCameraVisual::new)
+                    .skipVanillaRender(be -> true)
+                    .apply();
         }));
+        modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class,
+                event -> event.registerItem(com.wf.wflib.cam.client.SecurityCameraItem.extensions(), SECURITY_CAMERA_ITEM.get()));
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {

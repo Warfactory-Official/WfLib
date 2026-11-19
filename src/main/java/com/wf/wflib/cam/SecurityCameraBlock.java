@@ -3,6 +3,14 @@ package com.wf.wflib.cam;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -17,16 +25,16 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /** A fixed camera, bolted to a wall, feeding the same pipeline a drone does. */
-public class SecurityCameraBlock extends Block {
+public class SecurityCameraBlock extends Block implements EntityBlock {
 
     public static final MapCodec<SecurityCameraBlock> CODEC = simpleCodec(SecurityCameraBlock::new);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     /** Housing sits against the wall behind the lens: box on the side away from {@code FACING}. */
-    private static final VoxelShape NORTH = Block.box(5.0, 5.0, 8.0, 11.0, 11.0, 16.0);
-    private static final VoxelShape SOUTH = Block.box(5.0, 5.0, 0.0, 11.0, 11.0, 8.0);
-    private static final VoxelShape WEST = Block.box(8.0, 5.0, 5.0, 16.0, 11.0, 11.0);
-    private static final VoxelShape EAST = Block.box(0.0, 5.0, 5.0, 8.0, 11.0, 11.0);
+    private static final VoxelShape NORTH = Block.box(3.0, 1.0, 4.0, 13.0, 13.0, 16.0);
+    private static final VoxelShape SOUTH = Block.box(3.0, 1.0, 0.0, 13.0, 13.0, 12.0);
+    private static final VoxelShape WEST = Block.box(4.0, 1.0, 3.0, 16.0, 13.0, 13.0);
+    private static final VoxelShape EAST = Block.box(0.0, 1.0, 3.0, 12.0, 13.0, 13.0);
 
     public SecurityCameraBlock(Properties props) {
         super(props);
@@ -49,6 +57,47 @@ public class SecurityCameraBlock extends Block {
         Direction face = context.getClickedFace();
         Direction facing = face.getAxis().isHorizontal() ? face : context.getHorizontalDirection();
         return this.defaultBlockState().setValue(FACING, facing);
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new SecurityCameraBlockEntity(pos, state);
+    }
+
+    @Nullable
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (type != CamSystem.SECURITY_CAMERA_BE.get()) {
+            return null;
+        }
+        return (BlockEntityTicker<T>) (level.isClientSide
+                ? (BlockEntityTicker<SecurityCameraBlockEntity>) SecurityCameraBlockEntity::clientTick
+                : (BlockEntityTicker<SecurityCameraBlockEntity>) SecurityCameraBlockEntity::serverTick);
+    }
+
+    /** Using it with an empty hand switches it between following things and holding still. */
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        if (level.getBlockEntity(pos) instanceof SecurityCameraBlockEntity camera) {
+            if (!level.isClientSide) {
+                player.displayClientMessage(Component.literal("Security camera: " + (camera.toggleAutomatic() ? "following movement" : "holding still")), true);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        return InteractionResult.PASS;
+    }
+
+    /** A redstone signal while the head is following something. */
+    @Override
+    protected boolean isSignalSource(BlockState state) {
+        return true;
+    }
+
+    @Override
+    protected int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
+        return level.getBlockEntity(pos) instanceof SecurityCameraBlockEntity camera && camera.tracking() ? 15 : 0;
     }
 
     @Override
