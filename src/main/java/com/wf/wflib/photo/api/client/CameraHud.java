@@ -49,8 +49,16 @@ public final class CameraHud {
     }
 
     public static void draw(GuiGraphics g, Info in) {
+        draw(g, in, WIDTH, HEIGHT);
+    }
+
+    /**
+     * Same display in a {@code w} x {@code h} design space (at least {@link #WIDTH} x {@link #HEIGHT}): edge items stay
+     * on the edges, the middle groups on the centre; a bigger space draws it smaller on the same frame.
+     */
+    public static void draw(GuiGraphics g, Info in, int w, int h) {
         var font = Minecraft.getInstance().font;
-        int w = WIDTH, h = HEIGHT, cx = w / 2, cy = h / 2;
+        int cx = w / 2, cy = h / 2, ox = (w - WIDTH) / 2;
 
         // framing grid
         for (int i = 1; i < 3; i++) {
@@ -112,11 +120,11 @@ public final class CameraHud {
         int iso = iso(in.light());
         double shutter = Math.max(30.0, 500.0 / (iso / 100.0));
         double aperture = 3.3 + (in.zoom() - 1) / Math.max(1, in.zoomMax() - 1) * 3.6;
-        g.drawString(font, "1/" + (int) shutter, 46, by, WHITE, false);
-        g.drawString(font, String.format("F%.1f", aperture), 84, by, WHITE, false);
-        g.drawString(font, "ISO " + iso, 118, by, WHITE, false);
+        g.drawString(font, "1/" + (int) shutter, ox + 46, by, WHITE, false);
+        g.drawString(font, String.format("F%.1f", aperture), ox + 84, by, WHITE, false);
+        g.drawString(font, "ISO " + iso, ox + 118, by, WHITE, false);
         // exposure meter, centre aligned on the right of the readouts
-        int mx = 178, my = by + 7;
+        int mx = ox + 178, my = by + 7;
         for (int i = -3; i <= 3; i++) {
             g.fill(mx + i * 6, my - (i == 0 ? 4 : 2), mx + i * 6 + 1, my, DIM);
         }

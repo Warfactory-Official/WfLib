@@ -124,6 +124,12 @@ public final class CameraScreen {
         Matrix4f saved = RenderSystem.getProjectionMatrix();
         VertexSorting sorting = RenderSystem.getVertexSorting();
         target.bindWrite(true);
+        // The level clears with alpha 0 and leaves it wherever neither sky nor terrain draws (the seam at the horizon);
+        // make the picture opaque before the HUD blends into it.
+        RenderSystem.colorMask(false, false, false, true);
+        RenderSystem.clearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        RenderSystem.clear(16384, Minecraft.ON_OSX);
+        RenderSystem.colorMask(true, true, true, true);
         RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0.0f, WIDTH, HEIGHT, 0.0f, 1000.0f, 21000.0f),
                 VertexSorting.ORTHOGRAPHIC_Z);
         var modelView = RenderSystem.getModelViewStack();
