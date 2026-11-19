@@ -22,13 +22,19 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.Leashable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -45,7 +51,7 @@ import net.minecraft.nbt.DoubleTag;
  * inert ragdoll, persisted as {@link Ragdolls#state}. Equipment drawn = what is still in the dead player's armour,
  * hand and offhand slots.
  */
-public class CorpseEntity extends LivingEntity {
+public class CorpseEntity extends LivingEntity implements Leashable {
     private static final EntityDataAccessor<Optional<UUID>> OWNER =
             SynchedEntityData.defineId(CorpseEntity.class, EntityDataSerializers.OPTIONAL_UUID);
     private static final EntityDataAccessor<String> NAME =
@@ -59,6 +65,10 @@ public class CorpseEntity extends LivingEntity {
     /** Worn backpack, contents stripped. */
     private static final EntityDataAccessor<ItemStack> BACKPACK =
             SynchedEntityData.defineId(CorpseEntity.class, EntityDataSerializers.ITEM_STACK);
+
+    /** Lit with flint and steel: burns for {@link CorpseConfig#BURN_TICKS}, then is destroyed. */
+    private static final EntityDataAccessor<Boolean> BURNING =
+            SynchedEntityData.defineId(CorpseEntity.class, EntityDataSerializers.BOOLEAN);
 
     /** Menu / view range, feet to feet. */
     public static final double REACH = 8;
@@ -89,6 +99,8 @@ public class CorpseEntity extends LivingEntity {
     private int emptyAge = -1;
     private @Nullable double[] savedBody;
     private @Nullable GameProfile profile;
+    private @Nullable LeashData leashData;
+    private int burnAge;
 
     public CorpseEntity(EntityType<? extends CorpseEntity> type, Level level) {
         super(type, level);
@@ -123,6 +135,7 @@ public class CorpseEntity extends LivingEntity {
         builder.define(SKIN_SIGNATURE, "");
         builder.define(PARTS, (byte) 0);
         builder.define(BACKPACK, ItemStack.EMPTY);
+        builder.define(BURNING, false);
     }
 
     public Optional<UUID> owner() {
@@ -222,8 +235,41 @@ public class CorpseEntity extends LivingEntity {
                 || player.hasPermissions(2);
     }
 
+    public boolean burning() {
+        return entityData.get(BURNING);
+    }
+
+    /** Server: sets the body alight; false when already burning. */
+    public boolean ignite() {
+        if (burning() || level().isClientSide) {
+            return false;
+        }
+        entityData.set(BURNING, true);
+        burnAge = 0;
+        if (isLeashed()) {
+            dropLeash(true, false); // the lead burns with it
+        }
+        Ragdolls.carry(this, null);
+        level().playSound(null, getX(), getY(), getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
+        return true;
+    }
+
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+        if (held.is(Items.FLINT_AND_STEEL)) {
+            if (!level().isClientSide && ignite()) {
+                held.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
+        // A lead goes on (or comes off) like on any animal, before the menu.
+        if (held.is(Items.LEAD) || getLeashHolder() == player) {
+            InteractionResult lead = super.interact(player, hand);
+            if (lead != InteractionResult.PASS) {
+                return lead;
+            }
+        }
         if (!(player instanceof ServerPlayer viewer)) {
             return InteractionResult.SUCCESS;
         }
@@ -234,6 +280,53 @@ public class CorpseEntity extends LivingEntity {
         viewer.openMenu(new SimpleMenuProvider((id, inv, p) -> new CorpseMenu(id, inv, this), getDisplayName()),
                 buf -> buf.writeVarInt(getId()));
         return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public @Nullable LeashData getLeashData() {
+        return leashData;
+    }
+
+    @Override
+    public void setLeashData(@Nullable LeashData data) {
+        leashData = data;
+    }
+
+    @Override
+    public boolean canBeLeashed() {
+        return !burning();
+    }
+
+    /** The body is lying down: the lead ties at the torso, not at standing eye height. */
+    @Override
+    public Vec3 getLeashOffset() {
+        return new Vec3(0, 0.25, 0);
+    }
+
+    /** Past the slack the holder drags the body along the ground. */
+    @Override
+    public void elasticRangeLeashBehaviour(Entity holder, float distance) {
+        Ragdolls.tow(this, holder.position(), 0.3, CorpseConfig.DRAG_SPEED.get());
+    }
+
+    /** A dragged corpse trails far behind a sprinter: pull harder instead of snapping at the vanilla 10 blocks. */
+    @Override
+    public void leashTooFarBehaviour() {
+        Entity holder = getLeashHolder();
+        if (holder != null && distanceTo(holder) < TOW_LIMIT) {
+            Ragdolls.tow(this, holder.position(), 0.5, CorpseConfig.DRAG_SPEED.get() * 1.5);
+        } else {
+            Leashable.super.leashTooFarBehaviour();
+        }
+    }
+
+    /** Blocks between holder and body at which a lead finally breaks. */
+    private static final double TOW_LIMIT = 24;
+
+    /** Burning is drawn even though the body is fire immune to the world. */
+    @Override
+    public boolean displayFireAnimation() {
+        return burning();
     }
 
     @Override
@@ -248,6 +341,12 @@ public class CorpseEntity extends LivingEntity {
                 savedBody = null;
             } else {
                 Ragdolls.handOff(this, this);
+            }
+        }
+        if (burning()) {
+            burnTick();
+            if (isRemoved()) {
+                return;
             }
         }
         age++;
@@ -265,9 +364,36 @@ public class CorpseEntity extends LivingEntity {
         }
     }
 
+    private void burnTick() {
+        burnAge++;
+        if (isInWaterOrRain()) {
+            entityData.set(BURNING, false);
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.7F, 1.0F);
+            return;
+        }
+        if (level() instanceof net.minecraft.server.level.ServerLevel server) {
+            if (burnAge % 4 == 0) {
+                server.sendParticles(ParticleTypes.FLAME, getX(), getY() + 0.3, getZ(), 3, 0.5, 0.15, 0.5, 0.01);
+            }
+            if (burnAge % 10 == 0) {
+                server.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 0.5, getZ(), 2, 0.4, 0.2, 0.4, 0.02);
+            }
+        }
+        if (burnAge % 40 == 1) {
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.FIRE_AMBIENT, SoundSource.BLOCKS, 0.8F, 1.0F);
+        }
+        if (burnAge >= CorpseConfig.BURN_TICKS.get()) {
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_BURN, SoundSource.BLOCKS, 1.0F, 1.0F);
+            discard(); // what it held drops where it burned
+        }
+    }
+
     @Override
     public void remove(RemovalReason reason) {
         if (reason.shouldDestroy() && !level().isClientSide) {
+            if (isLeashed()) {
+                dropLeash(true, true);
+            }
             for (Entry e : entries) {
                 Containers.dropItemStack(level(), getX(), getY() + 0.3, getZ(), e.stack);
             }
@@ -379,6 +505,9 @@ public class CorpseEntity extends LivingEntity {
         tag.putInt("Selected", selected);
         tag.putInt("Age", age);
         tag.putInt("EmptyAge", emptyAge);
+        tag.putBoolean("Burning", burning());
+        tag.putInt("BurnAge", burnAge);
+        writeLeashData(tag, leashData);
         ListTag list = new ListTag();
         for (Entry e : entries) {
             CompoundTag t = new CompoundTag();
@@ -414,6 +543,9 @@ public class CorpseEntity extends LivingEntity {
         selected = tag.getInt("Selected");
         age = tag.getInt("Age");
         emptyAge = tag.getInt("EmptyAge");
+        entityData.set(BURNING, tag.getBoolean("Burning"));
+        burnAge = tag.getInt("BurnAge");
+        leashData = readLeashData(tag);
         entries.clear();
         ListTag list = tag.getList("Entries", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {

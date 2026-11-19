@@ -82,6 +82,10 @@ public final class RagdollServer {
         LivingEntity carrier;
         int lift;
         final double[] liftFrom = new double[7], target = new double[7];
+        /** Dragged along a lead this tick: the torso is gripped toward {@code towTarget}; speed ramps up while it lasts. */
+        boolean towing, towGripped;
+        double towSpeed;
+        final double[] towTarget = new double[7];
 
         Body(LivingEntity entity, boolean inert) {
             this.entity = entity;
@@ -186,6 +190,34 @@ public final class RagdollServer {
         } else {
             PENDING.put(entity.getId(), new Pending(entity.level().getGameTime(), at, impulse, false));
         }
+    }
+
+    /**
+     * Drags a running body toward {@code toward} along the ground: its torso is gripped and walked that way, speed rising
+     * by {@code accel} m/s per call up to {@code maxSpeed}, and the limbs trail behind. Call every tick it should
+     * be pulled; one tick without a call lets it settle. False when the body is not simulating or is carried.
+     */
+    public static boolean tow(LivingEntity entity, Vec3 toward, double accel, double maxSpeed) {
+        Body body = BODIES.get(entity.getId());
+        if (body == null || body.sim == null || body.carrier != null) {
+            return false;
+        }
+        Ragdoll sim = body.sim;
+        int t = Skeleton.TORSO * 3;
+        double dx = toward.x - sim.x[t], dz = toward.z - sim.x[t + 2];
+        double d = Math.sqrt(dx * dx + dz * dz);
+        if (d < 1.0e-4) {
+            return true;
+        }
+        body.towSpeed = Math.min(maxSpeed, body.towSpeed + accel);
+        double step = Math.min(d, body.towSpeed / 20.0);
+        body.towTarget[0] = sim.x[t] + dx / d * step;
+        body.towTarget[1] = sim.x[t + 1];
+        body.towTarget[2] = sim.x[t + 2] + dz / d * step;
+        System.arraycopy(sim.q, Skeleton.TORSO * 4, body.towTarget, 3, 4);
+        body.towing = true;
+        body.sentRest = false;
+        return true;
     }
 
     public static void blast(LivingEntity entity, Vec3 velocity) {
@@ -473,6 +505,14 @@ public final class RagdollServer {
             carryTarget(body);
             sim.grip(Skeleton.TORSO, body.target);
             body.lift++;
+        } else if (body.towing) {
+            sim.grip(Skeleton.TORSO, body.towTarget);
+            body.towing = false;
+            body.towGripped = true;
+        } else if (body.towGripped) {
+            sim.release();
+            body.towGripped = false;
+            body.towSpeed = 0;
         }
         if (sim.asleep) {
             long epoch = body.cache.epoch();

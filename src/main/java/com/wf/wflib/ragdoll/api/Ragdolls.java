@@ -77,6 +77,15 @@ public final class Ragdolls {
         return WFSystems.enabled("ragdoll") ? RagdollServer.carrier(body) : null;
     }
 
+    /**
+     * Server: drags a running body along the ground toward {@code toward}: its torso is walked that way, speed rising by
+     * {@code accel} m/s per call up to {@code maxSpeed} (a lead's pull). Call every tick; a tick without a call lets
+     * it settle. False when the body is not simulating or is carried.
+     */
+    public static boolean tow(LivingEntity body, Vec3 toward, double accel, double maxSpeed) {
+        return WFSystems.enabled("ragdoll") && RagdollServer.tow(body, toward, accel, maxSpeed);
+    }
+
     /** Explosion throw / round shove, as a ragdolled player gets. */
     public static void hit(LivingEntity entity, DamageSource source, float damage) {
         RagdollServer.react(entity, source, damage);

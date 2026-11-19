@@ -150,6 +150,7 @@ public final class SystemGameTests {
             Map.entry("packs", List.of(PacksGameTest.class)),
             Map.entry("carry", List.of(CarryGameTest.class)),
             Map.entry("ragdoll", List.of(RagdollGameTest.class)),
+            Map.entry("corpse", List.of(com.wf.wflib.corpse.CorpseGameTest.class)),
             Map.entry("radiation", List.of(
                     HazardGameTest.class,
                     NeutronActivationGameTest.class,
