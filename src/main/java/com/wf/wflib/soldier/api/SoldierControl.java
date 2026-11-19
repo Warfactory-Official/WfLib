@@ -56,6 +56,19 @@ public final class SoldierControl {
         return SoldierProfiler.report(reset);
     }
 
+    /**
+     * Marks a soldier as crew of a vehicle: its AI keeps seeing and choosing targets but stops walking, aiming and shooting,
+     * leaving the controls to whoever drives the vehicle. Call with {@code false} when it dismounts.
+     */
+    public static void crewed(ServerPlayer soldier, boolean on) {
+        SoldierAi.setCrewed(soldier, on);
+    }
+
+    /** The enemy this soldier sees and would shoot now (a soldier, a player or a hostile mob), or null: what a gunner aims at. */
+    public static net.minecraft.world.entity.LivingEntity target(ServerPlayer soldier) {
+        return SoldierAi.currentTarget(soldier);
+    }
+
     public static int soldierCount() {
         return SoldierAi.soldiers();
     }

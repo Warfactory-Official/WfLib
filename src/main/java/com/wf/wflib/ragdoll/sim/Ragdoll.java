@@ -192,9 +192,21 @@ public final class Ragdoll {
         }
     }
 
+    /** Air resistance on a body that is on a rope, 1/s: the rope's pull is central, so without this a body slung round its anchor would orbit for ever. */
+    private static final double ROPE_DRAG = 0.7, ROPE_SPIN_DRAG = 0.4;
+
     private void pullTether() {
         if (!tethered) {
             return;
+        }
+        double slow = Math.exp(-H * ROPE_DRAG), slowSpin = Math.exp(-H * ROPE_SPIN_DRAG);
+        for (int i = 0; i < Skeleton.BODIES; i++) {
+            v[i * 3] *= slow;
+            v[i * 3 + 1] *= slow;
+            v[i * 3 + 2] *= slow;
+            w[i * 3] *= slowSpin;
+            w[i * 3 + 1] *= slowSpin;
+            w[i * 3 + 2] *= slowSpin;
         }
         int t = Skeleton.TORSO * 3;
         double dx = tetherAnchor[0] - x[t], dy = tetherAnchor[1] - x[t + 1], dz = tetherAnchor[2] - x[t + 2];

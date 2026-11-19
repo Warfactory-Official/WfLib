@@ -202,6 +202,8 @@ public final class SoldierAi {
         int mags = 4;
         // perception and state
         final Map<String, Threat> threats = new HashMap<>();
+        /** Seated as crew: the AI keeps perceiving and choosing a target but does not walk, aim or shoot; the vehicle's brains do. */
+        volatile boolean crewed;
         /** Hostile mobs near this soldier, refreshed twice a second. */
         List<LivingEntity> mobs = List.of();
         /** People glimpsed but not yet noticed. */
@@ -713,6 +715,20 @@ public final class SoldierAi {
     /** Key of a hostile mob in {@link Bot#threats}: players are keyed by name, which never contains a colon. */
     static final String MOB = "mob:";
 
+    /** The contact this soldier would shoot now (visible, noticed), or null. */
+    public static LivingEntity currentTarget(ServerPlayer p) {
+        Bot b = BOTS.get(p.getGameProfile().getName().toLowerCase(Locale.ROOT));
+        return b == null ? null : target(p.server, p, b);
+    }
+
+    public static void setCrewed(ServerPlayer p, boolean on) {
+        Bot b = BOTS.get(p.getGameProfile().getName().toLowerCase(Locale.ROOT));
+        if (b != null) {
+            b.crewed = on;
+            if (on) b.path.clear();
+        }
+    }
+
     static String keyOf(LivingEntity e) {
         return e instanceof ServerPlayer sp ? sp.getGameProfile().getName() : MOB + e.getUUID();
     }
@@ -906,6 +922,12 @@ public final class SoldierAi {
         perceive(server, p, b, now);
         SoldierProfiler.end("perceive", t0);
         light(p, b);
+        if (b.crewed) {                                    // seated in something else's controls: it still watches, and says who it would shoot
+            if (SoldierServices.hasWeapon()) ammo(p, b);
+            LivingEntity seen = target(server, p, b);
+            b.target = seen == null ? "" : keyOf(seen);
+            return;
+        }
         t0 = SoldierProfiler.begin();
         ammo(p, b);
         SoldierProfiler.end("ammo", t0);

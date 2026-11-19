@@ -359,4 +359,117 @@ class RagdollTest {
         run(sim, FLOOR, 100);
         assertTrue(sim.x[t + 1] < 0.6, "left hanging: " + sim.x[t + 1]);
     }
+
+    /** Peak torso speed (m/s) in each of {@code windows} consecutive windows of {@code per} ticks, the anchor held where it is. */
+    /** The floor and a fence post (0.375 wide, 1.5 tall) at the origin. */
+    private static final Ragdoll.World POST = new Ragdoll.World() {
+        private final double[] boxes = {-200, -1, -200, 200, 0, 200, -0.1875, 0, -0.1875, 0.1875, 1.5, 0.1875};
+
+        @Override
+        public int collect(double a, double b, double c, double d, double e, double f) {
+            return 2;
+        }
+
+        @Override
+        public double[] boxes() {
+            return boxes;
+        }
+    };
+
+    private static double[] tiedPeaks(Ragdoll sim, double ax, double ay, double az, double rope, int windows, int per) {
+        return tiedPeaks(sim, FLOOR, ax, ay, az, rope, windows, per);
+    }
+
+    private static double[] tiedPeaks(Ragdoll sim, Ragdoll.World world, double ax, double ay, double az, double rope, int windows, int per) {
+        int t = Skeleton.TORSO * 3;
+        double[] peaks = new double[windows];
+        for (int w = 0; w < windows; w++) {
+            for (int i = 0; i < per; i++) {
+                sim.tether(ax, ay, az, rope);
+                sim.step(world);
+                peaks[w] = Math.max(peaks[w], Math.sqrt(sim.v[t] * sim.v[t] + sim.v[t + 1] * sim.v[t + 1] + sim.v[t + 2] * sim.v[t + 2]));
+            }
+        }
+        return peaks;
+    }
+
+    /**
+     * A body tied to a fixed point (a fence post) must lose speed, not gain it: whatever it was doing, its peak speed over
+     * every later stretch is no more than the one before plus a little, and ends at rest. Prints the peaks per 2 s for tuning.
+     */
+    @Test
+    void aBodyTiedToAPostSettlesAndNeverSpeedsUp() {
+        double[][] cases = {                          // anchor x, y, z, rope, kick
+                {1.5, 1.4, 0, 1.0, 0}, {1.5, 1.4, 0, 2.0, 0}, {0, 3.0, 0, 1.0, 0}, {2.5, 1.0, 0, 2.0, 2.0}, {0, 2.0, 1.0, 1.5, 3.0}};
+        for (double[] c : cases) {
+            Ragdoll sim = standing(0);
+            sim.kick(c[4], 0, c[4] / 2);
+            double[] peaks = tiedPeaks(sim, c[0], c[1], c[2], c[3], 10, 40);
+            System.out.println("[tie] anchor " + c[0] + "," + c[1] + "," + c[2] + " rope " + c[3] + " kick " + c[4] + " peaks m/s per 2s: "
+                    + java.util.Arrays.stream(peaks).mapToObj(p -> String.format("%.2f", p)).collect(java.util.stream.Collectors.joining(" ")));
+            for (int w = 1; w < peaks.length; w++) {
+                assertTrue(peaks[w] <= peaks[w - 1] + 0.5, "sped up at " + w * 2 + " s: " + peaks[w - 1] + " -> " + peaks[w] + " for " + java.util.Arrays.toString(c));
+            }
+            assertTrue(peaks[peaks.length - 1] < 0.6, "still moving at " + peaks[peaks.length - 1] + " m/s after 20 s for " + java.util.Arrays.toString(c));
+            assertSane(sim, 0);
+        }
+    }
+
+    /** Tied to a real post: the rope's end is at the post itself, so the rope must not drag the body into it and back out again. */
+    @Test
+    void aBodyTiedToAFencePostSettlesInsteadOfFlyingAround() {
+        double[][] cases = {                          // body start x, z, rope, anchor y
+                {1.5, 0, 2.0, 1.4}, {2.5, 0.5, 2.0, 1.4}, {1.0, 0, 1.0, 1.4}, {3.0, 0, 1.0, 1.0}, {0.8, 0.8, 2.0, 1.4}};
+        for (double[] c : cases) {
+            Ragdoll sim = standing(0);
+            for (int i = 0; i < Skeleton.BODIES; i++) {
+                sim.x[i * 3] += c[0];
+                sim.x[i * 3 + 2] += c[1];
+            }
+            run(sim, POST, 100);                      // lies down first
+            sim.wake();
+            double[] peaks = tiedPeaks(sim, POST, 0, c[3], 0, c[2], 10, 40);
+            System.out.println("[post] start " + c[0] + "," + c[1] + " rope " + c[2] + " anchor y " + c[3] + " peaks m/s per 2s: "
+                    + java.util.Arrays.stream(peaks).mapToObj(p -> String.format("%.2f", p)).collect(java.util.stream.Collectors.joining(" ")));
+            double worst = 0;
+            for (double p : peaks) worst = Math.max(worst, p);
+            assertTrue(worst < 8.0, "flew at " + worst + " m/s for " + java.util.Arrays.toString(c));
+            assertTrue(peaks[peaks.length - 1] < 0.6, "still moving at " + peaks[peaks.length - 1] + " m/s after 20 s for " + java.util.Arrays.toString(c));
+            assertSane(sim, 0);
+        }
+    }
+
+    /**
+     * Bodies thrown through the air on a rope tied to a fixed point, from many starts and speeds: none may speed up as time
+     * passes, and every one must have nearly stopped within 20 s.
+     */
+    @Test
+    void aThrownBodyOnARopeLosesEnergyWhateverItStartedWith() {
+        java.util.Random rnd = new java.util.Random(7);
+        double worstLate = 0, worstOverall = 0;
+        String worstCase = "";
+        for (int n = 0; n < 60; n++) {
+            Ragdoll sim = standing(0);
+            double dx = (rnd.nextDouble() - 0.5) * 12, dy = rnd.nextDouble() * 8, dz = (rnd.nextDouble() - 0.5) * 12;
+            for (int i = 0; i < Skeleton.BODIES; i++) {
+                sim.x[i * 3] += dx;
+                sim.x[i * 3 + 1] += dy;
+                sim.x[i * 3 + 2] += dz;
+            }
+            sim.wake();
+            sim.kick((rnd.nextDouble() - 0.5) * 12, rnd.nextDouble() * 6, (rnd.nextDouble() - 0.5) * 12);
+            double ay = 0.5 + rnd.nextDouble() * 4, rope = 1 + rnd.nextDouble() * 2;
+            double[] peaks = tiedPeaks(sim, POST, 0, ay, 0, rope, 10, 40);
+            double late = Math.max(peaks[8], peaks[9]), all = 0;
+            for (double p : peaks) all = Math.max(all, p);
+            if (late > worstLate) {
+                worstLate = late;
+                worstCase = String.format("start %.1f,%.1f,%.1f anchor y %.1f rope %.1f peaks %s", dx, dy, dz, ay, rope, java.util.Arrays.toString(peaks));
+            }
+            worstOverall = Math.max(worstOverall, all);
+            assertSane(sim, 0);
+        }
+        System.out.println("[thrown] worst late speed " + worstLate + " overall " + worstOverall + " :: " + worstCase);
+        assertTrue(worstLate < 1.0, "still flying at " + worstLate + " m/s: " + worstCase);
+    }
 }

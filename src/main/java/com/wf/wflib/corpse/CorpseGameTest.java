@@ -189,4 +189,55 @@ public class CorpseGameTest {
                     .thenExecute(() -> release(lane)).thenSucceed();
         });
     }
+
+    /**
+     * A corpse tied to a fence post with nobody holding it: it must come to rest, not gain speed. {@code poleHeight} fences stacked
+     * give a post the body can hang from; the trace of speeds per second is in the failure message for tuning.
+     */
+    private static void tiedToAPost(GameTestHelper h, int lane, int poleHeight, double distance) {
+        inLane(h, lane, (l, seq) -> {
+            CorpseEntity[] c = new CorpseEntity[1];
+            List<Double> speed = new ArrayList<>(), up = new ArrayList<>();
+            Vec3[] last = new Vec3[1];
+            seq.thenExecute(() -> {
+                BlockPos post = l.at().offset(0, 1, (int) distance);
+                for (int k = 0; k < poleHeight; k++) {
+                    l.level().setBlockAndUpdate(post.above(k), Blocks.OAK_FENCE.defaultBlockState());
+                }
+                c[0] = makeCorpse(h, l, "tied_corpse_" + lane, "TiedCorpse" + lane);
+                var knot = net.minecraft.world.entity.decoration.LeashFenceKnotEntity.getOrCreateKnot(l.level(), post.above(poleHeight - 1));
+                c[0].setLeashedTo(knot, true);
+                last[0] = c[0].position();
+            }).thenExecuteFor(400, () -> {
+                speed.add(c[0].position().distanceTo(last[0]) * 20);
+                up.add(c[0].getY() - (l.at().getY() + 1));
+                last[0] = c[0].position();
+            }).thenExecute(() -> {
+                StringBuilder trace = new StringBuilder();
+                double[] peak = new double[20];
+                for (int i = 0; i < speed.size(); i++) peak[i / 20] = Math.max(peak[i / 20], speed.get(i));
+                for (int s2 = 0; s2 < 20; s2++) trace.append(String.format("%.1f ", peak[s2]));
+                double high = up.stream().mapToDouble(Double::doubleValue).max().orElse(0);
+                h.assertTrue(c[0].isLeashed(), "the lead broke: " + trace);
+                double tail = 0;
+                for (int s2 = 12; s2 < 20; s2++) tail = Math.max(tail, peak[s2]);
+                h.assertTrue(tail < 1.0, "still moving at " + String.format("%.2f", tail) + " blocks/s after 12 s; peak speed per second: " + trace);
+                double worst = 0;
+                for (double p : peak) worst = Math.max(worst, p);
+                h.assertTrue(worst < 14, "flew at " + String.format("%.1f", worst) + " blocks/s; peak speed per second: " + trace);
+                h.assertTrue(high < poleHeight + 3, "rose " + high + " blocks; " + trace);
+                release(l);
+            }).thenSucceed();
+        });
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 600)
+    public static void aCorpseTiedToAFencePostSettles(GameTestHelper h) {
+        tiedToAPost(h, 4, 1, 3);
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 600)
+    public static void aCorpseTiedHighOnAPoleHangsStill(GameTestHelper h) {
+        tiedToAPost(h, 5, 4, 2);
+    }
 }
