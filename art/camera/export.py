@@ -43,6 +43,19 @@ for name, group in sorted(parts.items()):
     col.objects.link(j)
     made.append(j)
 
+# GemRender bakes an untextured material's baseColorFactor as the displayed colour without a linear->sRGB step, so the
+# linear values modelled in Blender are written out sRGB-encoded (otherwise near-black plastic renders pure black).
+def srgb(c):
+    return 1.055 * c ** (1 / 2.4) - 0.055 if c > 0.0031308 else 12.92 * c
+if os.environ.get("CAMERA_SRGB", "1") == "1":
+    for j in made:
+        m = j.data.materials[0].copy()
+        b = m.node_tree.nodes["Principled BSDF"]
+        r, g, bl, a = b.inputs["Base Color"].default_value
+        b.inputs["Base Color"].default_value = (srgb(r), srgb(g), srgb(bl), a)
+        m.name = j.name
+        j.data.materials[0] = m
+
 for o in vl.objects:
     o.select_set(False)
 root.select_set(True)
