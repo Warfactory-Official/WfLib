@@ -49,7 +49,9 @@ def srgb(c):
     return 1.055 * c ** (1 / 2.4) - 0.055 if c > 0.0031308 else 12.92 * c
 if os.environ.get("CAMERA_SRGB", "1") == "1":
     for j in made:
-        m = j.data.materials[0].copy()
+        orig = j.data.materials[0]
+        m = orig.copy()
+        orig.name = orig.name + "_linear"
         b = m.node_tree.nodes["Principled BSDF"]
         r, g, bl, a = b.inputs["Base Color"].default_value
         b.inputs["Base Color"].default_value = (srgb(r), srgb(g), srgb(bl), a)
