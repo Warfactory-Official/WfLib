@@ -52,6 +52,21 @@ public final class Site {
         return SiteImpl.remaining(server, id);
     }
 
+    /** How many squads the site was made with. */
+    public int squads() {
+        return SiteImpl.squads(server, id);
+    }
+
+    /** Soldiers alive or still to be raised in squad {@code index} (0-based, spec order). */
+    public int squadRemaining(int index) {
+        return SiteImpl.squadRemaining(server, id, index);
+    }
+
+    /** The squad's soldiers that are in the world now. */
+    public List<ServerPlayer> squadMembers(int index) {
+        return SiteImpl.squadMembers(server, id, index);
+    }
+
     /** True when every soldier of the site is dead. */
     public boolean cleared() {
         return remaining() == 0 && members().isEmpty();

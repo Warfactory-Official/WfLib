@@ -50,6 +50,7 @@ public class SiteGameTest {
             Garrisons.pass(server);
             h.assertTrue(site.members().size() == 2, "a dead soldier was replaced: " + site.members().size());
             h.assertTrue(site.bounds().contains(site.centre()), "bounds do not hold the centre");
+            h.assertTrue(site.squads() == 1 && site.squadRemaining(0) == 2 && site.squadRemaining(5) == 0, "squad counts are off");
 
             site.remove();
             h.assertTrue(site.members().isEmpty() && Sites.get(server, "site_test_a").isEmpty(), "the site left something behind");

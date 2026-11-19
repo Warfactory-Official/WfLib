@@ -91,6 +91,20 @@ public final class SiteImpl {
         return n;
     }
 
+    /** Soldiers alive or still to be raised in one squad (0-based, in the order the spec listed them); 0 for a squad that does not exist. */
+    public static int squadRemaining(MinecraftServer server, String site, int squad) {
+        Territory t = TerritoryBook.get(server).get(PREFIX + site + "_" + squad);
+        return t == null || t.garrison() == null ? 0 : t.garrison().count();
+    }
+
+    public static int squads(MinecraftServer server, String site) {
+        return ids(server, site).size();
+    }
+
+    public static List<ServerPlayer> squadMembers(MinecraftServer server, String site, int squad) {
+        return Garrisons.alive(server, PREFIX + site + "_" + squad);
+    }
+
     public static Territory territory(MinecraftServer server, String site) {
         var ids = ids(server, site);
         return ids.isEmpty() ? null : TerritoryBook.get(server).get(ids.get(0));
