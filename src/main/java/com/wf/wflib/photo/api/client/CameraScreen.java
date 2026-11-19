@@ -55,6 +55,7 @@ public final class CameraScreen {
     private static long requested = Long.MIN_VALUE / 2;
     private static long rendered = Long.MIN_VALUE / 2;
     private static float fov = 70.0f;
+    private static int dumped;
 
     private CameraScreen() {
     }
@@ -98,6 +99,14 @@ public final class CameraScreen {
         if (view.render(eye, p.getViewYRot(pt), p.getViewXRot(pt), 0.0f, fov, target, event.getPartialTick())) {
             ALIAS.adopt(target.getColorTextureId());
             rendered = Util.getNanos();
+            String dump = System.getenv("WFLIB_CAMSCREEN_DUMP"); // temporary debugging
+            if (dump != null && ++dumped == 90) {
+                try (var img = net.minecraft.client.Screenshot.takeScreenshot(target)) {
+                    img.writeToFile(java.nio.file.Path.of(dump));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
