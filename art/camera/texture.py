@@ -433,7 +433,8 @@ sd.rectangle([0, 0, SW - 1, 4], fill=(8, 14, 24)); sd.rectangle([0, SH - 5, SW -
 for sx, sy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
     bx, by = SW // 2 + sx * 9, SH // 2 + sy * 5
     sd.line([bx, by, bx - sx * 4, by], fill=(150, 230, 255)); sd.line([bx, by, bx, by - sy * 3], fill=(150, 230, 255))
-scr.save(os.path.join(HERE, "camera_screen.png"))
+from PIL import ImageOps
+ImageOps.flip(scr).save(os.path.join(HERE, "camera_screen.png"))   # flipped: see export.py live_screen_uv
 pic.save(os.path.join(HERE, "camera.png"))
 print("texture", os.path.join(HERE, "camera.png"), pic.size)
 
