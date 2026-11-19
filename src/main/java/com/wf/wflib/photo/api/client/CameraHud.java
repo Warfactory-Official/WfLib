@@ -79,7 +79,7 @@ public final class CameraHud {
             for (int y = 0; y < GRAIN_SIZE; y++) {
                 for (int x = 0; x < GRAIN_SIZE; x++) {
                     float a = r.nextFloat();
-                    int alpha = (int) (a * a * 50);
+                    int alpha = (int) (a * a * 18);
                     int v = r.nextBoolean() ? 0xFF : 0x00;
                     image.setPixelRGBA(x, y, (alpha << 24) | (v << 16) | (v << 8) | v);
                 }
