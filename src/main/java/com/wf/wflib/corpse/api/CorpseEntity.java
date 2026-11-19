@@ -303,10 +303,36 @@ public class CorpseEntity extends LivingEntity implements Leashable {
         return new Vec3(0, 0.25, 0);
     }
 
-    /** Past the slack the holder drags the body along the ground. */
+    /** Where on the holder the torso is hauled to: ankle height, so a holder on a ledge brings the body up to the lip. */
+    private static final double HOLD_HEIGHT = 0.3;
+    /** The lead hangs slack inside this distance, blocks; past it the body is pulled along the ground. */
+    private static final double SLACK = 2.2;
+    /** Higher than this above the torso, the body is hauled up; it stays held until it is lowered by as much again. */
+    private static final double HAUL = 0.5;
+    private boolean hauling;
+
+    /** Server, every tick on a lead: the holder drags the body along, hauls it up when they stand higher, and holds it there. */
+    private void pullOnLead() {
+        Entity holder = getLeashHolder();
+        if (holder == null || holder.level() != level()) {
+            hauling = false;
+            return;
+        }
+        Vec3 hold = holder.position().add(0, HOLD_HEIGHT, 0);
+        double need = hold.y - Ragdolls.torsoY(this);   // NaN until the body simulates: every test below is then false
+        if (need > HAUL) {
+            hauling = true;
+        } else if (need < -HAUL) {
+            hauling = false;                            // the holder went down: let it down
+        }
+        if (hauling || hold.distanceTo(getBoundingBox().getCenter()) > SLACK) {
+            Ragdolls.tow(this, hold, 0.3, CorpseConfig.DRAG_SPEED.get());
+        }
+    }
+
+    /** The pull above replaces vanilla's elastic nudge, which a ragdoll ignores. */
     @Override
     public void elasticRangeLeashBehaviour(Entity holder, float distance) {
-        Ragdolls.tow(this, holder.position(), 0.3, CorpseConfig.DRAG_SPEED.get());
     }
 
     /** A dragged corpse trails far behind a sprinter: pull harder instead of snapping at the vanilla 10 blocks. */
@@ -314,7 +340,7 @@ public class CorpseEntity extends LivingEntity implements Leashable {
     public void leashTooFarBehaviour() {
         Entity holder = getLeashHolder();
         if (holder != null && distanceTo(holder) < TOW_LIMIT) {
-            Ragdolls.tow(this, holder.position(), 0.5, CorpseConfig.DRAG_SPEED.get() * 1.5);
+            Ragdolls.tow(this, holder.position().add(0, HOLD_HEIGHT, 0), 0.5, CorpseConfig.DRAG_SPEED.get() * 1.5);
         } else {
             Leashable.super.leashTooFarBehaviour();
         }
@@ -342,6 +368,9 @@ public class CorpseEntity extends LivingEntity implements Leashable {
             } else {
                 Ragdolls.handOff(this, this);
             }
+        }
+        if (isLeashed()) {
+            pullOnLead();
         }
         if (burning()) {
             burnTick();

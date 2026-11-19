@@ -58,6 +58,8 @@ public final class RagdollServer {
     /** Carry: lift arc length, ticks; waist on the right shoulder, legs forward tilted up, chest folds down the back. */
     private static final int LIFT_TICKS = 12;
     private static final double LIFT_ARC = 0.3;
+    /** Fastest a body is hauled upward, m/s: faster and the limbs cannot keep up with the gripped torso and are left behind. */
+    private static final double LIFT_SPEED = 1.0;
     private static final double SHOULDER_Y = 1.40, SHOULDER_SIDE = 0.2, CARRY_TILT = Math.toRadians(15);
     /** Carrier's torso as a world box: limbs hang off its faces; higher / wider props the legs up level. */
     private static final double CARRIER_TOP = 1.15, CARRIER_HALF = 0.15;
@@ -192,10 +194,18 @@ public final class RagdollServer {
         }
     }
 
+    /** World y of a running body's torso, NaN when it is not simulating. */
+    public static double torsoY(LivingEntity entity) {
+        Body body = BODIES.get(entity.getId());
+        return body == null || body.sim == null ? Double.NaN : body.sim.x[Skeleton.TORSO * 3 + 1];
+    }
+
     /**
-     * Drags a running body toward {@code toward} along the ground: its torso is gripped and walked that way, speed rising
-     * by {@code accel} m/s per call up to {@code maxSpeed}, and the limbs trail behind. Call every tick it should
-     * be pulled; one tick without a call lets it settle. False when the body is not simulating or is carried.
+     * Pulls a running body toward {@code toward}: its torso is gripped and walked that way, speed rising by
+     * {@code accel} m/s per call up to {@code maxSpeed}, and the limbs trail behind. Along the ground, and upward when
+     * {@code toward} is higher than the torso (hauled up a ledge or hung from a rope); never downward, gravity does that. Call
+     * every tick it should be pulled; one tick without a call lets it settle. False when the body is not simulating
+     * or is carried. Once there it is held in place while calls continue.
      */
     public static boolean tow(LivingEntity entity, Vec3 toward, double accel, double maxSpeed) {
         Body body = BODIES.get(entity.getId());
@@ -204,16 +214,15 @@ public final class RagdollServer {
         }
         Ragdoll sim = body.sim;
         int t = Skeleton.TORSO * 3;
-        double dx = toward.x - sim.x[t], dz = toward.z - sim.x[t + 2];
-        double d = Math.sqrt(dx * dx + dz * dz);
-        if (d < 1.0e-4) {
-            return true;
-        }
+        double dx = toward.x - sim.x[t], dy = toward.y - sim.x[t + 1], dz = toward.z - sim.x[t + 2];
+        double dh = Math.sqrt(dx * dx + dz * dz);
+        double lift = dy > 0.15 ? dy : 0;
         body.towSpeed = Math.min(maxSpeed, body.towSpeed + accel);
-        double step = Math.min(d, body.towSpeed / 20.0);
-        body.towTarget[0] = sim.x[t] + dx / d * step;
-        body.towTarget[1] = sim.x[t + 1];
-        body.towTarget[2] = sim.x[t + 2] + dz / d * step;
+        double step = body.towSpeed / 20.0;
+        double hs = dh < 1.0e-4 ? 0 : Math.min(dh, step) / dh;
+        body.towTarget[0] = sim.x[t] + dx * hs;
+        body.towTarget[1] = sim.x[t + 1] + Math.min(lift, Math.min(step, LIFT_SPEED / 20.0));
+        body.towTarget[2] = sim.x[t + 2] + dz * hs;
         System.arraycopy(sim.q, Skeleton.TORSO * 4, body.towTarget, 3, 4);
         body.towing = true;
         body.sentRest = false;

@@ -68,6 +68,47 @@ public class CorpseGameTest {
     }
 
     @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 400)
+    public static void aLeadHaulsACorpseUpToAHigherHolder(GameTestHelper h) {
+        var corpse = corpseOf(h, "haul_corpse", "HaulCorpse", new Vec3(1, 2, 1));
+        var player = holder(h, "HaulHolder", new Vec3(1, 2, 2));
+        corpse.setLeashedTo(player, true);
+        double[] start = new double[1];
+        StringBuilder trace = new StringBuilder();
+        int[] tick = {0};
+        h.startSequence()
+                .thenIdle(30)
+                .thenExecute(() -> {
+                    start[0] = corpse.getY();
+                    // the test arena has a barrier ceiling three blocks up: open the column the body is hauled through
+                    for (int dx = -3; dx <= 3; dx++) {
+                        for (int dz = -3; dz <= 3; dz++) {
+                            for (int up = 2; up <= 10; up++) {
+                                var at = corpse.blockPosition().offset(dx, up, dz);
+                                if (h.getLevel().getBlockState(at).is(net.minecraft.world.level.block.Blocks.BARRIER)) {
+                                    h.getLevel().setBlockAndUpdate(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+                                }
+                            }
+                        }
+                    }
+                    h.assertTrue(com.wf.wflib.ragdoll.api.Ragdolls.active(corpse), "the body is simulating");
+                    player.moveTo(player.getX(), player.getY() + 3, player.getZ()); // on a ledge above
+                })
+                .thenExecuteFor(120, () -> {
+                    if (tick[0]++ % 8 == 0) {
+                        double[] st = com.wf.wflib.ragdoll.api.Ragdolls.state(corpse);
+                        StringBuilder ys = new StringBuilder();
+                        for (int b = 0; st != null && b < com.wf.wflib.ragdoll.sim.Skeleton.BODIES; b++) {
+                            ys.append(String.format("%.1f,", st[b * 3 + 1] - start[0]));
+                        }
+                        trace.append(String.format("[%s] ", ys));
+                    }
+                })
+                .thenExecute(() -> h.assertTrue(corpse.getY() > start[0] + 1.8,
+                        "the corpse rose only " + (corpse.getY() - start[0]) + " blocks toward a holder 3 above; " + trace))
+                .thenSucceed();
+    }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 400)
     public static void aLeashedCorpseSurvivesSaving(GameTestHelper h) {
         var corpse = corpseOf(h, "save_corpse", "SaveCorpse", new Vec3(1, 2, 1));
         var player = holder(h, "SaveHolder", new Vec3(1, 2, 3));
