@@ -558,7 +558,7 @@ public final class SoldierAi {
     }
 
     static void onServerTick(ServerTickEvent.Post e) {
-        if (BOTS.isEmpty()) return;
+        if (BOTS.isEmpty() || !SoldierServices.hasWeapon()) return;       // no gun mod: nothing a soldier could do (and its tick would throw)
         MinecraftServer server = e.getServer();
         boolean filmingServer = filming.test(server);
         long tickStart = System.nanoTime();
@@ -719,6 +719,24 @@ public final class SoldierAi {
     public static LivingEntity currentTarget(ServerPlayer p) {
         Bot b = BOTS.get(p.getGameProfile().getName().toLowerCase(Locale.ROOT));
         return b == null ? null : target(p.server, p, b);
+    }
+
+    /** A MOVE order for one soldier (cover to cover, then hold within {@code radius} of the point), replacing whatever it was doing. */
+    public static void moveTo(ServerPlayer p, Vec3 at, int radius) {
+        Bot b = BOTS.get(p.getGameProfile().getName().toLowerCase(Locale.ROOT));
+        if (b == null) return;
+        Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.MOVE, at));
+        b.holdRadius = Math.max(0, radius);
+    }
+
+    /** Walks one soldier to exactly {@code at} in a straight line (an explicit path, no order semantics), then it stands there. */
+    public static void walkTo(ServerPlayer p, Vec3 at) {
+        Bot b = BOTS.get(p.getGameProfile().getName().toLowerCase(Locale.ROOT));
+        if (b == null) return;
+        Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, at));
+        b.path.clear();
+        b.path.add(at);
+        b.sprint = false;
     }
 
     public static void setCrewed(ServerPlayer p, boolean on) {

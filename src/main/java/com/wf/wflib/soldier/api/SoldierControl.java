@@ -64,6 +64,16 @@ public final class SoldierControl {
         SoldierAi.setCrewed(soldier, on);
     }
 
+    /** Walks one soldier to exactly this point, straight (no cover-to-cover, no arrival radius), then it stands there. */
+    public static void walkTo(ServerPlayer soldier, Vec3 at) {
+        SoldierAi.walkTo(soldier, at);
+    }
+
+    /** Sends one soldier to a point as a MOVE order, ending within {@code radius} blocks of it. */
+    public static void moveTo(ServerPlayer soldier, Vec3 at, int radius) {
+        SoldierAi.moveTo(soldier, at, radius);
+    }
+
     /** The enemy this soldier sees and would shoot now (a soldier, a player or a hostile mob), or null: what a gunner aims at. */
     public static net.minecraft.world.entity.LivingEntity target(ServerPlayer soldier) {
         return SoldierAi.currentTarget(soldier);
