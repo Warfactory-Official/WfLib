@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +33,11 @@ public final class PhotoClient {
             PhotoCapture.clear();
             PhotoImages.clear();
         });
+    }
+
+    /** Mod bus: draws the camera item from its model. */
+    public static void clientExtensions(RegisterClientExtensionsEvent event) {
+        CameraRenderer.register(event);
     }
 
     public static void shutter(PhotoShutterPacket packet) {
