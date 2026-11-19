@@ -74,4 +74,31 @@ public class DeathGameTest {
             Soldiers.remove(p);
         }
     }
+
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 100)
+    public static void aSoldierKillIsReportedWithItsKillerTeamAndDistance(GameTestHelper h) {
+        var red = new SoldierSpec("kill_red", "KillRed", false, null, List.of(), Map.of(), 0);
+        var blue = new SoldierSpec("kill_blue", "KillBlue", false, null, List.of(), Map.of(), 0);
+        var shooter = Soldiers.spawn(h.getLevel(), h.absoluteVec(new Vec3(1, 2, 1)), 0, red, null);
+        var victim = Soldiers.spawn(h.getLevel(), h.absoluteVec(new Vec3(4, 2, 1)), 0, blue, null);
+        h.assertTrue(shooter != null && victim != null, "could not spawn the test soldiers");
+        var seen = new java.util.ArrayList<com.wf.wflib.soldier.api.SoldierKillEvent>();
+        Consumer<com.wf.wflib.soldier.api.SoldierKillEvent> on = seen::add;
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, false, com.wf.wflib.soldier.api.SoldierKillEvent.class, on);
+        try {
+            victim.hurt(shooter.damageSources().playerAttack(shooter), 1000f);
+            h.assertTrue(seen.size() == 1, "expected one kill event, got " + seen.size());
+            var e = seen.get(0);
+            h.assertTrue(e.victim() == victim && e.victimTeam().equals("kill_blue"), "wrong victim " + e.victimTeam());
+            h.assertTrue(e.killer() == shooter && "kill_red".equals(e.killerTeam()), "wrong killer " + e.killerTeam());
+            h.assertTrue(!e.killedByPlayer(), "a soldier is not a real player");
+            h.assertTrue(Math.abs(e.distance() - 3.0) < 0.5, "distance " + e.distance());
+            h.assertTrue(e.weapon() == null, "bare hands should report no weapon, got " + e.weapon());
+            h.succeed();
+        } finally {
+            NeoForge.EVENT_BUS.unregister(on);
+            Soldiers.remove(shooter);
+            Soldiers.remove(victim);
+        }
+    }
 }
