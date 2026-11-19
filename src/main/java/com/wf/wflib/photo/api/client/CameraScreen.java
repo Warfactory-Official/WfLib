@@ -11,6 +11,7 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.util.Mth;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
@@ -61,6 +62,7 @@ public final class CameraScreen {
     private static float fov = 70.0f;
     private static float zoom = 1.0f;
     private static float zoomMax = 4.0f;
+    private static float flash;
 
     private CameraScreen() {
     }
@@ -69,6 +71,11 @@ public final class CameraScreen {
     public static void request(float fovDegrees) {
         requested = Util.getNanos();
         fov = fovDegrees;
+    }
+
+    /** White flash over the back screen, 0..1; set by the host each frame it draws the screen (a shot's flash). */
+    public static void flash(float amount) {
+        flash = amount;
     }
 
     /** What the display's lens readout shows; call along with {@link #request}. */
@@ -140,7 +147,10 @@ public final class CameraScreen {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         GuiGraphics g = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, zoomMax, shots()));
+        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, shots()));
+        if (flash > 0.01f) {
+            g.fill(0, 0, WIDTH, HEIGHT, ((int) (Mth.clamp(flash, 0.0f, 1.0f) * 200) << 24) | 0xFFFFFF);
+        }
         g.flush();
         modelView.popMatrix();
         RenderSystem.applyModelViewMatrix();
