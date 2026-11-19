@@ -20,6 +20,7 @@ vl = sc.view_layers[0]
 dg = bpy.context.evaluated_depsgraph_get()
 
 NODES = {
+    "screen": ("screen",),
     "shutter": ("shutter", "shutter_cap"),
     "lens_1": ("lens_ring1", "lens_groove0"),
     "lens_2": ("lens_ring2", "lens_groove1"),
@@ -35,11 +36,30 @@ def node_of(name):
     return "body"
 
 
+def live_screen_uv(mesh):
+    """Back face (+Y) fills UV 0..1 upright (u = -x so it reads from behind); every other face collapses to 0."""
+    import bmesh as _bm
+    b = _bm.new(); b.from_mesh(mesh)
+    uv = b.loops.layers.uv.get("UVMap") or b.loops.layers.uv.new("UVMap")
+    pts = [v.co.copy() for v in b.verts]            # already in world space
+    minu, maxu = min(-p.x for p in pts), max(-p.x for p in pts)
+    minv, maxv = min(p.z for p in pts), max(p.z for p in pts)
+    for f in b.faces:
+        n = f.normal
+        for l in f.loops:
+            p = l.vert.co
+            l[uv].uv = (((-p.x - minu) / (maxu - minu), (p.z - minv) / (maxv - minv)) if n.y > 0.9 else (0.0, 0.0))
+    b.to_mesh(mesh); b.free()
+
+
 parts = {}
 for o in sc.objects:
     if o.type == 'MESH':
         parts.setdefault(node_of(o.name), []).append(o)
 
+for group in parts.values():          # free the names the joined nodes will take
+    for o in group:
+        o.name = o.name + "_src"
 if "camera" in bpy.data.objects:
     bpy.data.objects["camera"].name = "camera_src"
 col = bpy.data.collections.new("export")
@@ -52,11 +72,19 @@ for name, group in parts.items():
     for o in group:
         me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
         me.transform(o.matrix_world)
+        if o.name == "screen":
+            live_screen_uv(me)
         bm.from_mesh(me)
         bpy.data.meshes.remove(me)
     mesh = bpy.data.meshes.new(name)
     bm.to_mesh(mesh); bm.free()
-    mesh.materials.append(bpy.data.materials["camera"])
+    if name == "screen":
+        sm = bpy.data.materials.get("screen") or bpy.data.materials.new("screen")
+        sm.use_nodes = True
+        sm.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.03, 0.05, 0.09, 1.0)
+        mesh.materials.append(sm)
+    else:
+        mesh.materials.append(bpy.data.materials["camera"])
     j = bpy.data.objects.new(name, mesh)
     j.parent = root
     col.objects.link(j)
@@ -89,6 +117,8 @@ js["samplers"] = [{"magFilter": 9728, "minFilter": 9728, "wrapS": 33071, "wrapT"
 for t in js.get("textures", []):
     t["sampler"] = 0
 for m in js.get("materials", []):
+    if m.get("name") == "screen":
+        m["extras"] = {"textureSlot": "screen"}      # bound per draw: the live viewfinder feed
     pbr = m.setdefault("pbrMetallicRoughness", {})
     pbr["metallicFactor"] = 0.0
     pbr["roughnessFactor"] = 1.0

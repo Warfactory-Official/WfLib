@@ -13,6 +13,9 @@ public final class PhotoLimits {
     public static final int MIN_SIDE = 64;
     /** Vertical field of view every photo is rendered at, degrees; also what {@code PhotoTakenEvent} reports. */
     public static final float FOV = 70.0f;
+    /** Bounds of a shot's vertical field of view (a long zoom to a wide lens), degrees. */
+    public static final float MIN_FOV = 4.0f;
+    public static final float MAX_FOV = 110.0f;
     /** Width the client scales a capture to before encoding. */
     public static final int CAPTURE_WIDTH = 960;
     public static final float JPEG_QUALITY = 0.82f;

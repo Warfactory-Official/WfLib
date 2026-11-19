@@ -420,6 +420,20 @@ for key in layout:
             a = math.radians(-120 + i * 26.7)
             d.point([int(cx + math.cos(a) * r), int(cy + math.sin(a) * r)], fill=(220, 220, 230))
 
+# fallback for contexts without a live feed (inventory icon, ground): the same screen as a small standalone image
+SW, SH = 64, 36
+scr = Image.new("RGB", (SW, SH), (10, 24, 40))
+sd = ImageDraw.Draw(scr)
+for yy in range(SH):
+    t = yy / SH
+    col = (int(30 + 40 * (1 - t)), int(60 + 50 * (1 - t)), int(96 + 70 * (1 - t))) if t < 0.58 else \
+          (int(34 + 20 * t), int(60 + 30 * t), int(34 + 6 * t))
+    sd.line([0, yy, SW, yy], fill=col)
+sd.rectangle([0, 0, SW - 1, 4], fill=(8, 14, 24)); sd.rectangle([0, SH - 5, SW - 1, SH - 1], fill=(8, 14, 24))
+for sx, sy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+    bx, by = SW // 2 + sx * 9, SH // 2 + sy * 5
+    sd.line([bx, by, bx - sx * 4, by], fill=(150, 230, 255)); sd.line([bx, by, bx, by - sy * 3], fill=(150, 230, 255))
+scr.save(os.path.join(HERE, "camera_screen.png"))
 pic.save(os.path.join(HERE, "camera.png"))
 print("texture", os.path.join(HERE, "camera.png"), pic.size)
 

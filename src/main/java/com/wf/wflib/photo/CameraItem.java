@@ -19,7 +19,7 @@ public final class CameraItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         if (player instanceof ServerPlayer sp) {
             player.getCooldowns().addCooldown(this, PhotoConfig.COOLDOWN_TICKS.get());
-            PhotoServer.shutter(sp);
+            PhotoServer.shutter(sp, PhotoLimits.FOV);
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
