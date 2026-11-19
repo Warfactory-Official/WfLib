@@ -114,6 +114,15 @@ for im in js.get("images", []):
     im["uri"] = URI
     im["mimeType"] = "image/png"
     im["extras"] = {"resourceLocation": RESLOC}
+# MineAssault semantic rig: the model root and the two hand frames (+Y = forearm -> fist, pointing along the lens)
+if os.environ.get("CAMERA_RIG", "1") == "1":
+    q = [0.70710678, 0.0, 0.0, 0.70710678]          # local +Y -> +Z (the lens direction)
+    names = [n.get("name") for n in js["nodes"]]
+    root = js["nodes"][names.index("camera")]
+    root["extras"] = {"mineassaultRole": "root"}
+    for role, pos in (("grip_right", [-0.0420, -0.0020, 0.0100]), ("grip_left", [0.0400, -0.0260, -0.0020])):
+        js["nodes"].append({"name": role, "translation": pos, "rotation": q, "extras": {"mineassaultRole": role}})
+        root.setdefault("children", []).append(len(js["nodes"]) - 1)
 js["samplers"] = [{"magFilter": 9728, "minFilter": 9728, "wrapS": 33071, "wrapT": 33071}]
 for t in js.get("textures", []):
     t["sampler"] = 0
