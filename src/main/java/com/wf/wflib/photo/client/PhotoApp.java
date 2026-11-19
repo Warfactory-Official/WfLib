@@ -71,7 +71,7 @@ final class PhotoApp implements PdaApp {
     private static UUID selected;
     private static long armed;
 
-    private PhotoApp() {
+    PhotoApp() {
     }
 
     static void register() {
@@ -194,8 +194,8 @@ final class PhotoApp implements PdaApp {
                 at(Float.toString(viewX + 4), "24", stack(
                         rect(pw, ph, "#ff101210"),
                         when("pda_photos.picture", new Image(SHOWN, picW, picH, 0, 0, 1, 1, "#ffffffff", "0")),
-                        when("!pda_photos.picture", place(Float.toString(picW / 2), Float.toString(picH / 2 - 4),
-                                Point.TOP, text("{pda_photos.has_sel ? \"LOADING\" : \"\"}", PdaShell.DIM))))),
+                        when("!pda_photos.picture && pda_photos.has_sel", place(Float.toString(picW / 2),
+                                Float.toString(picH / 2 - 4), Point.TOP, text("LOADING", PdaShell.DIM))))),
                 at(Float.toString(viewX + 4), Float.toString(buttonsY), button("VIEW", PhotoApp::view)),
                 at(Float.toString(viewX + 64), Float.toString(buttonsY), button("PRINT", PhotoApp::print)),
                 at(Float.toString(viewX + viewW - 62), Float.toString(buttonsY), new Button(PhotoApp::delete,
