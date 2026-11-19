@@ -29,6 +29,7 @@ public final class PhotoClient {
         NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Pre.class, PhotoCapture::onFrame);
         NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Pre.class, com.wf.wflib.photo.api.client.CameraScreen::onFrame);
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> PhotoCapture.tickUpload());
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingIn.class, event -> requestList()); // the camera's shot counter
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> {
             ROWS.clear();
             PhotoCapture.clear();
@@ -60,7 +61,7 @@ public final class PhotoClient {
         PhotoImages.chunk(packet);
     }
 
-    static List<PhotoListPacket.Row> rows() {
+    public static List<PhotoListPacket.Row> rows() {
         return ROWS;
     }
 
