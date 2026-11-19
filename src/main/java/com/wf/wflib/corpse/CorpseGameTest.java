@@ -108,6 +108,69 @@ public class CorpseGameTest {
                 .thenSucceed();
     }
 
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 600)
+    public static void aHauledCorpseComesBackDownWhenTheHolderDoes(GameTestHelper h) {
+        var corpse = corpseOf(h, "down_corpse", "DownCorpse", new Vec3(1, 2, 1));
+        var player = holder(h, "DownHolder", new Vec3(1, 2, 2));
+        corpse.setLeashedTo(player, true);
+        double[] start = new double[1];
+        h.startSequence()
+                .thenIdle(30)
+                .thenExecute(() -> {
+                    start[0] = corpse.getY();
+                    for (int dx = -3; dx <= 3; dx++) {
+                        for (int dz = -3; dz <= 3; dz++) {
+                            for (int up = 2; up <= 10; up++) {
+                                var at = corpse.blockPosition().offset(dx, up, dz);
+                                if (h.getLevel().getBlockState(at).is(net.minecraft.world.level.block.Blocks.BARRIER)) {
+                                    h.getLevel().setBlockAndUpdate(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+                                }
+                            }
+                        }
+                    }
+                    player.moveTo(player.getX(), player.getY() + 3, player.getZ());
+                })
+                .thenIdle(110)
+                .thenExecute(() -> {
+                    h.assertTrue(corpse.getY() > start[0] + 1.5, "hauled up first: " + (corpse.getY() - start[0]));
+                    player.moveTo(player.getX(), player.getY() - 3, player.getZ() + 5); // back on the ground, further off
+                })
+                .thenIdle(120)
+                .thenExecute(() -> h.assertTrue(corpse.getY() < start[0] + 0.6,
+                        "the corpse is left hanging " + (corpse.getY() - start[0]) + " blocks up"))
+                .thenSucceed();
+    }
+
+    /** A holder walking steadily must pull the body at a steady pace: no stop and go, no float. */
+    @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 600)
+    public static void aCorpseIsDraggedSmoothly(GameTestHelper h) {
+        var corpse = corpseOf(h, "smooth_corpse", "SmoothCorpse", new Vec3(1, 2, 1));
+        var player = holder(h, "SmoothHolder", new Vec3(1, 2, 2));
+        corpse.setLeashedTo(player, true);
+        java.util.List<Double> z = new java.util.ArrayList<>();
+        double[] y0 = new double[1];
+        double[] maxY = {0};
+        h.startSequence()
+                .thenIdle(30)
+                .thenExecute(() -> y0[0] = corpse.getY())
+                .thenExecuteFor(200, () -> {
+                    player.moveTo(player.getX(), player.getY(), player.getZ() + 0.15); // 3 blocks/s
+                    z.add(corpse.getZ());
+                    maxY[0] = Math.max(maxY[0], corpse.getY() - y0[0]);
+                })
+                .thenExecute(() -> {
+                    double lo = Double.MAX_VALUE, hi = 0;
+                    for (int i = 80; i + 5 < z.size(); i++) {          // steady state, speed over 5 ticks, blocks/s
+                        double v = (z.get(i + 5) - z.get(i)) * 4;
+                        lo = Math.min(lo, v);
+                        hi = Math.max(hi, v);
+                    }
+                    h.assertTrue(lo > 1.5 && hi < 4.5, String.format("pace swings from %.2f to %.2f blocks/s", lo, hi));
+                    h.assertTrue(maxY[0] < 0.6, "the body floated " + maxY[0] + " blocks up");
+                })
+                .thenSucceed();
+    }
+
     @GameTest(templateNamespace = WFLib.MODID, template = "empty", timeoutTicks = 400)
     public static void aLeashedCorpseSurvivesSaving(GameTestHelper h) {
         var corpse = corpseOf(h, "save_corpse", "SaveCorpse", new Vec3(1, 2, 1));

@@ -200,12 +200,19 @@ public final class RagdollServer {
         return body == null || body.sim == null ? Double.NaN : body.sim.x[Skeleton.TORSO * 3 + 1];
     }
 
+    /** Distance from the pull point, blocks, inside which a towed body stops advancing (it is held, not released). */
+    private static final double TOW_STOP = 1.0;
+    /** Towed speed per block of distance past {@link #TOW_STOP}, 1/s: a gentle pull follows a dawdling holder, a long one is quick. */
+    private static final double TOW_GAIN = 2.5;
+    /** Fastest a held body is let down, m/s. */
+    private static final double DROP_SPEED = 3.0;
+
     /**
-     * Pulls a running body toward {@code toward}: its torso is gripped and walked that way, speed rising by
-     * {@code accel} m/s per call up to {@code maxSpeed}, and the limbs trail behind. Along the ground, and upward when
-     * {@code toward} is higher than the torso (hauled up a ledge or hung from a rope); never downward, gravity does that. Call
-     * every tick it should be pulled; one tick without a call lets it settle. False when the body is not simulating
-     * or is carried. Once there it is held in place while calls continue.
+     * Pulls a running body toward {@code toward}: its torso is gripped and walked that way at a speed that follows the
+     * distance (zero within a block, rising to {@code maxSpeed}, changing by at most {@code accel} m/s per call) and the limbs
+     * trail behind. Along the ground; hauled upward when {@code toward} is higher than the torso; let down when it is lower, so a
+     * body is never left hanging in the air by a pull that lost its height. Call every tick it should be pulled or held; a
+     * tick without a call lets it go. False when the body is not simulating or is carried.
      */
     public static boolean tow(LivingEntity entity, Vec3 toward, double accel, double maxSpeed) {
         Body body = BODIES.get(entity.getId());
@@ -216,12 +223,13 @@ public final class RagdollServer {
         int t = Skeleton.TORSO * 3;
         double dx = toward.x - sim.x[t], dy = toward.y - sim.x[t + 1], dz = toward.z - sim.x[t + 2];
         double dh = Math.sqrt(dx * dx + dz * dz);
-        double lift = dy > 0.15 ? dy : 0;
-        body.towSpeed = Math.min(maxSpeed, body.towSpeed + accel);
+        double want = Math.min(maxSpeed, Math.max(0, dh - TOW_STOP) * TOW_GAIN);
+        body.towSpeed = want > body.towSpeed ? Math.min(want, body.towSpeed + accel) : Math.max(want, body.towSpeed - 2 * accel);
         double step = body.towSpeed / 20.0;
         double hs = dh < 1.0e-4 ? 0 : Math.min(dh, step) / dh;
+        double vy = dy > 0.15 ? Math.min(dy, LIFT_SPEED / 20.0) : dy < -0.3 ? Math.max(dy, -DROP_SPEED / 20.0) : 0;
         body.towTarget[0] = sim.x[t] + dx * hs;
-        body.towTarget[1] = sim.x[t + 1] + Math.min(lift, Math.min(step, LIFT_SPEED / 20.0));
+        body.towTarget[1] = sim.x[t + 1] + vy;
         body.towTarget[2] = sim.x[t + 2] + dz * hs;
         System.arraycopy(sim.q, Skeleton.TORSO * 4, body.towTarget, 3, 4);
         body.towing = true;

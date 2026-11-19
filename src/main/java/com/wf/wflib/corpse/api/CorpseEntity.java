@@ -305,17 +305,20 @@ public class CorpseEntity extends LivingEntity implements Leashable {
 
     /** Where on the holder the torso is hauled to: ankle height, so a holder on a ledge brings the body up to the lip. */
     private static final double HOLD_HEIGHT = 0.3;
-    /** The lead hangs slack inside this distance, blocks; past it the body is pulled along the ground. */
+    /** Slack lead: a body this far from its holder (blocks, along the ground) starts being pulled... */
     private static final double SLACK = 2.2;
+    /** ...and keeps being pulled until it is this close, so the pull does not stutter on and off at the edge. */
+    private static final double CLOSE = 1.2;
     /** Higher than this above the torso, the body is hauled up; it stays held until it is lowered by as much again. */
     private static final double HAUL = 0.5;
-    private boolean hauling;
+    private boolean hauling, dragging;
 
     /** Server, every tick on a lead: the holder drags the body along, hauls it up when they stand higher, and holds it there. */
     private void pullOnLead() {
         Entity holder = getLeashHolder();
         if (holder == null || holder.level() != level()) {
             hauling = false;
+            dragging = false;
             return;
         }
         Vec3 hold = holder.position().add(0, HOLD_HEIGHT, 0);
@@ -325,8 +328,15 @@ public class CorpseEntity extends LivingEntity implements Leashable {
         } else if (need < -HAUL) {
             hauling = false;                            // the holder went down: let it down
         }
-        if (hauling || hold.distanceTo(getBoundingBox().getCenter()) > SLACK) {
-            Ragdolls.tow(this, hold, 0.3, CorpseConfig.DRAG_SPEED.get());
+        Vec3 centre = getBoundingBox().getCenter();
+        double along = Math.hypot(hold.x - centre.x, hold.z - centre.z);
+        if (along > SLACK) {
+            dragging = true;
+        } else if (along < CLOSE) {
+            dragging = false;
+        }
+        if (hauling || dragging) {
+            Ragdolls.tow(this, hold, 0.4, CorpseConfig.DRAG_SPEED.get());
         }
     }
 
