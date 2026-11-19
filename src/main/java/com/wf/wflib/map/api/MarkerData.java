@@ -51,6 +51,20 @@ public final class MarkerData extends SavedData {
         return true;
     }
 
+    /** {@link #add} that also shows it to the side's online members at once. */
+    public boolean addAndSync(MinecraftServer server, UUID side, ResourceLocation dimension, BlockPos pos, String label) {
+        boolean added = add(side, dimension, pos, label);
+        if (added) com.wf.wflib.map.Markers.push(server, side);
+        return added;
+    }
+
+    /** {@link #remove} that also updates the side's online members at once. */
+    public boolean removeAndSync(MinecraftServer server, UUID side, long id) {
+        boolean removed = remove(side, id);
+        if (removed) com.wf.wflib.map.Markers.push(server, side);
+        return removed;
+    }
+
     public boolean remove(UUID side, long id) {
         List<Marker> list = bySide.get(side);
         if (list == null || !list.removeIf(m -> m.id() == id)) {

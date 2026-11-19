@@ -58,7 +58,8 @@ public final class Markers {
         return out;
     }
 
-    private static void push(MinecraftServer server, UUID side) {
+    /** Sends {@code side}'s markers to its online members (a change made straight to {@link MarkerData} is otherwise not seen until they log in). */
+    public static void push(MinecraftServer server, UUID side) {
         MarkerSyncPacket packet = new MarkerSyncPacket(List.copyOf(MarkerData.get(server).of(side)));
         for (ServerPlayer player : members(server, side)) {
             PacketDistributor.sendToPlayer(player, packet);

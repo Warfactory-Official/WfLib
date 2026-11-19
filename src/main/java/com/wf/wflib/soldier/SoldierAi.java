@@ -25,6 +25,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
@@ -199,6 +202,8 @@ public final class SoldierAi {
         int mags = 4;
         // perception and state
         final Map<String, Threat> threats = new HashMap<>();
+        /** Hostile mobs near this soldier, refreshed twice a second. */
+        List<LivingEntity> mobs = List.of();
         /** People glimpsed but not yet noticed. */
         final Map<String, Threat> glimpses = new HashMap<>();
         final Deque<Vec3> route = new ArrayDeque<>();
@@ -678,8 +683,9 @@ public final class SoldierAi {
     }
 
     /** Whether {@code t} has a light on for others to see: a soldier with its headlamp lit. */
-    private static boolean showingLight(ServerPlayer t) {
-        Bot other = BOTS.get(t.getGameProfile().getName().toLowerCase(Locale.ROOT));
+    private static boolean showingLight(LivingEntity t) {
+        if (!(t instanceof ServerPlayer sp)) return false;
+        Bot other = BOTS.get(sp.getGameProfile().getName().toLowerCase(Locale.ROOT));
         return other != null && other.lit;
     }
 
@@ -700,18 +706,71 @@ public final class SoldierAi {
                 observe(p, b, t.isSpectator() || t.isCreative() ? null : t, key, now);
             }
         }
+        perceiveMobs(p, b, now);
         b.threats.values().removeIf(th -> BotPolicy.forgotten(now, th.seen, th.confirmed));
     }
+
+    /** Key of a hostile mob in {@link Bot#threats}: players are keyed by name, which never contains a colon. */
+    static final String MOB = "mob:";
+
+    static String keyOf(LivingEntity e) {
+        return e instanceof ServerPlayer sp ? sp.getGameProfile().getName() : MOB + e.getUUID();
+    }
+
+    /** Monsters that attack on sight, and neutral ones only once angry. */
+    static boolean hostileMob(LivingEntity e) {
+        if (!(e instanceof Enemy) || e instanceof ServerPlayer || !e.isAlive()) return false;
+        return !(e instanceof NeutralMob n) || n.isAngry();
+    }
+
+    /** The entity a threat key stands for, or null when it is gone. */
+    private static LivingEntity resolve(MinecraftServer server, ServerPlayer p, String key) {
+        if (!key.startsWith(MOB)) return server.getPlayerList().getPlayerByName(key);
+        try {
+            return p.serverLevel().getEntity(UUID.fromString(key.substring(MOB.length()))) instanceof LivingEntity l ? l : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    static List<LivingEntity> nearbyMobs(ServerPlayer p, Bot b) {
+        double r = Math.min(b.range, MOB_RANGE);
+        return p.serverLevel().getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(r), SoldierAi::hostileMob).stream()
+                .sorted(Comparator.comparingDouble(m -> m.distanceToSqr(p))).limit(MOB_LIMIT).toList();
+    }
+
+    /** Soldiers treat hostile mobs as enemies: the ones in range are looked for twice a second, then watched like any contact. */
+    static void perceiveMobs(ServerPlayer p, Bot b, long now) {
+        if (!ENGAGE_MOBS) return;
+        if ((p.tickCount + b.name.hashCode()) % 10 == 0) b.mobs = nearbyMobs(p, b);
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (LivingEntity m : b.mobs) {
+            String key = keyOf(m);
+            seen.add(key);
+            observe(p, b, m, key, now);
+        }
+        for (String key : List.copyOf(b.threats.keySet())) {                  // a mob no longer listed: gone, dead, or out of range
+            if (key.startsWith(MOB) && !seen.contains(key)) observe(p, b, resolve(p.server, p, key), key, now);
+        }
+        for (String key : List.copyOf(b.glimpses.keySet())) {
+            if (key.startsWith(MOB) && !seen.contains(key)) observe(p, b, resolve(p.server, p, key), key, now);
+        }
+    }
+
+    /** Whether soldiers fight hostile mobs; the farthest, and how many, one soldier watches. */
+    public static boolean ENGAGE_MOBS = true;
+    static final double MOB_RANGE = 48;
+    static final int MOB_LIMIT = 4;
 
     /**
      * Updates {@code b}'s memory of one enemy. An enemy that is dead, gone or downed is no longer a contact at all: its
      * remembered position goes with it, so nobody keeps firing at where a body lies.
      */
-    static void observe(ServerPlayer p, Bot b, ServerPlayer t, String enemy, long now) {
+    static void observe(ServerPlayer p, Bot b, LivingEntity t, String enemy, long now) {
         Threat th = b.threats.get(enemy);
         Threat glimpse = b.glimpses.get(enemy);
         boolean gone = t == null || !t.isAlive();
-        boolean down = !gone && BotMedical.condition(t).downed();
+        boolean down = !gone && t instanceof ServerPlayer tp && BotMedical.condition(tp).downed();
         if (gone || down) {
             if (down && th != null && !th.downReported && !SoldierVoices.ids().isEmpty()) {
                 th.downReported = true;
@@ -767,13 +826,13 @@ public final class SoldierAi {
     }
 
     /** Engage: the visible, acquired enemy (nearest), else null. */
-    private static ServerPlayer target(MinecraftServer server, ServerPlayer p, Bot b) {
-        ServerPlayer best = null;
+    private static LivingEntity target(MinecraftServer server, ServerPlayer p, Bot b) {
+        LivingEntity best = null;
         double bestD = Double.MAX_VALUE;
         for (Map.Entry<String, Threat> e : b.threats.entrySet()) {
             Threat th = e.getValue();
             if (th.visible == 0 || th.visible < th.reaction) continue;
-            ServerPlayer t = server.getPlayerList().getPlayerByName(e.getKey());
+            LivingEntity t = resolve(server, p, e.getKey());
             if (t == null || !t.isAlive()) continue;
             double d = t.distanceToSqr(p) * (e.getKey().equalsIgnoreCase(b.target) ? 0.6 : 1);  // stick with a target
             if (d < bestD) {
@@ -862,9 +921,9 @@ public final class SoldierAi {
             throwGrenade(p, b);
             return;
         }
-        ServerPlayer target = target(server, p, b);
+        LivingEntity target = target(server, p, b);
         String was = b.target;
-        b.target = target == null ? "" : target.getGameProfile().getName();
+        b.target = target == null ? "" : keyOf(target);
         if (!was.isEmpty() && target == null) SoldierVoices.say(p, b, "lost_contact");
         b.onTarget = b.target.equals(was) && target != null ? b.onTarget + 1 : 0;
 
@@ -953,7 +1012,7 @@ public final class SoldierAi {
     }
 
     /** How long the target has stayed about where it is: a soldier's aim settles on someone who keeps still. */
-    private static void trackStillness(Bot b, ServerPlayer target) {
+    private static void trackStillness(Bot b, LivingEntity target) {
         if (target == null) {
             b.targetAnchor = null;
             b.targetStill = 0;
@@ -1799,7 +1858,7 @@ public final class SoldierAi {
         return new Vec3(-Math.sin(yaw), 0, Math.cos(yaw));
     }
 
-    private static void aimAt(ServerPlayer p, Bot b, Vec3 aim, Vec3 step, ServerPlayer target) {
+    private static void aimAt(ServerPlayer p, Bot b, Vec3 aim, Vec3 step, LivingEntity target) {
         float yaw = p.getYRot(), pitch = p.getXRot();
         if (aim != null) {
             if (--b.jitterAge <= 0) {
@@ -1927,7 +1986,7 @@ public final class SoldierAi {
     }
 
     /** Chest, else head, visible from the actual eased/leaned eye; hidden bodies need a real lookout first. */
-    private static Vec3 seen(ServerPlayer p, ServerPlayer t) {
+    private static Vec3 seen(ServerPlayer p, LivingEntity t) {
         long now = p.level().getGameTime();
         if (now != seenTick) {
             SEEN.clear();
