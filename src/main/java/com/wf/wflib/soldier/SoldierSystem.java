@@ -114,6 +114,7 @@ public final class SoldierSystem implements WFSystem {
                 if (bot != null) {
                     SoldierVoices.say(p, bot, "death");
                     Garrisons.lost(bot, p.level().getGameTime());
+                    SiteImpl.fell(p.getServer(), bot.garrison);
                     Kills.post(p, bot.team, e.getSource());
                 }
                 Squads.fell(p);

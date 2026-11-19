@@ -14,6 +14,8 @@ import java.util.List;
  */
 public record Garrison(int count, List<String> units, SoldierOrder.Kind mode, int respawnSeconds) {
     public static final int MAX_COUNT = 100_000;
+    /** The longest reinforcement delay a garrison takes: a day. */
+    public static final int MAX_RESPAWN_SECONDS = 86_400;
 
     public Garrison {
         if (count < 0 || count > MAX_COUNT) throw new IllegalArgumentException("Garrison size is 0-" + MAX_COUNT);
