@@ -37,7 +37,8 @@ def node_of(name):
 
 
 def live_screen_uv(mesh):
-    """Back face (+Y) fills UV 0..1 upright (u = -x so it reads from behind); every other face collapses to 0."""
+    """Back face (+Y) fills UV 0..1 (u = -x so it reads from behind). v runs top-down: the live feed is a render target
+    (bottom-up rows), the still fallback PNG is saved flipped to match. Every other face collapses to 0."""
     import bmesh as _bm
     b = _bm.new(); b.from_mesh(mesh)
     uv = b.loops.layers.uv.get("UVMap") or b.loops.layers.uv.new("UVMap")
@@ -48,7 +49,7 @@ def live_screen_uv(mesh):
         n = f.normal
         for l in f.loops:
             p = l.vert.co
-            l[uv].uv = (((-p.x - minu) / (maxu - minu), (p.z - minv) / (maxv - minv)) if n.y > 0.9 else (0.0, 0.0))
+            l[uv].uv = (((-p.x - minu) / (maxu - minu), (maxv - p.z) / (maxv - minv)) if n.y > 0.9 else (0.0, 0.0))
     b.to_mesh(mesh); b.free()
 
 
