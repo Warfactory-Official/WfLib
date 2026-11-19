@@ -65,7 +65,7 @@ final class CameraRenderer {
             }
             case FIRST_PERSON_RIGHT_HAND, FIRST_PERSON_LEFT_HAND -> {
                 // The hand sits low and to the right of the view: bring it toward the middle, screen toward the eye.
-                pose.translate(-0.22f, 0.20f, 0.05f);
+                pose.translate(-0.30f, 0.29f, 0.05f);
                 pose.scale(3.4f, 3.4f, 3.4f);
                 pose.mulPose(Axis.XP.rotationDegrees(-8.0f));
                 pose.mulPose(Axis.YP.rotationDegrees(192.0f));
