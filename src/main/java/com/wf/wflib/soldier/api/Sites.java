@@ -24,6 +24,12 @@ public final class Sites {
         return SiteImpl.create(level, id, centre, spec);
     }
 
+    /** Ids of the saved soldier variants (editor presets) belonging to a faction, for building a squad of one side. */
+    public static List<String> variantsOf(MinecraftServer server, String faction) {
+        return com.wf.wflib.soldier.SoldierRoster.get(server).units().values().stream()
+                .filter(u -> u.faction().equals(faction)).map(u -> u.id()).toList();
+    }
+
     public static Optional<Site> get(MinecraftServer server, String id) {
         return SiteImpl.get(server, id);
     }
