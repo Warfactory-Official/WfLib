@@ -17,26 +17,114 @@ final class SoldierBrain {
     private static final int SEARCH_DELAY = 40;
     /** The chase counts as having reached where the contact was seen this close (blocks). */
     private static final double ARRIVED = 4;
+    /** Following: beyond this many blocks a soldier runs, and keeps running until it is within {@code RUN_CAUGHT_UP}. */
+    static final double RUN_FAR = 14, RUN_CAUGHT_UP = 8;
+    /** Following: the owner counts as moving above this many blocks per check (half a second); how far a slot must shift to re-pick it. */
+    private static final double MOVING = 0.5, TRACK_REANCHOR = 1.5, IDLE_REANCHOR = 3.5;
+    /** A contact seen this recently (game ticks) means a fight is on. */
+    private static final long FIGHT_TICKS = 100;
 
     private SoldierBrain() {
     }
 
+    /** The key of the stand-in contact a suppress order keeps fresh at the ordered point. */
+    static final String SUPPRESS_KEY = "~suppress";
+    /** How long a suppress order keeps firing at its point (game ticks). */
+    static final int SUPPRESS_TICKS = 600;
+
+    /** A move or regroup order is obeyed through a fight for this long (game ticks) before the soldier gives up reaching it. */
+    static final int RELOCATE_TICKS = 600;
+
     static void tick(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
         if (p.tickCount % 10 != 0) return;
-        if (b.huntsPlayers) hunt(p, b);
-        else escort(server, p, b);
+        long now = p.level().getGameTime();
+        relocation(p, b, now);
+        Resupply.tick(server, p, b, now);
+        Requisition.tick(server, p, b, now);
+        switch (b.order.kind()) {
+            case FOLLOW, REGROUP -> {
+                Squads.catchUp(server, p, b, now);
+                Squads.greet(server, p, b, now);
+                if (b.huntsPlayers) hunt(p, b);
+                else escort(server, p, b);
+                if (b.order.kind() == com.wf.wflib.soldier.api.SoldierOrder.Kind.REGROUP && b.anchor != null
+                        && p.position().distanceToSqr(b.anchor) < ESCORT_RADIUS * ESCORT_RADIUS * 4) {
+                    b.order = com.wf.wflib.soldier.api.SoldierOrder.FOLLOW;           // back with the owner
+                    b.relocating = false;
+                }
+            }
+            case PATROL, GUARD -> {
+                if (b.huntsPlayers) hunt(p, b);
+                Patrols.tick(server, p, b, now);
+            }
+            case MOVE, ATTACK -> {                                                    // arrived: it holds where it stands
+                if (b.anchor != null && b.threats.isEmpty() && Patrols.horizontal(p.position(), b.anchor) <= 3 + b.holdRadius) {
+                    Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, p.position()));
+                }
+            }
+            case SUPPRESS -> suppress(p, b, now);
+            case HOLD, RESUPPLY -> { }                                                // the AI mode / Resupply carry these out
+        }
     }
 
-    private static void escort(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
+    /** Ends a relocation on arrival (a move then holds where it stands) or when it has taken too long (a regroup ends when it is back with the owner). */
+    private static void relocation(ServerPlayer p, SoldierAi.Bot b, long now) {
+        if (!b.relocating) return;
+        if (b.relocateUntil < 0) b.relocateUntil = now + RELOCATE_TICKS;
+        boolean move = b.order.kind() == com.wf.wflib.soldier.api.SoldierOrder.Kind.MOVE;
+        if (move && b.anchor != null && Patrols.horizontal(p.position(), b.anchor) <= 3 + b.holdRadius) {
+            Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, p.position()));
+        } else if (now >= b.relocateUntil) {
+            b.relocating = false;
+        }
+    }
+
+    /** Keeps a stand-in contact at the ordered point so the AI lays suppressing fire on it, for {@link #SUPPRESS_TICKS}. */
+    private static void suppress(ServerPlayer p, SoldierAi.Bot b, long now) {
+        if (b.suppressAt == null) return;
+        if (b.suppressUntil < 0) b.suppressUntil = now + SUPPRESS_TICKS;
+        if (now >= b.suppressUntil) {
+            Orders.apply(b, p.position(), com.wf.wflib.soldier.api.SoldierOrder.at(com.wf.wflib.soldier.api.SoldierOrder.Kind.HOLD, p.position()));
+            return;
+        }
+        SoldierAi.Threat t = b.threats.computeIfAbsent(SUPPRESS_KEY, k -> new SoldierAi.Threat());
+        t.eye = b.suppressAt.add(0, 1.6, 0);
+        t.seen = now;
+        t.visible = 0;
+        t.confirmed = true;
+        t.value = 1f;
+    }
+
+    static void escort(MinecraftServer server, ServerPlayer p, SoldierAi.Bot b) {
         ServerPlayer owner = b.ownerId == null ? null : server.getPlayerList().getPlayer(b.ownerId);
         if (owner == null || !owner.isAlive() || owner.level() != p.level() || !owner.onGround()
                 || owner.distanceTo(p) > FOLLOW_RANGE) return;                 // out of reach: hold the last spot
-        Vec3 spot = roleSlot(owner.position(),owner.getLookAngle(),b.role,p.getGameProfile().getName().hashCode());
-        if (b.anchor == null || b.anchor.distanceToSqr(spot) > ESCORT_RADIUS * ESCORT_RADIUS * 2.25) {
+        // The formation faces the way the owner is travelling, not where they look: turning the head must not move anyone.
+        Vec3 moved = b.ownerSeen == null ? Vec3.ZERO : owner.position().subtract(b.ownerSeen).multiply(1, 0, 1);
+        b.ownerSeen = owner.position();
+        if (moved.lengthSqr() > 1) b.heading = moved.normalize();                // more than a block in half a second: really walking
+        else if (b.heading == null) b.heading = owner.getLookAngle().multiply(1, 0, 1).normalize();
+        Vec3 spot = roleSlot(owner.position(), b.heading, b.role, p.getGameProfile().getName().hashCode());
+        long now = p.level().getGameTime();
+        boolean fight = b.threats.values().stream().anyMatch(t -> now - t.seen < FIGHT_TICKS);
+        b.sprint = followSprint(b.sprint, owner.distanceTo(p), owner.isSprinting(), fight)
+                && com.wf.wflib.soldier.api.SoldierRole.tactics(b.role) != com.wf.wflib.soldier.api.SoldierRole.HEAVY;
+        // While the owner is going somewhere the slot is chased closely (the spot is re-picked every check, stood on exactly);
+        // once they stop the soldier settles loosely within a few blocks of a slot and is left in peace.
+        b.tracking = moved.lengthSqr() > MOVING * MOVING || owner.distanceTo(p) > ESCORT_RADIUS * 2;
+        double reanchor = b.tracking ? TRACK_REANCHOR : IDLE_REANCHOR;
+        if (b.anchor == null || b.anchor.distanceToSqr(spot) > reanchor * reanchor) {
             b.anchor = spot;
             b.mode = SoldierAi.Mode.HOLD;
-            b.holdRadius = (int) ESCORT_RADIUS;
         }
+        b.holdRadius = b.tracking ? 2 : (int) ESCORT_RADIUS;
+    }
+
+    /** Walks beside a calm owner; runs when the owner runs, when it has fallen well behind (until it has caught up), or in a fight. */
+    static boolean followSprint(boolean sprinting, double distance, boolean ownerSprinting, boolean fight) {
+        if (fight) return true;
+        if (ownerSprinting && distance > 3) return true;
+        return distance > RUN_FAR || sprinting && distance > RUN_CAUGHT_UP;
     }
 
     private static void hunt(ServerPlayer p, SoldierAi.Bot b) {

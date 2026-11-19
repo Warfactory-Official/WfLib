@@ -59,6 +59,14 @@ public final class WarforgeCompat {
         return WarforgeApi.factionOfPlayer(playerId);
     }
 
+    /** The faction's claimed chunks per dimension (packed {@link ChunkPos#toLong}); empty with no WarForge or no faction. */
+    public static Map<net.minecraft.resources.ResourceKey<Level>, it.unimi.dsi.fastutil.longs.LongSet> claimedChunks(UUID faction) {
+        if (!LOADED || faction == null) {
+            return Map.of();
+        }
+        return WarforgeApi.claimedChunks(faction);
+    }
+
     public static UUID factionClaiming(Level level, BlockPos pos) {
         if (!LOADED || level == null || pos == null) {
             return null;

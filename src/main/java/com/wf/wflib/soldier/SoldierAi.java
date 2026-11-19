@@ -136,6 +136,38 @@ public final class SoldierAi {
         Vec3 careShelter;
         float watchYaw;
         long lastBound = -1000, progressAt, lastShot = -1000, careRetry;
+        /** Game tick something last threatened this soldier (-1: not yet seen a tick); how long it has been quiet. */
+        long lastThreat = -1;
+        /** What it has been told to do (see {@link SoldierBrain#tick}); a freshly spawned friendly follows its owner. */
+        com.wf.wflib.soldier.api.SoldierOrder order = com.wf.wflib.soldier.api.SoldierOrder.FOLLOW;
+        /** The order to go back to after a resupply trip. */
+        com.wf.wflib.soldier.api.SoldierOrder resume;
+        /** Patrol: the stop being walked to, the next route index, ticks left looking about (-1: not stopped), when it set off. */
+        Vec3 patrolPoint;
+        int patrolIndex, dwell = -1;
+        long patrolSince;
+        /** Suppress order: the point, and until when (-1: set on the first brain tick). */
+        Vec3 suppressAt;
+        long suppressUntil = -1;
+        /** The player's roster entry this soldier is (null: not a companion) and its fire team. */
+        UUID companion;
+        int fireTeam;
+        /** The territory that raised this soldier (empty: none); it is replaced when it falls. */
+        String garrison = "";
+        /** Ticks until the soldier is brought to full health: worn armour that adds maximum health only counts a tick after it is put on. */
+        int topUp = 5;
+        /** What it was issued (captured once armed) and the resupply trip state. */
+        Kit kit;
+        String depotId = "";
+        final java.util.Set<String> triedDepots = new java.util.HashSet<>();
+        long resupplyStart, nextResupply, nextCatchUp;
+        /** Gear it is to fetch from storage (see {@link Requisition}), the container it is walking to for it, when to look again, and what was last reported missing. */
+        Want want = Want.NONE;
+        BlockPos reqPos;
+        long nextRequisition;
+        String reqMissing = "";
+        /** Game tick the owner was last within greeting distance (a greeting follows a long absence). */
+        long ownerNear = Long.MIN_VALUE / 2;
         int reports, heardShots, stalls, yieldTicks, treatments, revives, reviveAttempts, careCount;
         String carePatient = "", careAction = "";
         SoldierMedical.Plan carePlan;
@@ -144,6 +176,15 @@ public final class SoldierAi {
         long blockedUntil;
         Mode mode = Mode.HOLD;
         Vec3 anchor;
+        /** Following: where the owner stood at the last check and the way they were last walking. */
+        Vec3 ownerSeen, heading;
+        /** Following an owner who is on the move: stand exactly on the slot, no wall to rest by. */
+        boolean tracking;
+        /** A move or regroup order is being obeyed through a fight: no cover, no standing and shooting, until it arrives or {@code relocateUntil} (-1: not yet set). */
+        boolean relocating;
+        long relocateUntil = -1;
+        /** Whether the soldier wears its headlamp (the squad screen's toggle). */
+        boolean lamp = true;
         int holdRadius = 6;
         final Deque<Vec3> path = new ArrayDeque<>();
         boolean sprint = true, crouch = true;
@@ -249,6 +290,16 @@ public final class SoldierAi {
         return BOTS.get(name.toLowerCase(Locale.ROOT));
     }
 
+    /** Every soldier under AI control (not the Carpet filming bots). */
+    static List<Bot> soldierBots() {
+        return BOTS.values().stream().filter(b -> b.soldier).toList();
+    }
+
+    /** True where the harness films with scripted bots: nothing there is meant to outlive the run. */
+    static boolean filming(MinecraftServer server) {
+        return filming.test(server);
+    }
+
     public static int soldiers() {
         return (int) BOTS.values().stream().filter(b -> b.soldier).count();
     }
@@ -265,6 +316,21 @@ public final class SoldierAi {
 
     private static Bot bot(String name) {
         return BOTS.computeIfAbsent(name.toLowerCase(Locale.ROOT), k -> new Bot(name));
+    }
+
+    /** What an idle line may depend on, read when the cadence lets this soldier speak (not every tick). */
+    static IdleVoice.Context idleContext(ServerPlayer p, Bot b, long now) {
+        var level = p.level();
+        boolean mate = false;
+        ServerPlayer owner = b.ownerId == null ? null : b.server.getPlayerList().getPlayer(b.ownerId);
+        if (owner != null && owner.level() == level && owner.distanceToSqr(p) < 36) mate = true;   // company for a chat
+        if (!mate) for (Bot other : BOTS.values()) {
+            if (other == b || !other.soldier || !other.team.equals(b.team) || other.server != b.server) continue;
+            ServerPlayer o = b.server.getPlayerList().getPlayerByName(other.name);
+            if (o != null && o.isAlive() && o.level() == level && o.distanceToSqr(p) < 36) { mate = true; break; }
+        }
+        return new IdleVoice.Context(level.isNight(), level.isRainingAt(p.blockPosition()),
+                p.getHealth() < p.getMaxHealth() * 0.5f, mate, b.lastThreat < 0 ? 0 : now - b.lastThreat);
     }
 
     /** Merge {@code a} into the named bot's order; only the given keys change. */
@@ -402,6 +468,7 @@ public final class SoldierAi {
         o.addProperty("burst_pause", b.pause);
         o.addProperty("aim_spread", b.spreadDeg);
         o.addProperty("sight_range", b.range);
+        o.addProperty("order", b.order.label());
         o.addProperty("squad", b.squad);
         o.addProperty("squad_task", b.squadTask);
         o.addProperty("patient", b.patient);
@@ -502,6 +569,7 @@ public final class SoldierAi {
                 continue;
             }
             if (!scripted(p)) continue;                        // never a real player
+            if (b.topUp > 0 && --b.topUp == 0) p.setHealth(p.getMaxHealth());
             if (b.soldier) SoldierBrain.tick(server, p, b);
             if (b.dead > 0) {
                 b.dead = 0;
@@ -526,6 +594,7 @@ public final class SoldierAi {
                 arm(p, b.gun, b.mags, b.grenades);
                 issue(b, b.grenades);
                 BotMedical.kit(p, b.role.equals("medic"));
+                b.kit = Kit.of(p.getInventory());
             }
             long healthStart = SoldierProfiler.begin();
             b.health = BotMedical.condition(p);
@@ -622,25 +691,38 @@ public final class SoldierAi {
         b.suppression = Math.max(0, b.suppression - 0.012f);
         for (Bot other : BOTS.values()) {
             if (other.team.equals(b.team)) continue;
-            observe(p, b, server.getPlayerList().getPlayerByName(other.name), other.name.toLowerCase(Locale.ROOT), now, false);
+            observe(p, b, server.getPlayerList().getPlayerByName(other.name), other.name.toLowerCase(Locale.ROOT), now);
         }
         if (b.huntsPlayers) {
             for (ServerPlayer t : server.getPlayerList().getPlayers()) {
                 String key = t.getGameProfile().getName().toLowerCase(Locale.ROOT);
                 if (scripted(t) || BOTS.containsKey(key)) continue;
-                observe(p, b, t.isSpectator() || t.isCreative() ? null : t, key, now, true);
+                observe(p, b, t.isSpectator() || t.isCreative() ? null : t, key, now);
             }
         }
         b.threats.values().removeIf(th -> BotPolicy.forgotten(now, th.seen, th.confirmed));
     }
 
-    /** Updates {@code b}'s memory of one enemy. {@code spare} = a real player: a downed one is no longer a target. */
-    private static void observe(ServerPlayer p, Bot b, ServerPlayer t, String enemy, long now, boolean spare) {
+    /**
+     * Updates {@code b}'s memory of one enemy. An enemy that is dead, gone or downed is no longer a contact at all: its
+     * remembered position goes with it, so nobody keeps firing at where a body lies.
+     */
+    static void observe(ServerPlayer p, Bot b, ServerPlayer t, String enemy, long now) {
         Threat th = b.threats.get(enemy);
         Threat glimpse = b.glimpses.get(enemy);
-        boolean seeable = t != null && t.isAlive() && t.level() == p.level() && t.distanceTo(p) <= b.range
-                && !(spare && BotMedical.condition(t).downed());
-        Vec3 seen = seeable && BotSenses.inView(p.getEyePosition(), p.getLookAngle(), t.getEyePosition()) ? seen(p, t) : null;
+        boolean gone = t == null || !t.isAlive();
+        boolean down = !gone && BotMedical.condition(t).downed();
+        if (gone || down) {
+            if (down && th != null && !th.downReported && !SoldierVoices.ids().isEmpty()) {
+                th.downReported = true;
+                SoldierVoices.say(p, b, "enemy_down");
+            }
+            b.threats.remove(enemy);
+            b.glimpses.remove(enemy);
+            return;
+        }
+        boolean seeable = t.level() == p.level() && t.distanceTo(p) <= b.range;
+        Vec3 seen = seeable && BotSenses.inView(p.getEyePosition(), viewDirection(p, b), t.getEyePosition()) ? seen(p, t) : null;
         if (seen == null) {
             if (th != null) {
                 th.visible = 0;
@@ -676,10 +758,6 @@ public final class SoldierAi {
         th.sound = false;                                  // seen with their own eyes: nothing left to go and look at
         th.eye = t.getEyePosition();
         th.seen = now;
-        if (!th.downReported && now % 10 == 0 && !SoldierVoices.ids().isEmpty() && BotMedical.condition(t).downed()) {
-            th.downReported = true;
-            SoldierVoices.say(p, b, "enemy_down");
-        }
         BotSquad.report(p.server, BOTS, b, enemy, th, now);
     }
 
@@ -746,7 +824,7 @@ public final class SoldierAi {
     }
 
     static boolean wantsLight(ServerPlayer p, Bot b) {
-        if (!Headlamp.worn(p)) return false;
+        if (!b.lamp || !Headlamp.worn(p)) return false;
         return switch (b.light) {
             case "on" -> true;
             case "off" -> false;
@@ -775,6 +853,7 @@ public final class SoldierAi {
         boolean caring = medical(server, p, b, now);
         SoldierProfiler.end("medical", t0);
         if (caring) return;
+        if (!b.threats.isEmpty() || b.lastThreat < 0) b.lastThreat = now;
         if (b.hunting) SoldierVoices.say(p, b, "search");
         else if (b.threats.isEmpty()) SoldierVoices.say(p, b, "idle");
         else if (b.suppression > 0.75f) SoldierVoices.say(p, b, "retreat");
@@ -821,8 +900,10 @@ public final class SoldierAi {
             b.arrived = now;
             b.watchYaw = b.rest != null && b.threats.isEmpty() && at(p, b.rest, 1.0) ? b.restYaw : p.getYRot();
         }
-        boolean sprinting = b.moving && !workingCover && b.sprint && !pinned && !b.health.sprint()
-                && (target == null || b.mode == Mode.ADVANCE && !inCover(p, b) && p.distanceTo(target) > 35);
+        // Told to relocate and still far from the point: run for it, shooting or pinned, and shoot again on arrival.
+        boolean dash = b.relocating && b.anchor != null && BotTactics.horizontal(p.position(), b.anchor) > 8;
+        boolean sprinting = b.moving && !workingCover && b.sprint && !b.health.sprint()
+                && (dash || !pinned && (target == null || b.mode == Mode.ADVANCE && !inCover(p, b) && p.distanceTo(target) > 35));
 
         // aim: target chest/head, else suppress a fresh last-seen position, else face the route
         Vec3 aim = null;
@@ -843,7 +924,7 @@ public final class SoldierAi {
         boolean peek = b.peek.exposed() && !sprinting;
         boolean low = BotPolicy.crouch(b.soldier, hasThreat || b.suppression > 0.1f, peek, b.moving, workingCover, b.crouch);
         Vec3 dir = step;
-        boolean crawl = b.moving && !workingCover && (b.suppression > 0.45f || b.health.legs());
+        boolean crawl = b.moving && !workingCover && (b.suppression > 0.45f && !dash || b.health.legs());
         walk(p, b, dir, sprinting, low || crawl, !workingCover);
 
         Posture posture = crawl ? Posture.PRONE : peek && workingCover ? b.cover.peek().posture()
@@ -927,6 +1008,12 @@ public final class SoldierAi {
     static Vec3 goal(MinecraftServer server, ServerPlayer p, Bot b, long now) {
         if (b.anchor == null) return null;
         if (b.squadTask.equals("rescue-cover") && b.cover == null && b.threats.isEmpty()) return null;
+        // A move or regroup order is carried out first, fight or not: straight to the point, then the usual cover work there.
+        if (b.relocating && !b.medicalRetreat) {
+            b.cover = null;
+            b.probe = null;
+            return at(p, b.anchor, Math.max(2, b.holdRadius)) ? null : b.anchor;
+        }
         List<Vec3> eyes = threatEyes(b, p.getEyePosition());
         BlockPos feet = feet(p);
         // Healing, reloading or out of ammunition with the enemy about: back off from the corner first, then do it.
@@ -976,7 +1063,7 @@ public final class SoldierAi {
         if (b.cover != null && !b.peek.hidden()) return null;
         if (eyes.isEmpty()) {
             // quiet: ADVANCE walks on; HOLD waits by a wall near its anchor, not in the middle of the street
-            if (b.mode == Mode.HOLD) {
+            if (b.mode == Mode.HOLD && !b.tracking) {
                 Vec3 rest = restSpot(p, b);
                 if (rest != null) return at(p, rest, 0.7) ? null : rest;
             }
@@ -1701,6 +1788,17 @@ public final class SoldierAi {
         return Mth.clamp(delta * EASE, -MAX_TURN, MAX_TURN);
     }
 
+    /**
+     * Where a soldier is looking for enemies. While it stands with nothing to shoot at, the view sweeps left and right
+     * ({@link BotSenses#scan}) without the body or head turning: a sweeping head jittered on screen (about 1 degree a
+     * tick, below what an entity rotation packet resolves) and shook a worn lamp's beam. Otherwise it is where the head points.
+     */
+    static Vec3 viewDirection(ServerPlayer p, Bot b) {
+        if (b.moving || !b.threats.isEmpty()) return p.getLookAngle();
+        double yaw = Math.toRadians(BotSenses.scan(b.watchYaw, p.level().getGameTime(), b.name.hashCode()));
+        return new Vec3(-Math.sin(yaw), 0, Math.cos(yaw));
+    }
+
     private static void aimAt(ServerPlayer p, Bot b, Vec3 aim, Vec3 step, ServerPlayer target) {
         float yaw = p.getYRot(), pitch = p.getXRot();
         if (aim != null) {
@@ -1721,7 +1819,7 @@ public final class SoldierAi {
             yaw = yawOf(step);
             pitch = 0;
         } else if (b.threats.isEmpty()) {
-            yaw = BotSenses.scan(b.watchYaw, p.level().getGameTime(), b.name.hashCode());
+            yaw = b.watchYaw;                      // stands still: the scan below is of the view cone, the head does not sweep
             pitch = 0;
         }
         float newYaw = p.getYRot() + turn(Mth.wrapDegrees(yaw - p.getYRot()));

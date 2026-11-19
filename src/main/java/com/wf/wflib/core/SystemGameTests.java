@@ -61,6 +61,7 @@ import com.wf.wflib.round.gametest.VirtualFlightBench;
 import com.wf.wflib.round.gametest.VirtualFlightGameTest;
 import com.wf.wflib.sim.gametest.SimRegistryGameTest;
 import com.wf.wflib.soldier.DeathGameTest;
+import com.wf.wflib.soldier.ForceGameTest;
 import com.wf.wflib.soldier.InvestigateGameTest;
 import com.wf.wflib.soldier.LightGameTest;
 import com.wf.wflib.soldier.VoiceGameTest;
@@ -144,7 +145,8 @@ public final class SystemGameTests {
                     DressGameTest.class,
                     ArmorLabGameTest.class)),
             Map.entry("soldier", List.of(VoiceGameTest.class, LightGameTest.class,
-                    InvestigateGameTest.class, DeathGameTest.class)),
+                    InvestigateGameTest.class, DeathGameTest.class,
+                    ForceGameTest.class)),
             Map.entry("packs", List.of(PacksGameTest.class)),
             Map.entry("carry", List.of(CarryGameTest.class)),
             Map.entry("ragdoll", List.of(RagdollGameTest.class)),

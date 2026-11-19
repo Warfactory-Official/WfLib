@@ -14,7 +14,12 @@ final class VoiceCadence {
     }
 
     boolean ready(String event, long now, boolean urgent) {
-        return (urgent || now >= speakingUntil) && now >= next.getOrDefault(event, Long.MIN_VALUE);
+        return (urgent || now >= speakingUntil) && now >= next.getOrDefault(group(event), Long.MIN_VALUE);
+    }
+
+    /** Idle variants share one cooldown (a soldier is idle once, however it is said); order acknowledgements another. */
+    static String group(String event) {
+        return IdleVoice.idle(event) ? "idle" : event.startsWith("ack_") ? "ack" : event;
     }
 
     int variant(String event, int count, int random) {
@@ -24,9 +29,10 @@ final class VoiceCadence {
 
     void played(String event, int variant, int ticks, long now) {
         speakingUntil = Math.max(speakingUntil, now + ticks + 8);
-        next.put(event, now + Math.max(ticks + 8, switch (event) {
+        next.put(group(event), now + Math.max(ticks + 8, switch (group(event)) {
             case "grenade", "throw_grenade", "wounded", "death" -> 100;
             case "idle", "search" -> 600;
+            case "ack" -> 40;
             default -> 200;
         }));
         last.put(event, variant);

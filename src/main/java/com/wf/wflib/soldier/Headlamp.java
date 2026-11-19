@@ -102,7 +102,12 @@ public final class Headlamp {
         if (!(e.getEntity() instanceof ServerPlayer p) || p.tickCount % 10 != 0) return;
         // Every soldier carries its lamp: issue one to any that lost or never got it (a respawn, a reload).
         if (SoldierAi.scripted(p)) {
-            if (p.tickCount % 40 == 0 && curios() && !Curios.wearing(p)) issue(p);
+            if (p.tickCount % 40 == 0 && curios()) {
+                SoldierAi.Bot bot = SoldierAi.botOf(p.getGameProfile().getName());
+                boolean wants = bot == null || bot.lamp, has = Curios.wearing(p);
+                if (wants && !has) issue(p);
+                else if (!wants && has) take(p);
+            }
             return;
         }
         boolean on = on(p);

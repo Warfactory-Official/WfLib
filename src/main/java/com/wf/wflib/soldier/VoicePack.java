@@ -23,7 +23,13 @@ record VoicePack(String id, Path file, Map<String, Map<String, List<Clip>>> spea
     static final int MAX_PACK = 64 * 1024 * 1024, MAX_TOTAL = 256 * 1024 * 1024;
     static final Set<String> EVENTS = Set.of("contact", "lost_contact", "search", "attack", "covering",
             "flank", "retreat", "grenade", "throw_grenade", "reload", "wounded", "help", "treat",
-            "revive", "revived", "enemy_down", "idle", "death");
+            "revive", "revived", "enemy_down", "idle", "death",
+            // idle variants (see IdleVoice), order acknowledgements (SoldierVoices.ack) and supply calls
+            "idle_alert", "idle_hurt", "idle_night", "idle_rain", "idle_chat", "idle_bored",
+            "ack_follow", "ack_hold", "ack_move", "ack_attack", "ack_suppress", "ack_patrol", "ack_resupply",
+            "ack_regroup", "ack_refuse", "low_ammo", "resupplied",
+            // not combat: meeting the owner again, and being spoken to by them
+            "greet", "talk");
 
     record Clip(ResourceLocation sound, int ticks) {}
 

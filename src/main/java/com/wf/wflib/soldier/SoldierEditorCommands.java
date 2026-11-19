@@ -27,7 +27,7 @@ final class SoldierEditorCommands {
                     return "Deleted faction, variants and "+SoldierEditor.clear(c.getSource().getServer(),id)+" deployed soldiers";
                 }))))
             .then(Commands.literal("spawn").then(Commands.argument("faction",StringArgumentType.word()).suggests((c,b)->SharedSuggestionProvider.suggest(SoldierRoster.get(c.getSource().getServer()).factions().keySet(),b))
-                .then(Commands.argument("count",IntegerArgumentType.integer(1,40)).executes(c->run(c.getSource(),()->"Deployed "+SoldierEditor.spawnFaction(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"faction"),IntegerArgumentType.getInteger(c,"count"))+" faction soldiers")))))
+                .then(Commands.argument("count",IntegerArgumentType.integer(1)).executes(c->run(c.getSource(),()->"Deployed "+SoldierEditor.spawnFaction(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"faction"),IntegerArgumentType.getInteger(c,"count"))+" faction soldiers")))))
             .then(Commands.literal("clear").then(Commands.argument("faction",StringArgumentType.word()).suggests((c,b)->SharedSuggestionProvider.suggest(SoldierRoster.get(c.getSource().getServer()).factions().keySet(),b))
                 .executes(c->run(c.getSource(),()->"Removed "+SoldierEditor.clear(c.getSource().getServer(),StringArgumentType.getString(c,"faction"))+" deployed soldiers")))));
         var unit=Commands.literal("unit").requires(SoldierEditor::allowed);
@@ -53,7 +53,7 @@ final class SoldierEditorCommands {
                     var stack=SoldierEditorEgg.egg(u); if (!p.getInventory().add(stack)) p.drop(stack,false); return "Spawn egg added";
                 }));
                 case "spawn" -> { id.executes(c->run(c.getSource(),()->"Deployed "+SoldierEditor.spawnNear(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"variant"),1)+" soldiers"));
-                    id.then(Commands.argument("count",IntegerArgumentType.integer(1,40)).executes(c->run(c.getSource(),()->"Deployed "+SoldierEditor.spawnNear(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"variant"),IntegerArgumentType.getInteger(c,"count"))+" soldiers"))); }
+                    id.then(Commands.argument("count",IntegerArgumentType.integer(1)).executes(c->run(c.getSource(),()->"Deployed "+SoldierEditor.spawnNear(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"variant"),IntegerArgumentType.getInteger(c,"count"))+" soldiers"))); }
                 case "rename" -> id.then(Commands.argument("name",StringArgumentType.greedyString()).executes(c->run(c.getSource(),()->{
                     var u=unit(c.getSource(),StringArgumentType.getString(c,"variant")); SoldierEditor.save(c.getSource().getServer(),new SoldierTemplate(u.id(),StringArgumentType.getString(c,"name"),u.faction(),u.role(),u.gun(),u.grenades(),u.armour(),u.spares(),u.range(),u.spread())); return "Variant renamed";
                 })));

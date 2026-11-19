@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -60,6 +61,34 @@ class VoiceConverterTest(unittest.TestCase):
                             ('Damage/DeathGunshot-001.ogg', 'death'), ('Damage/Death-001.ogg', 'death'),
                             ('Throwing/ThrowingFlare-001.ogg', None)]:
             self.assertEqual(event, convert.trepang_event(Path(path)), path)
+
+    def test_stalker_non_combat_speech_is_mapped_by_folder_and_file_name(self):
+        for path, event in [('states/idle/idle_3.ogg', 'idle'), ('talk/jokes/joke_10.ogg', 'idle_chat'),
+                            ('talk/intros/intro_music_2.ogg', 'idle_chat'), ('reactions/story/laughter_1.ogg', 'idle_chat'),
+                            ('reactions/joke/reaction_joke_4.ogg', 'idle_chat'), ('reactions/music/reaction_music_1.ogg', 'idle_chat'),
+                            ('states/meet/meet_hello_5.ogg', 'greet'), ('states/meet/meet_stop_1.ogg', None),
+                            ('talk/use/no_default_2.ogg', 'talk'), ('talk/use/abuse_1.ogg', None),
+                            ('fight/post_combat_wait/relax_3.ogg', 'idle_alert'), ('fight/post_combat_wait/wait_3.ogg', None),
+                            ('states/loot/loot_begin_1.ogg', 'ack_resupply'), ('states/loot/loot_good_1.ogg', 'resupplied'),
+                            ('states/loot/loot_bad_1.ogg', 'ack_refuse'), ('alife/attack/attack_begin_2.ogg', 'ack_attack'),
+                            ('alife/attack/prepare_attack_2.ogg', 'ack_move'), ('alife/patrol/walk_1.ogg', 'ack_patrol'),
+                            ('alife/patrol/walk_1_pda.ogg', None), ('states/trade/buy_1.ogg', None), ('states/sleep/sleep_1.ogg', None)]:
+            self.assertEqual(event, convert.stalker_event(Path(path)), path)
+
+    def test_trepang2_non_combat_speech_is_mapped_and_hostage_chatter_is_not(self):
+        for path, event in [('Spawn/BeCareful-001.ogg', 'idle_chat'), ('Spawn/BeCarefulReplies-002.ogg', 'idle_chat'),
+                            ('SusMode/WhatsYourStatus-001.ogg', 'idle_chat'), ('SusMode/SusAlert-001.ogg', 'idle_alert'),
+                            ('SusMode/Alerted-001.ogg', 'idle_alert'), ('Spawn/DefendThisPosition-003.ogg', 'ack_hold'),
+                            ('Spawn/GetReady-001.ogg', 'ack_attack'), ('Spawn/Deployed-001.ogg', 'ack_move'),
+                            ('SusMode/SusRelief-001.ogg', 'idle'), ('Hostage/HostageComments-001.ogg', None),
+                            ('Spawn/LastStand-001.ogg', None)]:
+            self.assertEqual(event, convert.trepang_event(Path(path)), path)
+
+    def test_every_event_the_converter_writes_is_one_the_game_reads(self):
+        game = set(re.findall(r'"([a-z_]+)"', ' '.join(
+            line for line in (Path(__file__).resolve().parents[2] / 'src/main/java/com/wf/wflib/soldier/VoicePack.java')
+            .read_text().split('static final Set<String> EVENTS')[1].split(');')[0].splitlines())))
+        self.assertEqual(game, set(convert.EVENTS))
 
     def test_trepang2_packs_keep_their_voices_and_skip_nearly_silent_ones(self):
         with tempfile.TemporaryDirectory() as directory:
