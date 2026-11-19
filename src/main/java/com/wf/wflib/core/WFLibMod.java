@@ -145,6 +145,7 @@ public class WFLibMod {
             new CarrySystem(),
             new RagdollSystem(),
             new CorpseSystem(),
+            new com.wf.wflib.worldstats.WorldStatsSystem(),
             new HazardSystem(),
             new RadiationSystem(),
             new WorkSystem(),

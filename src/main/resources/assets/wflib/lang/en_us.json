@@ -124,6 +124,7 @@
   "probe.wflib.dispenser.target": "Target: %1$s, %2$s, %3$s",
   "key.categories.wflib": "WFLib",
   "key.wflib.key_hints": "Key hints",
+  "key.wflib.worldstats": "World stats overlay",
   "key.wflib.pda_toggle": "PDA: raise",
   "key.wflib.pda_terminal": "PDA: terminal",
   "key.wflib.pda_pluginless": "PDA: Pluginless",
