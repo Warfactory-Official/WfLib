@@ -1,6 +1,10 @@
 package com.wf.wflib.photo.api.client;
 
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.VertexSorting;
+import net.minecraft.client.gui.GuiGraphics;
+import org.joml.Matrix4f;
 import com.wf.wflib.cam.api.client.OffscreenView;
 import com.wf.wflib.core.api.WFLib;
 import net.minecraft.Util;
@@ -55,6 +59,9 @@ public final class CameraScreen {
     private static long requested = Long.MIN_VALUE / 2;
     private static long rendered = Long.MIN_VALUE / 2;
     private static float fov = 70.0f;
+    private static float zoom = 1.0f;
+    private static float zoomMax = 4.0f;
+    private static int shots;
 
     private CameraScreen() {
     }
@@ -63,6 +70,13 @@ public final class CameraScreen {
     public static void request(float fovDegrees) {
         requested = Util.getNanos();
         fov = fovDegrees;
+    }
+
+    /** What the display's lens readout and shot counter show; call along with {@link #request}. */
+    public static void readout(float zoomNow, float zoomMaxNow, int shotsTaken) {
+        zoom = zoomNow;
+        zoomMax = zoomMaxNow;
+        shots = shotsTaken;
     }
 
     /** The texture to bind to the screen slot. */
@@ -96,9 +110,34 @@ public final class CameraScreen {
         float pt = event.getPartialTick().getGameTimeDeltaPartialTick(true);
         Vec3 eye = p.getEyePosition(pt);
         if (view.render(eye, p.getViewYRot(pt), p.getViewXRot(pt), 0.0f, fov, target, event.getPartialTick())) {
+            drawHud(mc, p);
             ALIAS.adopt(target.getColorTextureId());
             rendered = Util.getNanos();
         }
+    }
+
+    /** The shooting display, drawn over the picture with the game's own GUI code into the same target. */
+    private static void drawHud(Minecraft mc, LocalPlayer p) {
+        Matrix4f saved = RenderSystem.getProjectionMatrix();
+        VertexSorting sorting = RenderSystem.getVertexSorting();
+        target.bindWrite(true);
+        RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0.0f, WIDTH, HEIGHT, 0.0f, 1000.0f, 21000.0f),
+                VertexSorting.ORTHOGRAPHIC_Z);
+        var modelView = RenderSystem.getModelViewStack();
+        modelView.pushMatrix();
+        modelView.translation(0.0f, 0.0f, -11000.0f);
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.disableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        GuiGraphics g = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
+        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, zoomMax, shots));
+        g.flush();
+        modelView.popMatrix();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.setProjectionMatrix(saved, sorting);
+        RenderSystem.enableDepthTest();
+        mc.getMainRenderTarget().bindWrite(true);
     }
 
     private static void release() {
