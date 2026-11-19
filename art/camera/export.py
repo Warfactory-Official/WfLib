@@ -72,7 +72,7 @@ for name, group in parts.items():
     for o in group:
         me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
         me.transform(o.matrix_world)
-        if o.name == "screen":
+        if o.name == "screen_src":
             live_screen_uv(me)
         bm.from_mesh(me)
         bpy.data.meshes.remove(me)
