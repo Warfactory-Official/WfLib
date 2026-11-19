@@ -27,7 +27,7 @@ public final class ItemMasses {
             Map.entry("decoy_launcher", 2.5), Map.entry("portable_jammer", 5.0), Map.entry("loudspeaker", 6.0),
             Map.entry("camera_linker", 0.3), Map.entry("detonator", 0.5), Map.entry("door_key", 0.05),
             Map.entry("door_lock", 0.8), Map.entry("grid_key", 0.05), Map.entry("geiger_counter", 0.4),
-            Map.entry("pda", 0.4), Map.entry("battery", 0.09), Map.entry("soul", 0.33),
+            Map.entry("pda", 0.4), Map.entry("camera", 0.3), Map.entry("photo", 0.005), Map.entry("battery", 0.09), Map.entry("soul", 0.33),
             Map.entry("crystal", 0.68), Map.entry("itcher", 0.2), Map.entry("sponge", 0.56), Map.entry("fireball", 0.92),
             Map.entry("sparkler", 0.04), Map.entry("glass_beads", 0.86), Map.entry("moonlight", 0.09),
             Map.entry("flash_artifact", 0.04), Map.entry("ice", 0.135), Map.entry("ring", 0.275), Map.entry("dummy", 0.09),

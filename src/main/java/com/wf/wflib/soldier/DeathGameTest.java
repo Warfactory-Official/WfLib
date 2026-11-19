@@ -86,7 +86,8 @@ public class DeathGameTest {
         Consumer<com.wf.wflib.soldier.api.SoldierKillEvent> on = seen::add;
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, false, com.wf.wflib.soldier.api.SoldierKillEvent.class, on);
         try {
-            victim.hurt(shooter.damageSources().playerAttack(shooter), 1000f);
+            // generic_kill passes spawn protection; naming the shooter as the cause makes it theirs
+            victim.hurt(new net.minecraft.world.damagesource.DamageSource(victim.damageSources().genericKill().typeHolder(), shooter), 1000f);
             h.assertTrue(seen.size() == 1, "expected one kill event, got " + seen.size());
             var e = seen.get(0);
             h.assertTrue(e.victim() == victim && e.victimTeam().equals("kill_blue"), "wrong victim " + e.victimTeam());
