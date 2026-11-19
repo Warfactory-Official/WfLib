@@ -23,7 +23,8 @@ public final class StatsConfig {
             "§eChunk X: §f{cx} §eZ: §f{cz} §eOff: §f{ox}, {oz}  §eY: §f{y}  §eFacing §f{facing}",
             "§eLight (Feet): §f{light}",
             "§eMoon phase: §f{moon}",
-            "§b{storm}");
+            "§b{storm}",
+            "§cThreat: §f{threat}");
 
     private StatsConfig() {
     }
@@ -36,7 +37,7 @@ public final class StatsConfig {
         SCALE = b.comment("Text scale.").defineInRange("scale", 0.75, 0.4, 3.0);
         BACKGROUND = b.comment("Background shade behind the text, 0-255 alpha; 0 = none.").defineInRange("background", 96, 0, 255);
         UNITS = b.comment("Temperature units shown, any of C, F, K in order.").define("units", "FCK");
-        LINES = b.comment("One template per line. Tags: {fps} {day} {time} {dimension} {chunks} {biome} {temp} {humidity} {entities} {cx} {cz} {ox} {oz} {y} {facing} {light} {moon} {storm}. Other mods add tags through WorldStats.tag.")
+        LINES = b.comment("One template per line. Tags: {fps} {day} {time} {dimension} {chunks} {biome} {temp} {humidity} {entities} {cx} {cz} {ox} {oz} {y} {facing} {light} {moon} {storm}. Other mods add tags through WorldStats.tag; a line whose tag nothing provides is left out (e.g. {threat} without PMCLib).")
                 .defineListAllowEmpty("lines", DEFAULT_LINES, o -> o instanceof String);
         SPEC = b.build();
     }

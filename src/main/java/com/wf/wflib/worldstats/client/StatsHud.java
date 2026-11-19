@@ -93,7 +93,10 @@ public final class StatsHud {
         StringBuilder out = new StringBuilder();
         while (m.find()) {
             String value = tag(m.group(1), mc);
-            m.appendReplacement(out, Matcher.quoteReplacement(value == null ? m.group() : value));
+            if (value == null) {
+                return "";                      // a tag nothing provides (a mod that is not installed): the line is left out
+            }
+            m.appendReplacement(out, Matcher.quoteReplacement(value));
         }
         m.appendTail(out);
         return out.toString();
