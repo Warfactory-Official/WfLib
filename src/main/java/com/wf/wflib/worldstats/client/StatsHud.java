@@ -115,7 +115,7 @@ public final class StatsHud {
                 long t = level.getDayTime() % 24000L;
                 int minutes = (int) ((t + 6000) % 24000 * 1440 / 24000);       // tick 0 is 06:00
                 int h = minutes / 60 % 12 == 0 ? 12 : minutes / 60 % 12;
-                return String.format(Locale.ROOT, "%02d:%02d %s (%s)", h, minutes % 60, minutes / 60 % 24 < 12 ? "AM" : "PM", level.isDay() ? "day" : "night");
+                return String.format(Locale.ROOT, "%02d:%02d %s (%s)", h, minutes % 60, minutes / 60 % 24 < 12 ? "AM" : "PM", t < 12000 ? "day" : t < 13500 ? "dusk" : t < 22500 ? "night" : "dawn");
             }
             case "dimension": {
                 String id = level.dimension().location().toString();
