@@ -78,6 +78,8 @@ public final class PhotoSystem implements WFSystem {
     public void registerClient(IEventBus modBus) {
         modBus.addListener(FMLClientSetupEvent.class,
                 event -> event.enqueueWork(com.wf.wflib.photo.client.PhotoClient::setup));
+        modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class,
+                com.wf.wflib.photo.client.PhotoClient::clientExtensions);
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
