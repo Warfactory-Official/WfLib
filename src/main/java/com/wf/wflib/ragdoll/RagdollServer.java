@@ -58,8 +58,6 @@ public final class RagdollServer {
     /** Carry: lift arc length, ticks; waist on the right shoulder, legs forward tilted up, chest folds down the back. */
     private static final int LIFT_TICKS = 12;
     private static final double LIFT_ARC = 0.3;
-    /** Fastest a body is hauled upward, m/s: faster and the limbs cannot keep up with the gripped torso and are left behind. */
-    private static final double LIFT_SPEED = 1.0;
     private static final double SHOULDER_Y = 1.40, SHOULDER_SIDE = 0.2, CARRY_TILT = Math.toRadians(15);
     /** Carrier's torso as a world box: limbs hang off its faces; higher / wider props the legs up level. */
     private static final double CARRIER_TOP = 1.15, CARRIER_HALF = 0.15;
@@ -84,10 +82,6 @@ public final class RagdollServer {
         LivingEntity carrier;
         int lift;
         final double[] liftFrom = new double[7], target = new double[7];
-        /** Dragged along a lead this tick: the torso is gripped toward {@code towTarget}; speed ramps up while it lasts. */
-        boolean towing, towGripped;
-        double towSpeed;
-        final double[] towTarget = new double[7];
 
         Body(LivingEntity entity, boolean inert) {
             this.entity = entity;
@@ -200,39 +194,16 @@ public final class RagdollServer {
         return body == null || body.sim == null ? Double.NaN : body.sim.x[Skeleton.TORSO * 3 + 1];
     }
 
-    /** Distance from the pull point, blocks, inside which a towed body stops advancing (it is held, not released). */
-    private static final double TOW_STOP = 1.0;
-    /** Towed speed per block of distance past {@link #TOW_STOP}, 1/s: a gentle pull follows a dawdling holder, a long one is quick. */
-    private static final double TOW_GAIN = 2.5;
-    /** Fastest a held body is let down, m/s. */
-    private static final double DROP_SPEED = 3.0;
-
     /**
-     * Pulls a running body toward {@code toward}: its torso is gripped and walked that way at a speed that follows the
-     * distance (zero within a block, rising to {@code maxSpeed}, changing by at most {@code accel} m/s per call) and the limbs
-     * trail behind. Along the ground; hauled upward when {@code toward} is higher than the torso; let down when it is lower, so a
-     * body is never left hanging in the air by a pull that lost its height. Call every tick it should be pulled or held; a
-     * tick without a call lets it go. False when the body is not simulating or is carried.
+     * A rope from a running body's torso to {@code anchor}, {@code length} blocks long, for this tick: slack it does nothing,
+     * taut it pulls the body like a spring (see {@link Ragdoll#tether}). False when the body is not simulating or is carried.
      */
-    public static boolean tow(LivingEntity entity, Vec3 toward, double accel, double maxSpeed) {
+    public static boolean tether(LivingEntity entity, Vec3 anchor, double length) {
         Body body = BODIES.get(entity.getId());
         if (body == null || body.sim == null || body.carrier != null) {
             return false;
         }
-        Ragdoll sim = body.sim;
-        int t = Skeleton.TORSO * 3;
-        double dx = toward.x - sim.x[t], dy = toward.y - sim.x[t + 1], dz = toward.z - sim.x[t + 2];
-        double dh = Math.sqrt(dx * dx + dz * dz);
-        double want = Math.min(maxSpeed, Math.max(0, dh - TOW_STOP) * TOW_GAIN);
-        body.towSpeed = want > body.towSpeed ? Math.min(want, body.towSpeed + accel) : Math.max(want, body.towSpeed - 2 * accel);
-        double step = body.towSpeed / 20.0;
-        double hs = dh < 1.0e-4 ? 0 : Math.min(dh, step) / dh;
-        double vy = dy > 0.15 ? Math.min(dy, LIFT_SPEED / 20.0) : dy < -0.3 ? Math.max(dy, -DROP_SPEED / 20.0) : 0;
-        body.towTarget[0] = sim.x[t] + dx * hs;
-        body.towTarget[1] = sim.x[t + 1] + vy;
-        body.towTarget[2] = sim.x[t + 2] + dz * hs;
-        System.arraycopy(sim.q, Skeleton.TORSO * 4, body.towTarget, 3, 4);
-        body.towing = true;
+        body.sim.tether(anchor.x, anchor.y, anchor.z, length);
         body.sentRest = false;
         return true;
     }
@@ -522,14 +493,6 @@ public final class RagdollServer {
             carryTarget(body);
             sim.grip(Skeleton.TORSO, body.target);
             body.lift++;
-        } else if (body.towing) {
-            sim.grip(Skeleton.TORSO, body.towTarget);
-            body.towing = false;
-            body.towGripped = true;
-        } else if (body.towGripped) {
-            sim.release();
-            body.towGripped = false;
-            body.towSpeed = 0;
         }
         if (sim.asleep) {
             long epoch = body.cache.epoch();

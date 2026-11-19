@@ -326,4 +326,37 @@ class RagdollTest {
         assertEquals(0, f[0] * u[0] + f[1] * u[1] + f[2] * u[2], 1e-9, "still a right angle");
         assertTrue(Math.abs(c2[1] - c[1]) > 0.01 || Math.abs(c2[2] - c[2]) > 0.01, "the head centre moves with the bone");
     }
+
+    /** A rope walked away from a fallen body drags it behind, near the walker's pace, never floating. */
+    @Test
+    void aRopeDragsAFallenBodyAlongTheFloor() {
+        Ragdoll sim = standing(0);
+        run(sim, FLOOR, 120);
+        int t = Skeleton.TORSO * 3;
+        double x0 = sim.x[t], highest = 0;
+        for (int i = 0; i < 160; i++) {
+            sim.tether(x0 + 3 + i * 0.05, 1.0, 0, 2.0);        // walker at 1 m/s, waist height
+            sim.step(FLOOR);
+            highest = Math.max(highest, sim.x[t + 1]);
+        }
+        double moved = sim.x[t] - x0;
+        assertTrue(moved > 5.0, "dragged only " + moved + " m of " + (160 * 0.05 + 3));
+        assertTrue(moved < 9.5, "overshot the walker: " + moved);
+        assertSane(sim, 0);
+    }
+
+    /** A rope from above lifts a body only as far as it can bear it, and lets it fall when it goes. */
+    @Test
+    void aRopeFromAboveHangsABodyAndDropsItWhenReleased() {
+        Ragdoll sim = standing(0);
+        run(sim, FLOOR, 120);
+        int t = Skeleton.TORSO * 3;
+        for (int i = 0; i < 100; i++) {
+            sim.tether(sim.x[t], 3.0, 0, 1.0);
+            sim.step(FLOOR);
+        }
+        assertTrue(sim.x[t + 1] > 1.2, "not lifted: " + sim.x[t + 1]);
+        run(sim, FLOOR, 100);
+        assertTrue(sim.x[t + 1] < 0.6, "left hanging: " + sim.x[t + 1]);
+    }
 }

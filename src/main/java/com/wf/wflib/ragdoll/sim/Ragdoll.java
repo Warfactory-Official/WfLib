@@ -110,6 +110,7 @@ public final class Ragdoll {
             if (sub % CONTACT_PERIOD == 0) {
                 gatherContacts(boxes, boxCount, CONTACT_PERIOD * H * Math.min(fastest, MAX_SPEED) + 0.02);
             }
+            pullTether();
             integrate();
             pin(sub);
             solveJoints();
@@ -119,6 +120,7 @@ public final class Ragdoll {
             contactVelocities();
             jointDamping();
         }
+        tethered = false;
         settle();
     }
 
@@ -165,8 +167,58 @@ public final class Ragdoll {
         q[p + 3] = qw * n;
     }
 
+    /** Rope spring: N per metre of stretch, damping N s/m, strongest pull N; the whole body (80 kg) takes the force. */
+    private static final double ROPE_K = 1600, ROPE_C = 320, ROPE_MAX = 3200, BODY_MASS = 80.0;
+    private boolean tethered, taut;
+    private final double[] tetherAnchor = new double[3];
+    private double tetherLen;
+
+    /**
+     * A rope from the torso to {@code (ax, ay, az)} for the next step, {@code len} metres long. Slack it does nothing; past its
+     * length it pulls the whole body toward the anchor like a spring, and the body slides, drags and hangs under its own weight,
+     * friction and collisions, so a body is lifted only as long as the rope can bear it and falls when it is let go. Call every
+     * step it should hold.
+     */
+    public void tether(double ax, double ay, double az, double len) {
+        tethered = true;
+        tetherAnchor[0] = ax;
+        tetherAnchor[1] = ay;
+        tetherAnchor[2] = az;
+        tetherLen = len;
+        int t = Skeleton.TORSO * 3;
+        double dx = ax - x[t], dy = ay - x[t + 1], dz = az - x[t + 2];
+        if (dx * dx + dy * dy + dz * dz > len * len) {
+            wake();
+        }
+    }
+
+    private void pullTether() {
+        if (!tethered) {
+            return;
+        }
+        int t = Skeleton.TORSO * 3;
+        double dx = tetherAnchor[0] - x[t], dy = tetherAnchor[1] - x[t + 1], dz = tetherAnchor[2] - x[t + 2];
+        double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist <= tetherLen || dist < 1.0e-6) {
+            return;
+        }
+        taut = true;
+        dx /= dist;
+        dy /= dist;
+        dz /= dist;
+        double toward = v[t] * dx + v[t + 1] * dy + v[t + 2] * dz;
+        double force = Math.min(ROPE_MAX, Math.max(0, ROPE_K * (dist - tetherLen) - ROPE_C * toward));
+        double dv = H * force / BODY_MASS;
+        for (int i = 0; i < Skeleton.BODIES; i++) {
+            v[i * 3] += dv * dx;
+            v[i * 3 + 1] += dv * dy;
+            v[i * 3 + 2] += dv * dz;
+        }
+    }
+
     private void settle() {
-        if (grip >= 0) {
+        if (grip >= 0 || taut) {
+            taut = false;
             calm = 0;
             return;
         }

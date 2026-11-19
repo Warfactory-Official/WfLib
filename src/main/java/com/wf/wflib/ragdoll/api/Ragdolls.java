@@ -83,13 +83,13 @@ public final class Ragdolls {
     }
 
     /**
-     * Server: pulls a running body toward {@code toward}: its torso is walked that way, speed rising by {@code accel} m/s
-     * per call up to {@code maxSpeed} (a lead's pull). It slides along the ground, and is lifted when {@code toward} is
-     * higher than the torso. Call every tick; a tick without a call lets it settle. False when the body is not
+     * Server: a rope from a running body's torso to {@code anchor}, {@code length} blocks long, for this tick (call every tick it
+     * should hold). Slack it does nothing; taut it pulls the body like a spring, so the body drags along the ground against
+     * friction, hangs under its own weight, and falls when the rope is let go or goes slack. False when the body is not
      * simulating or is carried.
      */
-    public static boolean tow(LivingEntity body, Vec3 toward, double accel, double maxSpeed) {
-        return WFSystems.enabled("ragdoll") && RagdollServer.tow(body, toward, accel, maxSpeed);
+    public static boolean tether(LivingEntity body, Vec3 anchor, double length) {
+        return WFSystems.enabled("ragdoll") && RagdollServer.tether(body, anchor, length);
     }
 
     /** Explosion throw / round shove, as a ragdolled player gets. */

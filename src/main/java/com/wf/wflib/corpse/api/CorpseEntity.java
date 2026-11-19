@@ -303,61 +303,32 @@ public class CorpseEntity extends LivingEntity implements Leashable {
         return new Vec3(0, 0.25, 0);
     }
 
-    /** Where on the holder the torso is hauled to: ankle height, so a holder on a ledge brings the body up to the lip. */
-    private static final double HOLD_HEIGHT = 0.3;
-    /** Slack lead: a body this far from its holder (blocks, along the ground) starts being pulled... */
-    private static final double SLACK = 2.2;
-    /** ...and keeps being pulled until it is this close, so the pull does not stutter on and off at the edge. */
-    private static final double CLOSE = 1.2;
-    /** Higher than this above the torso, the body is hauled up; it stays held until it is lowered by as much again. */
-    private static final double HAUL = 0.5;
-    private boolean hauling, dragging;
+    /** The lead is tied to the holder at waist height. */
+    private static final double HOLD_HEIGHT = 0.9;
+    /** Rope length, blocks, trailing along the ground; and hauled short when the holder stands higher than the body. */
+    private static final double TRAIL = 2.0, HAULED = 1.0;
+    /** Holder this much above the torso: the rope is reeled in (1 m/s) to bring the body up; otherwise let out again. */
+    private static final double HAUL_ABOVE = 1.2;
+    private double rope = TRAIL;
 
-    /** Server, every tick on a lead: the holder drags the body along, hauls it up when they stand higher, and holds it there. */
+    /** Server, every tick on a lead: a real rope from the torso to the holder (see {@code Ragdolls.tether}). */
     private void pullOnLead() {
         Entity holder = getLeashHolder();
         if (holder == null || holder.level() != level()) {
-            hauling = false;
-            dragging = false;
+            rope = TRAIL;
             return;
         }
-        Vec3 hold = holder.position().add(0, HOLD_HEIGHT, 0);
-        double need = hold.y - Ragdolls.torsoY(this);   // NaN until the body simulates: every test below is then false
-        if (need > HAUL) {
-            hauling = true;
-        } else if (need < -HAUL) {
-            hauling = false;                            // the holder went down: let it down
-        }
-        Vec3 centre = getBoundingBox().getCenter();
-        double along = Math.hypot(hold.x - centre.x, hold.z - centre.z);
-        if (along > SLACK) {
-            dragging = true;
-        } else if (along < CLOSE) {
-            dragging = false;
-        }
-        if (hauling || dragging) {
-            Ragdolls.tow(this, hold, 0.4, CorpseConfig.DRAG_SPEED.get());
-        }
+        Vec3 anchor = holder.position().add(0, HOLD_HEIGHT, 0);
+        double above = anchor.y - Ragdolls.torsoY(this);   // NaN until the body simulates: then it is let out
+        double target = above > HAUL_ABOVE ? HAULED : TRAIL;
+        rope += Math.max(-0.05, Math.min(0.05, target - rope));
+        Ragdolls.tether(this, anchor, rope);
     }
 
-    /** The pull above replaces vanilla's elastic nudge, which a ragdoll ignores. */
+    /** The rope above replaces vanilla's elastic nudge, which a ragdoll ignores. */
     @Override
     public void elasticRangeLeashBehaviour(Entity holder, float distance) {
     }
-
-    /** A dragged corpse trails far behind a sprinter: pull harder instead of snapping at the vanilla 10 blocks. */
-    @Override
-    public void leashTooFarBehaviour() {
-        Entity holder = getLeashHolder();
-        if (holder != null && distanceTo(holder) < TOW_LIMIT) {
-            Ragdolls.tow(this, holder.position().add(0, HOLD_HEIGHT, 0), 0.5, CorpseConfig.DRAG_SPEED.get() * 1.5);
-        } else {
-            Leashable.super.leashTooFarBehaviour();
-        }
-    }
-
-    /** Blocks between holder and body at which a lead finally breaks. */
-    private static final double TOW_LIMIT = 24;
 
     /** Burning is drawn even though the body is fire immune to the world. */
     @Override
