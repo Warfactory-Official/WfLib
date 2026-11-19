@@ -548,5 +548,21 @@
   "wflib.voices.speaker": "Speaker",
   "wflib.voices.sample": "Play",
   "wflib.voices.none_installed": "No voice packs installed (wflib/voices/packs)",
-  "item.wflib.soldier_spawn_egg": "Soldier Editor"
+  "item.wflib.soldier_spawn_egg": "Soldier Editor",
+  "item.wflib.camera": "Camera",
+  "item.wflib.photo": "Photograph",
+  "wflib.pda.app.photos": "Photos",
+  "wflib.photo.title": "Photograph",
+  "wflib.photo.full": "Your gallery is full. Delete a photo first.",
+  "wflib.photo.no_film": "No film",
+  "wflib.photo.no_paper": "No paper to print on",
+  "wflib.photo.saved": "Photo saved",
+  "wflib.photo.rejected": "Photo rejected",
+  "wflib.photo.failed": "The photo could not be taken",
+  "wflib.photo.by": "Photo by %s",
+  "wflib.photo.print": "Print",
+  "wflib.photo.delete": "Delete",
+  "wflib.photo.confirm": "Click again",
+  "wflib.photo.loading": "Loading...",
+  "wflib.photo.unavailable": "Photo unavailable"
 }

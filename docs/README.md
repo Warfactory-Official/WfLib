@@ -29,6 +29,7 @@ the look-at probe, recon/sonar, and the UI widget system other mods build HUDs f
 | [offscreen-views](offscreen-views.md) | OffscreenView API, Boxy far-entity interplay |
 | [maps-and-telemetry](maps-and-telemetry.md) | map API + telemetry packets |
 | [ui-widgets](ui-widgets.md) | UI widget system: pieces, expressions, input, hosts, JSON layouts |
+| [photos](photos.md) | camera item, offscreen shot, chunked upload, server gallery, PDA gallery app, printed photos |
 | [pda](pda.md) | handheld PDA: focus/input, rendering, app API, shipped apps |
 | [smoking](smoking.md) | cigarette item, first/third person animation, near-miss round event |
 | [nvg](nvg.md) | night vision goggles: helmet mount, flip, IR illuminator, intensifier optics JSON, sensor modes |

@@ -50,6 +50,7 @@ import com.wf.wflib.packs.gametest.PacksGameTest;
 import com.wf.wflib.particle.ParticleSystem;
 import com.wf.wflib.pda.PdaSystem;
 import com.wf.wflib.pda.gametest.PdaUplinkGameTest;
+import com.wf.wflib.photo.PhotoSystem;
 import com.wf.wflib.physics.PhysicsSystem;
 import com.wf.wflib.probe.ProbeSystem;
 import com.wf.wflib.radiation.RadiationSystem;
@@ -162,7 +163,8 @@ public class WFLibMod {
             new PhysicsSystem(),
             new SuppressionSystem(),
             new PacksSystem(),
-            new LabsSystem());
+            new LabsSystem(),
+            new PhotoSystem());
 
     public WFLibMod(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.register(ServerTicks.Listeners.class);

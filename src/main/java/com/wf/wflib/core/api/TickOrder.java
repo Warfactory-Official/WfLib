@@ -43,6 +43,7 @@ public final class TickOrder {
     public static final int RAIL = 150;
     /** Last: state snapshots to predicting clients after every pose writer. */
     public static final int PREDICTION = 100;
+    public static final int PHOTO = 90;
 
     // STARTING
     public static final int WORKERS_START = 1000;
