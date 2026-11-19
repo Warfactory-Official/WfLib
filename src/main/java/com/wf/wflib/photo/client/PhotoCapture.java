@@ -33,7 +33,7 @@ final class PhotoCapture {
     private static final int FRAGMENTS_PER_TICK = 3;
     private static final int[] QUALITY = {82, 65, 48, 32};
 
-    private record Shot(long token, Vec3 eye, float yaw, float pitch) {
+    private record Shot(long token, Vec3 eye, float yaw, float pitch, float fov) {
     }
 
     private static Shot shot;
@@ -44,7 +44,7 @@ final class PhotoCapture {
     }
 
     static void arm(PhotoShutterPacket p) {
-        shot = new Shot(p.token(), new Vec3(p.x(), p.y(), p.z()), p.yaw(), p.pitch());
+        shot = new Shot(p.token(), new Vec3(p.x(), p.y(), p.z()), p.yaw(), p.pitch(), p.fov());
         tries = 0;
     }
 
@@ -61,7 +61,7 @@ final class PhotoCapture {
         TextureTarget target = new TextureTarget(WIDTH, HEIGHT, true, Minecraft.ON_OSX);
         target.setClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         try (OffscreenView view = OffscreenView.sharedGrid()) {
-            if (!view.render(s.eye(), s.yaw(), s.pitch(), 0.0f, PhotoLimits.FOV, target, event.getPartialTick())) {
+            if (!view.render(s.eye(), s.yaw(), s.pitch(), 0.0f, s.fov(), target, event.getPartialTick())) {
                 if (++tries > MAX_TRIES) {
                     shot = null;
                     fail(mc);

@@ -27,6 +27,7 @@ public final class PhotoClient {
     public static void setup() {
         PhotoApp.register();
         NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Pre.class, PhotoCapture::onFrame);
+        NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Pre.class, com.wf.wflib.photo.api.client.CameraScreen::onFrame);
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> PhotoCapture.tickUpload());
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> {
             ROWS.clear();

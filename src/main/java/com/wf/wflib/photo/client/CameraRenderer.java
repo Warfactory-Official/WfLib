@@ -8,7 +8,10 @@ import com.wf.gemrender.direct.GemRenderItemRenderer;
 import com.wf.gemrender.direct.ItemAppearance;
 import com.wf.gemrender.gltf.GemRenderGltfModel;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.gemrender.direct.TextureSlots;
+import com.wf.wflib.photo.PhotoLimits;
 import com.wf.wflib.photo.PhotoSystem;
+import com.wf.wflib.photo.api.client.CameraScreen;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -24,6 +27,9 @@ final class CameraRenderer {
     private static final ModelCache.Handle<GemRenderGltfModel> MODEL = GemRenderModels.handle(
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "models/item/camera.glb"));
 
+    private static final ResourceLocation STILL = ResourceLocation.fromNamespaceAndPath(WFLib.MODID,
+            "textures/item/camera_screen.png");
+
     private CameraRenderer() {
     }
 
@@ -37,6 +43,27 @@ final class CameraRenderer {
             @Override
             public void transform(ItemStack stack, ItemDisplayContext context, PoseStack pose) {
                 pose(context, pose);
+            }
+
+            @Override
+            public TextureSlots slots(ItemStack stack, ItemDisplayContext context) {
+                // The back screen shows what the lens sees while the camera is in the player's hands, a still frame otherwise.
+                boolean held = context.firstPerson();
+                if (held) {
+                    CameraScreen.request(PhotoLimits.FOV);
+                }
+                ResourceLocation screen = held && CameraScreen.live() ? CameraScreen.texture() : STILL;
+                return new TextureSlots() {
+                    @Override
+                    public ResourceLocation texture(String slot) {
+                        return "screen".equals(slot) ? screen : null;
+                    }
+
+                    @Override
+                    public boolean emissive(String slot) {
+                        return "screen".equals(slot);
+                    }
+                };
             }
         });
         event.registerItem(new IClientItemExtensions() {

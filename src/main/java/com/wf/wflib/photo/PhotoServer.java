@@ -79,16 +79,17 @@ public final class PhotoServer {
 
     // ---- shutter -----------------------------------------------------------------------------------------
 
-    /** The camera was used. */
-    public static void shutter(ServerPlayer player) {
+    /** The camera was used: {@code fov} = the vertical field of view of the picture, degrees. @return false when refused (gallery full, no film). */
+    public static boolean shutter(ServerPlayer player, float fov) {
+        float lens = Math.max(PhotoLimits.MIN_FOV, Math.min(PhotoLimits.MAX_FOV, fov));
         PhotoBook book = PhotoBook.get(player.server);
         if (book.count(player.getUUID()) >= PhotoConfig.MAX_PER_PLAYER.get()) {
             player.displayClientMessage(Component.translatable("wflib.photo.full").withStyle(ChatFormatting.RED), true);
-            return;
+            return false;
         }
         if (!pay(player, PhotoConfig.FILM_ITEM.get())) {
             player.displayClientMessage(Component.translatable("wflib.photo.no_film").withStyle(ChatFormatting.RED), true);
-            return;
+            return false;
         }
         long token = player.getRandom().nextLong();
         Vec3 eye = player.getEyePosition();
@@ -98,8 +99,9 @@ public final class PhotoServer {
                 player.level().dimension().location().toString(), eye, yaw, pitch));
         player.level().playSound(null, player.blockPosition(), SoundEvents.TRIPWIRE_CLICK_ON, SoundSource.PLAYERS, 0.8f,
                 1.6f);
-        NeoForge.EVENT_BUS.post(new PhotoTakenEvent(player, player.serverLevel(), eye, yaw, pitch, PhotoLimits.FOV));
-        PacketDistributor.sendToPlayer(player, new PhotoShutterPacket(token, eye.x, eye.y, eye.z, yaw, pitch));
+        NeoForge.EVENT_BUS.post(new PhotoTakenEvent(player, player.serverLevel(), eye, yaw, pitch, lens));
+        PacketDistributor.sendToPlayer(player, new PhotoShutterPacket(token, eye.x, eye.y, eye.z, yaw, pitch, lens));
+        return true;
     }
 
     // ---- upload ------------------------------------------------------------------------------------------
