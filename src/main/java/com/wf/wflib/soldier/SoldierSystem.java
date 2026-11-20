@@ -60,6 +60,7 @@ public final class SoldierSystem implements WFSystem {
                                     return PdaClient.openCarried(ResourceLocation.parse(words[0])) ? 1 : 0;
                                 })))));
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(HireApp::register));
+        modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(com.wf.wflib.soldier.client.GearScreen::register));
         SoldierEditorScreen.registerNameTags();
     }
 

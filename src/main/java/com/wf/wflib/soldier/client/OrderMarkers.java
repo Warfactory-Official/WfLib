@@ -3,15 +3,13 @@ package com.wf.wflib.soldier.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 /**
  * What an order looks like in the world: a pulsing ring and a post at the point it names, a line to it from each soldier
- * that took it, and the order's name floating over each of them. Fades over the last quarter of its time.
+ * that took it. Fades over the last quarter of its time.
  */
 final class OrderMarkers {
     private static final int SEGMENTS = 40;
@@ -49,26 +47,6 @@ final class OrderMarkers {
             }
         }
         buffers.endBatch(RenderType.lines());
-        Font font = mc.font;
-        for (var marker : SquadClient.markers()) {
-            float age = now + partial - marker.born();
-            if (age > 60) continue;                                           // the name over each head is brief
-            int alpha = (int) (255 * Math.min(1f, (60 - age) / 20f));
-            if (alpha < 8) continue;
-            for (int id : marker.echo().entities()) {
-                var entity = mc.level.getEntity(id);
-                if (entity == null) continue;
-                Vec3 at = entity.getPosition(e.getPartialTick().getGameTimeDeltaPartialTick(false)).subtract(cam).add(0, entity.getBbHeight() + 0.9, 0);
-                ps.pushPose();
-                ps.translate(at.x, at.y, at.z);
-                ps.mulPose(e.getCamera().rotation());
-                ps.scale(-0.03f, -0.03f, 0.03f);
-                Component text = Component.literal(marker.echo().label().toUpperCase(java.util.Locale.ROOT));
-                font.drawInBatch(text, -font.width(text) / 2f, 0, (alpha << 24) | 0xFFFFFF, false, ps.last().pose(), buffers,
-                        Font.DisplayMode.SEE_THROUGH, (alpha / 3) << 24, 0xF000F0);
-                ps.popPose();
-            }
-        }
         buffers.endBatch();
     }
 

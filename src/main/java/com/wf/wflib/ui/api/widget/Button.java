@@ -16,11 +16,19 @@ import com.wf.wflib.ui.api.input.UiInput;
 /**
  * {@link Box} that runs {@code action} on click while {@code enabled}; background swaps to {@code hover}
  * under the pointer and {@code pressed} while held over it; border to {@code hoverBorder} / {@code hoverBorderWidth}
- * under the pointer.
+ * under the pointer. {@code secondary} (nullable): runs on a right press over it.
  */
 public record Button(UiAction action, String enabled, String background, String hover, String pressed, String border,
                      float borderWidth, float radius, float padX, float padY, float minWidth, float minHeight,
-                     Point align, WidgetDef child, String hoverBorder, float hoverBorderWidth) implements WidgetDef {
+                     Point align, WidgetDef child, String hoverBorder, float hoverBorderWidth,
+                     UiAction secondary) implements WidgetDef {
+    public Button(UiAction action, String enabled, String background, String hover, String pressed, String border,
+                  float borderWidth, float radius, float padX, float padY, float minWidth, float minHeight,
+                  Point align, WidgetDef child, String hoverBorder, float hoverBorderWidth) {
+        this(action, enabled, background, hover, pressed, border, borderWidth, radius, padX, padY, minWidth, minHeight,
+                align, child, hoverBorder, hoverBorderWidth, null);
+    }
+
     /** Border unchanged on hover. */
     public Button(UiAction action, String enabled, String background, String hover, String pressed, String border,
                   float borderWidth, float radius, float padX, float padY, float minWidth, float minHeight,
@@ -138,6 +146,13 @@ public record Button(UiAction action, String enabled, String background, String 
         public void release(Object item, float x, float y, boolean inside) {
             if (inside) {
                 action.run(item);
+            }
+        }
+
+        @Override
+        public void secondary(Object item, float x, float y) {
+            if (Button.this.secondary != null) {
+                Button.this.secondary.run(item);
             }
         }
     }

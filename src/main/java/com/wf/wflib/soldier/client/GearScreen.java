@@ -8,20 +8,20 @@ import com.wf.wflib.soldier.GearPackets;
 import com.wf.wflib.soldier.SoldierCatalogue;
 import com.wf.wflib.soldier.Want;
 import com.wf.wflib.soldier.api.SoldierRole;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiContext;
+import com.wf.wflib.ui.api.UiHud;
+import com.wf.wflib.ui.api.UiScreen;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.RemotePlayer;
-import net.minecraft.world.entity.EquipmentSlot;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,55 +30,105 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * The gear screen, in the manner of Arma 3's arsenal but inside one box: a rail of categories on the left, a list of what
- * can be chosen with how many the force has in storage, and the loadout being built on the right. A loadout is either
- * built by hand and given to the selected soldiers, or loaded from a saved preset. Nothing is handed over here: the
- * soldiers go and find it in storage.
+ * Arsenal-style gear screen: category rail, what can be chosen with the force's stock, the loadout being built. A
+ * loadout is built by hand or loaded from a preset and given to the selected soldiers; nothing is handed over here, the
+ * soldiers fetch it from storage. Layout in {@link GearLayout}.
  */
-public final class GearScreen extends Screen {
-    private static final int BG = 0xF0101418, PANEL = 0xFF1A2129, HEAD = 0xFF222B35, INK = 0xFFE4EDF7, DIM = 0xFF8C9BAA,
-            ACCENT = 0xFF6ED5BD, HAVE = 0xFF7BD88F, NONE = 0xFFE06060, ROW = 0xFF202A34, ROW_ON = 0xFF2C4A47;
-    private static final String[] RAIL = {"gun", "grenade", "head", "chest", "legs", "feet", "presets"};
-    private static final String[] RAIL_LABEL = {"Gun", "Grenades", "Head", "Body", "Legs", "Feet", "Presets"};
-    private static final int ROW_H = 20, TOP = 22, BOTTOM = 24, RAIL_W = 26;
+public final class GearScreen {
+    static final String[] RAIL = {"gun", "grenade", "head", "chest", "legs", "feet", "presets"};
+    static final String[] RAIL_LABEL = {"Gun", "Grenades", "Head", "Body", "Legs", "Feet", "Presets"};
+
+    record Row(SoldierCatalogue.Choice choice, int qty) {}
+
+    record Line(String label, String slot, SoldierCatalogue.Choice choice, int have) {}
+
+    record Kind(String key, String label, int count, int have) {}
+
+    record Tab(int index, String label, ItemStack icon) {}
+
+    static GearScreen current;
+    static final Subject<GearScreen> GEAR = Subject.register("gear", GearScreen.class, () -> current);
+    static final Subject<Row> ROW = Subject.register("gear_row", Row.class);
+    static final Subject<GearBook.Preset> PRESET = Subject.register("gear_preset", GearBook.Preset.class);
+    static final Subject<Line> LINE = Subject.register("gear_line", Line.class);
+    static final Subject<Kind> KIND = Subject.register("gear_kind", Kind.class);
+    static final Subject<Tab> TAB = Subject.register("gear_tab", Tab.class);
+    static final Subject<String> NEED = Subject.register("gear_need", String.class);
 
     private static List<UUID> pending = List.of();
-
-    private record Act(int x0, int y0, int x1, int y1, Runnable left, Runnable right) {
-        boolean has(double x, double y) {
-            return x >= x0 && x < x1 && y >= y0 && y < y1;
-        }
-    }
-
-    private record Row(SoldierCatalogue.Choice choice, int qty) {}
 
     private final List<UUID> targets;
     private final SoldierCatalogue catalogue = SoldierCatalogue.create();
     private final Map<String, Integer> stock = new LinkedHashMap<>();
     private final List<GearBook.Preset> presets = new ArrayList<>();
-    private final Map<String, List<String>> needs = new LinkedHashMap<>();
-    private final List<Act> acts = new ArrayList<>();
+    private final List<String> needLines = new ArrayList<>();
+    private final List<Tab> tabs = new ArrayList<>();
 
     private String gun = "", role = "";
     private final List<String> grenades = new ArrayList<>();
     private final Map<String, String> armour = new LinkedHashMap<>();
-    private int spares = -1, rail = 0, scroll = 0, presetScroll = 0;
+    private int spares = -1, rail = 0;
     private String message = "";
     private boolean claims;
     private List<Row> rows = List.of();
     private String rowsFor = "";
-    private EditBox search, nameBox;
-    /** The model beside the list: wears the loadout and whatever is hovered, and turns when dragged. */
-    private RemotePlayer preview;
-    private float yaw = -20;
-    private boolean turning;
+    private List<Line> lines = List.of();
+    private List<Kind> kinds = List.of();
+    private int loadoutRev = 1, linesRev;
     private SoldierCatalogue.Choice hovered;
+    private long hoveredFrame = -1;
+    private RemotePlayer preview;
     private String previewSig = "";
-    /** One piece of real equipment per category, drawn at random each time the screen opens; a vanilla stand-in where nothing is installed. */
-    private ItemStack[] icons;
-    private int px, py, pw, ph;
+    private UiScreen screen;
+    float yaw = -20;
 
-    // ---- opening and talking to the server
+    public static void register() {
+        Signals.text(GEAR, "title", 64, s -> "Gear  -  " + s.targetLabel());
+        Signals.text(GEAR, "storage", 48, s -> s.claims ? "Storage: your WarForge claims + depots" : "Storage: marked depots");
+        Signals.text(GEAR, "message", 64, s -> s.message);
+        Signals.text(GEAR, "assign", 48, s -> "ASSIGN TO " + s.targetLabel().toUpperCase(Locale.ROOT));
+        Signals.text(GEAR, "role_text", 16, s -> s.role.isEmpty() ? "unchanged" : s.role);
+        Signals.text(GEAR, "mags_text", 12, s -> s.spares < 0 ? "unchanged" : Integer.toString(s.spares));
+        Signals.num(GEAR, "yaw", s -> s.yaw);
+        Signals.bool(GEAR, "presets_tab", s -> RAIL[s.rail].equals("presets"));
+        Signals.bool(GEAR, "rows_empty", s -> s.rows().isEmpty());
+        Signals.bool(GEAR, "presets_empty", s -> s.presets.isEmpty());
+        Signals.bool(GEAR, "kinds_empty", s -> s.kinds().isEmpty());
+        Signals.bool(GEAR, "needs_any", s -> !s.needLines.isEmpty());
+        Signals.items(GEAR, "rows", GearScreen::rows, ROW);
+        Signals.items(GEAR, "presets", s -> s.presets, PRESET);
+        Signals.items(GEAR, "slots", GearScreen::lines, LINE);
+        Signals.items(GEAR, "kinds", GearScreen::kinds, KIND);
+        Signals.items(GEAR, "tabs", s -> s.tabs, TAB);
+        Signals.items(GEAR, "needs", s -> s.needLines, NEED);
+
+        Signals.text(ROW, "label", 64, r -> r.choice.label());
+        Signals.text(ROW, "qty", 8, r -> Integer.toString(r.qty));
+        Signals.text(ROW, "count", 8, r -> {
+            int n = current == null ? 0 : current.count(r.choice);
+            return n > 0 ? "x" + n : "";
+        });
+        Signals.bool(ROW, "have", r -> r.qty > 0);
+        Signals.bool(ROW, "chosen", r -> current != null && current.isChosen(r.choice));
+        Signals.bool(ROW, "counted", r -> current != null && current.count(r.choice) > 0);
+
+        Signals.text(PRESET, "name", 32, GearBook.Preset::name);
+        Signals.text(PRESET, "summary", 120, p -> current == null ? "" : current.summary(p));
+
+        Signals.text(LINE, "label", 12, Line::label);
+        Signals.text(LINE, "name", 64, l -> l.choice == null ? "" : l.choice.label());
+        Signals.text(LINE, "have", 8, l -> Integer.toString(l.have));
+        Signals.bool(LINE, "set", l -> l.choice != null);
+        Signals.bool(LINE, "ok", l -> l.have > 0);
+
+        Signals.text(KIND, "label", 64, Kind::label);
+        Signals.text(KIND, "have", 8, k -> Integer.toString(k.have));
+        Signals.bool(KIND, "ok", k -> k.have >= k.count);
+
+        Signals.bool(TAB, "on", t -> current != null && current.rail == t.index);
+
+        Signals.text(NEED, "line", 160, line -> line);
+    }
 
     /** Asks the server for the screen; {@code soldiers} are the body UUIDs the squad screen lists. */
     public static void open(List<UUID> soldiers) {
@@ -86,7 +136,7 @@ public final class GearScreen extends Screen {
         send("open", new JsonObject(), pending);
     }
 
-    private static void send(String action, JsonObject data, List<UUID> ids) {
+    static void send(String action, JsonObject data, List<UUID> ids) {
         var arr = new JsonArray();
         ids.forEach(i -> arr.add(i.toString()));
         data.add("ids", arr);
@@ -94,19 +144,29 @@ public final class GearScreen extends Screen {
     }
 
     public static void receive(String json) {
-        Minecraft mc = Minecraft.getInstance();
         var j = JsonParser.parseString(json).getAsJsonObject();
-        if (mc.screen instanceof GearScreen s) s.take(j);
+        if (current != null && Minecraft.getInstance().screen == current.screen) current.take(j);
         else if (j.get("open").getAsBoolean()) {
             var s = new GearScreen(pending);
             s.take(j);
-            mc.setScreen(s);
+            s.show();
         }
     }
 
     private GearScreen(List<UUID> targets) {
-        super(Component.literal("Soldier gear"));
         this.targets = targets;
+        ItemStack[] icons = pickIcons();
+        for (int i = 0; i < RAIL.length; i++) tabs.add(new Tab(i, RAIL_LABEL[i], icons[i]));
+    }
+
+    private void show() {
+        current = this;
+        GearLayout.SEARCH.set("");
+        GearLayout.NAME.set("");
+        screen = UiScreen.open(GearLayout.layout(), UiContext.EMPTY, Component.literal("Soldier gear"),
+                new UiScreen.Options(false, false, null, () -> {
+                    if (current == this) current = null;
+                }));
     }
 
     private void take(JsonObject j) {
@@ -117,17 +177,18 @@ public final class GearScreen extends Screen {
         j.getAsJsonObject("stock").entrySet().forEach(e -> stock.put(e.getKey(), e.getValue().getAsInt()));
         presets.clear();
         for (var e : j.getAsJsonArray("presets")) presets.add(GearBook.Preset.read(e.getAsJsonObject()));
-        needs.clear();
+        needLines.clear();
         for (var e : j.getAsJsonArray("targets")) {
             var t = e.getAsJsonObject();
             List<String> list = new ArrayList<>();
             t.getAsJsonArray("needs").forEach(n -> list.add(n.getAsString()));
-            if (!list.isEmpty()) needs.put(t.get("name").getAsString(), list);
+            if (!list.isEmpty()) {
+                needLines.add(t.get("name").getAsString().replace('_', ' ') + ": " + String.join(", ", list));
+            }
         }
         rowsFor = "";
+        loadoutRev++;
     }
-
-    // ---- loadout
 
     private int qty(String key, String slot) {
         return stock.getOrDefault(key + "|" + slot, 0);
@@ -149,41 +210,16 @@ public final class GearScreen extends Screen {
         return d;
     }
 
-    private void load(GearBook.Preset p) {
-        gun = p.want().gun();
-        grenades.clear();
-        grenades.addAll(p.want().grenades());
-        armour.clear();
-        armour.putAll(p.want().armour());
-        role = p.role();
-        spares = p.spares();
-        nameBox.setValue(p.name());
-        message = "Loaded " + p.name();
+    private int count(SoldierCatalogue.Choice c) {
+        return c.slot().equals("grenade") ? Collections.frequency(grenades, c.key()) : 0;
     }
 
-    private void clear() {
-        gun = "";
-        grenades.clear();
-        armour.clear();
-        role = "";
-        spares = -1;
-        message = "Cleared";
-    }
-
-    private void pick(SoldierCatalogue.Choice c, boolean add) {
-        String slot = c.slot();
-        switch (slot) {
-            case "gun" -> gun = gun.equals(c.key()) ? "" : c.key();
-            case "grenade" -> {
-                if (add) {
-                    if (grenades.size() < Want.MAX_GRENADES) grenades.add(c.key());
-                } else grenades.remove(c.key());
-            }
-            default -> {
-                if (c.key().equals(armour.get(slot))) armour.remove(slot);
-                else armour.put(slot, c.key());
-            }
-        }
+    private boolean isChosen(SoldierCatalogue.Choice c) {
+        return switch (c.slot()) {
+            case "gun" -> gun.equals(c.key());
+            case "grenade" -> grenades.contains(c.key());
+            default -> c.key().equals(armour.get(c.slot()));
+        };
     }
 
     private String targetLabel() {
@@ -193,8 +229,17 @@ public final class GearScreen extends Screen {
         return targets.size() + " soldiers";
     }
 
-    // ---- layout
+    private String summary(GearBook.Preset p) {
+        List<String> bits = new ArrayList<>();
+        var gc = choice(p.want().gun());
+        if (gc != null) bits.add(gc.label());
+        if (!p.want().grenades().isEmpty()) bits.add(p.want().grenades().size() + " grenades");
+        if (!p.want().armour().isEmpty()) bits.add(p.want().armour().size() + " armour");
+        if (!p.role().isEmpty()) bits.add(p.role());
+        return bits.isEmpty() ? "empty" : String.join(", ", bits);
+    }
 
+    /** One piece of real equipment per category, random per open; a vanilla stand-in where nothing is installed. */
     private ItemStack[] pickIcons() {
         ItemStack[] stand = {new ItemStack(Items.CROSSBOW), new ItemStack(Items.FIRE_CHARGE), new ItemStack(Items.IRON_HELMET),
                 new ItemStack(Items.IRON_CHESTPLATE), new ItemStack(Items.IRON_LEGGINGS), new ItemStack(Items.IRON_BOOTS), new ItemStack(Items.BOOK)};
@@ -207,59 +252,9 @@ public final class GearScreen extends Screen {
         return stand;
     }
 
-    @Override
-    protected void init() {
-        if (icons == null) icons = pickIcons();
-        pw = Math.min(width - 16, 660);
-        ph = Math.min(height - 16, 300);
-        px = (width - pw) / 2;
-        py = (height - ph) / 2;
-        int listX = px + RAIL_W + 8;
-        search = new EditBox(font, listX, py + TOP + 2, listW() - 4, 14, Component.literal("Search"));
-        search.setHint(Component.literal("Search").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        search.setResponder(s -> {
-            rowsFor = "";
-            scroll = 0;
-        });
-        addRenderableWidget(search);
-        nameBox = new EditBox(font, rightX() + 2, py + ph - BOTTOM - 20, rightW() - 4, 14, Component.literal("Preset name"));
-        nameBox.setHint(Component.literal("Preset name").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
-        nameBox.setMaxLength(32);
-        addRenderableWidget(nameBox);
-    }
-
-    private int rightW() {
-        return 178;
-    }
-
-    private int rightX() {
-        return px + pw - rightW() - 6;
-    }
-
-    /** The model needs room: below a certain width it is left out and the list keeps the space. */
-    private int modelW() {
-        return pw >= 600 ? 150 : 0;
-    }
-
-    private int modelX() {
-        return rightX() - 6 - modelW();
-    }
-
-    private int listW() {
-        return (modelW() > 0 ? modelX() : rightX()) - 6 - (px + RAIL_W + 8);
-    }
-
-    private int listY() {
-        return py + TOP + 20 + 14;
-    }
-
-    private int listBottom() {
-        return py + ph - BOTTOM - 4;
-    }
-
     private List<Row> rows() {
         String slot = RAIL[rail];
-        String q = search.getValue().toLowerCase(Locale.ROOT).strip();
+        String q = GearLayout.SEARCH.text().toString().toLowerCase(Locale.ROOT).strip();
         String sig = slot + "|" + q + "|" + stock.hashCode();
         if (sig.equals(rowsFor)) return rows;
         List<Row> out = new ArrayList<>();
@@ -275,184 +270,155 @@ public final class GearScreen extends Screen {
         return rows;
     }
 
-    // ---- drawing
-
-    @Override
-    public void renderBackground(GuiGraphics g, int mx, int my, float pt) {
-        g.fill(0, 0, width, height, 0x99000000);
-        g.fill(px, py, px + pw, py + ph, BG);
-        frame(g, px, py, px + pw, py + ph, 0xFF3A4654);
-    }
-
-    private static void frame(GuiGraphics g, int x0, int y0, int x1, int y1, int c) {
-        g.fill(x0, y0, x1, y0 + 1, c);
-        g.fill(x0, y1 - 1, x1, y1, c);
-        g.fill(x0, y0, x0 + 1, y1, c);
-        g.fill(x1 - 1, y0, x1, y1, c);
-    }
-
-    @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
-        acts.clear();
-        super.render(g, mx, my, pt);
-        title(g);
-        rail(g, mx, my);
-        boolean presetsTab = RAIL[rail].equals("presets");
-        search.visible = !presetsTab;
-        if (presetsTab) {
-            hovered = null;
-            presetList(g, mx, my);
+    private void rebuildLoadout() {
+        if (linesRev == loadoutRev) return;
+        linesRev = loadoutRev;
+        List<Line> l = new ArrayList<>();
+        var g = choice(gun);
+        l.add(new Line("Gun", "gun", g, g == null ? 0 : qty(g.key(), "gun")));
+        for (int i = 0; i < Want.SLOTS.size(); i++) {
+            String s = Want.SLOTS.get(i);
+            var c = choice(armour.getOrDefault(s, ""));
+            l.add(new Line(RAIL_LABEL[2 + i], s, c, c == null ? 0 : qty(c.key(), s)));
         }
-        else itemList(g, mx, my);
-        if (modelW() > 0) model(g);
-        loadout(g, mx, my);
-        bar(g, mx, my);
+        lines = l;
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        grenades.forEach(k -> counts.merge(k, 1, Integer::sum));
+        List<Kind> k = new ArrayList<>();
+        counts.forEach((key, n) -> {
+            var c = choice(key);
+            k.add(new Kind(key, (c == null ? key : c.label()) + " x" + n, n, c == null ? 0 : qty(c.key(), "grenade")));
+        });
+        kinds = k;
     }
 
-    private void title(GuiGraphics g) {
-        g.fill(px + 1, py + 1, px + pw - 1, py + TOP, HEAD);
-        g.drawString(font, "Gear  -  " + targetLabel(), px + 8, py + 7, INK, false);
-        String where = claims ? "Storage: your WarForge claims + depots" : "Storage: marked depots";
-        g.drawString(font, where, px + pw - 8 - font.width(where), py + 7, DIM, false);
+    private List<Line> lines() {
+        rebuildLoadout();
+        return lines;
     }
 
-    private void rail(GuiGraphics g, int mx, int my) {
-        for (int i = 0; i < RAIL.length; i++) {
-            int x0 = px + 4, y0 = py + TOP + 4 + i * (RAIL_W + 2);
-            boolean on = i == rail, over = mx >= x0 && mx < x0 + RAIL_W && my >= y0 && my < y0 + RAIL_W;
-            g.fill(x0, y0, x0 + RAIL_W, y0 + RAIL_W, on ? ROW_ON : over ? 0xFF2A3541 : PANEL);
-            if (on) g.fill(x0, y0, x0 + 2, y0 + RAIL_W, ACCENT);
-            g.renderItem(icons[i], x0 + 5, y0 + 5);
-            final int idx = i;
-            acts.add(new Act(x0, y0, x0 + RAIL_W, y0 + RAIL_W, () -> {
-                rail = idx;
-                scroll = 0;
-                rowsFor = "";
-            }, null));
-            if (over) g.renderTooltip(font, Component.literal(RAIL_LABEL[i]), mx, my);
-        }
+    private List<Kind> kinds() {
+        rebuildLoadout();
+        return kinds;
     }
 
-    private void itemList(GuiGraphics g, int mx, int my) {
-        int x0 = px + RAIL_W + 8, x1 = x0 + listW(), y0 = listY(), y1 = listBottom();
-        g.fill(x0, py + TOP + 20, x1, y0, HEAD);
-        g.drawString(font, "Qty", x0 + 24, py + TOP + 24, DIM, false);
-        g.drawString(font, "Name", x0 + 64, py + TOP + 24, DIM, false);
-        g.fill(x0, y0, x1, y1, PANEL);
-        List<Row> list = rows();
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, list.size() * ROW_H - (y1 - y0))));
-        if (list.isEmpty()) g.drawCenteredString(font, "Nothing installed for this slot", (x0 + x1) / 2, y0 + 12, DIM);
-        g.enableScissor(x0, y0, x1, y1);
-        ItemStack hover = null;
-        hovered = null;
-        for (int i = 0; i < list.size(); i++) {
-            int ry = y0 + i * ROW_H - scroll;
-            if (ry + ROW_H < y0 || ry > y1) continue;
-            Row r = list.get(i);
-            var c = r.choice();
-            boolean on = isChosen(c), over = mx >= x0 && mx < x1 && my >= Math.max(ry, y0) && my < Math.min(ry + ROW_H, y1);
-            g.fill(x0, ry, x1, ry + ROW_H - 1, on ? ROW_ON : over ? 0xFF28333F : ROW);
-            g.renderItem(c.stack(), x0 + 3, ry + 2);
-            String q = r.qty() > 0 ? Integer.toString(r.qty()) : "0";
-            g.drawString(font, q, x0 + 56 - font.width(q), ry + 6, r.qty() > 0 ? HAVE : NONE, false);
-            int count = c.slot().equals("grenade") ? java.util.Collections.frequency(grenades, c.key()) : 0;
-            String label = font.plainSubstrByWidth(c.label(), x1 - x0 - 64 - (count > 0 ? 24 : 6));
-            g.drawString(font, label, x0 + 64, ry + 6, r.qty() > 0 ? INK : DIM, false);
-            if (count > 0) g.drawString(font, "x" + count, x1 - 4 - font.width("x" + count), ry + 6, ACCENT, false);
-            if (over) {
-                hover = c.stack();
-                hovered = c;
+    // ---- actions, called by the layout
+
+    void tab(int index) {
+        rail = index;
+        rowsFor = "";
+    }
+
+    void pick(SoldierCatalogue.Choice c, boolean add) {
+        String slot = c.slot();
+        switch (slot) {
+            case "gun" -> gun = gun.equals(c.key()) ? "" : c.key();
+            case "grenade" -> {
+                if (add) {
+                    if (grenades.size() < Want.MAX_GRENADES) grenades.add(c.key());
+                } else grenades.remove(c.key());
             }
-            if (ry + ROW_H > y0 && ry < y1) {
-                acts.add(new Act(x0, Math.max(ry, y0), x1, Math.min(ry + ROW_H, y1), () -> pick(c, true), () -> pick(c, false)));
+            default -> {
+                if (c.key().equals(armour.get(slot))) armour.remove(slot);
+                else armour.put(slot, c.key());
             }
         }
-        g.disableScissor();
-        if (list.size() * ROW_H > y1 - y0) {                                   // a scroll bar
-            int total = list.size() * ROW_H, bar = Math.max(12, (y1 - y0) * (y1 - y0) / total);
-            int by = y0 + (int) ((long) (y1 - y0 - bar) * scroll / Math.max(1, total - (y1 - y0)));
-            g.fill(x1 - 3, by, x1 - 1, by + bar, 0xFF55657A);
-        }
-        if (hover != null) g.renderTooltip(font, hover, mx, my);
+        loadoutRev++;
     }
 
-    private boolean isChosen(SoldierCatalogue.Choice c) {
-        return switch (c.slot()) {
-            case "gun" -> gun.equals(c.key());
-            case "grenade" -> grenades.contains(c.key());
-            default -> c.key().equals(armour.get(c.slot()));
-        };
+    void clearSlot(String slot) {
+        if (slot.equals("gun")) gun = "";
+        else armour.remove(slot);
+        loadoutRev++;
     }
 
-    private void presetList(GuiGraphics g, int mx, int my) {
-        int x0 = px + RAIL_W + 8, x1 = x0 + listW(), y0 = py + TOP + 4, y1 = listBottom();
-        g.fill(x0, y0, x1, y1, PANEL);
-        if (presets.isEmpty()) {
-            g.drawCenteredString(font, "No saved presets", (x0 + x1) / 2, y0 + 14, DIM);
-            g.drawCenteredString(font, "Build a loadout, name it, and save it", (x0 + x1) / 2, y0 + 28, DIM);
-            return;
-        }
-        int rowH = 30;
-        presetScroll = Math.max(0, Math.min(presetScroll, Math.max(0, presets.size() * rowH - (y1 - y0))));
-        g.enableScissor(x0, y0, x1, y1);
-        for (int i = 0; i < presets.size(); i++) {
-            int ry = y0 + i * rowH - presetScroll;
-            if (ry + rowH < y0 || ry > y1) continue;
-            var p = presets.get(i);
-            boolean over = mx >= x0 && mx < x1 - 22 && my >= Math.max(ry, y0) && my < Math.min(ry + rowH, y1);
-            g.fill(x0, ry, x1, ry + rowH - 2, over ? 0xFF28333F : ROW);
-            g.drawString(font, font.plainSubstrByWidth(p.name(), x1 - x0 - 30), x0 + 6, ry + 5, INK, false);
-            g.drawString(font, font.plainSubstrByWidth(summary(p), x1 - x0 - 30), x0 + 6, ry + 16, DIM, false);
-            g.drawString(font, "x", x1 - 14, ry + 10, over ? DIM : NONE, false);
-            acts.add(new Act(x0, Math.max(ry, y0), x1 - 22, Math.min(ry + rowH - 2, y1), () -> load(p), null));
-            acts.add(new Act(x1 - 22, Math.max(ry, y0), x1, Math.min(ry + rowH - 2, y1), () -> {
-                var d = new JsonObject();
-                d.addProperty("name", p.name());
-                send("delete", d, targets);
-            }, null));
-        }
-        g.disableScissor();
+    void dropGrenades(String key) {
+        grenades.removeIf(k -> k.equals(key));
+        loadoutRev++;
     }
 
-    private String summary(GearBook.Preset p) {
-        List<String> bits = new ArrayList<>();
-        var gc = choice(p.want().gun());
-        if (gc != null) bits.add(gc.label());
-        if (!p.want().grenades().isEmpty()) bits.add(p.want().grenades().size() + " grenades");
-        if (!p.want().armour().isEmpty()) bits.add(p.want().armour().size() + " armour");
-        if (!p.role().isEmpty()) bits.add(p.role());
-        return bits.isEmpty() ? "empty" : String.join(", ", bits);
+    void load(GearBook.Preset p) {
+        gun = p.want().gun();
+        grenades.clear();
+        grenades.addAll(p.want().grenades());
+        armour.clear();
+        armour.putAll(p.want().armour());
+        role = p.role();
+        spares = p.spares();
+        GearLayout.NAME.set(p.name());
+        message = "Loaded " + p.name();
+        loadoutRev++;
     }
+
+    void clear() {
+        gun = "";
+        grenades.clear();
+        armour.clear();
+        role = "";
+        spares = -1;
+        message = "Cleared";
+        loadoutRev++;
+    }
+
+    void deletePreset(GearBook.Preset p) {
+        var d = new JsonObject();
+        d.addProperty("name", p.name());
+        send("delete", d, targets);
+    }
+
+    void save() {
+        String name = GearLayout.NAME.text().toString();
+        var preset = new GearBook.Preset(name.isBlank() ? "Preset" : name, want(), role, spares);
+        send("save", preset.json(), targets);
+        message = "Saving...";
+    }
+
+    void assign() {
+        send("assign", assignData(), targets);
+        message = "Sending...";
+    }
+
+    void close() {
+        screen.onClose();
+    }
+
+    void stepRole(int by) {
+        var all = SoldierRole.values();
+        int i = -1;
+        for (int k = 0; k < all.length; k++) if (all[k].id.equals(role)) i = k;
+        int next = i + by;
+        if (role.isEmpty()) next = by > 0 ? 0 : all.length - 1;
+        role = next < 0 || next >= all.length ? "" : all[next].id;
+    }
+
+    void stepSpares(int by) {
+        if (by > 0) spares = spares >= 12 ? -1 : spares + 1;
+        else spares = spares < 0 ? 12 : spares - 1;
+    }
+
+    void hover(SoldierCatalogue.Choice c) {
+        hovered = c;
+        hoveredFrame = UiHud.frame();
+    }
+
+    // ---- preview model
 
     /** A player-shaped figure wearing the loadout, with the hovered item tried on in place of what it covers. */
-    private void model(GuiGraphics g) {
-        int x0 = modelX(), x1 = x0 + modelW(), y0 = py + TOP + 4, y1 = py + ph - BOTTOM - 4;
-        g.fill(x0, y0, x1, y1, PANEL);
-        g.drawString(font, "Preview", x0 + 6, y0 + 4, ACCENT, false);
-        String hint = "drag to turn";
-        g.drawString(font, hint, x1 - 6 - font.width(hint), y0 + 4, 0xFF5E6B78, false);
-        if (minecraft == null || minecraft.level == null) return;
+    RemotePlayer previewEntity() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return null;
         if (preview == null) {
             var team = new net.minecraft.world.scores.PlayerTeam(new net.minecraft.world.scores.Scoreboard(), "gear_preview");
             team.setNameTagVisibility(net.minecraft.world.scores.Team.Visibility.NEVER);
-            preview = new RemotePlayer(minecraft.level, new com.mojang.authlib.GameProfile(UUID.nameUUIDFromBytes("wflib:gear_preview".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "GearPreview")) {
+            preview = new RemotePlayer(mc.level, new com.mojang.authlib.GameProfile(UUID.nameUUIDFromBytes("wflib:gear_preview".getBytes(java.nio.charset.StandardCharsets.UTF_8)), "GearPreview")) {
                 @Override
                 public net.minecraft.world.scores.PlayerTeam getTeam() {
                     return team;
                 }
             };
         }
-        dress(hovered);
-        preview.yBodyRot = 180 + yaw;
-        preview.setYRot(180 + yaw);
-        preview.yHeadRot = 180 + yaw;
-        preview.yHeadRotO = preview.yHeadRot;
-        preview.setXRot(0);
-        int top = y0 + 16;
-        g.enableScissor(x0, top, x1, y1);
-        InventoryScreen.renderEntityInInventory(g, (x0 + x1) / 2f, (top + y1) / 2f + 6, Math.min((x1 - x0) * 0.62f, (y1 - top) / 2.15f),
-                new Vector3f(0, 1f, 0), new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(), preview);
-        g.disableScissor();
+        dress(hoveredFrame == UiHud.frame() && !RAIL[rail].equals("presets") ? hovered : null);
+        return preview;
     }
 
     private void dress(SoldierCatalogue.Choice candidate) {
@@ -471,182 +437,10 @@ public final class GearScreen extends Screen {
             preview.setItemSlot(EquipmentSlot.MAINHAND, candidate.stack().copy());
             return;
         }
-        armour.forEach((slot, key) -> {                         // a piece that covers the same body parts comes off to show it
+        armour.forEach((slot, key) -> {
             var old = choice(key);
-            if (old != null && !java.util.Collections.disjoint(old.covers(), candidate.covers())) preview.setItemSlot(SoldierCatalogue.slot(slot), ItemStack.EMPTY);
+            if (old != null && !Collections.disjoint(old.covers(), candidate.covers())) preview.setItemSlot(SoldierCatalogue.slot(slot), ItemStack.EMPTY);
         });
         preview.setItemSlot(SoldierCatalogue.slot(candidate.slot()), candidate.stack().copy());
-    }
-
-    private void loadout(GuiGraphics g, int mx, int my) {
-        int x0 = rightX(), x1 = x0 + rightW(), y = py + TOP + 4, bottom = py + ph - BOTTOM - 4;
-        g.fill(x0, y, x1, bottom, PANEL);
-        g.drawString(font, "Loadout", x0 + 6, y + 4, ACCENT, false);
-        y += 18;
-        y = slotLine(g, mx, my, "Gun", gun, "gun", x0, x1, y, () -> gun = "");
-        for (int i = 0; i < Want.SLOTS.size(); i++) {
-            String s = Want.SLOTS.get(i);
-            y = slotLine(g, mx, my, RAIL_LABEL[2 + i], armour.getOrDefault(s, ""), s, x0, x1, y, () -> armour.remove(s));
-        }
-        g.drawString(font, "Grenades", x0 + 6, y + 2, DIM, false);
-        y += 11;
-        Map<String, Integer> kinds = new LinkedHashMap<>();
-        grenades.forEach(k -> kinds.merge(k, 1, Integer::sum));
-        if (kinds.isEmpty()) {
-            g.drawString(font, "unchanged", x0 + 10, y, 0xFF5E6B78, false);
-            y += 11;
-        }
-        for (var e : kinds.entrySet()) {
-            var c = choice(e.getKey());
-            int have = c == null ? 0 : qty(c.key(), "grenade");
-            String text = (c == null ? e.getKey() : c.label()) + " x" + e.getValue();
-            g.drawString(font, font.plainSubstrByWidth(text, x1 - x0 - 50), x0 + 10, y, INK, false);
-            String h = Integer.toString(have);
-            g.drawString(font, h, x1 - 18 - font.width(h), y, have >= e.getValue() ? HAVE : NONE, false);
-            final String key = e.getKey();
-            g.drawString(font, "x", x1 - 11, y, NONE, false);
-            acts.add(new Act(x1 - 14, y - 2, x1 - 2, y + 10, () -> grenades.removeIf(k -> k.equals(key)), null));
-            y += 11;
-        }
-        y += 4;
-        String roleText = role.isEmpty() ? "unchanged" : role;
-        g.drawString(font, "Role", x0 + 6, y + 2, DIM, false);
-        int rb = x0 + 50;
-        g.fill(rb, y, x1 - 6, y + 12, 0xFF28333F);
-        g.drawString(font, roleText, rb + 4, y + 2, INK, false);
-        acts.add(new Act(rb, y, x1 - 6, y + 12, this::nextRole, this::prevRole));
-        y += 16;
-        g.drawString(font, "Mags", x0 + 6, y + 2, DIM, false);
-        g.fill(rb, y, x1 - 6, y + 12, 0xFF28333F);
-        g.drawString(font, spares < 0 ? "unchanged" : Integer.toString(spares), rb + 4, y + 2, INK, false);
-        acts.add(new Act(rb, y, x1 - 6, y + 12, () -> spares = spares >= 12 ? -1 : spares + 1, () -> spares = spares < 0 ? 12 : spares - 1));
-        y += 18;
-        if (!needs.isEmpty() && y + 10 < bottom - 24) {
-            g.drawString(font, "Still to collect", x0 + 6, y, DIM, false);
-            y += 10;
-            for (var e : needs.entrySet()) {
-                if (y + 9 > bottom - 24) break;
-                g.drawString(font, font.plainSubstrByWidth(e.getKey().replace('_', ' ') + ": " + String.join(", ", e.getValue()), x1 - x0 - 12), x0 + 8, y, 0xFFE0B040, false);
-                y += 9;
-            }
-        }
-    }
-
-    private int slotLine(GuiGraphics g, int mx, int my, String label, String key, String slot, int x0, int x1, int y, Runnable clear) {
-        g.drawString(font, label, x0 + 6, y + 2, DIM, false);
-        var c = choice(key);
-        if (c == null) {
-            g.drawString(font, "unchanged", x0 + 50, y + 2, 0xFF5E6B78, false);
-        } else {
-            int have = qty(c.key(), slot);
-            g.renderItem(c.stack(), x0 + 44, y - 2);
-            String h = Integer.toString(have);
-            g.drawString(font, h, x1 - 18 - font.width(h), y + 2, have > 0 ? HAVE : NONE, false);
-            g.drawString(font, font.plainSubstrByWidth(c.label(), x1 - 18 - font.width(h) - (x0 + 62) - 4), x0 + 62, y + 2, INK, false);
-            g.drawString(font, "x", x1 - 11, y + 2, NONE, false);
-            acts.add(new Act(x1 - 14, y, x1 - 2, y + 12, clear, null));
-            if (mx >= x0 + 44 && mx < x1 - 18 && my >= y - 2 && my < y + 14) g.renderTooltip(font, c.stack(), mx, my);
-        }
-        return y + 17;
-    }
-
-    private void nextRole() {
-        var all = SoldierRole.values();
-        if (role.isEmpty()) role = all[0].id;
-        else {
-            int i = 0;
-            while (i < all.length && !all[i].id.equals(role)) i++;
-            role = i + 1 >= all.length ? "" : all[i + 1].id;
-        }
-    }
-
-    private void prevRole() {
-        var all = SoldierRole.values();
-        if (role.isEmpty()) role = all[all.length - 1].id;
-        else {
-            int i = 0;
-            while (i < all.length && !all[i].id.equals(role)) i++;
-            role = i - 1 < 0 ? "" : all[i - 1].id;
-        }
-    }
-
-    private void bar(GuiGraphics g, int mx, int my) {
-        int y0 = py + ph - BOTTOM, y1 = py + ph - 1;
-        g.fill(px + 1, y0, px + pw - 1, y1, HEAD);
-        int x = px + 8;
-        x = word(g, mx, my, "CLOSE", x, y0, this::onClose) + 14;
-        x = word(g, mx, my, "CLEAR", x, y0, this::clear) + 14;
-        x = word(g, mx, my, "SAVE PRESET", x, y0, () -> {
-            var d = new JsonObject();
-            var preset = new GearBook.Preset(nameBox.getValue().isBlank() ? "Preset" : nameBox.getValue(), want(), role, spares);
-            send("save", preset.json(), targets);
-            message = "Saving...";
-        }) + 14;
-        String go = "ASSIGN TO " + targetLabel().toUpperCase(Locale.ROOT);
-        int w = font.width(go);
-        word(g, mx, my, go, px + pw - 8 - w, y0, () -> {
-            send("assign", assignData(), targets);
-            message = "Sending...";
-        });
-        if (!message.isEmpty()) {
-            int room = px + pw - 8 - w - 20 - x;
-            String m = font.plainSubstrByWidth(message, Math.max(0, room));
-            g.drawString(font, m, px + pw - 8 - w - 14 - font.width(m), y0 + 8, 0xFFE0B040, false);
-        }
-    }
-
-    private int word(GuiGraphics g, int mx, int my, String text, int x, int y0, Runnable run) {
-        int w = font.width(text);
-        boolean over = mx >= x - 3 && mx < x + w + 3 && my >= y0 && my < y0 + BOTTOM;
-        g.drawString(font, text, x, y0 + 8, over ? ACCENT : INK, false);
-        acts.add(new Act(x - 3, y0, x + w + 3, y0 + BOTTOM, run, null));
-        return x + w;
-    }
-
-    // ---- input
-
-    @Override
-    public boolean mouseClicked(double x, double y, int button) {
-        if (super.mouseClicked(x, y, button)) return true;
-        if (modelW() > 0 && button == 0 && x >= modelX() && x < modelX() + modelW() && y >= py + TOP + 4 && y < py + ph - BOTTOM - 4) {
-            turning = true;
-            return true;
-        }
-        for (int i = acts.size() - 1; i >= 0; i--) {
-            Act a = acts.get(i);
-            if (!a.has(x, y)) continue;
-            Runnable r = button == 1 && a.right() != null ? a.right() : button == 0 ? a.left() : null;
-            if (r == null) return false;
-            r.run();
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
-        if (turning) {
-            yaw += (float) dx * 1.6f;
-            return true;
-        }
-        return super.mouseDragged(x, y, button, dx, dy);
-    }
-
-    @Override
-    public boolean mouseReleased(double x, double y, int button) {
-        turning = false;
-        return super.mouseReleased(x, y, button);
-    }
-
-    @Override
-    public boolean mouseScrolled(double x, double y, double dx, double dy) {
-        if (RAIL[rail].equals("presets")) presetScroll -= (int) (dy * 18);
-        else scroll -= (int) (dy * 20);
-        return true;
-    }
-
-    @Override
-    public boolean isPauseScreen() {
-        return false;
     }
 }

@@ -26,7 +26,6 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -112,6 +111,7 @@ public final class DetectorClient {
             return p != null && Detection.revealed(p, a);
         });
         event.enqueueWork(ZoneArtifactClient::registerLights);
+        event.enqueueWork(DetectorHud::register);
     }
 
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -120,8 +120,7 @@ public final class DetectorClient {
     }
 
     public static void onRegisterLayers(RegisterGuiLayersEvent event) {
-        event.registerAbove(VanillaGuiLayers.HOTBAR, ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "detector"),
-                new DetectorHud());
+        DetectorHud.registerLayer(event);
     }
 
     public static void onClientExtensions(RegisterClientExtensionsEvent event) {

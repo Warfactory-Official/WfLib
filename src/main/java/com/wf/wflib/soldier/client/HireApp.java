@@ -35,7 +35,7 @@ public final class HireApp implements PdaApp {
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "reinforcements");
     private static final HireApp INSTANCE = new HireApp();
     private static final Subject<HireApp> APP = Subject.register("pda_hire", HireApp.class, () -> INSTANCE);
-    private static final Subject<View> OFFER = Subject.register("pda_hire_offer", View.class);
+    static final Subject<View> OFFER = Subject.register("pda_hire_offer", View.class);
     private static final Subject<Member> FORCE = Subject.register("pda_force", Member.class);
     private static volatile boolean forces;
 

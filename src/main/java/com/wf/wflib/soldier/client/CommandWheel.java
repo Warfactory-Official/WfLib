@@ -1,31 +1,82 @@
 package com.wf.wflib.soldier.client;
 
+import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.soldier.Companion;
 import com.wf.wflib.soldier.api.SoldierOrder.Kind;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Ui;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiContext;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.UiScreen;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.widget.Box;
+import com.wf.wflib.ui.api.widget.Point;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
+
+import static com.wf.wflib.ui.api.Ui.place;
+import static com.wf.wflib.ui.api.Ui.shadowed;
+import static com.wf.wflib.ui.api.Ui.stack;
 
 /**
  * Hold the wheel key, move the mouse to an order, let go: the selected group does it. The scroll wheel or 1-5 change group.
  * Orders that need a point use the spot the crosshair was on when the wheel opened (greyed when there was none).
  */
-final class CommandWheel extends Screen {
+final class CommandWheel extends UiScreen {
     /** Clockwise from the top. */
     private static final Kind[] ORDERS = {Kind.FOLLOW, Kind.MOVE, Kind.ATTACK, Kind.SUPPRESS, Kind.RESUPPLY, Kind.GUARD, Kind.PATROL, Kind.HOLD};
     private static final int RADIUS = 78, W = 62, H = 22, DEAD = 22;
+    private static CommandWheel current;
+    private static final Subject<CommandWheel> WHEEL = Subject.register("squad_wheel", CommandWheel.class, () -> current);
+    private static UiLayout layout;
 
     private final Vec3 aim;
     private int hovered = -1;
 
     CommandWheel(Vec3 aim) {
-        super(Component.translatable("wflib.squad.wheel"));
+        super(build(), UiContext.EMPTY, Component.translatable("wflib.squad.wheel"), Options.DEFAULT);
         this.aim = aim;
+        current = this;
     }
 
-    @Override public boolean isPauseScreen() { return false; }
+    static void register() {
+        Signals.num(WHEEL, "hover", w -> w.hovered);
+        Signals.bool(WHEEL, "aim", w -> w.aim != null);
+        Signals.bool(WHEEL, "all", w -> SquadClient.group < 0);
+        Signals.text(WHEEL, "group", 16, w -> SquadClient.group < 0 ? "ALL" : Companion.TEAMS[SquadClient.group].toUpperCase(java.util.Locale.ROOT));
+    }
+
+    static UiLayout build() {
+        if (layout == null) {
+            WidgetDef[] parts = new WidgetDef[ORDERS.length + 2];
+            parts[0] = place("ui.width / 2", "ui.height / 2", Point.CENTER, new Box("#99000000",
+                    "squad_wheel.all ? #FFB0B0B0 : #FFD83A3A", 1, 0, 0, 0, DEAD * 2, DEAD * 2, Point.CENTER,
+                    shadowed("{squad_wheel.group}", "#FFFFFFFF")));
+            for (int i = 0; i < ORDERS.length; i++) {
+                double a = Math.toRadians(i * 45.0);
+                int dx = (int) Math.round(Math.sin(a) * RADIUS), dy = -(int) Math.round(Math.cos(a) * RADIUS);
+                String ok = ORDERS[i].needsPos ? "squad_wheel.aim" : "true";
+                String on = "squad_wheel.hover == " + i;
+                parts[i + 1] = place("ui.width / 2 + " + dx, "ui.height / 2 + " + dy, Point.CENTER, new Box(
+                        on + " ? #DDD83A3A : " + ok + " ? #AA000000 : #66000000", on + " ? #FFFFFFFF : #FF606060", 1, 0, 0, 0, W, H,
+                        Point.CENTER, shadowed(ORDERS[i].title, ok + " ? #FFFFFFFF : #FF707070")));
+            }
+            parts[ORDERS.length + 1] = place("ui.width / 2", "ui.height / 2 + " + (RADIUS + H + 6), Point.TOP,
+                    shadowed("{tr:wflib.squad.wheel_hint}", "#FFB0B0B0"));
+            layout = Ui.layout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "squad_wheel"), stack(parts)).absolute();
+        }
+        return layout;
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
+        current = null;
+    }
 
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float pt) { /* no blur: the world stays in view */ }
 
@@ -88,19 +139,7 @@ final class CommandWheel extends Screen {
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         hovered = pick(mx, my);
-        int cx = width / 2, cy = height / 2;
-        g.fill(cx - DEAD, cy - DEAD, cx + DEAD, cy + DEAD, 0x99000000);
-        SquadHud.frame(g, cx - DEAD, cy - DEAD, cx + DEAD, cy + DEAD, SquadClient.group < 0 ? 0xFFB0B0B0 : 0xFFD83A3A);
-        g.drawCenteredString(font, SquadClient.group < 0 ? "ALL" : Companion.TEAMS[SquadClient.group].toUpperCase(java.util.Locale.ROOT), cx, cy - 4, 0xFFFFFFFF);
-        for (int i = 0; i < ORDERS.length; i++) {
-            double a = Math.toRadians(i * 45.0);
-            int x = cx + (int) Math.round(Math.sin(a) * RADIUS), y = cy - (int) Math.round(Math.cos(a) * RADIUS);
-            boolean on = i == hovered, ok = usable(ORDERS[i]);
-            g.fill(x - W / 2, y - H / 2, x + W / 2, y + H / 2, on ? 0xDDD83A3A : ok ? 0xAA000000 : 0x66000000);
-            SquadHud.frame(g, x - W / 2, y - H / 2, x + W / 2, y + H / 2, on ? 0xFFFFFFFF : 0xFF606060);
-            g.drawCenteredString(font, ORDERS[i].title, x, y - 4, ok ? 0xFFFFFFFF : 0xFF707070);
-        }
-        g.drawCenteredString(font, Component.translatable("wflib.squad.wheel_hint"), cx, cy + RADIUS + H + 6, 0xFFB0B0B0);
+        super.render(g, mx, my, pt);
     }
 
     @Override

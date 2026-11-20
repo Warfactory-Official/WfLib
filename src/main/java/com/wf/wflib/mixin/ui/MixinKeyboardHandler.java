@@ -1,6 +1,7 @@
 package com.wf.wflib.mixin.ui;
 
 import com.wf.wflib.ui.UiSystem;
+import com.wf.wflib.ui.api.UiScreen;
 import com.wf.wflib.ui.api.input.UiKeyboard;
 import com.wf.wflib.ui.api.input.KeyInterceptors;
 import net.minecraft.client.KeyboardHandler;
@@ -25,7 +26,9 @@ public abstract class MixinKeyboardHandler {
             return;
         }
         if (mc.screen != null) {
-            UiKeyboard.blur();
+            if (!(mc.screen instanceof UiScreen)) {
+                UiKeyboard.blur();
+            }
             return;
         }
         if (action != GLFW.GLFW_RELEASE) {

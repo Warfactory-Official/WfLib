@@ -8,7 +8,6 @@ import com.wf.wflib.photo.PhotoShutterPacket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import net.minecraft.client.Minecraft;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
@@ -26,6 +25,8 @@ public final class PhotoClient {
 
     public static void setup() {
         PhotoApp.register();
+        PhotoScreen.register();
+        com.wf.wflib.photo.api.client.CameraHud.register();
         NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Pre.class, PhotoCapture::onFrame);
         NeoForge.EVENT_BUS.addListener(RenderFrameEvent.Pre.class, com.wf.wflib.photo.api.client.CameraScreen::onFrame);
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> PhotoCapture.tickUpload());
@@ -85,6 +86,6 @@ public final class PhotoClient {
 
     /** Opens the viewer for photo {@code id}; the server only serves it to its owner or once printed. */
     public static void view(UUID id) {
-        Minecraft.getInstance().setScreen(new PhotoScreen(id));
+        PhotoScreen.open(id);
     }
 }

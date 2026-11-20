@@ -1,6 +1,7 @@
 package com.wf.wflib.armor.api.exo.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.wf.gemrender.ui.SharpText;
 import com.wf.wflib.armor.api.exo.ArmorBattery;
 import com.wf.wflib.armor.api.exo.ExoConfig;
 import com.wf.wflib.armor.api.exo.ExoPackets;
@@ -190,6 +191,16 @@ public final class ExoPopupClient {
             return;
         }
         layout(screen, player, garment, spec);
+        SharpText.begin();
+        try {
+            draw(e, screen, mc, player, garment, spec);
+        } finally {
+            SharpText.end();
+        }
+    }
+
+    private static void draw(ScreenEvent.Render.Post e, InventoryScreen screen, Minecraft mc, Player player,
+                             ItemStack garment, ExoSpec spec) {
         GuiGraphics g = e.getGuiGraphics();
         Font font = mc.font;
         int h = height(garment, spec);

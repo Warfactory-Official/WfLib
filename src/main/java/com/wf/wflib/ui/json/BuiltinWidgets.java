@@ -15,6 +15,8 @@ import com.wf.wflib.ui.api.widget.Button;
 import com.wf.wflib.ui.api.widget.DragArea;
 import com.wf.wflib.ui.api.widget.Dial;
 import com.wf.wflib.ui.api.widget.Feed;
+import com.wf.wflib.ui.api.widget.FilmFx;
+import com.wf.wflib.ui.api.widget.ImageFit;
 import com.wf.wflib.ui.api.widget.Flow;
 import com.wf.wflib.ui.api.widget.Image;
 import com.wf.wflib.ui.api.widget.Ladder;
@@ -30,6 +32,8 @@ import com.wf.wflib.ui.api.widget.Sized;
 import com.wf.wflib.ui.api.widget.Slider;
 import com.wf.wflib.ui.api.widget.Stack;
 import com.wf.wflib.ui.api.widget.Tape;
+import com.wf.wflib.ui.api.widget.CodedText;
+import com.wf.wflib.ui.api.widget.Scatter;
 import com.wf.wflib.ui.api.widget.Text;
 import com.wf.wflib.ui.api.widget.Transform;
 import com.wf.wflib.ui.api.widget.Lit;
@@ -66,6 +70,8 @@ public final class BuiltinWidgets {
                 p.widget("child")));
         add("text", p -> new Text(p.template("text"), p.expr("color", WHITE), p.flag("shadow", false),
                 p.expr("scale", "1"), p.expr("max_width", "0")));
+        add("coded_text", p -> new CodedText(p.template("text"), p.expr("color", WHITE), p.flag("shadow", false),
+                p.expr("scale", "1")));
         add("lit", p -> new Lit(p.widget("child")));
         add("when", p -> new When(p.expr("if"), p.widget("then"), p.widgetOrNull("else")));
         add("ammo_glyph", p -> new AmmoGlyph(p.number("size", 8), p.expr("alpha", "1")));
@@ -106,6 +112,8 @@ public final class BuiltinWidgets {
         add("transform", p -> new Transform(p.expr("dx", "0"), p.expr("dy", "0"), p.expr("rotate", "0"),
                 p.expr("scale", "1"), p.choice("pivot", Point.class, Point.TOP_LEFT), p.widget("child")));
         add("absolute", p -> new Transform("0", "0", "0", "1gu", Point.TOP_LEFT, p.widget("child")));
+        add("scatter", p -> new Scatter(p.expr("items"), p.expr("x", "0"), p.expr("y", "0"),
+                p.choice("pivot", Point.class, Point.TOP_LEFT), p.widget("child")));
         add("repeat", p -> new Repeat(p.expr("items"), p.flag("vertical", false), p.number("gap", 0),
                 p.choice("align", Align.class, Align.START), p.integer("max", 0), p.integer("columns", 0),
                 p.widget("child")));
@@ -122,6 +130,9 @@ public final class BuiltinWidgets {
                     p.expr("tint", WHITE), p.expr("rotate", "0"));
         });
         add("feed", p -> new Feed(p.expr("feed"), p.expr("w"), p.expr("h")));
+        add("image_fit", p -> new ImageFit(p.id("texture"), p.expr("w"), p.expr("h"), p.expr("aspect"), p.number("pad", 0),
+                p.expr("border", "0")));
+        add("film_fx", p -> new FilmFx(p.expr("w"), p.expr("h")));
         add("dial", BuiltinWidgets::dial);
         add("button", p -> {
             float pad = p.number("pad", 0);

@@ -2,12 +2,21 @@ package com.wf.wflib.worldstats.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiHud;
+import com.wf.wflib.ui.api.UiInstance;
+import com.wf.wflib.ui.api.UiLayouts;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.widget.Box;
+import com.wf.wflib.ui.api.widget.CodedText;
+import com.wf.wflib.ui.api.widget.Point;
+import com.wf.wflib.ui.api.widget.Transform;
 import com.wf.wflib.worldstats.StatsConfig;
 import com.wf.wflib.worldstats.WeatherPacket;
 import com.wf.wflib.worldstats.api.WorldStats;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -15,6 +24,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -27,12 +37,28 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.wf.wflib.ui.api.Ui.layout;
+import static com.wf.wflib.ui.api.Ui.place;
+import static com.wf.wflib.ui.api.Ui.repeat;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.when;
+
 /** The overlay: templates from {@link StatsConfig}, tags computed from the client's level each frame. */
 public final class StatsHud {
     private static final KeyMapping TOGGLE = new KeyMapping("key.wflib.worldstats", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F6, "key.categories.wflib");
     private static final Pattern TAG = Pattern.compile("\\{([a-z_]+)}");
     private static final String[] MOON = {"Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent", "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous"};
     private static final Pattern ENTITY_STATS = Pattern.compile("E: (\\d+)/(\\d+)");
+
+    private static final ResourceLocation LAYOUT = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "worldstats");
+    private static final List<String> CORNERS = List.of("top_left", "top_right", "bottom_left", "bottom_right");
+    private static final int LINE_MAX = 256;
+    private static final StatsHud INSTANCE = new StatsHud();
+    private static final Subject<StatsHud> STATS = Subject.register("worldstats", StatsHud.class, StatsHud::visible);
+    private static final Subject<String> LINE = Subject.register("worldstats_line", String.class);
+    private static final List<String> lines = new ArrayList<>();
+    private static long linesFrame = -1;
+    private static UiInstance instance;
 
     private static volatile boolean shown = true;
     private static WeatherPacket weather = new WeatherPacket(0, 0, 0, false, false);
@@ -48,7 +74,8 @@ public final class StatsHud {
 
     public static void register(IEventBus modBus) {
         modBus.addListener(RegisterKeyMappingsEvent.class, e -> e.register(TOGGLE));
-        modBus.addListener(RegisterGuiLayersEvent.class, e -> e.registerAboveAll(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "worldstats"), StatsHud::render));
+        modBus.addListener(RegisterGuiLayersEvent.class, e -> UiHud.layer(e, LAYOUT, UiHud.Position.ABOVE_ALL, null, StatsHud::collect));
+        modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(StatsHud::registerUi));
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, e -> {
             while (TOGGLE.consumeClick()) {
                 long window = Minecraft.getInstance().getWindow().getWindow();
@@ -119,40 +146,60 @@ public final class StatsHud {
                 })));
     }
 
-    private static void render(GuiGraphics g, net.minecraft.client.DeltaTracker delta) {
+    private static StatsHud visible() {
         Minecraft mc = Minecraft.getInstance();
-        if (!shown || !StatsConfig.SHOWN.get() || mc.level == null || mc.player == null || mc.options.hideGui || mc.getDebugOverlay().showDebugScreen()) {
-            return;
-        }
-        List<String> lines = new ArrayList<>();
-        for (String template : StatsConfig.LINES.get()) {
-            String line = fill(template, mc);
-            if (!line.isBlank()) {
-                lines.add(line);
+        boolean hidden = !shown || !StatsConfig.SHOWN.get() || mc.level == null || mc.player == null || mc.getDebugOverlay().showDebugScreen();
+        return hidden ? null : INSTANCE;
+    }
+
+    /** Computed once per frame: the layout reads the list and its count several times. */
+    private static List<String> lines() {
+        long frame = UiHud.frame();
+        if (frame != linesFrame) {
+            linesFrame = frame;
+            lines.clear();
+            Minecraft mc = Minecraft.getInstance();
+            for (String template : StatsConfig.LINES.get()) {
+                String line = fill(template, mc);
+                if (!line.isBlank()) {
+                    lines.add(line);
+                }
             }
         }
-        float scale = StatsConfig.SCALE.get().floatValue();
-        int width = 0, lineHeight = mc.font.lineHeight + 1;
-        for (String line : lines) {
-            width = Math.max(width, mc.font.width(line));
+        return lines;
+    }
+
+    private static void registerUi() {
+        Signals.num(STATS, "scale", s -> StatsConfig.SCALE.get());
+        Signals.num(STATS, "x", s -> StatsConfig.X.get());
+        Signals.num(STATS, "y", s -> StatsConfig.Y.get());
+        Signals.num(STATS, "alpha", s -> StatsConfig.BACKGROUND.get());
+        Signals.num(STATS, "count", s -> lines().size());
+        Signals.choice(STATS, "corner", CORNERS, s -> CORNERS.indexOf(StatsConfig.ANCHOR.get()));
+        Signals.items(STATS, "lines", s -> lines(), LINE);
+        Signals.text(LINE, "text", LINE_MAX, l -> l);
+        WidgetDef box = new Box("rgba(0, 0, 0, worldstats.alpha)", "0", 0, 0, 2, 2, 0, 0, Point.TOP_LEFT,
+                repeat("worldstats.lines", true, 2, new CodedText("{worldstats_line.text}", "#FFFFFFFF", true, "1")));
+        WidgetDef[] corners = new WidgetDef[CORNERS.size()];
+        for (int i = 0; i < corners.length; i++) {
+            String name = CORNERS.get(i);
+            Point pivot = Point.valueOf(name.toUpperCase(Locale.ROOT));
+            String x = name.endsWith("right") ? "ui.width - worldstats.x" : "worldstats.x";
+            String y = name.startsWith("bottom") ? "ui.height - worldstats.y" : "worldstats.y";
+            corners[i] = when("worldstats.corner == worldstats.corner." + name,
+                    place(x, y, pivot, new Transform("0", "0", "0", "worldstats.scale", pivot, box)));
         }
-        int boxW = (int) ((width + 4) * scale), boxH = (int) ((lines.size() * lineHeight + 3) * scale);
-        String anchor = StatsConfig.ANCHOR.get();
-        float px = anchor.endsWith("right") ? g.guiWidth() - StatsConfig.X.get() - boxW + 2 * scale : StatsConfig.X.get() + 2 * scale;
-        float py = anchor.startsWith("bottom") ? g.guiHeight() - StatsConfig.Y.get() - boxH + 2 * scale : StatsConfig.Y.get() + 2 * scale;
-        g.pose().pushPose();
-        g.pose().translate(px, py, 0);
-        g.pose().scale(scale, scale, 1);
-        int alpha = StatsConfig.BACKGROUND.get();
-        if (alpha > 0 && !lines.isEmpty()) {
-            g.fill(-2, -2, width + 2, lines.size() * lineHeight + 1, alpha << 24);
+        UiLayouts.register(layout(LAYOUT, when("worldstats.present && worldstats.count > 0", stack(corners))).absolute());
+    }
+
+    private static void collect(UiHud.Collector out) {
+        if (visible() == null) {
+            return;
         }
-        int y = 0;
-        for (String line : lines) {
-            g.drawString(mc.font, line, 0, y, 0xFFFFFFFF, true);
-            y += lineHeight;
+        if (instance == null || !instance.current()) {
+            instance = UiLayouts.get(LAYOUT).instantiate();
         }
-        g.pose().popPose();
+        out.add(instance);
     }
 
     private static String fill(String template, Minecraft mc) {

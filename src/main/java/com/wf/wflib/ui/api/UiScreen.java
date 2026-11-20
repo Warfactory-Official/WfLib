@@ -4,6 +4,7 @@ import com.wf.gemrender.ui.SharpTextScreen;
 import com.mojang.blaze3d.platform.Window;
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.ui.api.input.UiInput;
+import com.wf.wflib.ui.api.input.UiKeyboard;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -120,7 +121,28 @@ public class UiScreen extends Screen implements SharpTextScreen {
     }
 
     @Override
+    public boolean keyPressed(int key, int scan, int modifiers) {
+        UiKeyboard.Target typing = UiKeyboard.focused();
+        if (typing != null) {
+            typing.key(key, scan, modifiers);
+            return true;
+        }
+        return super.keyPressed(key, scan, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        UiKeyboard.Target typing = UiKeyboard.focused();
+        if (typing != null) {
+            typing.character(codePoint, modifiers);
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
+    }
+
+    @Override
     public void removed() {
+        UiKeyboard.blur();
         input.reset();
         buttons = 0;
         if (options.onClose() != null) {

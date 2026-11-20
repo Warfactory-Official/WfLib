@@ -5,12 +5,11 @@ import com.wf.wflib.soldier.Companion;
 import com.wf.wflib.soldier.SquadPackets;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -60,8 +59,13 @@ public final class SquadClient {
             e.register(NEXT);
             e.register(MANAGE);
         });
-        modBus.addListener(RegisterGuiLayersEvent.class, e ->
-                e.registerAboveAll(ResourceLocation.fromNamespaceAndPath("wflib", "squad_hud"), (LayeredDraw.Layer) new SquadHud()));
+        modBus.addListener(RegisterGuiLayersEvent.class, SquadHud::layer);
+        modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
+            SquadHud.register();
+            CommandWheel.register();
+            HireScreen.register();
+            OrderLabels.register();
+        }));
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, SquadClient::onTick);
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.MovementInputUpdateEvent.class, e -> {
             if (Minecraft.getInstance().screen instanceof CommandWheel) CommandWheel.drive(e.getInput());     // walk while choosing an order

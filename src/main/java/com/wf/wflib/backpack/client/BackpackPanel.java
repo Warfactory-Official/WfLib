@@ -1,5 +1,6 @@
 package com.wf.wflib.backpack.client;
 
+import com.wf.gemrender.ui.SharpText;
 import com.wf.wflib.backpack.api.BackpackItem;
 import com.wf.wflib.backpack.BackpackPackets;
 import com.wf.wflib.backpack.api.Backpacks;
@@ -71,6 +72,15 @@ final class BackpackPanel {
         if (screen == null) {
             return;
         }
+        SharpText.begin();
+        try {
+            draw(e, screen);
+        } finally {
+            SharpText.end();
+        }
+    }
+
+    private static void draw(ContainerScreenEvent.Render.Background e, AbstractContainerScreen<?> screen) {
         Player player = Minecraft.getInstance().player;
         ItemStack worn = Backpacks.worn(player);
         int size = ((BackpackItem) worn.getItem()).spec().slots();

@@ -62,22 +62,32 @@ Missing subject => NUM NaN, BOOL false, TEXT empty, list empty.
 | `AmmoGlyph` (JSON `ammo_glyph`: `size`, `alpha`) | `repeat` child over `Signals.items(.., AmmoGlyph.VARIANT)`: `AmmoKind` glyph on tip-colour chip |
 | `Anchor` | 9-point pin + inward margin + offset exprs |
 | `Place` (`place`, `at`) | child pivot at (x, y) exprs; size 0 |
+| `Scatter` (`scatter`) | `Place` per element of a list signal; x / y read the item subject; size 0 (`Repeat` skips size-0 children) |
 | `Transform` | translate, rotate (deg, clockwise), uniform scale about a pivot; layout ignores it |
 | `Box` | background, inner border, radius, padding, min size |
 | `Sized` | fixed size exprs, align, optional clip |
 | `When` | then / else; hidden => size 0 |
 | `Repeat` | list signal; row, column or `columns`-wide grid |
 | `Text` | template, colour, shadow, scale, `maxWidth` (`..` ellipsis) |
+| `CodedText` (`coded_text`) | `Text` + `§0-9a-f` rgb runs, `§r` => `color`; other `§` codes dropped, alpha = `color`'s |
 | `Rect`, `Bar`, `Image`, `Line`, `Arc`, `Poly` | shapes; `Bar`: bipolar, marker, divisions, inset |
 | `Tape` | moving scale (compass, heading, altitude); wrap, named marks, label scale/pad, major colour |
 | `Ladder` | pitch ladder; wrap in `Transform` (roll) + clipping `Sized` |
 | `Dial` | dotted quadrant: minor dots, major / accent ticks, band, needles; degrees CCW from +x |
+| `ImageFit` (JSON `image_fit`: `texture`, `w`, `h`, `aspect`, `pad`, `border`) | texture of `aspect` fitted + centred in `w x h`, `pad` border; aspect <= 0 => nothing. Changing picture: `BorrowedTexture` (fixed location, `adopt(glId)`) |
+| `FilmFx` (JSON `film_fx`: `w`, `h`) | grain (random window of one noise texture per draw), stepped vignette, scanlines every 2nd row |
 | `Feed` | live camera feed by id; requests it at the drawn pixel width => never gate it on the feed being drawable (never requested => never drawable) |
-| `Button` | `Box` + click `UiAction`; `hover` / `pressed` backgrounds; `enabled` false => no hit |
+| `Button` | `Box` + click `UiAction`; `hover` / `pressed` backgrounds; `enabled` false => no hit; optional `secondary` `UiAction` on right press |
 | `ListView` (`list`) | virtualised fixed-row list over a list signal; wheel scroll; scroll thumb |
 | `ScrollBox` (`scroll`) | clip + wheel-scrolled child |
 | `Slider` | 0..1 track; press/drag/wheel => `UiSetter` |
+| `PlayerFace` (code-only) | head + hat of player/soldier uuid from repeat item (`Function<Object, UUID>`), `size` square; offline => default skin by uuid; `GuiGraphics` hosts only |
 | `DragArea` (`drag`) | drag deltas + wheel => `UiDrag`; child's interactive widgets sit above it |
+| `DragSource` (code-only) | `w x h` panel; click => `UiDragSource.click`; pointer > `threshold` from press => `begin` payload (null => stays click); `hover` bg only while nothing carried |
+| `Tile` (code-only) | `w x h` expr panel; `click` / `wheel` / `drop` each nullable (none of click+wheel => no hit); carried over drop-enabled tile => `dropHover` / `dropBorder`; `child` at top-left |
+| `DragGhost` (code-only) | child at pointer + (`dx`, `dy`) while carrying; size 0; absolute layout root only (pointer units = layout units) |
+| `EntityView` (code-only) | `UiEntity` full-body entity fitted to `w x h`, turned `yaw` deg (expr); `GuiGraphics` hosts only; turn = wrap in `DragArea` |
+| `Hover` (code-only) | `UiHover.over(item)` every frame the pointer is over the child; takes no clicks |
 
 Native widget = any `WidgetDef`; read subjects through `binder.subject(..)` => `SubjectRef.get(ev)`. Vanilla drawing (items, entities, shaders): `ev.graphics` (HUD only) between `ev.canvas.suspend()` / `resume()`.
 
@@ -89,12 +99,15 @@ Native widget = any `WidgetDef`; read subjects through `binder.subject(..)` => `
 - Any canvas transform/clip around interactive children MUST be mirrored on `ev.input` (`Transform`, `Sized` clip, `ListView`, `ScrollBox` do); `Text`/`Image` push only for their own glyphs.
 - Capture: press => drags + release go to the pressed hit even outside it; `release(.., inside)` = click.
 - Wheel: topmost-down until a `wheel` returns true.
+- Drag and drop (`UiInput.dnd()`): `DragSource` press => `begin` => `UiDnd.begin(payload)`; `Tile` with `drop` draws `offer(target, item, x, y)` (local, top-left) + `UiDrop.hover` every frame under the pointer; release => `UiDrop.drop` of the last published offer (1 frame stale like hits), then `UiDragSource.end(payload)`; capture cancel / `reset` => `end`, no drop. Insertion cues from `hover`: stamp `UiHud.frame()`, signal valid while `frame - stamp <= 1`.
+- Repeat skips zero-size children (never drawn) => overlapping stacks (`DragGhost` cards): size-1 children + gap `-1`.
 - JSON names handlers by id: `UiActions.register(id, UiAction|UiSetter|UiDrag)` at client setup; `"action"`, `"set"`, `"handler"`.
-- Keyboard (no Screen hosts): `UiKeyboard.focus(Target)` => every key / char to it, none to key mappings (`MixinKeyboardHandler`; Esc included), held keys released. Any new primary press blurs; screen open => blur. `TextField` + `TextLine` model (edit keys, history, Ctrl+V); code-only.
+- Keyboard (no Screen hosts): `UiKeyboard.focus(Target)` => every key / char to it, none to key mappings (`MixinKeyboardHandler`; Esc included), held keys released. Any new primary press blurs; non-`UiScreen` screen open => blur. `UiScreen` forwards keys / chars to the focused target; closing blurs. `TextBoxField` width = expression (or float). `TextField` + `TextLine` model (edit keys, history, Ctrl+V); code-only.
 
 ## 94. Hosts
 
-- HUD: CombinedAssault (JSON presets `combinedassault:vehicle|rotary_wing|fixed_wing|ship|scope|hit`, `client/hud/CaHudSource`), MineAssault (`mineassault:gun`, Java), wflib TV (`wflib:tv`, Java), `/wfui demo` (Java).
+- HUD: CombinedAssault (JSON presets `combinedassault:vehicle|rotary_wing|fixed_wing|ship|scope|hit`, `client/hud/CaHudSource`), MineAssault (`mineassault:gun`, Java), wflib TV (`wflib:tv`, Java), world stats (`wflib:worldstats`, absolute, `UiHud.layer` above all), detector face (`wflib:detector`, above hotbar), order labels (`wflib:order_labels`, `ScreenProjection`), squad strip (`wflib:squad_hud`, absolute, above all), `/wfui demo` (Java).
+- Camera shooting display: `wflib:camera_hud`, absolute 256x144, subject `camera_hud` (`CameraHud.Info`); `CameraHud.draw(target, info)` = `Canvas.begin(fbo, .., topRowFirst = true)` into the back-screen target. Photo viewer: screen layout `wflib:photo_view` via `UiScreen`.
 - Feed OSD: `wflib:camera_osd`, absolute 320x180 units (relative default 270 => drawn at 67%), `Canvas.begin(fbo, .., topRowFirst = true)` over the feed picture.
 - In-world: `WorldScreens.texture(key, layout, ctx, distance, w, h, fallbackUnits, maxFps)` => `UiSurfaces` texture id (null beyond `RANGE` 24 blocks); `draw(pose, ..)` adds an unlit XY quad. Surface aspect = the screen's; layout with `size: [w, h]` (absolute layouts only) is fitted centred, bars `0xFF000000`; else fills, `fallbackUnits` across. px / unit from projected width (1..4). CombinedAssault: model `screen_<id>` slot meshes (vehicle pack format §14.5).
 - Probe panel, nodes, job bar; map painter + `MapTool.render(Canvas, MapView)` (Xaero, JourneyMap): canvas; 3D probe elements through vanilla between `suspend`/`resume`.

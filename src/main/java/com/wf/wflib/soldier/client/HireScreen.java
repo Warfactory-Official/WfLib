@@ -1,86 +1,82 @@
 package com.wf.wflib.soldier.client;
 
+import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.soldier.RecruitPackets.Offers;
 import com.wf.wflib.soldier.RecruitPackets.View;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Ui;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiContext;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.UiScreen;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.widget.Box;
+import com.wf.wflib.ui.api.widget.Button;
+import com.wf.wflib.ui.api.widget.Point;
+import com.wf.wflib.ui.api.widget.Text;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
-import java.util.List;
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.clip;
+import static com.wf.wflib.ui.api.Ui.list;
+import static com.wf.wflib.ui.api.Ui.place;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
+import static com.wf.wflib.ui.api.Ui.when;
 
 /** The barracks menu: what can be hired, what it costs and how long it takes. Click a row to hire. */
-final class HireScreen extends Screen {
-    private static final int ROW = 34;
-    private int px, py, pw, ph;
-    private double scroll;
-    private final List<int[]> hits = new ArrayList<>();
+final class HireScreen extends UiScreen {
+    private static final float W = 360, H = 240, ROW = 34, LIST_W = W - 16, LIST_H = H - 34 - 22;
+    private static final Subject<Offers> BARRACKS = Subject.register("barracks", Offers.class, RecruitClient::barracks);
+    private static UiLayout layout;
 
-    HireScreen() {
-        super(Component.literal("Barracks"));
+    private HireScreen() {
+        super(build(), UiContext.EMPTY, Component.literal("Barracks"), Options.DEFAULT);
     }
 
-    @Override
-    protected void init() {
-        pw = Math.min(width - 16, 360);
-        ph = Math.min(height - 16, 240);
-        px = (width - pw) / 2;
-        py = (height - ph) / 2;
+    static void open() {
+        net.minecraft.client.Minecraft.getInstance().setScreen(new HireScreen());
+    }
+
+    static void register() {
+        Signals.items(BARRACKS, "offers", Offers::list, HireApp.OFFER);
+        Signals.num(BARRACKS, "count", o -> o.list().size());
+        Signals.bool(BARRACKS, "on", Offers::on);
+        Signals.bool(BARRACKS, "has_note", o -> !o.note().isEmpty());
+        Signals.text(BARRACKS, "header", 120, o -> o.header().toLowerCase(java.util.Locale.ROOT));
+        Signals.text(BARRACKS, "footer", 120, o -> o.note().isEmpty() ? "Click a soldier to hire" : o.note());
+    }
+
+    static UiLayout build() {
+        if (layout == null) {
+            float rowW = LIST_W;
+            WidgetDef offer = new Button(i -> RecruitClient.hire(RecruitClient.barracks().where(), ((View) i).id()), "true",
+                    "pda_hire_offer.ok ? #33FFFFFF : #33802020", "pda_hire_offer.ok ? #66FFFFFF : #33802020",
+                    "pda_hire_offer.ok ? #66FFFFFF : #33802020", "0", 0, 0, 0, 0, rowW, ROW - 2, Point.TOP_LEFT,
+                    stack(at("6", "3", text("{pda_hire_offer.label}", "pda_hire_offer.ok ? #FFFFFFFF : #FFA06060")),
+                            at("6", "13", text("{pda_hire_offer.kit}", "#FF9A9A9A")),
+                            at("6", "23", text("{pda_hire_offer.gear}", "#FF7A7A7A")),
+                            place(Float.toString(rowW - 6), "3", Point.TOP_RIGHT, text("{pda_hire_offer.cost}",
+                                    "pda_hire_offer.ok ? #FF58C458 : #FFD83A3A")),
+                            place(Float.toString(rowW - 6), "13", Point.TOP_RIGHT, text("{pda_hire_offer.upkeep}", "#FFE0B040"))));
+            WidgetDef panel = new Box("#EE101010", "#FF606060", 1, 0, 0, 0, W, H, Point.TOP_LEFT, stack(
+                    at("8", "8", text("Barracks", "#FFFFFFFF")),
+                    at("8", "20", new Text("{barracks.header}", "#FF8A8A8A", false, "1", Float.toString(W - 16))),
+                    at("8", "34", list("barracks.offers", ROW, 0, Float.toString(LIST_W), Float.toString(LIST_H), "0", offer)),
+                    when("barracks.count == 0", place(Float.toString(W / 2), Float.toString(H / 2), Point.TOP,
+                            when("barracks.on", text("Nobody on offer", "#FF8A8A8A"),
+                                    text("Recruiting here is switched off", "#FF8A8A8A")))),
+                    at("8", Float.toString(H - 14), clip(W - 16, 10, text("{barracks.footer}",
+                            "barracks.has_note ? #FFFFFFFF : #FF8A8A8A")))));
+            layout = Ui.layout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "barracks"), panel).absolute().withDesignSize(W, H);
+        }
+        return layout;
     }
 
     @Override
     public void renderBackground(GuiGraphics g, int mx, int my, float pt) {
         g.fill(0, 0, width, height, 0x88000000);
-        g.fill(px, py, px + pw, py + ph, 0xEE101010);
-        SquadHud.frame(g, px, py, px + pw, py + ph, 0xFF606060);
-    }
-
-    @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
-        var offers = RecruitClient.barracks();
-        g.drawString(font, "Barracks", px + 8, py + 8, 0xFFFFFFFF, false);
-        if (!offers.header().isEmpty()) g.drawString(font, font.plainSubstrByWidth(offers.header().toLowerCase(), pw - 16), px + 8, py + 20, 0xFF8A8A8A, false);
-        int top = py + 34, bottom = py + ph - 22;
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, offers.list().size() * ROW - (bottom - top))));
-        hits.clear();
-        g.enableScissor(px + 8, top, px + pw - 8, bottom);
-        for (int i = 0; i < offers.list().size(); i++) {
-            View v = offers.list().get(i);
-            int y = top + i * ROW - (int) scroll;
-            boolean over = mx >= px + 8 && mx < px + pw - 8 && my >= Math.max(y, top) && my < Math.min(y + ROW - 2, bottom);
-            g.fill(px + 8, y, px + pw - 8, y + ROW - 2, !v.affordable() ? 0x33802020 : over ? 0x66FFFFFF : 0x33FFFFFF);
-            g.drawString(font, v.title() + "  " + v.role(), px + 14, y + 3, v.affordable() ? 0xFFFFFFFF : 0xFFA06060, false);
-            g.drawString(font, v.kit(), px + 14, y + 13, 0xFF9A9A9A, false);
-            g.drawString(font, v.gear() + (v.delay() > 0 ? "  -  arrives in " + v.delay() + " s" : ""), px + 14, y + 23, 0xFF7A7A7A, false);
-            String cost = v.cost().isEmpty() ? "free" : v.cost();
-            g.drawString(font, cost, px + pw - 14 - font.width(cost), y + 3, v.affordable() ? 0xFF58C458 : 0xFFD83A3A, false);
-            if (!v.upkeep().isEmpty()) g.drawString(font, "upkeep " + v.upkeep(), px + pw - 14 - font.width("upkeep " + v.upkeep()), y + 13, 0xFFE0B040, false);
-            hits.add(new int[]{px + 8, Math.max(y, top), px + pw - 8, Math.min(y + ROW - 2, bottom), i});
-        }
-        g.disableScissor();
-        if (offers.list().isEmpty()) g.drawCenteredString(font, offers.on() ? "Nobody on offer" : "Recruiting here is switched off", px + pw / 2, py + ph / 2, 0xFF8A8A8A);
-        g.drawString(font, offers.note().isEmpty() ? "Click a soldier to hire" : offers.note(), px + 8, py + ph - 14, offers.note().isEmpty() ? 0xFF8A8A8A : 0xFFFFFFFF, false);
-    }
-
-    @Override
-    public boolean mouseClicked(double mx, double my, int button) {
-        for (int[] h : hits) {
-            if (mx >= h[0] && mx < h[2] && my >= h[1] && my < h[3]) {
-                RecruitClient.hire(RecruitClient.barracks().where(), RecruitClient.barracks().list().get(h[4]).id());
-                return true;
-            }
-        }
-        return super.mouseClicked(mx, my, button);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        scroll -= sy * ROW * 2;
-        return true;
-    }
-
-    @Override
-    public boolean isPauseScreen() {
-        return false;
     }
 }

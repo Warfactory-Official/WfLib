@@ -5,6 +5,7 @@ import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.ui.api.theme.PdaFont;
 import com.wf.wflib.ui.api.theme.PdaTheme;
 import com.wf.wflib.ui.api.Binder;
+import com.wf.wflib.ui.api.NumProp;
 import com.wf.wflib.ui.api.UiEval;
 import com.wf.wflib.ui.api.Widget;
 import com.wf.wflib.ui.api.WidgetDef;
@@ -18,7 +19,11 @@ import net.minecraft.Util;
  * error edge while {@link TextBox#error()}. Long input scrolls to keep the caret visible and is cut at the box edge by
  * measured width. Code-only (the model is a Java object), no JSON name.
  */
-public record TextBoxField(TextBox box, String placeholder, float w, float h, Colours colours) implements WidgetDef {
+public record TextBoxField(TextBox box, String placeholder, String w, float h, Colours colours) implements WidgetDef {
+    public TextBoxField(TextBox box, String placeholder, float w, float h, Colours colours) {
+        this(box, placeholder, Float.toString(w), h, colours);
+    }
+
     /** ARGB. */
     public record Colours(int back, int edge, int focusEdge, int errorEdge, int text, int placeholder, int selection) {
     }
@@ -28,19 +33,24 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
 
     @Override
     public Widget create(Binder binder) {
-        return new Node();
+        return new Node(binder.num(w));
     }
 
     private final class Node extends Widget implements Interactive {
+        private final NumProp pw;
         /** First visible character, and where the text starts on screen (for pointer to caret). */
         private int start;
         private float textX;
         private Canvas canvas;
         private boolean gamma;
 
+        Node(NumProp pw) {
+            this.pw = pw;
+        }
+
         @Override
         public void measure(UiEval ev) {
-            width = w;
+            width = Math.max(0, pw.getFloat(ev));
             height = h;
         }
 
@@ -53,12 +63,12 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
             PdaTheme t = PdaTheme.GAMMA;
             Colours colours = gamma ? new Colours(t.field(), t.edge(), t.text(), t.alert(), t.text(), t.dim(), t.select()) : TextBoxField.this.colours;
             int edge = box.error() ? colours.errorEdge() : focused ? colours.focusEdge() : colours.edge();
-            canvas.fill(x, y, x + w, y + h, edge);
-            canvas.fill(x + 1, y + 1, x + w - 1, y + h - 1, colours.back());
+            canvas.fill(x, y, x + width, y + h, edge);
+            canvas.fill(x + 1, y + 1, x + width - 1, y + h - 1, colours.back());
             float ty = y + (h - canvas.lineHeight()) / 2 + 1;
             CharSequence text = box.text();
             textX = x + PAD;
-            float room = w - 2 * PAD;
+            float room = width - 2 * PAD;
             if (text.length() == 0 && !focused) {
                 if (UiSkin.current().active()) UiSkin.current().textLine(ev, placeholder, textX, ty, room, colours.placeholder());
                 else canvas.text(placeholder, textX, ty, colours.placeholder(), false);
@@ -90,7 +100,7 @@ public record TextBoxField(TextBox box, String placeholder, float w, float h, Co
             }
             UiInput input = ev.input;
             if (input != null) {
-                input.hit(x, y, x + w, y + h, this, null);
+                input.hit(x, y, x + width, y + h, this, null);
             }
         }
 

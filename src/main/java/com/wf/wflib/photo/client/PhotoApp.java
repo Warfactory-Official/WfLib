@@ -14,6 +14,7 @@ import com.wf.wflib.photo.PhotoListPacket;
 import com.wf.wflib.pda.api.client.PdaApp;
 import com.wf.wflib.pda.api.client.PdaApps;
 import com.wf.wflib.pda.api.client.PdaShell;
+import com.wf.wflib.ui.api.BorrowedTexture;
 import com.wf.wflib.ui.api.Signals;
 import com.wf.wflib.ui.api.Subject;
 import com.wf.wflib.ui.api.WidgetDef;
@@ -25,11 +26,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManager;
 import org.jetbrains.annotations.Nullable;
 
 /** The PDA gallery: the player's photographs on the left, the selected one on the right. */
@@ -43,30 +41,7 @@ final class PhotoApp implements PdaApp {
     private static final Subject<PhotoApp> APP = Subject.register("pda_photos", PhotoApp.class, () -> INSTANCE);
     private static final Subject<PhotoListPacket.Row> ROW = Subject.register("pda_photo", PhotoListPacket.Row.class);
 
-    /** Present in the texture manager under {@link #SHOWN}; shows whichever photo texture was adopted last. */
-    private static final class Alias extends AbstractTexture {
-        void adopt(int glId) {
-            this.id = glId;
-        }
-
-        @Override
-        public void load(ResourceManager manager) {
-            // the id is borrowed from a photo's own dynamic texture
-        }
-
-        @Override
-        public void releaseId() {
-            this.id = -1; // never delete: the id belongs to the photo texture
-        }
-
-        @Override
-        public int getId() {
-            return this.id;
-        }
-    }
-
-    private static final Alias ALIAS = new Alias();
-    private static boolean aliasRegistered;
+    private static final BorrowedTexture ALIAS = new BorrowedTexture(SHOWN);
     @Nullable
     private static UUID selected;
     private static long armed;
@@ -102,10 +77,6 @@ final class PhotoApp implements PdaApp {
         PhotoImages.Tex tex = PhotoImages.get(selected);
         if (tex == null) {
             return false;
-        }
-        if (!aliasRegistered) {
-            Minecraft.getInstance().getTextureManager().register(SHOWN, ALIAS);
-            aliasRegistered = true;
         }
         ALIAS.adopt(tex.texture().getId());
         return true;

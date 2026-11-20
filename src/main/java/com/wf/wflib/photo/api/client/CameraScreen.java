@@ -2,18 +2,14 @@ package com.wf.wflib.photo.api.client;
 
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexSorting;
-import net.minecraft.client.gui.GuiGraphics;
-import org.joml.Matrix4f;
 import com.wf.wflib.cam.api.client.OffscreenView;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.ui.api.BorrowedTexture;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import org.jetbrains.annotations.Nullable;
@@ -29,30 +25,7 @@ public final class CameraScreen {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "photo/live_screen");
     private static final long ALIVE_NANOS = 250_000_000L;
 
-    /** The texture manager entry; its GL id follows the render target's. */
-    private static final class Alias extends AbstractTexture {
-        void adopt(int glId) {
-            this.id = glId;
-        }
-
-        @Override
-        public void load(ResourceManager manager) {
-            // the id is borrowed from the render target
-        }
-
-        @Override
-        public void releaseId() {
-            this.id = -1; // never delete: the render target owns it
-        }
-
-        @Override
-        public int getId() {
-            return this.id;
-        }
-    }
-
-    private static final Alias ALIAS = new Alias();
-    private static boolean registered;
+    private static final BorrowedTexture ALIAS = new BorrowedTexture(TEXTURE);
     @Nullable
     private static TextureTarget target;
     @Nullable
@@ -112,10 +85,6 @@ public final class CameraScreen {
             target.setClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             target.setFilterMode(9728); // GL_NEAREST: chunky pixels, like the rest of the model
             view = OffscreenView.sharedGrid();
-            if (!registered) {
-                mc.getTextureManager().register(TEXTURE, ALIAS);
-                registered = true;
-            }
         }
         float pt = event.getPartialTick().getGameTimeDeltaPartialTick(true);
         Vec3 eye = p.getEyePosition(pt);
@@ -126,10 +95,8 @@ public final class CameraScreen {
         }
     }
 
-    /** The shooting display, drawn over the picture with the game's own GUI code into the same target. */
+    /** The shooting display, drawn over the picture into the same target. */
     private static void drawHud(Minecraft mc, LocalPlayer p) {
-        Matrix4f saved = RenderSystem.getProjectionMatrix();
-        VertexSorting sorting = RenderSystem.getVertexSorting();
         target.bindWrite(true);
         // The level clears with alpha 0 and leaves it wherever neither sky nor terrain draws (the seam at the horizon);
         // make the picture opaque before the HUD blends into it.
@@ -137,25 +104,7 @@ public final class CameraScreen {
         RenderSystem.clearColor(0.0f, 0.0f, 0.0f, 1.0f);
         RenderSystem.clear(16384, Minecraft.ON_OSX);
         RenderSystem.colorMask(true, true, true, true);
-        RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0.0f, WIDTH, HEIGHT, 0.0f, 1000.0f, 21000.0f),
-                VertexSorting.ORTHOGRAPHIC_Z);
-        var modelView = RenderSystem.getModelViewStack();
-        modelView.pushMatrix();
-        modelView.translation(0.0f, 0.0f, -11000.0f);
-        RenderSystem.applyModelViewMatrix();
-        RenderSystem.disableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        GuiGraphics g = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
-        CameraHud.draw(g, CameraHud.Info.of(p, fov, zoom, shots()));
-        if (flash > 0.01f) {
-            g.fill(0, 0, WIDTH, HEIGHT, ((int) (Mth.clamp(flash, 0.0f, 1.0f) * 200) << 24) | 0xFFFFFF);
-        }
-        g.flush();
-        modelView.popMatrix();
-        RenderSystem.applyModelViewMatrix();
-        RenderSystem.setProjectionMatrix(saved, sorting);
-        RenderSystem.enableDepthTest();
+        CameraHud.draw(target, CameraHud.Info.of(p, fov, zoom, shots(), Mth.clamp(flash, 0.0f, 1.0f)));
         mc.getMainRenderTarget().bindWrite(true);
     }
 

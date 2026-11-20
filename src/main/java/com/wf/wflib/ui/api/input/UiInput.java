@@ -26,6 +26,12 @@ public final class UiInput {
     /** Scopes feedback while recording controls; returns the enclosing scope. */
     public Feedback feedback(Feedback next) { var previous = recordingFeedback; recordingFeedback = next; return previous; }
 
+    private final UiDnd dnd = new UiDnd();
+
+    public UiDnd dnd() {
+        return dnd;
+    }
+
     public static final int PRIMARY = 1;
     public static final int SECONDARY = 2;
 
@@ -103,6 +109,7 @@ public final class UiInput {
         captureFeedback = null;
         shownTooltip = null;
         shownTooltipItem = null;
+        dnd.cancel();
         lastX = lastY = Float.NaN;
         buttons = 0;
         lastButtons = 0;
@@ -214,6 +221,7 @@ public final class UiInput {
         Arrays.fill(backItems, 0, stale, null);
         Arrays.fill(backFeedback, 0, stale, null);
         backCount = 0;
+        dnd.endFrame();
     }
 
     public UiInput push() {
@@ -307,6 +315,20 @@ public final class UiInput {
     /** Lines of the last published frame's tooltip; null = none. Allocates (built per call): hover only. */
     public List<Component> tooltip() {
         return shownTooltip == null ? null : shownTooltip.lines(shownTooltipItem);
+    }
+
+    /** Pointer in the current local space into {@code out[0..1]}; false when clipped out or the transform is singular. */
+    public boolean pointerLocal(float[] out) {
+        int k = clipDepth * 4;
+        if (!(px >= clips[k] && px < clips[k + 2] && py >= clips[k + 1] && py < clips[k + 3])) return false;
+        int m = affineDepth * 6;
+        float a = affine[m], b = affine[m + 1], c = affine[m + 2], d = affine[m + 3];
+        float det = a * d - b * c;
+        if (det == 0) return false;
+        float dx = px - affine[m + 4], dy = py - affine[m + 5];
+        out[0] = (d * dx - c * dy) / det;
+        out[1] = (a * dy - b * dx) / det;
+        return true;
     }
 
     /** Observe a local rectangle through the current transform/clip without taking clicks from its parent. */

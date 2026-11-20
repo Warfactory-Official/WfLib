@@ -1,94 +1,162 @@
 package com.wf.wflib.soldier.client;
 
+import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.soldier.Companion;
 import com.wf.wflib.soldier.SquadPackets.Member;
-import net.minecraft.client.DeltaTracker;
+import com.wf.wflib.ui.api.Signals;
+import com.wf.wflib.ui.api.Ui;
+import com.wf.wflib.ui.api.Subject;
+import com.wf.wflib.ui.api.UiHud;
+import com.wf.wflib.ui.api.UiInstance;
+import com.wf.wflib.ui.api.UiLayout;
+import com.wf.wflib.ui.api.WidgetDef;
+import com.wf.wflib.ui.api.widget.PlayerFace;
+import com.wf.wflib.ui.api.widget.Point;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
-import net.minecraft.client.resources.DefaultPlayerSkin;
-import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 
 import java.util.List;
+
+import static com.wf.wflib.ui.api.Ui.at;
+import static com.wf.wflib.ui.api.Ui.place;
+import static com.wf.wflib.ui.api.Ui.rect;
+import static com.wf.wflib.ui.api.Ui.repeat;
+import static com.wf.wflib.ui.api.Ui.shadowed;
+import static com.wf.wflib.ui.api.Ui.sized;
+import static com.wf.wflib.ui.api.Ui.stack;
+import static com.wf.wflib.ui.api.Ui.text;
+import static com.wf.wflib.ui.api.Ui.when;
 
 /**
  * The squad strip: one row per fire team, a card per soldier (face, health, ammunition, what it is doing). The selected
  * group has a red bar under its label and a red frame; a soldier in a fight has an orange frame, a downed one is struck out.
  */
-final class SquadHud implements LayeredDraw.Layer {
+final class SquadHud {
     private static final int CARD = 26, FACE = 20, GAP = 3, ROW = 34, LEFT = 6, TOP = 6, LABEL = 14;
-    private static final int RED = 0xFFD83A3A, ORANGE = 0xFFE8963C, BLUE = 0xFF4A90E0, PANEL = 0x99000000, DIM = 0xFF8A8A8A;
+    private static final String RED = "#FFD83A3A", ORANGE = "#FFE8963C", BLUE = "#FF4A90E0", PANEL = "#99000000", DIM = "#FF8A8A8A";
+    private static final ResourceLocation LAYER = ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "squad_hud");
 
-    @Override
-    public void render(GuiGraphics g, DeltaTracker delta) {
-        var mc = Minecraft.getInstance();
+    record Card(Member m, boolean selected) {}
+
+    record Row(String label, boolean selected, boolean lit, int cells, int more, List<Card> cards) {}
+
+    private static final SquadHud INSTANCE = new SquadHud();
+    private static final Subject<SquadHud> HUD = Subject.register("squad_hud", SquadHud.class, () -> INSTANCE);
+    private static final Subject<Row> ROWS = Subject.register("squad_row", Row.class);
+    private static final Subject<Card> CARDS = Subject.register("squad_card", Card.class);
+
+    private List<Member> builtFrom;
+    private int builtGroup;
+    private int builtWidth;
+    private List<Row> rows = List.of();
+    private UiInstance instance;
+
+    private SquadHud() {}
+
+    static void register() {
+        Signals.items(HUD, "rows", SquadHud::rows, ROWS);
+        Signals.bool(HUD, "toast_on", h -> toastAge() < 70);
+        Signals.text(HUD, "toast", 120, h -> "> " + SquadClient.toast);
+        Signals.num(HUD, "toast_alpha", h -> {
+            long age = toastAge();
+            return age < 50 ? 1 : (70 - age) / 20.0;
+        });
+        Signals.text(ROWS, "label", 2, Row::label);
+        Signals.bool(ROWS, "selected", Row::selected);
+        Signals.bool(ROWS, "lit", Row::lit);
+        Signals.num(ROWS, "cells", Row::cells);
+        Signals.num(ROWS, "more", Row::more);
+        Signals.text(ROWS, "more_text", 6, r -> "+" + r.more());
+        Signals.items(ROWS, "cards", Row::cards, CARDS);
+        Signals.bool(CARDS, "downed", c -> (c.m().flags() & Member.DOWNED) != 0);
+        Signals.bool(CARDS, "fighting", c -> (c.m().flags() & Member.FIGHTING) != 0);
+        Signals.bool(CARDS, "resupplying", c -> (c.m().flags() & Member.RESUPPLYING) != 0);
+        Signals.bool(CARDS, "selected", Card::selected);
+        Signals.text(CARDS, "glyph", 2, c -> c.m().order().substring(0, 1).toUpperCase(java.util.Locale.ROOT));
+        Signals.num(CARDS, "hp", c -> c.m().health());
+        Signals.num(CARDS, "ammo", c -> c.m().ammo());
+        Signals.bool(CARDS, "low_ammo", c -> c.m().mags() == 0 && c.m().ammo() < 30);
+        Signals.text(CARDS, "mags", 6, c -> Integer.toString(c.m().mags()));
+    }
+
+    static void layer(RegisterGuiLayersEvent event) {
+        UiHud.layer(event, LAYER, UiHud.Position.ABOVE_ALL, null, out -> {
+            if (SquadClient.members.isEmpty() || Minecraft.getInstance().player == null) return;
+            if (INSTANCE.instance == null) INSTANCE.instance = build().instantiate();
+            out.add(INSTANCE.instance);
+        });
+    }
+
+    private static long toastAge() {
+        var level = Minecraft.getInstance().level;
+        long age = level == null ? Long.MAX_VALUE : level.getGameTime() - SquadClient.toastAt;
+        return age < 0 ? Long.MAX_VALUE : age;
+    }
+
+    /** A big squad does not run off the screen: the cards that fit, then how many more there are (the screen lists them all). */
+    private List<Row> rows() {
         List<Member> all = SquadClient.members;
-        if (all.isEmpty() || mc.options.hideGui || mc.player == null) return;
-        int y = TOP;
+        int width = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        if (all == builtFrom && SquadClient.group == builtGroup && width == builtWidth) return rows;
+        builtFrom = all;
+        builtGroup = SquadClient.group;
+        builtWidth = width;
+        int fit = Math.max(3, (int) (width * 0.6 - LEFT - LABEL) / (CARD + GAP));
+        List<Row> out = new java.util.ArrayList<>();
         for (int team = 0; team < Companion.TEAMS.length; team++) {
             int t = team;
             List<Member> whole = all.stream().filter(m -> m.team() == t).toList();
             if (whole.isEmpty()) continue;
-            // a big squad does not run off the screen: the cards that fit, then how many more there are (the screen lists them all)
-            int fit = Math.max(3, (int) (g.guiWidth() * 0.6 - LEFT - LABEL) / (CARD + GAP));
-            List<Member> row = whole.size() <= fit ? whole : whole.subList(0, fit - 1);
-            int more = whole.size() - row.size();
-            int cells = row.size() + (more > 0 ? 1 : 0);
+            List<Member> shown = whole.size() <= fit ? whole : whole.subList(0, fit - 1);
+            int more = whole.size() - shown.size();
             boolean selected = SquadClient.group == team;
-            boolean everyone = SquadClient.group < 0;
-            g.fill(LEFT, y, LEFT + LABEL + cells * (CARD + GAP) + GAP, y + ROW, PANEL);
-            g.drawString(mc.font, Companion.TEAMS[team].substring(0, 1), LEFT + 4, y + 4, selected || everyone ? 0xFFFFFFFF : DIM, true);
-            if (selected) g.fill(LEFT + 2, y + 15, LEFT + LABEL - 2, y + 17, RED);       // the red bar of the selected group
-            int x = LEFT + LABEL;
-            for (Member m : row) {
-                card(g, mc, m, x + GAP, y + 3, selected);
-                x += CARD + GAP;
-            }
-            if (more > 0) g.drawCenteredString(mc.font, "+" + more, x + GAP + CARD / 2, y + 10, 0xFFFFFFFF);
-            if (selected) frame(g, LEFT, y, LEFT + LABEL + cells * (CARD + GAP) + GAP, y + ROW, RED);
-            y += ROW + 2;
+            List<Card> cards = shown.stream().map(m -> new Card(m, selected)).toList();
+            out.add(new Row(Companion.TEAMS[team].substring(0, 1), selected, selected || SquadClient.group < 0,
+                    cards.size() + (more > 0 ? 1 : 0), more, cards));
         }
-        long age = mc.level == null ? Long.MAX_VALUE : mc.level.getGameTime() - SquadClient.toastAt;
-        if (age >= 0 && age < 70) {
-            int alpha = age < 50 ? 255 : (int) (255 * (70 - age) / 20f);
-            Component text = Component.literal("> " + SquadClient.toast);
-            int w = mc.font.width(text);
-            int tx = (g.guiWidth() - w) / 2, ty = g.guiHeight() - 68;
-            g.fill(tx - 4, ty - 3, tx + w + 4, ty + 11, (alpha * 0x99 / 255) << 24);
-            g.drawString(mc.font, text, tx, ty, (alpha << 24) | 0xFFFFFF, true);
-        }
+        rows = List.copyOf(out);
+        return rows;
     }
 
-    private static void card(GuiGraphics g, Minecraft mc, Member m, int x, int y, boolean selected) {
-        var info = mc.getConnection() == null ? null : mc.getConnection().getPlayerInfo(m.uuid());
-        var skin = info != null ? info.getSkin() : DefaultPlayerSkin.get(m.uuid());
-        PlayerFaceRenderer.draw(g, skin, x + 1, y + 1, FACE);
-        boolean downed = (m.flags() & Member.DOWNED) != 0;
-        if (downed) {
-            g.fill(x + 1, y + 1, x + 1 + FACE, y + 1 + FACE, 0xAA600000);
-            g.drawCenteredString(mc.font, "X", x + 1 + FACE / 2, y + 7, 0xFFFFFFFF);
-        }
-        if ((m.flags() & Member.FIGHTING) != 0) frame(g, x, y, x + FACE + 2, y + FACE + 2, ORANGE);
-        else if ((m.flags() & Member.RESUPPLYING) != 0) frame(g, x, y, x + FACE + 2, y + FACE + 2, BLUE);
-        // what it is doing, in the corner: F follow, H hold, M move, A attack, S suppress, P patrol, G guard, R resupply
-        String glyph = m.order().substring(0, 1).toUpperCase(java.util.Locale.ROOT);
-        g.fill(x + FACE - 6, y + 1, x + FACE + 2, y + 10, 0xCC000000);
-        g.drawString(mc.font, glyph, x + FACE - 4, y + 1, selected ? 0xFFFF6060 : 0xFFFFFFFF, false);
-        int hp = FACE * m.health() / 100;
-        g.fill(x + 1, y + FACE + 3, x + 1 + FACE, y + FACE + 5, 0xFF202020);
-        g.fill(x + 1, y + FACE + 3, x + 1 + hp, y + FACE + 5, m.health() > 50 ? 0xFF58C458 : m.health() > 25 ? 0xFFE0B040 : RED);
-        if (m.ammo() >= 0) {
-            g.fill(x + 1, y + FACE + 6, x + 1 + FACE, y + FACE + 7, 0xFF202020);
-            g.fill(x + 1, y + FACE + 6, x + 1 + FACE * m.ammo() / 100, y + FACE + 7, m.mags() == 0 && m.ammo() < 30 ? RED : 0xFFB0B0B0);
-            g.drawString(mc.font, Integer.toString(m.mags()), x + 2 + FACE - mc.font.width(Integer.toString(m.mags())) - 1, y + FACE - 8, 0xFFFFFFFF, true);
-        }
+    static UiLayout build() {
+        String rowW = LABEL + " + squad_row.cells * " + (CARD + GAP) + " + " + GAP;
+        WidgetDef card = stack(
+                at("1", "1", new PlayerFace(item -> ((Card) item).m().uuid(), FACE)),
+                when("squad_card.downed", stack(
+                        at("1", "1", rect(FACE, FACE, "#AA600000")),
+                        place(Float.toString(1 + FACE / 2), "7", Point.TOP, shadowed("X", "#FFFFFFFF")))),
+                when("squad_card.fighting", at("0", "0", outline(FACE + 2, ORANGE)),
+                        when("squad_card.resupplying", at("0", "0", outline(FACE + 2, BLUE)))),
+                at(Integer.toString(FACE - 6), "1", rect(8, 9, "#CC000000")),
+                at(Integer.toString(FACE - 4), "1", text("{squad_card.glyph}", "squad_card.selected ? #FFFF6060 : #FFFFFFFF")),
+                at("1", Integer.toString(FACE + 3), rect(FACE, 2, "#FF202020")),
+                at("1", Integer.toString(FACE + 3), rect("floor(" + FACE + " * squad_card.hp / 100)", "2",
+                        "squad_card.hp > 50 ? #FF58C458 : squad_card.hp > 25 ? #FFE0B040 : " + RED)),
+                when("squad_card.ammo >= 0", stack(
+                        at("1", Integer.toString(FACE + 6), rect(FACE, 1, "#FF202020")),
+                        at("1", Integer.toString(FACE + 6), rect("floor(" + FACE + " * squad_card.ammo / 100)", "1",
+                                "squad_card.low_ammo ? " + RED + " : #FFB0B0B0")),
+                        place(Integer.toString(FACE + 1), Integer.toString(FACE - 8), Point.TOP_RIGHT,
+                                shadowed("{squad_card.mags}", "#FFFFFFFF")))));
+        WidgetDef row = stack(
+                at("0", "0", rect(rowW, Integer.toString(ROW), PANEL)),
+                at("0", "0", new com.wf.wflib.ui.api.widget.Rect(rowW, Integer.toString(ROW),
+                        "squad_row.selected ? " + RED + " : 0", 0, 1)),
+                at("4", "4", shadowed("{squad_row.label}", "squad_row.lit ? #FFFFFFFF : " + DIM)),
+                when("squad_row.selected", at("2", "15", rect(LABEL - 4, 2, RED))),
+                at(Integer.toString(LABEL + GAP), "3", repeat("squad_row.cards", false, GAP, card)),
+                when("squad_row.more > 0", place(LABEL + GAP + CARD / 2 + " + (squad_row.cells - 1) * " + (CARD + GAP),
+                        "10", Point.TOP, shadowed("{squad_row.more_text}", "#FFFFFFFF"))));
+        return Ui.layout(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "squad_hud"), stack(
+                at(Integer.toString(LEFT), Integer.toString(TOP), repeat("squad_hud.rows", true, 2, sized(0, ROW, row))),
+                when("squad_hud.toast_on", place("ui.width / 2", "ui.height - 68", Point.TOP,
+                        new com.wf.wflib.ui.api.widget.Box("alpha(#000000, squad_hud.toast_alpha * 0.6)", "0", 0, 0, 4, 3, 0, 0,
+                                Point.TOP_LEFT, shadowed("{squad_hud.toast}", "alpha(#FFFFFF, squad_hud.toast_alpha)"))))))
+                .absolute();
     }
 
-    static void frame(GuiGraphics g, int x0, int y0, int x1, int y1, int colour) {
-        g.fill(x0, y0, x1, y0 + 1, colour);
-        g.fill(x0, y1 - 1, x1, y1, colour);
-        g.fill(x0, y0, x0 + 1, y1, colour);
-        g.fill(x1 - 1, y0, x1, y1, colour);
+    private static WidgetDef outline(int size, String colour) {
+        return new com.wf.wflib.ui.api.widget.Rect(Integer.toString(size), Integer.toString(size), colour, 0, 1);
     }
 }

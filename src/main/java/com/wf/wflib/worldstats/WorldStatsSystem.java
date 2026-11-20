@@ -21,6 +21,11 @@ public final class WorldStatsSystem implements WFSystem {
     }
 
     @Override
+    public boolean defaultEnabled() {
+        return false;
+    }
+
+    @Override
     public void register(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.CLIENT, StatsConfig.SPEC, "wflib-worldstats-client.toml");
         modBus.addListener(RegisterPayloadHandlersEvent.class, e -> e.registrar("worldstats-1").optional().playToClient(WeatherPacket.TYPE,

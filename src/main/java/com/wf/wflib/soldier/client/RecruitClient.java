@@ -17,7 +17,7 @@ public final class RecruitClient {
         if (packet.where().equals("pda")) pda = packet;
         else {
             barracks = packet;
-            if (packet.open() && Minecraft.getInstance().screen == null) Minecraft.getInstance().setScreen(new HireScreen());
+            if (packet.open() && Minecraft.getInstance().screen == null) HireScreen.open();
         }
     }
 
