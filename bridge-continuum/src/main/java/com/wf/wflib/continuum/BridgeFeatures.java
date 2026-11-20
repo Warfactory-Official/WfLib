@@ -21,7 +21,8 @@ final class BridgeFeatures implements FeatureSource {
             new Box("penetration", "Penetration values", "Continuum's bullets carry a bore and a penetration in mm of steel to armour, plates and hulls."),
             new Box("bullets", "Bullets as WFLib rounds", "Plain Continuum bullets are flown as WFLib rounds: lag compensation, terrain, tracers, ricochet."),
             new Box("recon", "Continuum on the radar", "Continuum's missiles and rockets are contacts on WFLib's radar and scopes; its explosions are heard by seismic sensors."),
-            new Box("orbit", "Continuum satellites in orbit", "Continuum's satellites appear in WFLib's orbital catalogue and the PDA satellites app."));
+            new Box("orbit", "Continuum satellites in orbit", "Continuum's satellites appear in WFLib's orbital catalogue and the PDA satellites app."),
+            new Box("explosionfx", "WFLib explosion effects (experimental)", "Continuum's small, standard and large explosions are drawn with GemRender's shockwave, cloud and thrown ground."));
     private final Map<String, Boolean> started;
     private final boolean startedMaster;
 

@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 /** {@code wflib_continuum.toml}: one switch per bridge. Read at start-up. */
 final class BridgeConfig {
-    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION, RECON, ORBIT;
+    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION, RECON, ORBIT, EXPLOSIONFX;
     static final ModConfigSpec SPEC;
 
     static {
@@ -39,6 +39,8 @@ final class BridgeConfig {
                 .define("recon", true);
         ORBIT = b.comment("Continuum's satellites are mirrored into WFLib's orbital catalogue (the PDA satellites app, scopes, hunters).")
                 .define("orbit", true);
+        EXPLOSIONFX = b.comment("EXPERIMENTAL. Continuum's small, standard and large explosion effects are drawn by WFLib's GemRender effects (shockwave, cloud, thrown ground) instead of Continuum's particles.")
+                .define("explosionfx", true);
         SPEC = b.build();
     }
 
@@ -61,6 +63,7 @@ final class BridgeConfig {
             case "bullets" -> BULLETS;
             case "recon" -> RECON;
             case "orbit" -> ORBIT;
+            case "explosionfx" -> EXPLOSIONFX;
             default -> throw new IllegalArgumentException(id);
         };
     }
@@ -71,6 +74,10 @@ final class BridgeConfig {
 
     static boolean penetration() {
         return MASTER.get() && PENETRATION.get();
+    }
+
+    static boolean explosionFx() {
+        return MASTER.get() && EXPLOSIONFX.get();
     }
 
     static boolean recon() {

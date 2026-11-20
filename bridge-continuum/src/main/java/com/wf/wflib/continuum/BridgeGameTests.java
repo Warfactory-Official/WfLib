@@ -407,7 +407,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -777,5 +777,17 @@ public final class BridgeGameTests {
         h.onEachTick(() -> {
             if (data.byCallsign("NTM-" + freq) == null) h.succeed();
         });
+    }
+    // ---------------------------------------------------------------- explosion effects
+
+    /** Continuum's explosion effects are intercepted: its three sizes go to WFLib's effect and Continuum sends nothing of its own. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void continuumExplosionEffectsAreDrawnByWflib(GameTestHelper h) {
+        var level = h.getLevel();
+        Vec3 at = h.absoluteVec(new Vec3(2.5, 8.0, 2.5));
+        for (var size : com.hbm.particle.helper.ExplosionCreator.Size.values()) {
+            h.assertTrue(com.hbm.particle.helper.ExplosionCreator.INTERCEPT.invoker().draw(level, at.x, at.y, at.z, size), size + " was taken over");
+        }
+        h.succeed();
     }
 }
