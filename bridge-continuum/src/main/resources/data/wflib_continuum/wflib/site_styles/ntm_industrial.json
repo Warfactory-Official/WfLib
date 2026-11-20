@@ -1,0 +1,19 @@
+{
+  "weight": 2,
+  "roles": {
+    "heavy": "hbm:concrete_rebar",
+    "body": "hbm:concrete_asbestos",
+    "trim": "hbm:deco_steel",
+    "floor": "hbm:asphalt",
+    "slab": "hbm:concrete_gray_slab",
+    "glass": "hbm:reinforced_laminate",
+    "steel": "hbm:steel_beam",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:fence_metal"
+  },
+  "weather": {
+    "hbm:concrete_asbestos": ["hbm:brick_concrete_cracked", "hbm:concrete_asbestos"],
+    "hbm:deco_steel": ["hbm:deco_rusty_steel"]
+  },
+  "weatherChance": 0.1
+}

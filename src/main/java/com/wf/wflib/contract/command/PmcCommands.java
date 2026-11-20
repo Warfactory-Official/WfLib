@@ -83,9 +83,13 @@ public final class PmcCommands {
                 .then(Commands.literal("buildbase").requires(x -> x.hasPermission(2))
                         .then(Commands.argument("kind", StringArgumentType.word())
                                 .suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.Arrays.stream(com.wf.wflib.contract.site.BaseKind.values()).map(com.wf.wflib.contract.site.BaseKind::id), sb))
-                                .executes(c -> buildBase(c, new java.util.Random().nextLong()))
+                                .executes(c -> buildBase(c, new java.util.Random().nextLong(), null))
                                 .then(Commands.argument("seed", com.mojang.brigadier.arguments.LongArgumentType.longArg())
-                                        .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"))))))
+                                        .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"), null))
+                                        .then(Commands.argument("style", StringArgumentType.word())
+                                                .suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.stream.Stream.concat(java.util.stream.Stream.of("plain"),
+                                                        com.wf.wflib.contract.site.SiteStyles.available().stream().map(st -> st.id().substring(st.id().indexOf(':') + 1))), sb))
+                                                .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"), StringArgumentType.getString(c, "style")))))))
                 .then(Commands.literal("heat").requires(s -> com.wf.wflib.core.api.Features.on("contract_heat")).executes(PmcCommands::heat))
                 .then(Commands.literal("analyze").executes(PmcCommands::analyze))
                 .then(Commands.literal("news").executes(c -> {
@@ -200,7 +204,7 @@ public final class PmcCommands {
         }
     }
 
-    private static int buildBase(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c, long seed) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+    private static int buildBase(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c, long seed, String style) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var src = c.getSource();
         com.wf.wflib.contract.site.BaseKind kind;
         try {
@@ -213,7 +217,7 @@ public final class PmcCommands {
         int x = net.minecraft.core.BlockPos.containing(src.getPosition()).getX(), z = net.minecraft.core.BlockPos.containing(src.getPosition()).getZ();
         int padY = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR_WG, x, z);
         var plan = com.wf.wflib.contract.site.BaseLayout.plan(kind, x, z, padY, new java.util.Random(seed), new com.wf.wflib.contract.site.LevelTerrain(level, true));
-        com.wf.wflib.contract.site.BaseBuilder.build(level, plan, com.wf.wflib.contract.site.Palette.at(level, new net.minecraft.core.BlockPos(x, padY, z)), seed);
+        com.wf.wflib.contract.site.BaseBuilder.build(level, plan, com.wf.wflib.contract.site.Palette.at(level, new net.minecraft.core.BlockPos(x, padY, z), style), seed);
         src.sendSuccess(() -> Component.literal("Built a " + kind.id() + " at " + x + ", " + padY + ", " + z + " (seed " + seed + ")."), true);
         return 1;
     }

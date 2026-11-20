@@ -28,9 +28,12 @@ import java.util.Map;
  * @param light flush floodlight block
  * @param bed the barracks bed
  * @param containers shipping-container colours, in the order a stack takes them
+ * @param bars the coping on the wall: iron bars, or a style's own (barbed wire)
+ * @param weather per block, the worn variants a share of its placements are swapped for; empty for an unstyled base
+ * @param weatherChance the share
  */
 public record Palette(Block heavy, Block body, Block trim, Block floor, Block slab, Block glass, Block steel, Block hesco, Block bag,
-                      Block ground, Block light, Block bed, List<Block> containers) {
+                      Block ground, Block light, Block bed, List<Block> containers, Block bars, Map<Block, List<Block>> weather, float weatherChance) {
     public enum Climate { TEMPERATE, ARID, COLD }
 
     private static final Map<Climate, Palette> CACHE = new EnumMap<>(Climate.class);
@@ -51,24 +54,53 @@ public record Palette(Block heavy, Block body, Block trim, Block floor, Block sl
                     Blocks.GRAY_CONCRETE, Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_STONE_SLAB, mod("glass", Blocks.TINTED_GLASS),
                     mod("steel", Blocks.IRON_BLOCK), mod("hesco", Blocks.TUFF), mod("bag", Blocks.PACKED_MUD),
                     Blocks.COARSE_DIRT, Blocks.SEA_LANTERN, Blocks.GREEN_BED,
-                    List.of(Blocks.GREEN_CONCRETE, Blocks.BLUE_CONCRETE, Blocks.GRAY_CONCRETE, Blocks.RED_CONCRETE));
+                    List.of(Blocks.GREEN_CONCRETE, Blocks.BLUE_CONCRETE, Blocks.GRAY_CONCRETE, Blocks.RED_CONCRETE), Blocks.IRON_BARS, Map.of(), 0f);
             case ARID -> new Palette(mod("heavy", Blocks.GRAY_CONCRETE), Blocks.SMOOTH_SANDSTONE,
                     Blocks.TERRACOTTA, Blocks.CUT_SANDSTONE, Blocks.SMOOTH_SANDSTONE_SLAB, mod("glass", Blocks.TINTED_GLASS),
                     mod("steel", Blocks.IRON_BLOCK), mod("hesco", Blocks.TUFF), mod("bag", Blocks.PACKED_MUD),
                     Blocks.PACKED_MUD, Blocks.SEA_LANTERN, Blocks.BROWN_BED,
-                    List.of(Blocks.ORANGE_CONCRETE, Blocks.BROWN_CONCRETE, Blocks.LIGHT_GRAY_CONCRETE, Blocks.YELLOW_CONCRETE));
+                    List.of(Blocks.ORANGE_CONCRETE, Blocks.BROWN_CONCRETE, Blocks.LIGHT_GRAY_CONCRETE, Blocks.YELLOW_CONCRETE), Blocks.IRON_BARS, Map.of(), 0f);
             case COLD -> new Palette(mod("heavy", Blocks.GRAY_CONCRETE), Blocks.WHITE_CONCRETE,
                     Blocks.GRAY_CONCRETE, Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_STONE_SLAB, mod("glass", Blocks.TINTED_GLASS),
                     mod("steel", Blocks.IRON_BLOCK), mod("hesco", Blocks.TUFF), mod("bag", Blocks.PACKED_MUD),
                     Blocks.SNOW_BLOCK, Blocks.SEA_LANTERN, Blocks.GRAY_BED,
-                    List.of(Blocks.BLUE_CONCRETE, Blocks.RED_CONCRETE, Blocks.LIGHT_GRAY_CONCRETE, Blocks.CYAN_CONCRETE));
+                    List.of(Blocks.BLUE_CONCRETE, Blocks.RED_CONCRETE, Blocks.LIGHT_GRAY_CONCRETE, Blocks.CYAN_CONCRETE), Blocks.IRON_BARS, Map.of(), 0f);
         });
     }
 
+    /** The climate's palette in the look the base at {@code pos} takes (see {@link SiteStyles}). */
     public static Palette at(ServerLevel level, BlockPos pos) {
+        return climate(level, pos).styled(SiteStyles.pick(pos.asLong() * 0x9E3779B97F4A7C15L >>> 20));
+    }
+
+    /** As {@link #at}, the look forced: {@code style} a style's id, "plain" for none, null to pick as usual. */
+    public static Palette at(ServerLevel level, BlockPos pos, String style) {
+        if (style == null) return at(level, pos);
+        return climate(level, pos).styled("plain".equals(style) ? null : SiteStyles.byId(style));
+    }
+
+    private static Palette climate(ServerLevel level, BlockPos pos) {
         var biome = level.getBiome(pos);
         if (biome.is(BiomeTags.IS_BADLANDS) || biome.value().getBaseTemperature() > 1.5f) return of(Climate.ARID);
         if (biome.value().getBaseTemperature() < 0.15f) return of(Climate.COLD);
         return of(Climate.TEMPERATE);
+    }
+
+    /** This palette with {@code style}'s roles over its own; the palette itself when null. */
+    public Palette styled(SiteStyles.Style style) {
+        if (style == null) return this;
+        Map<String, Block> r = style.roles();
+        return new Palette(r.getOrDefault("heavy", heavy), r.getOrDefault("body", body), r.getOrDefault("trim", trim), r.getOrDefault("floor", floor),
+                r.getOrDefault("slab", slab), r.getOrDefault("glass", glass), r.getOrDefault("steel", steel), r.getOrDefault("hesco", hesco),
+                r.getOrDefault("bag", bag), r.getOrDefault("ground", ground), r.getOrDefault("light", light), bed, containers,
+                r.getOrDefault("bars", bars), style.weather(), style.weatherChance());
+    }
+
+    /** {@code state}, or a worn variant of it: a share of a weathering block's placements. Draws from {@code rng} only for a block that has variants. */
+    public net.minecraft.world.level.block.state.BlockState weathered(net.minecraft.world.level.block.state.BlockState state, net.minecraft.util.RandomSource rng) {
+        if (weather.isEmpty()) return state;
+        List<Block> worn = weather.get(state.getBlock());
+        if (worn == null || rng.nextFloat() >= weatherChance) return state;
+        return worn.get(rng.nextInt(worn.size())).defaultBlockState();
     }
 }

@@ -61,6 +61,7 @@ public final class ContractSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(AddReloadListenerEvent.class, e -> {
             e.addListener(new Contracts());
             e.addListener(new com.wf.wflib.contract.site.SiteBlocks());
+            e.addListener(new com.wf.wflib.contract.site.SiteStyles());
         });
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, e -> PmcCommands.register(e.getDispatcher()));
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, e -> {

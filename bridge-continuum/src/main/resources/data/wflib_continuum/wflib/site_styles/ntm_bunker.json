@@ -1,0 +1,18 @@
+{
+  "weight": 3,
+  "roles": {
+    "heavy": "hbm:reinforced_brick",
+    "body": "hbm:brick_concrete",
+    "trim": "hbm:concrete_pillar",
+    "floor": "hbm:concrete",
+    "slab": "hbm:brick_concrete_slab",
+    "glass": "hbm:reinforced_glass",
+    "steel": "hbm:block_steel",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:barbed_wire"
+  },
+  "weather": {
+    "hbm:brick_concrete": ["hbm:brick_concrete_cracked", "hbm:brick_concrete_mossy", "hbm:brick_concrete_broken"]
+  },
+  "weatherChance": 0.14
+}

@@ -99,6 +99,7 @@ public final class BaseBuilder {
     // ---------------------------------------------------------------- helpers
 
     private void set(int x, int y, int z, BlockState s) {
+        s = pal.weathered(s, rng);
         level.setBlock(at.set(x, y, z), s, FLAGS);
         Block b = s.getBlock();
         if (b instanceof IronBarsBlock || b instanceof FenceBlock || b instanceof WallBlock || b instanceof StairBlock) shaped.add(new BlockPos(x, y, z));
@@ -224,7 +225,7 @@ public final class BaseBuilder {
         if (Math.floorMod(i, 6) == 0) fill(x, y, z, x, y + h, z, pal.trim());            // pilaster
         else if (Math.floorMod(i, 5) == 2) set(x, y + h - 2, z, pal.glass());           // firing slit
         else if (Math.floorMod(i, 8) == 4) set(x, y + h - 1, z, pal.light());           // floodlight in the coping
-        else set(x, y + h, z, Math.floorMod(i, 2) == 0 ? pal.heavy().defaultBlockState() : Blocks.IRON_BARS.defaultBlockState());
+        else set(x, y + h, z, Math.floorMod(i, 2) == 0 ? pal.heavy().defaultBlockState() : pal.bars().defaultBlockState());
     }
 
     /** A five-wide vehicle gate in the middle of a side: steel header, red-and-white boom posts, floodlights. */
