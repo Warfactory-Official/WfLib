@@ -8,7 +8,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * WFLib's colony replaces Continuum's glyphids (docs, 3.3): Continuum's glyphids no longer spawn naturally (a Golem natural-spawn veto; the hive world
+ * WFLib's colony replaces Continuum's glyphids (docs, 3.3): Continuum's glyphids no longer spawn naturally (a Golem natural-spawn veto on every `hbm:entity_glyphid*` type; the hive world
  * feature is switched off in {@link BridgeEntry#substitute}), and WFLib's glyphids drop what Continuum's did, with its odds: half the time, twice the
  * body scale in meat plus looting, grilled if the glyphid died on fire. Eggs, spawners and hive blocks stay Continuum's items and decor.
  */
@@ -19,7 +19,7 @@ final class Glyphids {
     static void install() {
         Spawns.onSpawnCheck((mob, level, reason) -> {
             ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
-            return id.getNamespace().equals("hbm") && id.getPath().startsWith("glyphid");
+            return id.getNamespace().equals("hbm") && id.getPath().contains("glyphid");   // entity_glyphid, entity_glyphid_behemoth, ...
         });
         EntityGlyphid.DROPS.add((glyphid, level, looting) -> {
             if (glyphid.getRandom().nextInt(2) != 0) return;

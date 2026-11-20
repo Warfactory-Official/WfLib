@@ -33,6 +33,7 @@ public final class ContinuumBridge {
         container.registerConfig(ModConfig.Type.STARTUP, BridgeConfig.SPEC, "wflib_continuum.toml");
         ModEntries.start(new BridgeEntry());
         modBus.addListener(AddPackFindersEvent.class, ContinuumBridge::addPacks);
+        modBus.addListener(net.neoforged.neoforge.event.RegisterGameTestsEvent.class, e -> e.register(BridgeGameTests.class));
     }
 
     /** The generated data pack (patches that stand Continuum's own armour reduction down, and WFLib armour profiles seeded from its numbers). */

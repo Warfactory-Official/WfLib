@@ -11,6 +11,8 @@ final class BridgeEntry implements ModEntry {
             // No hive world feature of Continuum's own: WFLib's colonies seed the world. Needs Continuum's config override (the bridge's upstream seam).
             try {
                 com.hbm.config.CommonConfig.override(com.hbm.config.CommonConfig.CATEGORY_MOBS, "12.G00_enableHives", "false");
+                // Continuum read its configuration in its own constructor, before this mod's: read it again so the statement takes.
+                com.hbm.main.MainRegistry.loadConfig(new com.hbm.config.Configuration(com.hbm.main.MainRegistry.configFile()));
             } catch (NoSuchMethodError old) {
                 ContinuumBridge.LOG.warn("This Continuum has no CommonConfig.override: its glyphid hives stay on until it is switched off in its own config (12.G00_enableHives)");
             }
