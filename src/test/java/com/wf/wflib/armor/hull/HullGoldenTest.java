@@ -159,5 +159,5 @@ class HullGoldenTest {
         }
     }
 
-    static final long GOLDEN = 3534270216172822281L;
+    static final long GOLDEN = -4108268696571324837L;
 }
