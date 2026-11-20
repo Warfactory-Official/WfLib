@@ -1,6 +1,6 @@
 # NTM: Continuum compatibility (draft 3, started)
 
-Status: **draft for discussion**, second pass. Read from both code bases (Continuum `main` at `e2f987a5`, Golem Core `5275cc5`);
+Status: **draft for discussion**, second pass. Read from both code bases (Continuum `main` at `0c0fb44a` (1.0.6), Golem Core `ddb495c` (1.0.6));
 nothing here has been run with both mods loaded. "Verified" means read in the source; "to validate" means it needs a test in a game.
 
 ## 0. Decisions
@@ -11,7 +11,7 @@ nothing here has been run with both mods loaded. "Verified" means read in the so
 | Doors | **Follow WFLib's door system**, starting with level 1 (recipes and items, data only). |
 | Method | **No mixins** where avoidable. Continuum is modular by design: use what it and Golem Core already expose. |
 | Golem Core | A **hard dependency** of Continuum, so it can be assumed whenever Continuum is present. |
-| Baseline | The Continuum repository's `main` (`e2f987a5`), node `1.21.1-neoforge`. |
+| Baseline | The Continuum repository's `main` (`0c0fb44a`, 1.0.6), node `1.21.1-neoforge`. |
 | Glyphids | **WFLib's colony replaces Continuum's.** Continuum's textures are referenced only when it is present, never copied. |
 | Packaging | A **separate bridge addon** (`bridge-continuum/`, id `wflib_continuum`), a Golem-based mod. |
 | Radiation | **Continuum's field stays the owner**, WFLib reads and writes through an adapter. |
