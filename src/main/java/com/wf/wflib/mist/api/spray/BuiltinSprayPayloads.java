@@ -1,4 +1,4 @@
-package com.wf.wflib.mist.spray;
+package com.wf.wflib.mist.api.spray;
 
 import com.wf.wflib.mist.api.WFFluids;
 import com.wf.wflib.warhead.api.AgentOrangeWarhead;

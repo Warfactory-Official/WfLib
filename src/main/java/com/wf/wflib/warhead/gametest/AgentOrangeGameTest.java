@@ -1,6 +1,6 @@
 package com.wf.wflib.warhead.gametest;
 
-import com.wf.wflib.mist.spray.SprayCurtainEntity;
+import com.wf.wflib.mist.api.spray.SprayCurtainEntity;
 import com.wf.wflib.testkit.api.ForcedChunks;
 import com.wf.wflib.warhead.api.AgentOrangeWarhead;
 import com.wf.wflib.warhead.api.WarheadCarrier;

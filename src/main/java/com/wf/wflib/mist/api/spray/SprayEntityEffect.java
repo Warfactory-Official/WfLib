@@ -1,4 +1,4 @@
-package com.wf.wflib.mist.spray;
+package com.wf.wflib.mist.api.spray;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;

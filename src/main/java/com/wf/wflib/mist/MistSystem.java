@@ -20,8 +20,8 @@ import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.mist.client.MistClientConfig;
 import com.wf.wflib.mist.lab.MistHazards;
-import com.wf.wflib.mist.spray.BuiltinSprayPayloads;
-import com.wf.wflib.mist.spray.SprayCurtainEntity;
+import com.wf.wflib.mist.api.spray.BuiltinSprayPayloads;
+import com.wf.wflib.mist.api.spray.SprayCurtainEntity;
 import net.neoforged.fml.config.ModConfig;
 
 public final class MistSystem implements WFSystem {

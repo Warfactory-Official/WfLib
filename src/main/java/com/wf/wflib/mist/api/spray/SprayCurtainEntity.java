@@ -1,4 +1,4 @@
-package com.wf.wflib.mist.spray;
+package com.wf.wflib.mist.api.spray;
 
 import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.mist.MistSystem;

@@ -5,7 +5,7 @@ import com.wf.wflib.particle.api.client.MistParticle;
 import com.wf.wflib.mist.api.MistEntity;
 import com.wf.wflib.mist.api.MistEffect;
 import com.wf.wflib.mist.api.MistEffects;
-import com.wf.wflib.mist.spray.SprayPayloads;
+import com.wf.wflib.mist.api.spray.SprayPayloads;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.ParticleEngine;

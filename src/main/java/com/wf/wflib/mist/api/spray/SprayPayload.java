@@ -1,4 +1,4 @@
-package com.wf.wflib.mist.spray;
+package com.wf.wflib.mist.api.spray;
 
 import com.wf.wflib.mist.api.MistEffect;
 import org.jetbrains.annotations.Nullable;

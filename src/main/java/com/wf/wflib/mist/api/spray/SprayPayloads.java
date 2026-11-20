@@ -1,4 +1,4 @@
-package com.wf.wflib.mist.spray;
+package com.wf.wflib.mist.api.spray;
 
 import com.wf.wflib.core.api.OrderedRegistry;
 import com.wf.wflib.core.api.WFRegistry;
