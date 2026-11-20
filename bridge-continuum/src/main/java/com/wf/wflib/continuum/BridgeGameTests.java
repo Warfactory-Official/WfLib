@@ -407,7 +407,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx", "pda")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -800,6 +800,26 @@ public final class BridgeGameTests {
         com.wf.wflib.armor.ArmorTooltip.append(piece, lines, net.minecraft.world.item.TooltipFlag.NORMAL);
         String text = lines.stream().map(net.minecraft.network.chat.Component::getString).reduce("", (a, b) -> a + "\n" + b);
         h.assertTrue(text.contains("Condition") && text.contains("Protection") && text.contains("DT"), "the plate shows its numbers: " + text);
+        h.succeed();
+    }
+    // ---------------------------------------------------------------- pda
+
+    /** A PDA carrier in range is told of a Continuum launch; one out of range, or without a PDA, is not. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void continuumLaunchesReachCarriedPdas(GameTestHelper h) {
+        var level = h.getLevel();
+        net.minecraft.server.level.ServerPlayer carrier = net.neoforged.neoforge.common.util.FakePlayerFactory.get(level, new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("pda-carrier".getBytes()), "pda_carrier"));   // not the shared one: the gun tests hold it
+        Vec3 at = h.absoluteVec(new Vec3(2.5, 2.0, 2.5));
+        carrier.setPos(at);
+        var pda = BuiltInRegistries.ITEM.get(ResourceLocation.parse("wflib:pda"));
+        h.assertTrue(pda != net.minecraft.world.item.Items.AIR, "the PDA item exists");
+        carrier.getInventory().clearContent();
+        h.assertTrue(PdaBridge.broadcast(List.of(carrier), at.x, at.z, net.minecraft.network.chat.Component.literal("t"), com.wf.wflib.pda.api.PdaAlert.Tier.INFO, PdaBridge.HEARING) == 0, "without a PDA nobody is told");
+        carrier.getInventory().setItem(0, new ItemStack(pda));
+        h.assertTrue(PdaBridge.broadcast(List.of(carrier), at.x, at.z, net.minecraft.network.chat.Component.literal("t"), com.wf.wflib.pda.api.PdaAlert.Tier.INFO, PdaBridge.HEARING) == 1, "a carrier in range is told");
+        h.assertTrue(PdaBridge.broadcast(List.of(carrier), at.x + PdaBridge.HEARING * 2, at.z, net.minecraft.network.chat.Component.literal("t"), com.wf.wflib.pda.api.PdaAlert.Tier.INFO, PdaBridge.HEARING) == 0, "one out of range is not");
+        h.assertTrue(PdaBridge.nuclear("hbm:missile_nuclear") && !PdaBridge.nuclear("hbm:missile_generic"), "nuclear launches are told apart");
+        carrier.getInventory().clearContent();
         h.succeed();
     }
 }

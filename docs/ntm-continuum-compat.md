@@ -41,6 +41,7 @@ Everything marked *tested* is a GameTest in `bridge-continuum` that passes (17 r
 | Recon | Continuum missiles and rockets are contacts on WFLib's recon net (radar app, scopes) with a cross-section from their size, a stealth missile a tenth of it; its explosions (`HbmEvents.EXPLOSION`) are seismic events. *Tested.* Continuum's own radar blocks and alerts are untouched. |
 | Orbit | A Continuum satellite reaching orbit (`XSatelliteRegistry.ORBITED`) is mirrored as a WFLib satellite `NTM-<frequency>` with the payload that matches (relay, radar, miner, laser, imagery); it comes down when Continuum's is gone. Unaffiliated (no net), on a track through world spawn, because the hook does not say where it launched. *Tested.* |
 | Explosion effects (experimental) | Seam in Continuum: `ExplosionCreator.INTERCEPT` (a Golem `Hook`, commit `2d70b506` in the compat worktree). The bridge answers it with WFLib's GemRender small/standard/large effects (switch `explosionfx`, on). The nuclear cloud (`EntityNukeTorex`) stays Continuum's. *Tested:* the three sizes are intercepted. **Not looked at in game.** |
+| PDA alerts | Continuum's missile launches and impacts (nuclear ones CRITICAL), large explosions (size 20 and up), satellites reaching orbit and radiation doses reach a carried PDA through `PdaAlert` (switch `pda`). Within 3000 blocks for launches and blasts, at once for orbit and for doses (one a ten seconds). *Tested:* carrier in range / out of range / without a PDA. |
 | Not built | door level 2 (substituting the 15 `hbm:` door blocks and block entity needs a WFLib refactor first: the `instanceof DoorBlock` sites become an interface) and level 3 (keys and locks); infantry hit-location for Continuum guns; drone containers (nothing needed bridging found). |
 | Open | `nukes` stays off until the stone crater parity (Continuum 1255 vs WFLib 2838 blocks) is understood; radiation exposure per player in a real world; hazard modifiers. The RBMK items' wiki icons come from the block particle when the item has none; the Template pages are skipped. In the old test instance, EMI's "Error Rendering" on Continuum's assembly machine page was GTCEu's modularui mixin failing against JEI 19.57, not the bridge; the new instance has GTCEu removed. |
 
@@ -258,3 +259,20 @@ Phase 0 and the armour data loader (useful on its own) can start now.
 4. **Upstream changes:** are two small additive changes to Continuum (`createRay`, `CommonConfig.override`) acceptable to make?
 5. **Doors level:** stop at recipes and items first, or go to full block substitution from the start.
 6. **Glyphid hive look:** reference Continuum's block textures only when it is present (my recommendation), or copy them into WFLib.
+
+## 5. More PDA compatibility: what is worth doing next
+
+Surveyed on 2026-11-20 against the apps WFLib's PDA has (radar, satellites, drones, photos, cameras, telemetry, radio, map, terminal, alerts, music, wiki, reinforcements, contracts). Done: radar contacts, satellites, alerts, wiki. Candidates, most useful first:
+
+| App | What Continuum has | Bridge | Cost |
+|---|---|---|---|
+| Map | launch pads, silos, radar stations, the player's bunkers, fallout areas | map markers from block entities (launch pads and radars already tracked by Continuum's own registries), a fallout overlay from the radiation field the bridge already reads | medium |
+| Telemetry | machine energy, fluid and heat state, reactor (RBMK, pile) readouts | `Telemetry` reporters for block entities with a readout, the data `ILookOverlay` already gives the probe | medium |
+| Radio | Redstone-over-Radio frequencies and telex | WFLib radio channels mapped to RoR frequencies, so a PDA can talk on a RoR link | medium; RoR is Continuum's own protocol |
+| Terminal | Continuum machines have scriptable state (RoR, OC-style hooks) | `TerminalNoun`s for the machines the probe can read: `read <machine>` | low to medium |
+| Drones | Continuum's drone entities and their containers (`IDroneContainer`) | none until a Continuum drone feature needs it | skip |
+| Cameras / photos | none of its own | none | skip |
+| Contracts | none | Continuum content as contract rewards and targets (silo, bunker bases already follow the NTM look) | later |
+| Music | Continuum's jukebox discs and sound | PDA music list of discs the player owns | low value |
+
+The first two cost the most but change what a PDA is for in an NTM world (a launch silo on the map, a reactor on the telemetry list); the terminal nouns come nearly free once telemetry exists.
