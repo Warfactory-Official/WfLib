@@ -27,6 +27,6 @@ class SiteStylesTest {
         assertNotNull(style);
         assertEquals("t:plainish", style.id());
         assertEquals(3, style.weight());
-        assertEquals(0.12f, style.weatherChance());
+        assertEquals(0.0f, style.weatherChance());
     }
 }

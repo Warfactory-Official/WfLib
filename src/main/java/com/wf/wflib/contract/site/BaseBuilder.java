@@ -43,6 +43,8 @@ public final class BaseBuilder {
     private final Palette pal;
     private final RandomSource rng;
     private final BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
+    /** The one kind of roof gear this base's buildings carry (a base reads as one hand's work). */
+    private int gear;
     /** Blocks whose shape depends on their neighbours (bars, fences, stairs): re-shaped once everything stands. */
     private final List<BlockPos> shaped = new ArrayList<>();
 
@@ -54,6 +56,7 @@ public final class BaseBuilder {
 
     public static void build(ServerLevel level, BasePlan plan, Palette pal, long seed) {
         BaseBuilder b = new BaseBuilder(level, pal, RandomSource.create(seed));
+        b.gear = (int) Math.floorMod(seed, 4L);
         b.load(plan);
         b.grade(plan);
         if (plan.wall() != null) b.wall(plan);
@@ -102,7 +105,8 @@ public final class BaseBuilder {
         s = pal.weathered(s, rng);
         level.setBlock(at.set(x, y, z), s, FLAGS);
         Block b = s.getBlock();
-        if (b instanceof IronBarsBlock || b instanceof FenceBlock || b instanceof WallBlock || b instanceof StairBlock) shaped.add(new BlockPos(x, y, z));
+        if (b instanceof IronBarsBlock || b instanceof FenceBlock || b instanceof WallBlock || b instanceof StairBlock
+                || s.hasProperty(BlockStateProperties.NORTH) && s.hasProperty(BlockStateProperties.EAST)) shaped.add(new BlockPos(x, y, z));   // a modded fence joins up the same way
     }
 
     private void set(int x, int y, int z, Block b) {
@@ -190,7 +194,7 @@ public final class BaseBuilder {
     private boolean hescoStretch(BasePlan plan, int i) {
         return switch (plan.wall().style()) {
             case BasePlan.Wall.HESCO -> true;
-            case BasePlan.Wall.MIXED -> Math.floorMod((i + plan.wall().half()) / 7, 2) == 1;
+            case BasePlan.Wall.MIXED -> pal.mixedWalls() && Math.floorMod((i + plan.wall().half()) / 7, 2) == 1;
             default -> false;
         };
     }
@@ -198,14 +202,15 @@ public final class BaseBuilder {
     private void wall(BasePlan plan) {
         var w = plan.wall();
         int h = w.height(), half = w.half(), cx = plan.cx(), cz = plan.cz(), y = plan.padY();
-        boolean thick = plan.kind() == BaseKind.FORTRESS;
+        boolean thick = plan.kind() == BaseKind.FORTRESS && !pal.fenceWall();
         int[][] inward = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
         for (int side = 0; side < 4; side++) {
             for (int i = -half; i <= half; i++) {
                 int x = side == 1 ? cx + half : side == 3 ? cx - half : cx + i;
                 int z = side == 0 ? cz - half : side == 2 ? cz + half : cz + i;
                 boolean hesco = hescoStretch(plan, i);
-                wallCell(x, z, y, h, i, hesco, false);
+                if (pal.fenceWall()) fenceCell(x, z, y, h, i);
+                else wallCell(x, z, y, h, i, hesco, false);
                 if (thick) wallCell(x + inward[side][0], z + inward[side][1], y, h - 1, i, hesco, true);
             }
         }
@@ -228,7 +233,18 @@ public final class BaseBuilder {
         else set(x, y + h, z, Math.floorMod(i, 2) == 0 ? pal.heavy().defaultBlockState() : pal.bars().defaultBlockState());
     }
 
-    /** A five-wide vehicle gate in the middle of a side: steel header, red-and-white boom posts, floodlights. */
+    /** One column of a chain-link fence: mesh the height of the wall, a taller capped post every fourth cell. */
+    private void fenceCell(int x, int z, int y, int h, int i) {
+        int top = Math.max(3, h - 1);
+        if (Math.floorMod(i, 4) == 0) {
+            fill(x, y, z, x, y + top, z, pal.fencePost());
+            set(x, y + top + 1, z, pal.bars());                                                       // a cap on each post
+        } else {
+            fill(x, y, z, x, y + top - 1, z, pal.fence());
+        }
+    }
+
+    /** A five-wide vehicle gate in the middle of a side: steel header, striped boom posts, floodlights. */
     private void gate(BasePlan plan, int side, boolean thick) {
         var w = plan.wall();
         int h = w.height(), half = w.half(), cx = plan.cx(), cz = plan.cz(), y = plan.padY();
@@ -246,13 +262,13 @@ public final class BaseBuilder {
         for (int d = -8; d <= 10; d++) {                                                                  // the road through the gate, edged in yellow
             for (int k = -3; k <= 3; k++) {
                 int x = cx + gx + (ns ? k : in * d), z = cz + gz + (ns ? in * d : k);
-                if (Math.abs(k) == 3 && d > (thick ? 1 : 0) || Math.abs(k) == 3 && d < 0) set(x, y - 1, z, Blocks.YELLOW_CONCRETE);
-                else if (Math.abs(k) < 3 && (d > (thick ? 1 : 0) || d < 0)) set(x, y - 1, z, d % 4 == 0 && k == 0 ? Blocks.WHITE_CONCRETE : pal.floor());
+                if (Math.abs(k) == 3 && d > (thick ? 1 : 0) || Math.abs(k) == 3 && d < 0) set(x, y - 1, z, pal.edge());
+                else if (Math.abs(k) < 3 && (d > (thick ? 1 : 0) || d < 0)) set(x, y - 1, z, d % 4 == 0 && k == 0 ? pal.mark() : pal.floor());
             }
         }
         for (int k = -3; k <= 3; k += 6) {
             int x = cx + gx + (ns ? k : 0), z = cz + gz + (ns ? 0 : k);
-            for (int yy = y; yy <= y + h; yy++) set(x, yy, z, (yy - y) % 2 == 0 ? Blocks.RED_CONCRETE : Blocks.WHITE_CONCRETE);
+            for (int yy = y; yy <= y + h; yy++) set(x, yy, z, (yy - y) % 2 == 0 ? pal.boomA() : pal.boomB());
             set(x, y + h + 1, z, pal.light());
         }
     }
@@ -316,8 +332,8 @@ public final class BaseBuilder {
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y(), h = p.height(), st = p.style();
         fill(xa - 1, y - 1, za - 1, xb + 1, y - 1, zb + 1, pal.floor());
         shell(xa, y, za, xb, y + h - 1, zb, wallBlock);
-        ring(xa, y, za, xb, zb, pal.trim());                                                           // plinth
-        if (((st >> 4) & 1) == 0) ring(xa, y + h - 1, za, xb, zb, accent(st));                         // colour band
+        ring(xa, y, za, xb, zb, pal.plinth());
+        if (((st >> 4) & 1) == 0) ring(xa, y + h - 1, za, xb, zb, pal.band() != null ? pal.band() : accent(gear));              // one band colour for the whole base
         for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + h, c[1], pal.trim());
         fill(xa - 1, y + h, za - 1, xb + 1, y + h, zb + 1, pal.trim());                                // roof
         ring(xa - 1, y + h + 1, za - 1, xb + 1, zb + 1, Blocks.AIR);
@@ -355,7 +371,7 @@ public final class BaseBuilder {
     }
 
     private void roofGear(Piece p, int xa, int za, int xb, int zb, int top) {
-        int kind = (p.style() >> 6) & 3;
+        int kind = gear;
         if (p.w() <= 3) return;
         switch (kind) {
             case 0 -> {                                                                              // a solar array
@@ -488,7 +504,7 @@ public final class BaseBuilder {
             int tx = p.x(), tz = p.z();
             for (int dx = -1; dx <= 1; dx++) {
                 if (tx + dx == xa + 2 && tz == za + 2) continue;
-                set(tx + dx, y, tz, slab(Blocks.SMOOTH_STONE_SLAB, SlabType.BOTTOM));
+                set(tx + dx, y, tz, slab(pal.slab(), SlabType.BOTTOM));
                 set(tx + dx, y, tz - 1, Blocks.POLISHED_ANDESITE_STAIRS, Direction.SOUTH);
                 set(tx + dx, y, tz + 1, Blocks.POLISHED_ANDESITE_STAIRS, Direction.NORTH);
             }
@@ -556,7 +572,7 @@ public final class BaseBuilder {
         for (int k = -2; k <= 2 && Math.min(p.w(), p.d()) >= 8; k++) {
             int x = alongX ? cx + k : cx, z = alongX ? cz : cz + k;
             if (nearDoor(p, x, z)) continue;
-            set(x, y, z, slab(Blocks.SMOOTH_STONE_SLAB, SlabType.BOTTOM));
+            set(x, y, z, slab(pal.slab(), SlabType.BOTTOM));
             Direction a = alongX ? Direction.SOUTH : Direction.EAST, b2 = a.getOpposite();
             set(x + (alongX ? 0 : -1), y, z + (alongX ? -1 : 0), Blocks.POLISHED_ANDESITE_STAIRS, a);
             set(x + (alongX ? 0 : 1), y, z + (alongX ? 1 : 0), Blocks.POLISHED_ANDESITE_STAIRS, b2);
@@ -566,7 +582,7 @@ public final class BaseBuilder {
     /** White concrete with a red cross on the side wall: beds, a brewing stand and a sink, supply chests. */
     private void medical(Piece p) {
         Piece white = new Piece(p.type(), p.x(), p.y(), p.z(), p.w(), p.d(), p.facing(), p.height(), p.style() | 0x10);
-        building(white, Blocks.WHITE_CONCRETE, true);
+        building(white, pal.mark(), true);
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
         // the cross, on the wall to the left of the door
         Direction left = dir(p.facing()).getCounterClockWise();
@@ -574,8 +590,8 @@ public final class BaseBuilder {
         int wz = left == Direction.NORTH ? za : left == Direction.SOUTH ? zb : p.z();
         int ax = left.getAxis() == Direction.Axis.X ? 0 : 1, az = left.getAxis() == Direction.Axis.X ? 1 : 0;
         for (int k = -1; k <= 1; k++) {
-            set(wx + ax * k, y + 2, wz + az * k, Blocks.RED_CONCRETE);
-            if (k != 0) set(wx, y + 2 + k, wz, Blocks.RED_CONCRETE);
+            set(wx + ax * k, y + 2, wz + az * k, pal.boomA());
+            if (k != 0) set(wx, y + 2 + k, wz, pal.boomA());
         }
         Direction back = back(p);
         List<int[]> row = edge(p, back);
@@ -675,7 +691,7 @@ public final class BaseBuilder {
     private void yard(Piece p) {
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
         fill(xa, y - 1, za, xb, y - 1, zb, pal.floor());
-        if (p.w() >= 5) ring(xa, y - 1, za, xb, zb, Blocks.YELLOW_CONCRETE);
+        if (p.w() >= 5) ring(xa, y - 1, za, xb, zb, pal.edge());
         if (p.w() < 5) {                                                                                 // a field yard: a bench, an anvil, a drum, a lamp post
             set(xa, y, za, Blocks.CRAFTING_TABLE);
             set(xb, y, za, Blocks.ANVIL, Direction.EAST);
@@ -700,7 +716,7 @@ public final class BaseBuilder {
         }
     }
 
-    /** A landing pad: light concrete, yellow ring, white H, corner lamps. No walls; helicopters want the sky. */
+    /** A landing pad: the floor material, an edge ring, a marked H, corner lamps. No walls; helicopters want the sky. */
     private void helipad(Piece p) {
         int y = p.y() - 1, r = p.w() / 2;
         for (int dx = -r; dx <= r; dx++) {
@@ -708,7 +724,7 @@ public final class BaseBuilder {
                 boolean edge = Math.max(Math.abs(dx), Math.abs(dz)) == r;
                 boolean h = (Math.abs(dx) == 2 && Math.abs(dz) <= 2) || (dz == 0 && Math.abs(dx) <= 2);
                 boolean ring = Math.abs(Math.hypot(dx, dz) - (r - 1)) < 0.6;
-                Block b = h ? Blocks.WHITE_CONCRETE : ring ? Blocks.YELLOW_CONCRETE : edge ? Blocks.GRAY_CONCRETE : Blocks.LIGHT_GRAY_CONCRETE;
+                Block b = h ? pal.mark() : ring ? pal.edge() : edge ? pal.plinth() : pal.floor();
                 set(p.x() + dx, y, p.z() + dz, b);
             }
         }
@@ -737,7 +753,7 @@ public final class BaseBuilder {
                 fill(x, p.y(), z, x, p.y() + 1, z, pal.hesco());
             } else {
                 set(x, p.y(), z, pal.heavy());
-                set(x, p.y() + 1, z, i % 2 == 0 ? Blocks.RED_CONCRETE : Blocks.WHITE_CONCRETE);
+                set(x, p.y() + 1, z, i % 2 == 0 ? pal.boomA() : pal.boomB());
             }
         }
     }
@@ -794,7 +810,7 @@ public final class BaseBuilder {
         int roll = rng.nextInt(odds);
         if (roll == 0) set(x, y, z, Blocks.BARREL);
         else if (roll == 1) set(x, y, z, Blocks.CHEST);
-        else if (roll == 2) set(x, y, z, slab(Blocks.SMOOTH_STONE_SLAB, SlabType.BOTTOM));
+        else if (roll == 2) set(x, y, z, slab(pal.slab(), SlabType.BOTTOM));
     }
 
     // ---- structures
@@ -817,7 +833,7 @@ public final class BaseBuilder {
             fill(xa + 1, y + 1, zb, xb - 1, y + h - 2, zb, pal.trim());
         }
         for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + h + 3, c[1], pal.steel());
-        fill(xa, y + h - 1, za, xb, y + h - 1, zb, steel ? pal.steel() : pal.floor());                 // the platform
+        fill(xa, y + h - 1, za, xb, y + h - 1, zb, steel ? pal.steel() : pal.plinth());                // the platform
         ring(xa, y + h, za, xb, zb, steel ? pal.bag() : pal.heavy());                                  // parapet
         for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y + h, c[1], c[0], y + h + 3, c[1], pal.steel());
         for (int x = xa + 1; x < xb; x++) {                                                             // a firing slot over the parapet, glass over that
@@ -905,7 +921,7 @@ public final class BaseBuilder {
     private void bay(Piece p) {
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
         fill(xa, y - 1, za, xb, y - 1, zb, pal.floor());
-        ring(xa, y - 1, za, xb, zb, Blocks.YELLOW_CONCRETE);
+        ring(xa, y - 1, za, xb, zb, pal.edge());
         for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + p.height(), c[1], pal.steel());
         fill(xa, y, za, xb, y + 2, za, pal.heavy());                                                     // the back wall
         for (int z = za + 1; z < zb; z++) {
@@ -924,7 +940,7 @@ public final class BaseBuilder {
             for (int j = 0; j < wid; j++) {
                 int x = p.x() + (alongX ? i : j), z = p.z() + (alongX ? j : i);
                 fill(x, y - 3, z, x, y + 1, z, Blocks.AIR);
-                set(x, y - 3, z, slab(Blocks.SMOOTH_STONE_SLAB, SlabType.TOP));
+                set(x, y - 3, z, slab(pal.slab(), SlabType.TOP));
                 set(x, y - 4, z, Blocks.DIRT);
             }
             int lx = p.x() + (alongX ? i : -1), lz = p.z() + (alongX ? -1 : i);

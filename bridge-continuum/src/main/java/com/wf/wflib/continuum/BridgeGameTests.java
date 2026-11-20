@@ -701,24 +701,26 @@ public final class BridgeGameTests {
     }
     // ---------------------------------------------------------------- bases
 
-    /** (Own batch: a base grades and builds across the footprint of the tests beside it.) The bridge's two NTM looks are offered, and a base forced into one is made of Continuum's blocks, some of them weathered. */
+    /** (Own batch: a base grades and builds across the footprint of the tests beside it.) The bridge's two NTM looks are offered, and a base forced into one is made of its kit and nothing else. */
     @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 400, batch = "bases")
     public static void aBaseCanBeBuiltOfContinuumBlocks(GameTestHelper h) {
         var ids = com.wf.wflib.contract.site.SiteStyles.available().stream().map(st -> st.id()).toList();
-        h.assertTrue(ids.contains("wflib_continuum:ntm_bunker") && ids.contains("wflib_continuum:ntm_industrial"), "both NTM looks are offered: " + ids);
+        h.assertTrue(ids.containsAll(List.of("wflib_continuum:ntm_military", "wflib_continuum:ntm_industrial", "wflib_continuum:ntm_bunker")), "the three NTM looks are offered: " + ids);
         var level = h.getLevel();
         var origin = h.absolutePos(new net.minecraft.core.BlockPos(2, 10, 2));
-        var palette = com.wf.wflib.contract.site.Palette.at(level, origin, "ntm_bunker");
+        var palette = com.wf.wflib.contract.site.Palette.at(level, origin, "ntm_military");
         h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.body()).toString().equals("hbm:brick_concrete"), "the body is NTM brick concrete: " + palette.body());
-        h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.bars()).toString().equals("hbm:barbed_wire"), "the wall is topped with barbed wire");
-        h.assertTrue(!palette.weather().isEmpty(), "it weathers");
+        h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.bars()).toString().equals("hbm:fence_metal_post"), "the fence posts are capped");
+        h.assertTrue(palette.fenceWall() && !palette.mixedWalls() && palette.weather().isEmpty(), "a military base is fenced, one material, unweathered");
+        h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.fence()).toString().equals("hbm:fence_metal"), "the fence is NTM chain-link");
         var plain = com.wf.wflib.contract.site.Palette.at(level, origin, "plain");
         h.assertTrue(plain.bars() == net.minecraft.world.level.block.Blocks.IRON_BARS && plain.weather().isEmpty(), "plain is untouched");
 
         int padY = origin.getY();
         var plan = com.wf.wflib.contract.site.BaseLayout.plan(com.wf.wflib.contract.site.BaseKind.OUTPOST, origin.getX(), origin.getZ(), padY, new java.util.Random(7), new com.wf.wflib.contract.site.LevelTerrain(level, true));
         com.wf.wflib.contract.site.BaseBuilder.build(level, plan, palette, 7L);
-        int ntm = 0, weathered = 0;
+        int ntm = 0;
+        java.util.Set<String> families = new java.util.TreeSet<>();
         var pos = new net.minecraft.core.BlockPos.MutableBlockPos();
         for (int x = origin.getX() - 20; x <= origin.getX() + 20; x++) {
             for (int z = origin.getZ() - 20; z <= origin.getZ() + 20; z++) {
@@ -726,14 +728,15 @@ public final class BridgeGameTests {
                     var key = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos.set(x, y, z)).getBlock());
                     if (key.getNamespace().equals("hbm")) {
                         ntm++;
-                        String path = key.getPath();
-                        if (path.contains("cracked") || path.contains("mossy") || path.contains("broken")) weathered++;
+                        families.add(key.getPath());
                     }
                 }
             }
         }
         h.assertTrue(ntm > 50, "the base stands in NTM blocks: " + ntm);
-        h.assertTrue(weathered > 0, "some are weathered: " + weathered + " of " + ntm);
+        // one kit: nothing outside the style's own blocks, plus the lamp and fence it names
+        var allowed = java.util.Set.of("brick_concrete", "concrete", "concrete_asbestos", "asphalt", "concrete_slab", "reinforced_glass", "deco_steel", "reinforced_lamp_on", "fence_metal", "fence_metal_post");
+        h.assertTrue(allowed.containsAll(families), "the base is built of its kit only: " + families);
         h.succeed();
     }
     // ---------------------------------------------------------------- sensors and orbit

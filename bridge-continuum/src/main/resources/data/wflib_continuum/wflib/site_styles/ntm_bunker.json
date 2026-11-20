@@ -1,18 +1,24 @@
 {
-  "weight": 3,
+  "weight": 2,
+  "mixedWalls": false,
   "roles": {
-    "heavy": "hbm:reinforced_brick",
-    "body": "hbm:brick_concrete",
-    "trim": "hbm:concrete_pillar",
+    "heavy": "hbm:reinforced_stone",
+    "body": "hbm:reinforced_brick",
+    "trim": "hbm:concrete",
+    "plinth": "hbm:reinforced_stone",
+    "band": "hbm:concrete",
     "floor": "hbm:concrete",
-    "slab": "hbm:brick_concrete_slab",
+    "slab": "hbm:concrete_slab",
     "glass": "hbm:reinforced_glass",
-    "steel": "hbm:block_steel",
+    "steel": "hbm:deco_steel",
+    "hesco": "hbm:reinforced_stone",
+    "bag": "hbm:concrete_slab",
     "light": "hbm:reinforced_lamp_on",
-    "bars": "hbm:barbed_wire"
+    "bars": "hbm:barbed_wire",
+    "edge": "hbm:reinforced_stone",
+    "mark": "hbm:concrete",
+    "boomA": "hbm:deco_steel",
+    "boomB": "hbm:concrete"
   },
-  "weather": {
-    "hbm:brick_concrete": ["hbm:brick_concrete_cracked", "hbm:brick_concrete_mossy", "hbm:brick_concrete_broken"]
-  },
-  "weatherChance": 0.14
+  "containers": ["hbm:reinforced_stone"]
 }

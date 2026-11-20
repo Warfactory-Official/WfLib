@@ -17,8 +17,8 @@ import java.util.Map;
 
 /**
  * Looks a base can have, from every datapack's {@code data/<ns>/wflib/site_styles/*.json}. A style is the materials one base is built of instead of the plain
- * ones ({@link SiteBlocks}): an object {@code {"weight": 3, "roles": {"heavy": "ns:block", ...}, "weather": {"ns:block": ["ns:cracked", ...]}, "weatherChance": 0.12}}.
- * The roles are those of {@link Palette}: {@code heavy body trim floor slab glass steel hesco bag ground light bars}; any left out keep the base's own. {@code weather}
+ * ones ({@link SiteBlocks}): an object {@code {"weight": 3, "roles": {"heavy": "ns:block", ...}, "containers": [...], "wall": "fence", "mixedWalls": false, "weather": {...}, "weatherChance": 0.0}}.
+ * The roles are those of {@link Palette}: {@code heavy body trim floor slab glass steel hesco bag ground light bars plinth band edge mark boomA boomB fence fencePost}; any left out keep the base's own (plinth and band follow trim). A styled base is one material family: no random mixing of hesco and concrete unless {@code mixedWalls}, no weathering unless asked. {@code weather}
  * names, per block, the worn variants a share of its placements are swapped for. A style naming a block that does not exist (its mod is not here) is not offered.
  * Each base picks one by its position, so a region's bases agree with a rerun and differ from each other; the plain look has the weight {@link #PLAIN_WEIGHT}.
  */
@@ -26,7 +26,8 @@ public final class SiteStyles extends SimpleJsonResourceReloadListener {
     /** How often the unstyled look comes up against a style of weight 1. */
     public static final int PLAIN_WEIGHT = 2;
 
-    public record Style(String id, int weight, Map<String, Block> roles, Map<Block, List<Block>> weather, float weatherChance) {
+    public record Style(String id, int weight, Map<String, Block> roles, Map<Block, List<Block>> weather, float weatherChance, List<Block> containers,
+                        boolean fenceWall, boolean mixedWalls) {
     }
 
     private static volatile List<Style> styles = List.of();
@@ -73,8 +74,18 @@ public final class SiteStyles extends SimpleJsonResourceReloadListener {
                 weather.put(from, List.copyOf(to));
             }
         }
-        float chance = json.has("weatherChance") ? json.get("weatherChance").getAsFloat() : 0.12f;
-        return weight > 0 ? new Style(id, weight, Map.copyOf(roles), Map.copyOf(weather), chance) : null;
+        float chance = json.has("weatherChance") ? json.get("weatherChance").getAsFloat() : 0.0f;
+        List<Block> containers = new ArrayList<>();
+        if (json.has("containers")) {
+            for (JsonElement v : json.getAsJsonArray("containers")) {
+                Block b = block(v.getAsString());
+                if (b == null) return null;
+                containers.add(b);
+            }
+        }
+        boolean fenceWall = json.has("wall") && "fence".equals(json.get("wall").getAsString());
+        boolean mixed = json.has("mixedWalls") && json.get("mixedWalls").getAsBoolean();
+        return weight > 0 ? new Style(id, weight, Map.copyOf(roles), Map.copyOf(weather), chance, List.copyOf(containers), fenceWall, mixed) : null;
     }
 
     private static Block block(String id) {

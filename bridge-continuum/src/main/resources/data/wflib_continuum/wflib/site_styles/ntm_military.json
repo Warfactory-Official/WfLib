@@ -1,0 +1,27 @@
+{
+  "weight": 3,
+  "wall": "fence",
+  "mixedWalls": false,
+  "roles": {
+    "heavy": "hbm:brick_concrete",
+    "body": "hbm:brick_concrete",
+    "trim": "hbm:concrete_asbestos",
+    "plinth": "hbm:concrete",
+    "band": "hbm:concrete_asbestos",
+    "floor": "hbm:asphalt",
+    "slab": "hbm:concrete_slab",
+    "glass": "hbm:reinforced_glass",
+    "steel": "hbm:deco_steel",
+    "hesco": "hbm:brick_concrete",
+    "bag": "hbm:concrete_slab",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:fence_metal_post",
+    "fence": "hbm:fence_metal",
+    "fencePost": "hbm:fence_metal_post",
+    "edge": "hbm:concrete_asbestos",
+    "mark": "hbm:concrete_asbestos",
+    "boomA": "hbm:deco_steel",
+    "boomB": "hbm:concrete_asbestos"
+  },
+  "containers": ["hbm:deco_steel"]
+}
