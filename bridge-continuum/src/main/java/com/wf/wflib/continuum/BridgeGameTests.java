@@ -790,4 +790,16 @@ public final class BridgeGameTests {
         }
         h.succeed();
     }
+    // ---------------------------------------------------------------- tooltips
+
+    /** A Continuum armour piece carries WFLib's protection lines: condition and a Protection block with DT and DR. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void continuumArmourShowsProtectionStats(GameTestHelper h) {
+        var piece = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse("hbm:hev_plate")));
+        List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>();
+        com.wf.wflib.armor.ArmorTooltip.append(piece, lines, net.minecraft.world.item.TooltipFlag.NORMAL);
+        String text = lines.stream().map(net.minecraft.network.chat.Component::getString).reduce("", (a, b) -> a + "\n" + b);
+        h.assertTrue(text.contains("Condition") && text.contains("Protection") && text.contains("DT"), "the plate shows its numbers: " + text);
+        h.succeed();
+    }
 }
