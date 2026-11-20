@@ -1,0 +1,37 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "LGPL-3.0"
+
+[[mods]]
+modId = "wflib_continuum"
+version = "${version}"
+displayName = "WFLib: NTM Continuum Bridge"
+description = '''Runs NTM: Continuum's gear and world on WFLib's systems: WFLib armour values, one damage reduction, WFLib doors. Loads only with wflib, NTM: Continuum and Golem Core.'''
+
+[[dependencies.wflib_continuum]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.wflib_continuum]]
+modId = "wflib"
+type = "required"
+versionRange = "[1.8.67,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.wflib_continuum]]
+modId = "hbm"
+type = "required"
+versionRange = "[1.0.1,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.wflib_continuum]]
+modId = "golemcore"
+type = "required"
+versionRange = "[1.0.1,)"
+ordering = "AFTER"
+side = "BOTH"

@@ -1,19 +1,40 @@
-# NTM: Continuum compatibility (draft 2)
+# NTM: Continuum compatibility (draft 3, started)
 
 Status: **draft for discussion**, second pass. Read from both code bases (Continuum `main` at `e2f987a5`, Golem Core `5275cc5`);
 nothing here has been run with both mods loaded. "Verified" means read in the source; "to validate" means it needs a test in a game.
 
-## 0. Decisions so far
+## 0. Decisions
 
 | | Decision |
 |---|---|
 | Armour | **WFLib's system wins.** Continuum's armour pieces get WFLib values; Continuum's own reduction stands down. |
-| Doors | **Follow WFLib's door system.** |
+| Doors | **Follow WFLib's door system**, starting with level 1 (recipes and items, data only). |
 | Method | **No mixins** where avoidable. Continuum is modular by design: use what it and Golem Core already expose. |
 | Golem Core | A **hard dependency** of Continuum, so it can be assumed whenever Continuum is present. |
-| Baseline | The Continuum repository as it stands (`~/Codebases/NTM-Continuum`, `main`), node `1.21.1-neoforge`. |
-| Glyphids | **WFLib's colony replaces Continuum's.** Anything Continuum owns that they need is brought across. |
-| Still open | radiation, nukes (my leanings in section 5), the exact bridge packaging (section 2). |
+| Baseline | The Continuum repository's `main` (`e2f987a5`), node `1.21.1-neoforge`. |
+| Glyphids | **WFLib's colony replaces Continuum's.** Continuum's textures are referenced only when it is present, never copied. |
+| Packaging | A **separate bridge addon** (`bridge-continuum/`, id `wflib_continuum`), a Golem-based mod. |
+| Radiation | **Continuum's field stays the owner**, WFLib reads and writes through an adapter. |
+| MK5 | **Ask Continuum for a ray seam.** Done (below). |
+| Upstream | Small additive changes to Continuum are fine. Done (below). |
+
+## 0.1 Status
+
+Built and checked in a game unless marked.
+
+| Piece | State |
+|---|---|
+| Continuum seams (worktree `~/Codebases/NTM-Continuum-compat`, branch `compat/wflib-seams`, commit `21a7aed7`) | `EntityNukeExplosionMK5.RAY` hook and an overridable `createRay`; `CommonConfig.override(category, name, value)` for addons. Compiles. **Not yet used** by the bridge, **not pushed**. |
+| WFLib armour profile data loader | `wflib:armor_profile` datapack registry (`ArmorAssignment`), synced, data wins over code-authored specs, priority between elements. In `ArmorProfiles.applyData`. Compiles; its JSON codec has no unit test yet. |
+| Bridge addon `bridge-continuum/` | Builds (`./gradlew -p bridge-continuum build`). Loads in the harness with WFLib, Golem Core and Continuum. At launch it writes a generated pack from Continuum's own bundled data: patches that empty its per-item resistance and strip `resistance` from every set (34 sets), and 137 seeded `wflib:armor_profile` elements (priority -10, so any hand-tuned element wins). Its self-check logs that no set still carries a resistance. |
+| Single reduction per hit | **Not proven.** The harness health model (WFMedical) scales every hit, so a raw damage comparison is noise: naked lost 2.56 per 10 arrow damage and a worn Steel Ranger set lost 1.67 to 1.95, which is not the 0.09 ratio a double reduction would give, but it is not a measurement either. Needs a GameTest in a clean world. |
+| Switchboard group "NTM: Continuum" | Not built. The bridge has its own `wflib_continuum.toml` (`armour`) for now. |
+
+Findings from running them together (Phase 0):
+* **WarForge and Golem Core do not load together as shipped.** `WarForgeMod.commonSetup` registers `GolemProtection` when `golemcore` is loaded, and that class
+  needs `dev.golem.core.world.Protection$Provider`, which exists in no Golem Core commit. Any pack with WarForge and Continuum crashes at common setup. WarForge had
+  to be taken out of the harness for the test; that is a fix on WarForge's or Golem's side.
+* Continuum's own build needs every node's Golem jar; a clean build here used a worktree registering only the two NeoForge nodes (not committed).
 
 ## 1. What we are dealing with
 
