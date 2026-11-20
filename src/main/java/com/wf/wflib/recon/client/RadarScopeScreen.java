@@ -1,5 +1,6 @@
 package com.wf.wflib.recon.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.recon.api.ScopeFrame;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Locale;
 
 /** The scope, as a screen. */
-public class RadarScopeScreen extends Screen {
+public class RadarScopeScreen extends Screen implements SharpTextScreen {
 
     /** Wide enough for the widest row: a friendly contact's label and a count, plus five columns after it. */
     private static final int PANEL = 246;

@@ -1,5 +1,6 @@
 package com.wf.wflib.skin.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.skin.SkinChoose;
 import com.wf.wflib.skin.api.Skinnable;
 import com.wf.wflib.skin.api.Skins;
@@ -16,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Skin picker for one stack: preview of the hovered (else worn) skin, one button per skin. */
-final class SkinScreen extends Screen {
+final class SkinScreen extends Screen implements SharpTextScreen {
     private static final int BUTTON_W = 110, BUTTON_H = 20, GAP = 4, PREVIEW = 96;
 
     @Nullable

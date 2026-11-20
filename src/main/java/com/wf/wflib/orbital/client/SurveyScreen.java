@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.orbital.api.SurveyTile;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,7 +11,7 @@ import net.minecraft.util.Mth;
 import java.util.Locale;
 import com.wf.wflib.orbital.api.client.SurveyCache;
 
-public class SurveyScreen extends Screen {
+public class SurveyScreen extends Screen implements SharpTextScreen {
 
     private static final int[] ZOOMS = {1, 2, 4, 8};
     private static final long STALE_TICKS = 24000L;

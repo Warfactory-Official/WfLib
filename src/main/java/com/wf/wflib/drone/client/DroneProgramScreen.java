@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.drone.api.DroneProgram;
 import com.wf.wflib.drone.api.DroneTask;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /** The queue editor: build the list of steps a flight will fly, in order. */
-public class DroneProgramScreen extends Screen {
+public class DroneProgramScreen extends Screen implements SharpTextScreen {
 
     private static final int W = 300;
     private static final int H = 232;

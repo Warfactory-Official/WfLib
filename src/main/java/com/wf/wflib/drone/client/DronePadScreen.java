@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.drone.api.DronePadBlockEntity;
 import com.wf.wflib.drone.api.DroneBattery;
 import com.wf.wflib.drone.api.DroneFlight;
@@ -35,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Configure, launch and debug a drone flight from the pad. */
-public class DronePadScreen extends AbstractContainerScreen<DronePadMenu> {
+public class DronePadScreen extends AbstractContainerScreen<DronePadMenu> implements SharpTextScreen {
 
     private static final List<ResourceLocation> FORMATIONS = new ArrayList<>(Formations.ids());
     private static final List<ResourceLocation> COORDINATION = new ArrayList<>(CoordinationModels.ids());

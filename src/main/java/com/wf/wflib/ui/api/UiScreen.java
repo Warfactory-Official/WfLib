@@ -1,5 +1,6 @@
 package com.wf.wflib.ui.api;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.mojang.blaze3d.platform.Window;
 import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.ui.api.input.UiInput;
@@ -15,7 +16,7 @@ import java.util.List;
  * {@link Screen} hosting one interactive {@link UiInstance}: pointer, wheel, tooltips ({@code tooltip} widgets),
  * Esc closes. Absolute layout with a design size + {@code centre} => that box centred; else the whole GUI.
  */
-public class UiScreen extends Screen {
+public class UiScreen extends Screen implements SharpTextScreen {
     /** {@code tick}: once per client tick while open; {@code onClose}: once when closed or replaced. */
     public record Options(boolean pause, boolean centre, @Nullable Runnable tick, @Nullable Runnable onClose) {
         public static final Options DEFAULT = new Options(false, true, null, null);

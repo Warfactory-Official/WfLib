@@ -1,5 +1,6 @@
 package com.wf.wflib.pda.api.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.ui.api.EmbeddedScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -17,7 +18,7 @@ import java.util.function.Consumer;
  * One-line text entry; Enter / Done => {@code done}, then back to the screen it opened over (from an
  * {@link EmbeddedScreen}: the world, PDA still raised).
  */
-public final class TextPromptScreen extends Screen implements EmbeddedScreen.Standalone {
+public final class TextPromptScreen extends Screen implements SharpTextScreen, EmbeddedScreen.Standalone {
     private final int maxLength;
     private final String initial;
     private final Consumer<String> done;

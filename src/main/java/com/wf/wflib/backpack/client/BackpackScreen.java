@@ -1,5 +1,6 @@
 package com.wf.wflib.backpack.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.backpack.api.BackpackMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -9,7 +10,7 @@ import net.minecraft.world.inventory.Slot;
 import org.jetbrains.annotations.NotNull;
 
 /** Another player's backpack: scrolling grid over the viewer's inventory. */
-public class BackpackScreen extends AbstractContainerScreen<BackpackMenu> {
+public class BackpackScreen extends AbstractContainerScreen<BackpackMenu> implements SharpTextScreen {
     private static final int SLOT = BackpackGrid.SLOT;
     private static final int INV_W = 9 * SLOT;
     private static final int PAD = 7;

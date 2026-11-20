@@ -1,5 +1,6 @@
 package com.wf.wflib.soldier.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.soldier.VoicePackets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Pick the voice of allies and enemies: a pack and, optionally, one speaker of it; changes apply at once. */
-public final class VoiceScreen extends Screen {
+public final class VoiceScreen extends Screen implements SharpTextScreen {
     private static final String NONE = "";
 
     private final VoicePackets.Menu menu;

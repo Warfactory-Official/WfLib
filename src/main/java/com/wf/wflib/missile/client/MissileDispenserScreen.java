@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.missile.api.MissileFlight;
 import com.wf.wflib.missile.api.MissileEntity;
 import com.wf.wflib.missile.api.MissileEntity.Phase;
@@ -27,7 +28,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MissileDispenserScreen extends AbstractContainerScreen<MissileDispenserMenu> {
+public class MissileDispenserScreen extends AbstractContainerScreen<MissileDispenserMenu> implements SharpTextScreen {
 
     private static final List<ResourceLocation> MODELS = new ArrayList<>(MissileModels.ids());
     private static final List<ResourceLocation> WARHEADS = new ArrayList<>(Warheads.ids());

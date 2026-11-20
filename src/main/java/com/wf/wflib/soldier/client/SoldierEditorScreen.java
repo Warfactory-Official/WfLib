@@ -1,5 +1,6 @@
 package com.wf.wflib.soldier.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.google.gson.*;
 import com.mojang.authlib.GameProfile;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +31,7 @@ import net.neoforged.neoforge.client.event.RenderNameTagEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
 /** Search/scroll work touches only cached choices. No registry walk, network request, or model rebuild per frame. */
-public final class SoldierEditorScreen extends Screen {
+public final class SoldierEditorScreen extends Screen implements SharpTextScreen {
     private static final int BG=0xff10161f, PANEL=0xff192330, INK=0xffe4edf7, MUTED=0xff9eafc1, ACCENT=0xff6ed5bd;
     private JsonObject roster;
     private final SoldierCatalogue catalogue;

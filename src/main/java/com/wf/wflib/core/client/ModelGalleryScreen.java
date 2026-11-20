@@ -1,5 +1,6 @@
 package com.wf.wflib.core.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.wf.gemrender.direct.DirectPass;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 /** Looks at every model in the mod, out of every registry that holds one. */
-public class ModelGalleryScreen extends Screen {
+public class ModelGalleryScreen extends Screen implements SharpTextScreen {
 
     private enum Mode {TEXTURED, NORMALS}
 

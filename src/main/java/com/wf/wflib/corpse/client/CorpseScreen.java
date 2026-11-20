@@ -1,5 +1,6 @@
 package com.wf.wflib.corpse.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.corpse.api.CorpseMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -11,7 +12,7 @@ import net.minecraft.world.inventory.Slot;
 import org.jetbrains.annotations.NotNull;
 
 /** Corpse layout over the viewer's inventory; palette = backpack screen's. */
-public class CorpseScreen extends AbstractContainerScreen<CorpseMenu> {
+public class CorpseScreen extends AbstractContainerScreen<CorpseMenu> implements SharpTextScreen {
     private static final int SLOT = 18, PAD = 7, HEAD = 14, GAP = 4;
     private static final int SURFACE = 0xCC48494A, HEADER = 0xD1313233, OUTLINE = 0x33FFFFFF;
     private static final int WELL_EDGE = 0x30000000, WELL = 0x50000000, TEXT = 0xFFE6E8EB, MUTED = 0xFF9DA0A4;

@@ -1,5 +1,6 @@
 package com.wf.wflib.cam.client;
 
+import com.wf.gemrender.ui.SharpTextScreen;
 import com.wf.wflib.cam.api.client.CameraFeedCache;
 import com.wf.wflib.cam.api.client.CameraLink;
 import com.wf.wflib.cam.api.client.CameraTarget;
@@ -15,7 +16,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.Locale;
 
 /** A camera feed, full size, with the gimbal on the mouse. */
-public class DroneCameraScreen extends Screen {
+public class DroneCameraScreen extends Screen implements SharpTextScreen {
 
     private static final int PAD = 8;
     /** Room under video for readout: two text rows + gap above. */
