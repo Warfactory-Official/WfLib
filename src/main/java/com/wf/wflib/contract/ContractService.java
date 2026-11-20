@@ -173,7 +173,7 @@ public final class ContractService {
     }
 
     /** Keeps the chunks round the site's middle loaded while the job lasts: soldiers are only raised in loaded chunks, so without this a far site stays empty until someone walks up. */
-    static void hold(ServerLevel level, Vec3 centre, boolean on) {
+    public static void hold(ServerLevel level, Vec3 centre, boolean on) {
         BlockPos at = BlockPos.containing(centre);
         for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) level.setChunkForced((at.getX() >> 4) + dx, (at.getZ() >> 4) + dz, on);
     }

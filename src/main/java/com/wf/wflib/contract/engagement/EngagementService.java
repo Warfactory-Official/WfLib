@@ -28,6 +28,7 @@ public final class EngagementService {
     public static final int SIDE = 12;
     public static final int GAP_MIN = 60, FIGHT_TICKS = 20 * 1200, AFTERMATH_TICKS = 5 * 1200;
     private static final RandomSource RNG = RandomSource.create();
+    private static boolean held;
 
     private EngagementService() {
     }
@@ -35,6 +36,9 @@ public final class EngagementService {
     static final class State extends SavedData {
         String site = "";
         long fightEnd, end, nextAt;
+        /** Where the fight is, so its chunks can be held (soldiers are only raised in loaded chunks) and released. */
+        String dim = "";
+        double x, z;
 
         static State get(MinecraftServer server) {
             return server.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(State::new, (tag, reg) -> {
@@ -43,6 +47,9 @@ public final class EngagementService {
                 s.fightEnd = tag.getLong("fightEnd");
                 s.end = tag.getLong("end");
                 s.nextAt = tag.getLong("nextAt");
+                s.dim = tag.getString("dim");
+                s.x = tag.getDouble("x");
+                s.z = tag.getDouble("z");
                 return s;
             }), "wflib_engagement");
         }
@@ -53,6 +60,9 @@ public final class EngagementService {
             tag.putLong("fightEnd", fightEnd);
             tag.putLong("end", end);
             tag.putLong("nextAt", nextAt);
+            tag.putString("dim", dim);
+            tag.putDouble("x", x);
+            tag.putDouble("z", z);
             return tag;
         }
     }
@@ -61,6 +71,10 @@ public final class EngagementService {
         var state = State.get(server);
         long now = server.overworld().getGameTime();
         if (!state.site.isEmpty()) {
+            if (!held) {                                                    // after a restart the forced chunks are still saved, but make sure
+                hold(server, state, true);
+                held = true;
+            }
             if (now >= state.end || Sites.get(server, state.site).isEmpty()) finish(server, state, now);
             else if (now >= state.fightEnd && state.fightEnd > 0) {
                 state.fightEnd = 0;                                       // announced once
@@ -104,6 +118,11 @@ public final class EngagementService {
             return false;
         }
         state.site = id;
+        state.dim = anchor.level().dimension().location().toString();
+        state.x = spot.get().x;
+        state.z = spot.get().z;
+        hold(server, state, true);
+        held = true;
         state.fightEnd = now + FIGHT_TICKS;
         state.end = now + FIGHT_TICKS + AFTERMATH_TICKS;
         state.setDirty();
@@ -119,6 +138,8 @@ public final class EngagementService {
         var site = Sites.get(server, state.site);
         int blue = site.map(x -> x.squadRemaining(0)).orElse(0), red = site.map(x -> x.squadRemaining(1)).orElse(0);
         site.ifPresent(Site::remove);
+        hold(server, state, false);
+        held = false;
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new com.wf.wflib.contract.api.EngagementEndedEvent(
                 blue == red ? "" : blue > red ? "friendly" : "enemy", blue, red, SIDE));
         state.site = "";
@@ -131,5 +152,13 @@ public final class EngagementService {
     public static boolean startNow(MinecraftServer server) {
         var state = State.get(server);
         return state.site.isEmpty() && start(server, state, server.overworld().getGameTime());
+    }
+
+    /** Keeps the chunks round the fight loaded while it lasts, so both sides are raised even when nobody is near. */
+    private static void hold(MinecraftServer server, State state, boolean on) {
+        if (state.dim.isEmpty()) return;
+        var level = server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+                net.minecraft.resources.ResourceLocation.parse(state.dim)));
+        if (level != null) com.wf.wflib.contract.ContractService.hold(level, new net.minecraft.world.phys.Vec3(state.x, 64, state.z), on);
     }
 }
