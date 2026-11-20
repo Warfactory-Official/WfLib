@@ -71,6 +71,14 @@ public final class PmcCommands {
                                         })))))
                 .then(Commands.literal("abandon").executes(PmcCommands::abandon))
                 .then(Commands.literal("profile").executes(PmcCommands::profile))
+                .then(Commands.literal("rep").requires(x -> x.hasPermission(2))
+                        .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                                .then(Commands.argument("amount", com.mojang.brigadier.arguments.IntegerArgumentType.integer(-100000, 100000)).executes(c -> {
+                                    var who = net.minecraft.commands.arguments.EntityArgument.getPlayer(c, "player");
+                                    int now = com.wf.wflib.contract.api.Standing.bumpRep(c.getSource().getServer(), who.getUUID(), com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "amount"));
+                                    c.getSource().sendSuccess(() -> Component.literal(who.getGameProfile().getName() + " has " + now + " reputation (" + com.wf.wflib.contract.api.Standing.rank(c.getSource().getServer(), who.getUUID()) + ")."), true);
+                                    return now;
+                                }))))
                 .then(Commands.literal("heat").executes(PmcCommands::heat))
                 .then(Commands.literal("analyze").executes(PmcCommands::analyze))
                 .then(Commands.literal("news").executes(c -> {

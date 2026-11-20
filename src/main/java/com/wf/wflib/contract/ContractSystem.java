@@ -70,6 +70,7 @@ public final class ContractSystem implements WFSystem {
                     com.wf.wflib.contract.pda.MissionSync.sendAll(e.getServer());
                 }
                 com.wf.wflib.contract.engagement.EngagementService.tick(e.getServer());
+                com.wf.wflib.contract.site.SiteVehicles.tick(e.getServer());
             }
         });
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.class, e -> {

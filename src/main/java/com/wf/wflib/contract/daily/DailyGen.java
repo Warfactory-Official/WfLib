@@ -121,7 +121,7 @@ public final class DailyGen {
         if (kind == Kind.NARCOTICS) money = (int) Math.round(baseMoney * jitter * rewardScale);
         int rep = Tier.rep(baseRep, tier);
         return new ContractDef(id, title.length() > 48 ? title.substring(0, 48) : title, description, gate, lo, hi, Math.min(240, minutes), radius,
-                squads, objectives, money, rep, Math.max(2, rep / 5), enemy, buyIn, cargo, "board", List.of());
+                squads, objectives, money, rep, Math.max(2, rep / 5), enemy, buyIn, cargo, "board", List.of(), "");
     }
 
     private static ContractDef.Squad squad(Forces forces, String faction, int grade, int count, String mode) {

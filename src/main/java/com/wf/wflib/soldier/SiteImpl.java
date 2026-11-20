@@ -35,8 +35,9 @@ public final class SiteImpl {
         try {
             for (SiteSpec.Squad squad : spec.squads()) {
                 String tid = PREFIX + id + "_" + n++;
-                book.put(new Territory(tid, "Site " + id, "", dimension, centre, spec.radius(),
-                        level.getMinBuildHeight(), level.getMaxBuildHeight(), List.of(),
+                book.put(new Territory(tid, "Site " + id, "", dimension, squad.at() != null ? squad.at() : centre,
+                        Math.max(2, squad.radius() > 0 ? squad.radius() : spec.radius()),
+                        level.getMinBuildHeight(), level.getMaxBuildHeight(), squad.route(),
                         new Garrison(squad.count(), squad.units(), squad.mode(), Garrison.MAX_RESPAWN_SECONDS)));
                 made.add(tid);
             }

@@ -13,7 +13,7 @@ import java.util.UUID;
 
 /** A contract being worked: who took it, who shares it, where it is, when it ends. Saved with the world, so a restart loses nothing. */
 public record Session(UUID id, ResourceLocation def, UUID owner, Set<UUID> party, String siteId, String dimension, Vec3 centre,
-                      long deadline, @Nullable BlockPos cache, @Nullable BlockPos marker) {
+                      long deadline, @Nullable BlockPos cache, @Nullable BlockPos marker, int radius) {
     public Session {
         party = Set.copyOf(party);
     }
@@ -45,6 +45,7 @@ public record Session(UUID id, ResourceLocation def, UUID owner, Set<UUID> party
         j.addProperty("deadline", deadline);
         if (cache != null) j.addProperty("cache", cache.asLong());
         if (marker != null) j.addProperty("marker", marker.asLong());
+        j.addProperty("radius", radius);
         return j;
     }
 
@@ -55,6 +56,7 @@ public record Session(UUID id, ResourceLocation def, UUID owner, Set<UUID> party
         return new Session(UUID.fromString(j.get("id").getAsString()), ResourceLocation.parse(j.get("def").getAsString()),
                 UUID.fromString(j.get("owner").getAsString()), party, j.get("site").getAsString(), j.get("dimension").getAsString(),
                 new Vec3(c.get(0).getAsDouble(), c.get(1).getAsDouble(), c.get(2).getAsDouble()), j.get("deadline").getAsLong(),
-                j.has("cache") ? BlockPos.of(j.get("cache").getAsLong()) : null, j.has("marker") ? BlockPos.of(j.get("marker").getAsLong()) : null);
+                j.has("cache") ? BlockPos.of(j.get("cache").getAsLong()) : null, j.has("marker") ? BlockPos.of(j.get("marker").getAsLong()) : null,
+                j.has("radius") ? j.get("radius").getAsInt() : 0);
     }
 }

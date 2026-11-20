@@ -20,7 +20,7 @@ class SessionTest {
     private static final ResourceLocation DEF = ResourceLocation.fromNamespaceAndPath("wflib", "hvt");
 
     private static Session session(BlockPos cache) {
-        return new Session(UUID.randomUUID(), DEF, OWNER, Set.of(FRIEND), "site-1", "minecraft:overworld", new Vec3(10.5, 64, -300.25), 123456L, cache, null);
+        return new Session(UUID.randomUUID(), DEF, OWNER, Set.of(FRIEND), "site-1", "minecraft:overworld", new Vec3(10.5, 64, -300.25), 123456L, cache, null, 40);
     }
 
     @Test
@@ -44,7 +44,7 @@ class SessionTest {
     @Test
     void aPartyCannotBeChangedAfterwards() {
         var party = new java.util.HashSet<>(Set.of(FRIEND));
-        Session s = new Session(UUID.randomUUID(), DEF, OWNER, party, "s", "d", Vec3.ZERO, 0, null, null);
+        Session s = new Session(UUID.randomUUID(), DEF, OWNER, party, "s", "d", Vec3.ZERO, 0, null, null, 0);
         party.add(STRANGER);
         assertFalse(s.involves(STRANGER));
     }

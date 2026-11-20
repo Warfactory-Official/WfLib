@@ -36,6 +36,12 @@ public final class Soldiers {
     private Soldiers() {
     }
 
+    /** The role a saved variant plays ("rifle", "sniper", "mg", "medic", "heavy", "assault", "grenadier"), or "rifle" for one that is gone. */
+    public static String roleOf(MinecraftServer server, String variant) {
+        var unit = com.wf.wflib.soldier.SoldierRoster.get(server).units().get(variant);
+        return unit == null ? "rifle" : unit.role().id;
+    }
+
     /** The soldier's person name (custom name, else the profile name): what maps and squad lists show. */
     public static String displayName(ServerPlayer soldier) {
         var n = soldier.getCustomName();
