@@ -1,5 +1,6 @@
 package com.wf.wflib.soldier;
 
+import com.wf.wflib.soldier.api.SoldierPlayer;
 import com.wf.wflib.soldier.api.SoldierOrder;
 import com.wf.wflib.soldier.api.SoldierRole;
 import com.wf.wflib.soldier.api.Soldiers;
@@ -55,7 +56,11 @@ final class Posts {
     static void onServerTick(ServerTickEvent.Post e) {
         var server = e.getServer();
         if (running != server) return;
-        for (int i = 0; i < RESTORE_PER_TICK && !PENDING.isEmpty(); i++) restore(server, PENDING.poll());
+        // soldiers are server players and count against max-players: restored before the host logs in, they fill a singleplayer
+        // world's 8 slots and lock the human out ("The server is full!"), so they wait for the first real player
+        if (!PENDING.isEmpty() && server.getPlayerList().getPlayers().stream().anyMatch(p -> !(p instanceof SoldierPlayer))) {
+            for (int i = 0; i < RESTORE_PER_TICK && !PENDING.isEmpty(); i++) restore(server, PENDING.poll());
+        }
         if (server.getTickCount() % CAPTURE_EVERY == 0) capture(server);
     }
 
