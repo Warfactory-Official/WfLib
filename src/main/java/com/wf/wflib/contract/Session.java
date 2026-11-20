@@ -13,9 +13,14 @@ import java.util.UUID;
 
 /** A contract being worked: who took it, who shares it, where it is, when it ends. Saved with the world, so a restart loses nothing. */
 public record Session(UUID id, ResourceLocation def, UUID owner, Set<UUID> party, String siteId, String dimension, Vec3 centre,
-                      long deadline, @Nullable BlockPos cache) {
+                      long deadline, @Nullable BlockPos cache, @Nullable BlockPos marker) {
     public Session {
         party = Set.copyOf(party);
+    }
+
+    /** Where the player is told to go: the site, or for an intel lead as far off as the intel was good. */
+    public BlockPos where() {
+        return marker != null ? marker : BlockPos.containing(centre);
     }
 
     public boolean involves(UUID player) {
@@ -39,6 +44,7 @@ public record Session(UUID id, ResourceLocation def, UUID owner, Set<UUID> party
         j.add("centre", c);
         j.addProperty("deadline", deadline);
         if (cache != null) j.addProperty("cache", cache.asLong());
+        if (marker != null) j.addProperty("marker", marker.asLong());
         return j;
     }
 
@@ -49,6 +55,6 @@ public record Session(UUID id, ResourceLocation def, UUID owner, Set<UUID> party
         return new Session(UUID.fromString(j.get("id").getAsString()), ResourceLocation.parse(j.get("def").getAsString()),
                 UUID.fromString(j.get("owner").getAsString()), party, j.get("site").getAsString(), j.get("dimension").getAsString(),
                 new Vec3(c.get(0).getAsDouble(), c.get(1).getAsDouble(), c.get(2).getAsDouble()), j.get("deadline").getAsLong(),
-                j.has("cache") ? BlockPos.of(j.get("cache").getAsLong()) : null);
+                j.has("cache") ? BlockPos.of(j.get("cache").getAsLong()) : null, j.has("marker") ? BlockPos.of(j.get("marker").getAsLong()) : null);
     }
 }

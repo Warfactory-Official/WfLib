@@ -56,7 +56,7 @@ public final class ContractSystem implements WFSystem {
         container.registerConfig(ModConfig.Type.COMMON, com.wf.wflib.contract.difficulty.DifficultyConfig.SPEC, "wflib-contract.toml");
         modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> com.wf.wflib.contract.pda.PmcNet.register(e, snap -> com.wf.wflib.contract.client.PmcClient.accept(snap),
-                        com.wf.wflib.contract.client.PmcClient::threat));
+                        com.wf.wflib.contract.client.PmcClient::threat, com.wf.wflib.contract.client.PmcClient::missions));
         NeoForge.EVENT_BUS.addListener(AddReloadListenerEvent.class, e -> e.addListener(new Contracts()));
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, e -> PmcCommands.register(e.getDispatcher()));
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, e -> {
@@ -65,9 +65,15 @@ public final class ContractSystem implements WFSystem {
                 com.wf.wflib.contract.heat.HeatService.tick(e.getServer());
                 com.wf.wflib.contract.blacksite.BlackSiteService.tick(e.getServer());
                 com.wf.wflib.contract.daily.DailyBoard.tick(e.getServer());
-                if (e.getServer().getTickCount() % 100 == 0) com.wf.wflib.contract.pda.PdaService.sendThreat(e.getServer());
+                if (e.getServer().getTickCount() % 100 == 0) {
+                    com.wf.wflib.contract.pda.PdaService.sendThreat(e.getServer());
+                    com.wf.wflib.contract.pda.MissionSync.sendAll(e.getServer());
+                }
                 com.wf.wflib.contract.engagement.EngagementService.tick(e.getServer());
             }
+        });
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.class, e -> {
+            if (e.getEntity() instanceof net.minecraft.server.level.ServerPlayer p && p.getServer() != null) com.wf.wflib.contract.pda.MissionSync.send(p.getServer(), p);
         });
         NeoForge.EVENT_BUS.addListener(ServerStoppedEvent.class, e -> {
             com.wf.wflib.soldier.api.RandomForces.forget();

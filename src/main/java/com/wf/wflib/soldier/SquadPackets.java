@@ -1,5 +1,6 @@
 package com.wf.wflib.soldier;
 
+import com.wf.wflib.soldier.api.Soldiers;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.soldier.api.SoldierOrder;
 import com.wf.wflib.soldier.api.SoldierServices;
@@ -331,7 +332,7 @@ public final class SquadPackets {
             }
             int flags = (b.health.downed() ? Member.DOWNED : 0) | (!b.threats.isEmpty() ? Member.FIGHTING : 0)
                     | (b.order.kind() == SoldierOrder.Kind.RESUPPLY ? Member.RESUPPLYING : 0) | (b.lamp ? Member.LAMP : 0);
-            out.add(new Member(p.getUUID(), b.name, b.fireTeam, b.role, Math.max(0, Math.min(100, Math.round(p.getHealth() / p.getMaxHealth() * 100))),
+            out.add(new Member(p.getUUID(), Soldiers.displayName(p), b.fireTeam, b.role, Math.max(0, Math.min(100, Math.round(p.getHealth() / p.getMaxHealth() * 100))),
                     ammo, mags, b.order.label(), flags));
         }
         return new Roster(out);

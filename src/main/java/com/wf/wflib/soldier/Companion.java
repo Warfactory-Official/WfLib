@@ -47,6 +47,11 @@ public final class Companion {
         this.gun = gun;
     }
 
+    /** The name a person would have (stable for this soldier): what lists, maps and arrival messages show instead of the callsign. */
+    public String person() {
+        return com.wf.wflib.soldier.api.SoldierNames.display(new java.util.Random(callsign.hashCode() * 31L + id.hashCode()));
+    }
+
     /** A profile-name-safe callsign: a soldier's name is {@code <callsign>_<n>} and a player name has 16 characters. */
     static String clean(String name) {
         String safe = name == null ? "" : name.replaceAll("[^A-Za-z0-9_]", "");

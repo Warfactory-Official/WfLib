@@ -30,6 +30,13 @@ public final class SoldierNames {
         return fits.isEmpty() ? first : first + "_" + pick(fits, rng, room);
     }
 
+    /** A person's name for display (map, squad list): "Ivan Petrov". Not unique, and never used as the profile name. */
+    public static String display(Random rng) {
+        JsonObject t = TABLES.getAsJsonObject("real");
+        return pick(t.getAsJsonArray("first").asList().stream().map(e -> e.getAsString()).toList(), rng, 99) + " "
+                + pick(t.getAsJsonArray("last").asList().stream().map(e -> e.getAsString()).toList(), rng, 99);
+    }
+
     private static String pick(List<String> all, Random rng, int max) {
         List<String> fits = all.stream().filter(s -> s.length() <= max).toList();
         return fits.get(rng.nextInt(fits.size()));

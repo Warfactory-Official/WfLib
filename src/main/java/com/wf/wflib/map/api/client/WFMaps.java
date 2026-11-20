@@ -29,6 +29,27 @@ public final class WFMaps {
     private WFMaps() {
     }
 
+    private static final List<RadarFilter> RADAR = new CopyOnWriteArrayList<>();
+
+    /** Adds a say in what the maps' entity radars show. */
+    public static void radar(RadarFilter filter) {
+        RADAR.add(filter);
+    }
+
+    /** The verdict of the first filter with an opinion about {@code entity}, or null. */
+    public static RadarFilter.Verdict judge(net.minecraft.world.entity.Entity entity) {
+        for (RadarFilter f : RADAR) {
+            RadarFilter.Verdict v = f.judge(entity);
+            if (v != null) return v;
+        }
+        return null;
+    }
+
+    /** Keeps {@code list} as the map mods' waypoints for {@code layer}, replacing the last list; empty clears them. */
+    public static void waypoints(String layer, List<MapWaypoint> list) {
+        for (MapHost host : HOSTS) host.waypoints(layer, list);
+    }
+
     public static void addHost(MapHost host) {
         Minecraft.getInstance().execute(() -> {
             HOSTS.add(host);

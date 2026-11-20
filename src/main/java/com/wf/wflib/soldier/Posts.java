@@ -118,7 +118,7 @@ final class Posts {
         harden(p, post.role());
         if (!post.name().isEmpty()) {
             p.setCustomName(Component.literal(post.name()));
-            p.setCustomNameVisible(true);
+            p.setCustomNameVisible(false);
         }
         SoldierAi.Bot b = SoldierAi.botOf(p.getGameProfile().getName());
         b.ownerId = post.owner();

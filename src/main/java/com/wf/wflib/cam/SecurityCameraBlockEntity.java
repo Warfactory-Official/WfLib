@@ -45,6 +45,8 @@ public class SecurityCameraBlockEntity extends BlockEntity {
     /** On: follows targets and sweeps. Off: holds still unless an operator moves it. */
     private boolean auto = true;
     private boolean tracking;
+    /** Somebody was aiming it last tick (so letting go can be noticed). */
+    private boolean operated;
     private int sinceSeen;
     private long sweepClock;
     private int sentPan = Integer.MIN_VALUE, sentTilt = Integer.MIN_VALUE;
@@ -106,7 +108,14 @@ public class SecurityCameraBlockEntity extends BlockEntity {
         float wantPan = pan, wantTilt = tilt, rate = FOLLOW_RATE;
         var order = CameraNet.order(level, StaticCameraFeeds.idFor(level, worldPosition));
         boolean was = tracking;
-        if (order != null) {                                           // somebody is at the screen: the head goes where they point it
+        if (order == null && operated) {                               // the operator let go: stay where they left it until someone switches auto back on
+            operated = false;
+            auto = false;
+            aim = null;
+            setChanged();
+        }
+        if (order != null) {
+            operated = true;                                           // somebody is at the screen: the head goes where they point it
             wantPan = Mth.wrapDegrees(order.yaw() - mountYaw());
             wantTilt = order.pitch();
             tracking = false;
@@ -184,30 +193,26 @@ public class SecurityCameraBlockEntity extends BlockEntity {
         return e instanceof Enemy && (!(e instanceof NeutralMob n) || n.isAngry());
     }
 
+    /**
+     * Everything a client needs to draw the head is in the saved tag, because the per-tick block update ({@code getUpdatePacket}) carries
+     * exactly that: leaving pan and tilt out of it left the head frozen on every client and sent it back to rest on a reload.
+     */
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.putBoolean("auto", auto);
+        tag.putFloat("pan", pan);
+        tag.putFloat("tilt", tilt);
+        tag.putBoolean("tracking", tracking);
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         if (tag.contains("auto")) auto = tag.getBoolean("auto");
-    }
-
-    @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = super.getUpdateTag(registries);
-        tag.putFloat("pan", pan);
-        tag.putFloat("tilt", tilt);
-        tag.putBoolean("tracking", tracking);
-        return tag;
-    }
-
-    @Override
-    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
-        super.handleUpdateTag(tag, registries);
+        if (!tag.contains("pan")) {
+            return;                                                    // a block saved before the head was kept
+        }
         boolean first = pan == 0 && tilt == restTilt() && drawPan == 0;
         pan = tag.getFloat("pan");
         tilt = tag.getFloat("tilt");
@@ -218,6 +223,11 @@ public class SecurityCameraBlockEntity extends BlockEntity {
             prevPan = pan;
             prevTilt = tilt;
         }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return saveWithoutMetadata(registries);
     }
 
     @Override

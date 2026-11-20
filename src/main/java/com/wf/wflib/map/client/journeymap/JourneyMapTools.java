@@ -50,6 +50,28 @@ final class JourneyMapTools {
         FullscreenEventRegistry.FULLSCREEN_MAP_MOVE_EVENT.subscribe(mod, this::onMove);
         FullscreenEventRegistry.FULLSCREEN_POPUP_MENU_EVENT.subscribe(mod, this::onPopupMenu);
         FullscreenEventRegistry.FULLSCREEN_RENDER_EVENT.subscribe(mod, this::onRender);
+        journeymap.api.v2.common.event.ClientEventRegistry.ENTITY_RADAR_UPDATE_EVENT.subscribe(mod, this::onRadar);
+    }
+
+    private static final net.minecraft.resources.ResourceLocation DOT = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "textures/map/soldier_dot.png");
+
+    /** Lets other mods hide or relabel what the radar draws (soldiers are players, so JourneyMap would show every one of them). */
+    private void onRadar(journeymap.api.v2.client.event.EntityRadarUpdateEvent event) {
+        var wrapped = event.getWrappedEntity();
+        var entity = wrapped.getEntityRef().get();
+        if (entity == null) return;
+        var verdict = WFMaps.judge(entity);
+        if (verdict == null) return;
+        if (!verdict.show()) {
+            wrapped.setDisable(true);
+            return;
+        }
+        if (verdict.label() != null) wrapped.setCustomName(verdict.label());
+        if (verdict.color() >= 0) {
+            wrapped.setColor(verdict.color());
+            wrapped.setLabelColor(verdict.color());
+        }
+        if (verdict.small()) wrapped.setEntityIconLocation(DOT);
     }
 
     private void onToolbar(FullscreenDisplayEvent.AddonButtonDisplayEvent event) {

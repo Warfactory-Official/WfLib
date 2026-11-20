@@ -153,12 +153,14 @@ public final class ContractService {
         }
         hold(level, centre, true);
         long deadline = level.getGameTime() + def.timeLimitMinutes() * 1200L;
-        Session session = new Session(id, def.id(), player.getUUID(), party, siteId, level.dimension().location().toString(), centre, deadline, cache);
-        sessions.put(session);
         BlockPos marked = BlockPos.containing(centre);
         if (intel != null) {
             int[] off = com.wf.wflib.contract.intel.Intel.offset(intel, new java.util.Random());
             marked = marked.offset(off[0], 0, off[1]);
+        }
+        Session session = new Session(id, def.id(), player.getUUID(), party, siteId, level.dimension().location().toString(), centre, deadline, cache, marked);
+        sessions.put(session);
+        if (intel != null) {
             var profiles = ProfileBook.get(server);
             var mine = profiles.of(player.getUUID()).leads;
             for (int i = 0; i < mine.size(); i++) if (mine.get(i)[0].equals(def.id().toString())) { mine.remove(i); break; }
@@ -168,7 +170,8 @@ public final class ContractService {
         if (!def.cargo().isEmpty()) {
             server.getPlayerList().broadcastSystemMessage(Component.literal("Smuggling traffic reported near " + (int) centre.x + ", " + (int) centre.z + ".").withStyle(ChatFormatting.GOLD), false);
         }
-        tell(server, session, Component.literal("Contract accepted: " + def.title() + ". Marked on your map; " + def.timeLimitMinutes() + " minutes.").withStyle(ChatFormatting.GREEN));
+        tell(server, session, Component.literal("Contract accepted: " + def.title() + ". Waypoint set; " + def.timeLimitMinutes() + " minutes.").withStyle(ChatFormatting.GREEN));
+        com.wf.wflib.contract.pda.MissionSync.sendAll(server);
         return session;
     }
 
@@ -241,6 +244,7 @@ public final class ContractService {
     /** Ends a contract: pays or penalises, takes the site down. */
     public static void finish(MinecraftServer server, Session s, ContractDef def, Engine.Status status) {
         SessionBook.get(server).remove(s.id());
+        com.wf.wflib.contract.pda.MissionSync.sendAll(server);
         HELD.remove(s.id());
         Sites.get(server, s.siteId()).ifPresent(com.wf.wflib.soldier.api.Site::remove);
         ServerLevel siteLevel = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(s.dimension())));

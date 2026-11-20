@@ -149,7 +149,7 @@ public final class RandomForces {
         }
         int range = Math.min(160, RANGE[grade] + (role == SoldierRole.SNIPER ? 50 : 0));
         float spread = (float) (SPREAD[grade] * (role == SoldierRole.SNIPER ? 0.5 : 1));
-        String name = com.wf.wflib.soldier.api.SoldierNames.random(rnd, hostile).replace('_', ' ') + " (" + gradeName(grade) + ")";
+        String name = SoldierNames.display(rnd);
         for (int attempt = 0; attempt < 6; attempt++) {
             Map<String, String> armour = attempt == 5 ? Map.of() : pick(rnd, cat, grade);
             SoldierTemplate t = new SoldierTemplate(id, name.length() > 48 ? name.substring(0, 48) : name, faction, role, gun, List.copyOf(grenades), armour,
