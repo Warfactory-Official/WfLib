@@ -41,6 +41,10 @@ final class Ballistics {
             new Cartridge("coil", 20.0f, 40.0f, ThreatKind.KINETIC, 150.0f),
             new Cartridge("tau", 10.0f, 14.0f, ThreatKind.SMALL_ARMS, 30.0f),
             new Cartridge("energy", 8.0f, 10.0f, ThreatKind.SMALL_ARMS, 5.0f),
+            new Cartridge("grenade_fragmentation", 6.0f, 2.5f, ThreatKind.SMALL_ARMS, 3.0f),
+            new Cartridge("grenade_pellets_heavy", 12.0f, 3.0f, ThreatKind.SMALL_ARMS, 18.0f),
+            new Cartridge("grenade_pellets", 8.4f, 0.8f, ThreatKind.SMALL_ARMS, 4.0f),
+            new Cartridge("grenade_laser", 8.0f, 10.0f, ThreatKind.SMALL_ARMS, 1.0f),
     };
 
     /** What a load does to its cartridge's plain figure: penetration factor, and the kind it becomes (null = the cartridge's own). */
