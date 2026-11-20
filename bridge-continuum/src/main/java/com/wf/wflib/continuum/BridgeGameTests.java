@@ -407,7 +407,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -735,5 +735,47 @@ public final class BridgeGameTests {
         h.assertTrue(ntm > 50, "the base stands in NTM blocks: " + ntm);
         h.assertTrue(weathered > 0, "some are weathered: " + weathered + " of " + ntm);
         h.succeed();
+    }
+    // ---------------------------------------------------------------- sensors and orbit
+
+    /** A Continuum missile is a radar contact on WFLib's net, its blast is a seismic event, and a stealth missile shows a tenth of the cross-section. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 40)
+    public static void continuumMissilesAreContactsAndBlastsAreHeard(GameTestHelper h) {
+        var level = h.getLevel();
+        Vec3 at = h.absoluteVec(new Vec3(2.5, 12.0, 2.5));
+        var plain = com.hbm.entity.missile.ModMissileEntities.MISSILE_STEALTH.get().create(level);
+        h.assertTrue(plain != null, "a stealth missile can be made");
+        plain.setPos(at);
+        level.addFreshEntity(plain);
+        var box = new AABB(at.add(-20, -20, -20), at.add(20, 20, 20));
+        var contacts = com.wf.wflib.recon.api.ReconTargets.collect(level, box);
+        h.assertTrue(contacts.stream().anyMatch(c -> c.kind() == com.wf.wflib.recon.api.ContactClass.MISSILE), "a missile contact is on the net: " + contacts.size());
+        var stealthSig = com.wf.wflib.recon.api.SignatureProviders.of(plain);
+        h.assertTrue(stealthSig.radarRcs() > 0 && stealthSig.radarRcs() < 0.2f, "a stealth missile has a small cross-section: " + stealthSig.radarRcs());
+        plain.discard();
+
+        int before = com.wf.wflib.recon.api.SeismicEvents.live(level, level.getGameTime()).size();
+        com.hbm.api.event.HbmEvents.explosion(level, at.x, at.y, at.z, 15.0F, null, "test");
+        int after = com.wf.wflib.recon.api.SeismicEvents.live(level, level.getGameTime()).size();
+        h.assertTrue(after > before, "the blast was heard: " + before + " -> " + after);
+        h.succeed();
+    }
+
+    /** A Continuum satellite reaching orbit is mirrored into WFLib's catalogue with the payload that matches it, and comes down when Continuum's is gone. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 450)
+    public static void aContinuumSatelliteIsMirroredAndDeorbits(GameTestHelper h) {
+        var level = h.getLevel();
+        var data = com.wf.wflib.orbital.OrbitalData.get(level);
+        int freq = 4321;
+        var stack = com.hbm.saveddata.satellites.XSatelliteRegistry.stackFor(com.hbm.saveddata.satellites.SatelliteType.RELAY);
+        h.assertTrue(!stack.isEmpty(), "a relay satellite item exists");
+        com.hbm.saveddata.satellites.XSatelliteRegistry.orbit(level, stack, freq, 0, 100, 0);
+        var mirror = data.byCallsign("NTM-" + freq);
+        h.assertTrue(mirror != null, "the satellite is in WFLib's catalogue");
+        h.assertTrue(mirror.payloadId().equals(com.wf.wflib.orbital.api.SatPayloads.RELAY), "a relay is a relay: " + mirror.payloadId());
+        com.hbm.saveddata.SatelliteSavedData.get(level).sats.remove(freq);
+        h.onEachTick(() -> {
+            if (data.byCallsign("NTM-" + freq) == null) h.succeed();
+        });
     }
 }

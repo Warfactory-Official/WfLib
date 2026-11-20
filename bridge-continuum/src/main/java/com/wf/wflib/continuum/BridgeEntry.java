@@ -30,6 +30,8 @@ final class BridgeEntry implements ModEntry {
         if (BridgeConfig.probe()) LookOverlayBridge.install();
         if (BridgeConfig.soldiers() && com.wf.wflib.core.api.WFSystems.enabled("soldier")) SednaWeapon.install();
         if (BridgeConfig.warheads() && com.wf.wflib.core.api.WFSystems.enabled("warhead")) WarheadBridge.install();
+        if (BridgeConfig.recon()) ReconBridge.install();
+        if (BridgeConfig.orbit() && com.wf.wflib.core.api.WFSystems.enabled("orbital")) OrbitBridge.install();
         if (BridgeConfig.penetration()) BulletBridge.install(BridgeConfig.bullets());
         if (BridgeConfig.glyphids()) Glyphids.install();
         if (BridgeConfig.radiation() && RadiationBridge.possible()) RadiationBridge.install();

@@ -19,7 +19,9 @@ final class BridgeFeatures implements FeatureSource {
             new Box("soldiers", "Soldiers with Continuum guns", "WFLib soldiers can be issued and fire Continuum's magazine-fed guns."),
             new Box("warheads", "Continuum warheads on WFLib missiles", "Continuum's high-explosive and nuclear blasts are WFLib warheads."),
             new Box("penetration", "Penetration values", "Continuum's bullets carry a bore and a penetration in mm of steel to armour, plates and hulls."),
-            new Box("bullets", "Bullets as WFLib rounds", "Plain Continuum bullets are flown as WFLib rounds: lag compensation, terrain, tracers, ricochet."));
+            new Box("bullets", "Bullets as WFLib rounds", "Plain Continuum bullets are flown as WFLib rounds: lag compensation, terrain, tracers, ricochet."),
+            new Box("recon", "Continuum on the radar", "Continuum's missiles and rockets are contacts on WFLib's radar and scopes; its explosions are heard by seismic sensors."),
+            new Box("orbit", "Continuum satellites in orbit", "Continuum's satellites appear in WFLib's orbital catalogue and the PDA satellites app."));
     private final Map<String, Boolean> started;
     private final boolean startedMaster;
 

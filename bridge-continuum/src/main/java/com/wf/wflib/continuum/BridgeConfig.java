@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 /** {@code wflib_continuum.toml}: one switch per bridge. Read at start-up. */
 final class BridgeConfig {
-    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION;
+    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION, RECON, ORBIT;
     static final ModConfigSpec SPEC;
 
     static {
@@ -35,6 +35,10 @@ final class BridgeConfig {
                 .define("penetration", true);
         BULLETS = b.comment("Plain Continuum bullets are flown as WFLib rounds (lag compensation, terrain, tracers, ricochet); loads with their own behaviour stay Continuum's.")
                 .define("bullets", true);
+        RECON = b.comment("Continuum's missiles and rockets are contacts on WFLib's radar and scopes; its explosions are heard by seismic sensors.")
+                .define("recon", true);
+        ORBIT = b.comment("Continuum's satellites are mirrored into WFLib's orbital catalogue (the PDA satellites app, scopes, hunters).")
+                .define("orbit", true);
         SPEC = b.build();
     }
 
@@ -55,6 +59,8 @@ final class BridgeConfig {
             case "warheads" -> WARHEADS;
             case "penetration" -> PENETRATION;
             case "bullets" -> BULLETS;
+            case "recon" -> RECON;
+            case "orbit" -> ORBIT;
             default -> throw new IllegalArgumentException(id);
         };
     }
@@ -65,6 +71,14 @@ final class BridgeConfig {
 
     static boolean penetration() {
         return MASTER.get() && PENETRATION.get();
+    }
+
+    static boolean recon() {
+        return MASTER.get() && RECON.get();
+    }
+
+    static boolean orbit() {
+        return MASTER.get() && ORBIT.get();
     }
 
     static boolean bullets() {
