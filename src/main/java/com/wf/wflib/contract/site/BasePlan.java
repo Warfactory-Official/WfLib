@@ -15,14 +15,25 @@ public record BasePlan(BaseKind kind, int cx, int cz, int padY, Wall wall, List<
         vehicles = List.copyOf(vehicles);
     }
 
-    public enum Type { COMMAND, BARRACKS, TENT, DEPOT, TOWER, BUNKER, NEST, CAMP, MAST, BAY, LIGHT, TRENCH }
-
-    /** A piece of the base. {@code (x, y, z)} is its centre at standing level; {@code w} runs along x and {@code d} along z before {@code facing} turns it. */
-    public record Piece(Type type, int x, int y, int z, int w, int d, int facing, int height) {
+    public enum Type {
+        COMMAND, BARRACKS, CABIN, DEPOT, TOWER, BUNKER, NEST, YARD, MAST, BAY, LIGHT, TRENCH,
+        MESS, MEDICAL, ARMORY, CONTAINERS, GENERATOR, HELIPAD, CHECKPOINT, BARRIER
     }
 
-    /** The perimeter wall: a square of side {@code 2 * half}, with gates in the middle of two opposite sides ({@code axis} 0: north and south, 1: east and west). */
-    public record Wall(int half, int height, int axis) {
+    /** A piece of the base. {@code (x, y, z)} is its centre at standing level; {@code w} runs along x and {@code d} along z before {@code facing} turns it; {@code style} picks among the piece's looks. */
+    public record Piece(Type type, int x, int y, int z, int w, int d, int facing, int height, int style) {
+        public Piece(Type type, int x, int y, int z, int w, int d, int facing, int height) {
+            this(type, x, y, z, w, d, facing, height, 0);
+        }
+    }
+
+    /** The perimeter wall: a square of side {@code 2 * half}, with gates in the middle of two opposite sides ({@code axis} 0: north and south, 1: east and west), built of poured concrete, hesco, or both ({@code style}). */
+    public record Wall(int half, int height, int axis, int style) {
+        public static final int CONCRETE = 0, HESCO = 1, MIXED = 2;
+
+        public Wall(int half, int height, int axis) {
+            this(half, height, axis, CONCRETE);
+        }
     }
 
     public enum Role {

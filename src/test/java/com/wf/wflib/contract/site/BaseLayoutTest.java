@@ -23,7 +23,7 @@ class BaseLayoutTest {
 
     @Test
     void insideBuildingsNeverOverlapAndStayInsideTheWall() {
-        var solid = List.of(Type.COMMAND, Type.BARRACKS, Type.DEPOT, Type.BUNKER, Type.BAY, Type.TOWER);
+        var solid = List.of(Type.COMMAND, Type.BARRACKS, Type.DEPOT, Type.BUNKER, Type.BAY, Type.TOWER, Type.MESS, Type.MEDICAL, Type.ARMORY, Type.CONTAINERS, Type.GENERATOR, Type.HELIPAD);
         for (BaseKind k : BaseKind.values()) {
             for (long seed = 0; seed < 60; seed++) {
                 var p = plan(k, seed);

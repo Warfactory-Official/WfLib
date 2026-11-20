@@ -79,6 +79,13 @@ public final class PmcCommands {
                                     c.getSource().sendSuccess(() -> Component.literal(who.getGameProfile().getName() + " has " + now + " reputation (" + com.wf.wflib.contract.api.Standing.rank(c.getSource().getServer(), who.getUUID()) + ")."), true);
                                     return now;
                                 }))))
+                // QA: raise a base of a kind where the operator stands, no soldiers, no contract
+                .then(Commands.literal("buildbase").requires(x -> x.hasPermission(2))
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.Arrays.stream(com.wf.wflib.contract.site.BaseKind.values()).map(com.wf.wflib.contract.site.BaseKind::id), sb))
+                                .executes(c -> buildBase(c, new java.util.Random().nextLong()))
+                                .then(Commands.argument("seed", com.mojang.brigadier.arguments.LongArgumentType.longArg())
+                                        .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"))))))
                 .then(Commands.literal("heat").executes(PmcCommands::heat))
                 .then(Commands.literal("analyze").executes(PmcCommands::analyze))
                 .then(Commands.literal("news").executes(c -> {
@@ -191,6 +198,24 @@ public final class PmcCommands {
             c.getSource().sendFailure(Component.literal(e.getMessage()));
             return 0;
         }
+    }
+
+    private static int buildBase(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c, long seed) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var src = c.getSource();
+        com.wf.wflib.contract.site.BaseKind kind;
+        try {
+            kind = com.wf.wflib.contract.site.BaseKind.byId(StringArgumentType.getString(c, "kind"));
+        } catch (IllegalArgumentException e) {
+            src.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+        var level = src.getLevel();
+        int x = net.minecraft.core.BlockPos.containing(src.getPosition()).getX(), z = net.minecraft.core.BlockPos.containing(src.getPosition()).getZ();
+        int padY = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR_WG, x, z);
+        var plan = com.wf.wflib.contract.site.BaseLayout.plan(kind, x, z, padY, new java.util.Random(seed), new com.wf.wflib.contract.site.LevelTerrain(level, true));
+        com.wf.wflib.contract.site.BaseBuilder.build(level, plan, com.wf.wflib.contract.site.Palette.at(level, new net.minecraft.core.BlockPos(x, padY, z)), seed);
+        src.sendSuccess(() -> Component.literal("Built a " + kind.id() + " at " + x + ", " + padY + ", " + z + " (seed " + seed + ")."), true);
+        return 1;
     }
 
     private static int heat(CommandContext<CommandSourceStack> c) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
