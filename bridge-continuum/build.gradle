@@ -9,6 +9,7 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 repositories {
     mavenCentral()
+    mavenLocal { content { includeGroup 'warfactory.ultimateweight' } }
     maven { name = 'NeoForged'; url = 'https://maven.neoforged.net/releases' }
 }
 
@@ -21,6 +22,7 @@ neoForge {
 
 dependencies {
     compileOnly files(wflib_jar, golem_jar, hbm_jar)
+    compileOnly("warfactory.ultimateweight:wfweight-1.21.1-neoforge:1.0.0-SNAPSHOT") { transitive = false }
 }
 
 // neoforge.mods.toml carries the version

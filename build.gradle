@@ -405,6 +405,7 @@ dependencies {
     // ./gradlew -p bridge-continuum build). Jar paths in gradle.properties. Off by default.
     if (project.hasProperty('withContinuum')) {
         localRuntime files(continuum_golem_jar, continuum_hbm_jar, continuum_bridge_jar)
+        localRuntime("warfactory.ultimateweight:wfweight-1.21.1-neoforge:1.0.0-SNAPSHOT") { transitive = false }
     }
 
     // --- Immersive Railroading (compile-only optional integration) ---------------------------

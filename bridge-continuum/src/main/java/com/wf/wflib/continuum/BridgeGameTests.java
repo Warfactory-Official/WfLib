@@ -336,38 +336,48 @@ public final class BridgeGameTests {
      * does for the same strength and radius, so these two tests are optional ({@code required = false}) and report the numbers rather than fail the run. Which of
      * the two is NTM's is the question; see the bridge doc.
      */
-    private static void parity(GameTestHelper h, net.minecraft.world.level.block.Block block, double tolerance) {
+    private static void parity(GameTestHelper h, net.minecraft.world.level.block.Block block, double tolerance, int y) {
         net.minecraft.server.level.ServerLevel level = h.getLevel();
         int half = PARITY_RADIUS + 3;
-        net.minecraft.core.BlockPos a = h.absolutePos(new net.minecraft.core.BlockPos(0, 40, 0));
+        // a height of its own: neighbouring tests' cubes and craters must not overlap this one
+        net.minecraft.core.BlockPos a = new net.minecraft.core.BlockPos(h.absolutePos(net.minecraft.core.BlockPos.ZERO).getX(), y, h.absolutePos(net.minecraft.core.BlockPos.ZERO).getZ());
         net.minecraft.core.BlockPos b = a.offset(0, 0, 90);
         int total = cube(level, a, half, block);
         cube(level, b, half, block);
         com.hbm.interfaces.IExplosionRay theirs = new com.hbm.explosion.ExplosionNukeRayBatched(level, a.getX(), a.getY(), a.getZ(), PARITY_STRENGTH, PARITY_RADIUS);
         com.hbm.interfaces.IExplosionRay ours = new Mk5Bridge.WflibRay(level, b.getX(), b.getY(), b.getZ(), PARITY_STRENGTH, PARITY_RADIUS);
-        int[] settle = {0};
+        int[] state = {0, -1, -1, 0};   // ticks since both rays finished, last counts, consecutive unchanged samples
         h.onEachTick(() -> {
             if (!theirs.isComplete()) theirs.update(40);
             if (!ours.isComplete()) ours.update(40);
-            // "complete" is when the rays finish; the world writes follow on the next ticks, so count only after both have been quiet for a while
-            if (theirs.isComplete() && ours.isComplete() && ++settle[0] > 60) {
-                int gone1 = total - remaining(level, a, half), gone2 = total - remaining(level, b, half);
-                h.assertTrue(gone1 > 500 && gone2 > 500, "both craters are real: " + gone1 + " and " + gone2);
-                double ratio = Math.abs(gone1 - gone2) / (double) Math.max(gone1, gone2);
-                h.assertTrue(ratio < tolerance, block.getName().getString() + ": the craters differ by " + Math.round(ratio * 1000) / 10.0 + "% (Continuum " + gone1 + " blocks, WFLib " + gone2 + ")");
-                h.succeed();
-            }
+            // "complete" is when a ray finishes, not when its world writes have landed (Continuum's batched writes run on for hundreds of ticks); count every ten ticks and
+            // take the result when neither count has moved for three samples in a row
+            if (!(theirs.isComplete() && ours.isComplete()) || ++state[0] % 10 != 0) return;
+            int gone1 = total - remaining(level, a, half), gone2 = total - remaining(level, b, half);
+            state[3] = gone1 == state[1] && gone2 == state[2] ? state[3] + 1 : 0;
+            state[1] = gone1;
+            state[2] = gone2;
+            if (state[3] < 3) return;
+            h.assertTrue(gone1 > 500 && gone2 > 500, "both craters are real: " + gone1 + " and " + gone2);
+            double ratio = Math.abs(gone1 - gone2) / (double) Math.max(gone1, gone2);
+            h.assertTrue(ratio < tolerance, block.getName().getString() + ": the craters differ by " + Math.round(ratio * 1000) / 10.0 + "% (Continuum " + gone1 + " blocks, WFLib " + gone2 + ")");
+            h.succeed();
         });
     }
 
-    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 1200)
+    /**
+     * Optional: in stone the two do not agree and Continuum's own number is not stable. Over seven runs Continuum's ray removed 185, 1255, 1255, 1255, about 2900,
+     * about 2900 and 53931 blocks from the same cube, while WFLib's removed 2838 to 2907 every time, so the bridge's {@code nukes} switch is off by default until that is
+     * understood.
+     */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 4000, required = false)
     public static void mk5RaysAgreeInStone(GameTestHelper h) {
-        parity(h, net.minecraft.world.level.block.Blocks.STONE, 0.10D);
+        parity(h, net.minecraft.world.level.block.Blocks.STONE, 0.10D, 0);
     }
 
-    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 1200)
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 4000)
     public static void mk5RaysAgreeInDirt(GameTestHelper h) {
-        parity(h, net.minecraft.world.level.block.Blocks.DIRT, 0.10D);
+        parity(h, net.minecraft.world.level.block.Blocks.DIRT, 0.10D, 120);
     }
     // ---------------------------------------------------------------- creative tabs
 
@@ -395,12 +405,101 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
         source.set("nukes", before);
         h.assertTrue(source.startup("armour") == BridgeConfig.armour() || !source.startupMaster(), "startup state matches what is running");
+        h.succeed();
+    }
+    // ---------------------------------------------------------------- masses
+
+    private static Item firstOf(net.minecraft.tags.TagKey<Item> tag) {
+        return BuiltInRegistries.ITEM.getTag(tag).flatMap(set -> set.stream().findFirst()).map(net.minecraft.core.Holder::value).orElse(null);
+    }
+
+    /** A steel ingot is about a kilogram, a plate the same, a block nine of it; a gun has no mass here. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty")
+    public static void materialItemsGetAMassFromTheirDensity(GameTestHelper h) {
+        if (!ModList.get().isLoaded("wfweight")) {
+            h.succeed();
+            return;
+        }
+        ContinuumMasses masses = new ContinuumMasses();
+        Item ingot = firstOf(com.hbm.inventory.material.Mats.MAT_STEEL.tag(com.hbm.inventory.material.MaterialShapes.INGOT));
+        Item plate = firstOf(com.hbm.inventory.material.Mats.MAT_STEEL.tag(com.hbm.inventory.material.MaterialShapes.PLATE));
+        Item block = firstOf(com.hbm.inventory.material.Mats.MAT_STEEL.tag(com.hbm.inventory.material.MaterialShapes.BLOCK));
+        h.assertTrue(ingot != null && plate != null && block != null, "steel has an ingot, a plate and a block item: " + ingot + " " + plate + " " + block + " tags " + com.hbm.inventory.material.Mats.MAT_STEEL.tag(com.hbm.inventory.material.MaterialShapes.INGOT).location() + " " + BuiltInRegistries.ITEM.getTagNames().filter(t -> t.location().getPath().contains("steel")).limit(6).toList());
+        double kg = masses.kg(ingot);
+        h.assertTrue(Math.abs(kg - 0.98125D) < 0.01D, "a steel ingot is about 0.98 kg: " + kg);
+        h.assertTrue(Math.abs(masses.kg(plate) - kg) < 0.01D, "a plate is an ingot (72 units): " + masses.kg(plate));
+        h.assertTrue(Math.abs(masses.kg(block) - kg * 9) < 0.05D, "a block is nine ingots: " + masses.kg(block));
+        Item lead = firstOf(com.hbm.inventory.material.Mats.MAT_LEAD.tag(com.hbm.inventory.material.MaterialShapes.INGOT));
+        h.assertTrue(masses.kg(lead) > kg, "lead is heavier than steel");
+        Item gun = item("hbm:gun_am180");
+        h.assertTrue(masses.kg(gun) == 0.0D, "a gun is not a material item");
+        h.succeed();
+    }
+    // ---------------------------------------------------------------- look-at
+
+    /** A Continuum readout becomes probe lines: the title, and each line with its legacy colour prefix honoured. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty")
+    public static void continuumReadoutsBecomeProbeLines(GameTestHelper h) {
+        var info = new com.wf.wflib.probe.api.ProbeInfo();
+        LookOverlayBridge.fill(info, new com.hbm.interfaces.ILookOverlay.Data("Reactor", 0xFF8800, 0, List.of("&[65280&]Core 400 C", "plain line", "&[bad&]odd")));
+        h.assertTrue(info.titleText() != null && info.titleText().getString().equals("Reactor"), "the title");
+        h.assertTrue(info.titleColour() == (0xFF000000 | 0xFF8800), "the title colour");
+        var texts = info.elements().stream().filter(e -> e instanceof com.wf.wflib.probe.api.ProbeElement.Text).map(e -> (com.wf.wflib.probe.api.ProbeElement.Text) e).toList();
+        h.assertTrue(texts.size() == 3, "a line each: " + texts.size());
+        h.assertTrue(texts.get(0).text().getString().equals("Core 400 C") && texts.get(0).colour() == (0xFF000000 | 65280), "a coloured line");
+        h.assertTrue(texts.get(1).text().getString().equals("plain line") && texts.get(1).colour() == 0xFFFFFFFF, "a plain line is white");
+        h.assertTrue(texts.get(2).text().getString().equals("odd"), "a bad colour prefix is dropped, the text kept: " + texts.get(2).text().getString());
+        h.succeed();
+    }
+    // ---------------------------------------------------------------- wiki
+
+    /** The converter on a made-up page: links in both orders, a break, trigger items in the shapes Continuum uses, a link to nowhere. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty")
+    public static void manualPagesBecomeWikiArticles(GameTestHelper h) {
+        Map<String, JsonObject> pages = new java.util.LinkedHashMap<>();
+        pages.put("rbmk/absorber", JsonParser.parseString("""
+                {"name": "RBMK Absorber", "icon": ["hbm:rbmk_absorber", 1, 0], "trigger": [["hbm:rbmk_absorber"], "hbm:rbmk_absorber_alt", ["*wild"]],
+                 "title": {"en_us": "RBMK \\"Boron\\" Absorber"},
+                 "content": {"en_us": "Blocks neutrons.<br>See the [[reflector|RBMK Reflector]], the [[RBMK Reflector|mirror]] and [[nothing here|ghost]]."}}""").getAsJsonObject());
+        pages.put("rbmk/reflector", JsonParser.parseString("{\"name\": \"RBMK Reflector\", \"content\": {\"en_us\": \"Bounces them back.\"}, \"icon\": [[\"hbm:rbmk_reflector\"]]}").getAsJsonObject());
+        Map<String, String> out = WikiConverter.convert(pages);
+        String a = out.get("rbmk/absorber");
+        h.assertTrue(a != null && out.size() == 2, "both pages convert");
+        h.assertTrue(a.contains("icon: hbm:rbmk_absorber"), "the icon is the item id");
+        h.assertTrue(a.contains("items: [hbm:rbmk_absorber, hbm:rbmk_absorber_alt]"), "triggers become bound items, wildcards dropped: " + a);
+        h.assertTrue(a.contains("[reflector](wflib_continuum:rbmk/reflector)"), "display|page links to the page");
+        h.assertTrue(a.contains("[mirror](wflib_continuum:rbmk/reflector)"), "page|display links to the page");
+        h.assertTrue(a.contains("ghost") && !a.contains("[ghost]"), "a link to no page is its text");
+        h.assertTrue(a.contains("neutrons.  \n"), "<br> is a hard break");
+        h.assertTrue(a.contains("title: \"RBMK \\\"Boron\\\" Absorber\""), "the title is quoted for yaml");
+        h.assertTrue(out.get("rbmk/reflector").contains("icon: hbm:rbmk_reflector"), "a nested icon array");
+        h.succeed();
+    }
+
+    /** All of Continuum's real pages convert, and almost every link in them lands on a page. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty")
+    public static void everyContinuumManualPageConverts(GameTestHelper h) throws IOException {
+        Map<String, JsonObject> pages = WikiPack.read();
+        Map<String, String> out = WikiConverter.convert(pages);
+        h.assertTrue(pages.size() > 200, "Continuum's manual was read: " + pages.size());
+        h.assertTrue(out.size() >= pages.size() - 5, "nearly every page converts: " + out.size() + " of " + pages.size());
+        int links = 0, plain = 0;
+        for (String md : out.values()) {
+            var m = java.util.regex.Pattern.compile("\\]\\(wflib_continuum:([^)]+)\\)").matcher(md);
+            while (m.find()) {
+                links++;
+                h.assertTrue(out.containsKey(m.group(1)), "a link to a page that is not there: " + m.group(1));
+            }
+            if (md.contains("[[")) plain++;
+        }
+        h.assertTrue(links > 100, "links were made: " + links);
+        h.assertTrue(plain == 0, plain + " page(s) still carry raw [[ ]] markup");
         h.succeed();
     }
 }

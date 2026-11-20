@@ -40,8 +40,26 @@ public final class ContinuumBridge {
         modBus.addListener(net.neoforged.neoforge.event.RegisterGameTestsEvent.class, e -> e.register(BridgeGameTests.class));
     }
 
+    private static void addWikiPack(AddPackFindersEvent event) {
+        Path root;
+        try {
+            root = WikiPack.build();
+        } catch (IOException | RuntimeException e) {
+            LOG.error("The wiki pack could not be built", e);
+            return;
+        }
+        PackLocationInfo info = new PackLocationInfo(ID + "_wiki", Component.literal("WFLib: Continuum manual (generated)"), PackSource.BUILT_IN, Optional.empty());
+        Pack pack = Pack.readMetaAndCreate(info, new PathPackResources.PathResourcesSupplier(root), PackType.CLIENT_RESOURCES,
+                new net.minecraft.server.packs.PackSelectionConfig(true, Pack.Position.TOP, false));
+        event.addRepositorySource(consumer -> consumer.accept(pack));
+    }
+
     /** The generated data pack (patches that stand Continuum's own armour reduction down, and WFLib armour profiles seeded from its numbers). */
     private static void addPacks(AddPackFindersEvent event) {
+        if (event.getPackType() == PackType.CLIENT_RESOURCES) {
+            if (BridgeConfig.wiki() && com.wf.wflib.core.api.WFSystems.enabled("wiki")) addWikiPack(event);
+            return;
+        }
         if (event.getPackType() != PackType.SERVER_DATA) return;
         Path root;
         try {

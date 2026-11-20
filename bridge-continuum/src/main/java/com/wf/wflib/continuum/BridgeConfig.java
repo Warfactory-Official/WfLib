@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 /** {@code wflib_continuum.toml}: one switch per bridge. Read at start-up. */
 final class BridgeConfig {
-    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES;
+    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI;
     static final ModConfigSpec SPEC;
 
     static {
@@ -19,8 +19,14 @@ final class BridgeConfig {
                 .define("glyphids", true);
         RADIATION = b.comment("Continuum's radiation field is the one WFLib reads and feeds; players take WFLib's dose (shielding, armour wear, hazard rows), not Continuum's.",
                 "Needs WFLib's hazard and radiation systems on. Hazard rows for Continuum items are generated with it.").define("radiation", true);
-        NUKES = b.comment("Continuum's nuclear blasts run WFLib's parallel crater ray. On because the parity tests (BridgeGameTests.mk5RaysAgreeInStone and InDirt) show the two craters within 10% of each other.")
-                .define("nukes", true);
+        NUKES = b.comment("Continuum's nuclear blasts run WFLib's parallel crater ray. Off by default: in dirt the two craters agree within 10% (BridgeGameTests.mk5RaysAgreeInDirt), in stone they do not and Continuum's own result varies from run to run (mk5RaysAgreeInStone, optional).")
+                .define("nukes", false);
+        MASSES = b.comment("Masses for Continuum's material items (nugget to block) from their material and its density, for Ultimate Weight. Needs wfweight.")
+                .define("masses", true);
+        PROBE = b.comment("Continuum's look-at overlays (its blocks' and entities' readouts) show in WFLib's probe panel; Continuum's own crosshair overlay is switched off.")
+                .define("probe", true);
+        WIKI = b.comment("Continuum's manual pages are written as WFLib wiki articles, bound to the items that trigger them, for the PDA's Wiki app (client).")
+                .define("wiki", true);
         SPEC = b.build();
     }
 
@@ -34,12 +40,27 @@ final class BridgeConfig {
             case "glyphids" -> GLYPHIDS;
             case "radiation" -> RADIATION;
             case "nukes" -> NUKES;
+            case "masses" -> MASSES;
+            case "probe" -> PROBE;
+            case "wiki" -> WIKI;
             default -> throw new IllegalArgumentException(id);
         };
     }
 
     static ModConfigSpec.BooleanValue master() {
         return MASTER;
+    }
+
+    static boolean wiki() {
+        return MASTER.get() && WIKI.get();
+    }
+
+    static boolean probe() {
+        return MASTER.get() && PROBE.get();
+    }
+
+    static boolean masses() {
+        return MASTER.get() && MASSES.get();
     }
 
     static boolean nukes() {
