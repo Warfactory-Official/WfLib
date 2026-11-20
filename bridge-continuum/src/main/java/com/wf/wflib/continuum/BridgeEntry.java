@@ -7,6 +7,14 @@ import dev.golem.core.platform.ModEntry;
 final class BridgeEntry implements ModEntry {
     @Override
     public void substitute() {
+        if (BridgeConfig.glyphids()) {
+            // No hive world feature of Continuum's own: WFLib's colonies seed the world. Needs Continuum's config override (the bridge's upstream seam).
+            try {
+                com.hbm.config.CommonConfig.override(com.hbm.config.CommonConfig.CATEGORY_MOBS, "12.G00_enableHives", "false");
+            } catch (NoSuchMethodError old) {
+                ContinuumBridge.LOG.warn("This Continuum has no CommonConfig.override: its glyphid hives stay on until it is switched off in its own config (12.G00_enableHives)");
+            }
+        }
         // Doors, the MK5 ray and spawner blocks come here as their levels are built (docs/ntm-continuum-compat.md, 3.2 and 5.2).
     }
 
@@ -16,6 +24,7 @@ final class BridgeEntry implements ModEntry {
 
     @Override
     public void registered() {
+        if (BridgeConfig.glyphids()) Glyphids.install();
         if (!BridgeConfig.armour()) return;
         // After every datapack load: if any Continuum set still carries a resistance, the patch did not apply and a hit is reduced twice.
         ArmorDataMaps.ARMOR_SETS.changed.register(() -> {

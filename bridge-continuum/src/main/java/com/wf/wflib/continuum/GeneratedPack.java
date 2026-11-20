@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * Written to {@code <game dir>/wflib_continuum/pack} and rebuilt every launch.
  */
 final class GeneratedPack {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String PATCH = "data/" + ContinuumBridge.ID + "/value_maps/patches/hbm/item/";
     private static final String PROFILES = "data/" + ContinuumBridge.ID + "/wflib/armor_profile/";
 
@@ -45,8 +45,12 @@ final class GeneratedPack {
         }
         Files.createDirectories(root);
         write(root.resolve("pack.mcmeta"), "{\"pack\":{\"pack_format\":48,\"description\":\"WFLib: Continuum bridge (generated at launch)\"}}");
-        if (!BridgeConfig.armour()) return root;
+        if (BridgeConfig.armour()) armour(root);
+        if (BridgeConfig.doors()) DoorRecipes.generate(root);
+        return root;
+    }
 
+    private static void armour(Path root) throws IOException {
         JsonObject sets = read("data/hbm/value_maps/item/armor_sets.json");
         JsonObject radiation = read("data/hbm/value_maps/item/radiation_resistance.json");
 
@@ -69,11 +73,10 @@ final class GeneratedPack {
             write(root.resolve(PROFILES + e.getKey() + ".json"), GSON.toJson(e.getValue()));
         }
         ContinuumBridge.LOG.info("Generated pack: Continuum armour stood down for {} set(s); {} WFLib armour profile(s) seeded", values.size(), profiles.size());
-        return root;
     }
 
     /** One of Continuum's bundled files, or null when this build of it lacks it. */
-    private static JsonObject read(String resource) throws IOException {
+    static JsonObject read(String resource) throws IOException {
         var info = ModList.get().getModFileById("hbm");
         if (info == null) return null;
         Path path = info.getFile().findResource(resource);
@@ -84,7 +87,7 @@ final class GeneratedPack {
         }
     }
 
-    private static void write(Path file, String text) throws IOException {
+    static void write(Path file, String text) throws IOException {
         Files.createDirectories(file.getParent());
         Files.writeString(file, text, StandardCharsets.UTF_8);
     }
