@@ -249,8 +249,11 @@ public final class DriveSurface {
                 for (int sy = Mth.floor(y - CLIMB - 1) >> 4; sy <= Mth.floor(y + CLIMB + 1) >> 4; sy++) {
                     for (int sz = Mth.floor(z - EDGE) >> 4; sz <= Mth.floor(z + EDGE) >> 4; sz++) {
                         SurfaceSection section = sections.get(SectionPos.asLong(sx, sy, sz));
+                        // Block-corner point: its own cell is any of the 4 diagonal neighbours (edge-edge contacts at a convex
+                        // plateau corner clamp to the integer corner; two probes missed the anti-diagonal cells).
                         if (section != null && (section.covers(x, y, z, hullY) || section.covers(x - EDGE, y, z - EDGE, hullY)
-                                || section.covers(x + EDGE, y, z + EDGE, hullY))) {
+                                || section.covers(x + EDGE, y, z + EDGE, hullY) || section.covers(x - EDGE, y, z + EDGE, hullY)
+                                || section.covers(x + EDGE, y, z - EDGE, hullY))) {
                             return true;
                         }
                     }

@@ -1,6 +1,7 @@
 package com.wf.wflib.armor.api.hull;
 
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @param nominalThickness   mm, entry plate
@@ -8,11 +9,18 @@ import net.minecraft.world.phys.Vec3;
  * @param penetration        mm, at entry
  * @param normal             struck surface, outward, world frame
  * @param faceNormal         armour face by shot aspect, outward, world frame ({@link HullResolver.Plate})
+ * @param plateId            entry plate, null = unbound face (hull / part / zone value)
+ * @param part               owning part of the entry plate, null = hull
+ * @param incidence          deg between the shot and the entry plate's normal (declared, mesh when curved)
+ * @param crossingPlates     plate id (null = unbound) of each walked crossing, aligned with {@link WalkResult#crossingAt}
+ * @param hullShare          entry plate's {@link PlateSpec#hull}: scales the hull pool only, not {@code hullDamage} as a ramp
  * @param walk               every layer the shot line met, in order; {@link WalkResult#NONE} for a ricochet
  */
 public record HullResult(HullOutcome outcome, float hullDamage, float partDamage, float nominalThickness,
                          float effectiveThickness, float penetration, Vec3 normal, Vec3 faceNormal,
-                         WalkResult walk) {
+                         WalkResult walk, float hullShare,
+                         @Nullable String plateId, @Nullable String part, float incidence,
+                         String[] crossingPlates) {
 
     public float ratio() {
         return effectiveThickness <= 0 ? Float.POSITIVE_INFINITY : penetration / effectiveThickness;

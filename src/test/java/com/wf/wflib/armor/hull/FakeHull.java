@@ -4,6 +4,7 @@ import com.wf.wflib.armor.api.hull.HullBody;
 import com.wf.wflib.armor.api.hull.HullMesh;
 import com.wf.wflib.armor.api.hull.HullProfile;
 import com.wf.wflib.armor.api.hull.HullWear;
+import com.wf.wflib.armor.api.hull.PlateWear;
 import com.wf.wflib.geom.api.OBB;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,6 +29,7 @@ public final class FakeHull implements HullBody, HullMesh {
     public final OBB main = box(new Vector3f(0, 1, 0), new Vector3f(1.6F, 1, 3), rotation);
     public final OBB turret = box(TURRET_PIVOT, new Vector3f(1, 0.4F, 1.2F), turretWorld);
     public final HullWear wear = new HullWear();
+    public final PlateWear plateWear = new PlateWear();
     @Nullable
     public HullProfile profile;
     public boolean mesh = true;
@@ -86,6 +88,11 @@ public final class FakeHull implements HullBody, HullMesh {
     @Override
     public HullWear hullWear() {
         return wear;
+    }
+
+    @Override
+    public PlateWear plateWear() {
+        return plateWear;
     }
 
     @Override

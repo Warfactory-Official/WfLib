@@ -20,13 +20,15 @@ public final class HullResolver {
     private static final float ABSORB_RATIO = 0.75f;
     /** Payload fraction kept at ratio=1.0 (bare penetration); ramps to 1.0 at OVERMATCH_RATIO. */
     private static final float PARTIAL_FLOOR = 0.35f;
-    /** Spall fraction at ABSORB_RATIO; scales by ratio/ABSORB_RATIO below (rifle vs MBT => ~0). */
+    /** Part-damage spall fraction at ABSORB_RATIO, scaled by ratio/ABSORB_RATIO below; ABSORBED never damages the hull pool. */
     private static final float ABSORBED_SPALL = 0.06f;
     /** cos(incidence) floor; avoids divide-near-zero at grazing hits. */
     private static final float MIN_COS = 0.05f;
     /** Metres the main box grows by for {@link #entryFace}: mesh skin (skirts, fenders) sits just outside it. */
     private static final double ENTRY_MARGIN = 0.25;
 
+    /** A round stopped by a crossing this close behind the entry crossing was stopped by the same armour stack, m; meshes carry twin faces, so winding says nothing about entering. */
+    private static final float STACK_GAP = 1.5f;
     /** Crossings of one plate closer than this along the line are the two faces of one sheet, m. */
     private static final double PAIR_GAP = 0.1;
     private static final ThreadLocal<List<HullMesh.Crossing>> SCRATCH = ThreadLocal.withInitial(ArrayList::new);
@@ -38,7 +40,10 @@ public final class HullResolver {
      * Ricochet: entry surface incidence {@code > threat.ricochetDeg()} unless {@code caliber / nominal >= overmatchTD
      * > 0} (nominal = the entry plate's outer layer). Else the budget {@code threat.penetrationMm()} walks every
      * crossing along the line ({@link PlateWalk}). Outcome and hull damage ramp = the entry plate alone
-     * ({@code pen / } {@link HullResult#effectiveThickness}); {@link HullResult#through} only with
+     * ({@code pen / } {@link HullResult#effectiveThickness}), except a round stopped at a later entering plate
+     * within {@link #STACK_GAP} of the entry (clutter in front of armour): then the whole stack up to it
+     * ({@code pen / needed}, below 1);
+     * {@link HullResult#through} only with
      * {@link HullResult#interiorPen} {@code > 0}; the later plates decide {@link HullResult#residualPen}, the
      * round's exit.
      * <p>Later crossings count only when plate-bound: they exist where the mesh order says so, thickness is
@@ -89,6 +94,7 @@ public final class HullResolver {
             return null;
         }
         float nominal = plate.nominal();
+        float hullScale = plate.plateId() == null ? 1.0f : profile.plates.get(plate.plateId()).hull();
         Vec3 normal = new Vec3(plate.normal());
         Vec3 face = new Vec3(plate.faceNormal());
         PlateSpec entrySpec = plate.plateId() == null ? null : profile.plates.get(plate.plateId());
@@ -96,7 +102,7 @@ public final class HullResolver {
         boolean overmatch = threat.overmatchTD() > 0 && threat.caliberMm() >= outer * threat.overmatchTD();
         if (plate.surfaceIncidence() > threat.ricochetDeg() && !overmatch) {
             return new HullResult(HullOutcome.RICOCHET, 0, 0, nominal,
-                    plate.effective(threat.slopeExp()), penetration, normal, face, WalkResult.NONE);
+                    plate.effective(threat.slopeExp()), penetration, normal, face, WalkResult.NONE, hullScale, plate.plateId(), plate.part(), plate.surfaceIncidence(), new String[0]);
         }
 
         PlateWalk walk = new PlateWalk(threat);
@@ -107,6 +113,9 @@ public final class HullResolver {
         walk.at((float) plate.point().distanceTo(start), entering);
         layers(body, walk, entrySpec, plate, crossings == null ? -1 : crossings.get(0).node(), entering);
         walk.mark();
+        String[] crossingPlates = new String[crossings == null ? 1 : crossings.size()];
+        int walked = 0;
+        crossingPlates[walked++] = plate.plateId();
         if (crossings != null) {
             String last = plate.plateId();
             double lastAt = crossings.get(0).point().distanceTo(start);
@@ -124,35 +133,45 @@ public final class HullResolver {
                 if (p == null) {
                     continue;
                 }
+                crossingPlates[walked++] = c.plate();
                 walk.nextCrossing().at((float) at, c.entering());
                 layers(body, walk, profile.plates.get(c.plate()), p, c.node(), c.entering());
                 last = c.plate();
                 lastAt = at;
             }
         }
+        crossingPlates = java.util.Arrays.copyOf(crossingPlates, walked);
         WalkResult result = walk.result();
         float effective = result.interiorNeeded();
-        if (result.interiorPen() > 0.0f) {
+        int stop = result.stoppedAt() >= 0 ? result.crossing(result.stoppedAt()) : -1;
+        boolean blockedDeeper = stop >= 1 && result.crossingAt(stop) - result.crossingAt(0) <= STACK_GAP;
+        if (blockedDeeper) {
+            effective = result.needed();
+        }
+        if (result.interiorPen() > 0.0f && !blockedDeeper) {
             float ratio = penetration / effective;
             if (ratio >= OVERMATCH_RATIO) {
                 return new HullResult(HullOutcome.OVERMATCH, incomingDamage, incomingDamage, nominal, effective,
-                        penetration, normal, face, result);
+                        penetration, normal, face, result, hullScale,
+                        plate.plateId(), plate.part(), plate.incidence(), crossingPlates);
             }
             float t = (ratio - 1.0f) / (OVERMATCH_RATIO - 1.0f);
             float scale = Mth.lerp(t, PARTIAL_FLOOR, 1.0f);
             return new HullResult(HullOutcome.PENETRATION, incomingDamage * scale, incomingDamage * scale,
-                    nominal, effective, penetration, normal, face, result);
+                    nominal, effective, penetration, normal, face, result, hullScale,
+                        plate.plateId(), plate.part(), plate.incidence(), crossingPlates);
         }
         float ratio = Math.min(penetration / effective, 1.0f);
         if (ratio < ABSORB_RATIO) {
             float spall = incomingDamage * ABSORBED_SPALL * ratio / ABSORB_RATIO;
-            return new HullResult(HullOutcome.ABSORBED, spall, spall, nominal, effective, penetration, normal, face,
-                    result);
+            return new HullResult(HullOutcome.ABSORBED, 0.0f, spall, nominal, effective, penetration, normal, face,
+                    result, hullScale, plate.plateId(), plate.part(), plate.incidence(), crossingPlates);
         }
         float t = (ratio - ABSORB_RATIO) / (1.0f - ABSORB_RATIO);
         float scale = Mth.lerp(t, ABSORBED_SPALL, PARTIAL_FLOOR);
         return new HullResult(HullOutcome.PARTIAL, incomingDamage * scale, incomingDamage * scale, nominal, effective,
-                penetration, normal, face, result);
+                penetration, normal, face, result, hullScale,
+                        plate.plateId(), plate.part(), plate.incidence(), crossingPlates);
     }
 
     /** Declared layers of the plate, else its one equivalent layer (zone, part or hull face). */
@@ -165,6 +184,14 @@ public final class HullResolver {
                 int cell = spec.eraCell(mesh, node, plate.point(), plate.normal());
                 walk.era(plate.plateId(), cell, era, body.eraLive(plate.plateId(), cell), plate.cos(),
                         spec.eraEdge(mesh, node, plate.point(), plate.normal()));
+            }
+            if (spec.brittle()) {
+                HullMesh mesh = body.hits();
+                Vector3f rest = mesh.restPoint(node, plate.point());
+                Vector3f declared = spec.restNormal(rest.x);
+                walk.glass(new WalkResult.GlassHit(plate.plateId(), node, rest,
+                        declared != null ? new Vector3f(declared) : mesh.restDirection(node, plate.normal()),
+                        spec.nominal(false)));
             }
             spec.addTo(walk, plate.wear(), plate.cos());
         } else {
@@ -301,7 +328,8 @@ public final class HullResolver {
         if (nominal <= 0) {
             return null;
         }
-        float wear = body.hullWear().thicknessScale(HullWear.region(body.mainBox(), struck, faceNormal),
+        float wear = spec != null && spec.brittle() ? body.plateWear().thicknessScale(plateId)
+                : body.hullWear().thicknessScale(HullWear.region(body.mainBox(), struck, faceNormal),
                 profile.wearFloor);
         float meshCos = Math.max((float) Math.abs(shotDir.dot(new Vec3(worldNormal))), MIN_COS);
         float faceCos = Math.max((float) -shotDir.dot(new Vec3(faceNormal)), MIN_COS);

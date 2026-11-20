@@ -14,7 +14,8 @@ import java.util.Locale;
  * <ul>
  *   <li>{@code facing}: front / side / rear / top / bottom, or azimuth degrees (0 = front, MC yaw sense); frame =
  *       owning part at rest; {@code side} mirrors by the sign of the struck point's rest x.</li>
- *   <li>{@code slope}: degrees from vertical, 0 when absent; ignored for top / bottom.</li>
+ *   <li>{@code slope}: degrees from vertical, 0 when absent; negative = normal tilted down (lower front plates);
+ *       ignored for top / bottom.</li>
  *   <li>{@code curved}: no declared normal, incidence from the mesh normal. Excludes facing, slope, los.</li>
  *   <li>{@code layers}: outermost first, solid layers with air {@code gap}s between (never first or last).
  *       {@code los}: line-of-sight RHAe at the declared slope, converted to normal thickness
@@ -47,6 +48,14 @@ public final class PlateSpec {
     @SerializedName("layers")
     public List<PlateLayer> layers = List.of();
 
+    /** Hull-pool damage of a shot entering here x this; the struck system and what is behind take it whole. */
+    @SerializedName("hull")
+    public float hull = 1.0f;
+
+    public float hull() {
+        return hull;
+    }
+
     private transient volatile Compiled compiled;
 
     /** Solid layer in RHA-equivalent mm, or air when {@code gap > 0}. */
@@ -54,7 +63,7 @@ public final class PlateSpec {
     }
 
     private record Compiled(float ke, float ce, Step[] steps, @Nullable Vector3f positive,
-                            @Nullable Vector3f negative, @Nullable EraType era, int eraCells) {
+                            @Nullable Vector3f negative, @Nullable EraType era, int eraCells, boolean brittle) {
     }
 
     /** Integral array type, null = none. */
@@ -66,6 +75,11 @@ public final class PlateSpec {
     /** Bricks of the integral array; 0 = none. */
     public int eraCells() {
         return compiled().eraCells;
+    }
+
+    /** Any solid layer is {@link PlateMaterial#brittle}: wear + chips per plate ({@link PlateWear}). */
+    public boolean brittle() {
+        return compiled().brittle;
     }
 
     /** Sum of solid layers, normal thickness, RHAe mm. */
@@ -138,6 +152,9 @@ public final class PlateSpec {
     }
 
     private Compiled build() {
+        if (!(hull >= 0.0f && hull <= 1.0f)) {
+            throw new IllegalArgumentException("hull must be in 0..1");
+        }
         if (curved && (facing != null || slope != null || los != null)) {
             throw new IllegalArgumentException("curved excludes facing, slope and los");
         }
@@ -148,8 +165,8 @@ public final class PlateSpec {
             throw new IllegalArgumentException("los needs facing");
         }
         float slopeDeg = slope == null ? 0 : slope;
-        if (!(slopeDeg >= 0 && slopeDeg <= 90)) {
-            throw new IllegalArgumentException("slope " + slope + " outside 0..90");
+        if (!(slopeDeg >= -90 && slopeDeg <= 90)) {
+            throw new IllegalArgumentException("slope " + slope + " outside -90..90");
         }
         Vector3f positive = null, negative = null;
         float losCos = 1;
@@ -222,13 +239,14 @@ public final class PlateSpec {
             float ke = los.ke * losCos;
             float ce = los.ce > 0 ? los.ce * losCos : ke;
             return new Compiled(ke, ce, new Step[] {new Step(ke, ce, 1.0f, 1.0f, 0.0f)}, positive, negative, era,
-                    eraCells);
+                    eraCells, false);
         }
         if (solid.isEmpty()) {
             throw new IllegalArgumentException("needs layers or los");
         }
         Step[] steps = new Step[solid.size()];
         float ke = 0, ce = 0;
+        boolean brittle = false;
         for (int i = 0; i < steps.length; i++) {
             PlateLayer layer = solid.get(i);
             if (layer.isGap()) {
@@ -247,8 +265,9 @@ public final class PlateSpec {
                 steps[i] = new Step(layer.mm() * m.ke(), layer.mm() * m.ce(), m.spall(), m.hesh(), 0.0f);
                 ke += steps[i].ke;
                 ce += steps[i].ce;
+                brittle |= m.brittle();
             }
         }
-        return new Compiled(ke, ce, steps, positive, negative, era, eraCells);
+        return new Compiled(ke, ce, steps, positive, negative, era, eraCells, brittle);
     }
 }

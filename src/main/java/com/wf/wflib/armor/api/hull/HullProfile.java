@@ -27,6 +27,11 @@ public class HullProfile extends HullFaces {
         return super.isDefined() || !plates.isEmpty();
     }
 
+    /** Hull faces declared: plates alone (glazing on an airframe) leave blasts, thresholds and wear on the stock path. */
+    public boolean hullDefined() {
+        return super.isDefined();
+    }
+
     /** Compiles every plate; an invalid one => {@link IllegalStateException} naming it. */
     public void validate() {
         plates.forEach((id, spec) -> spec.compile(id));

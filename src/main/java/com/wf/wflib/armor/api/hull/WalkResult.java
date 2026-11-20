@@ -1,5 +1,7 @@
 package com.wf.wflib.armor.api.hull;
 
+import org.joml.Vector3f;
+
 import java.util.List;
 
 /**
@@ -18,7 +20,7 @@ import java.util.List;
  */
 public final class WalkResult {
 
-    public static final WalkResult NONE = new WalkResult(0, 0, 0, 0, 1, 0, 0, -1, new float[0], new float[0], new int[0], new float[0], new boolean[0], List.of());
+    public static final WalkResult NONE = new WalkResult(0, 0, 0, 0, 1, 0, 0, -1, new float[0], new float[0], new int[0], new float[0], new boolean[0], List.of(), List.of());
 
     private final float residualPen;
     private final float needed;
@@ -34,10 +36,11 @@ public final class WalkResult {
     private final float[] crossingAt;
     private final boolean[] crossingIn;
     private final List<EraHit> eraHits;
+    private final List<GlassHit> glassHits;
 
     WalkResult(float residualPen, float needed, float interiorPen, float interiorNeeded, float transmit, int layers,
                int defeated, int stoppedAt, float[] residualAfter, float[] spall, int[] crossing, float[] crossingAt, boolean[] crossingIn,
-               List<EraHit> eraHits) {
+               List<EraHit> eraHits, List<GlassHit> glassHits) {
         this.residualPen = residualPen;
         this.needed = needed;
         this.interiorPen = interiorPen;
@@ -52,6 +55,7 @@ public final class WalkResult {
         this.crossingAt = crossingAt;
         this.crossingIn = crossingIn;
         this.eraHits = eraHits;
+        this.glassHits = glassHits;
     }
 
     /** Integral brick the walk set off: {@code cell} of {@code plate}. */
@@ -61,6 +65,18 @@ public final class WalkResult {
     /** Bricks of integral arrays the threat set off, walk order; the walk spent none of them. */
     public List<EraHit> eraHits() {
         return eraHits;
+    }
+
+    /**
+     * Brittle plate crossed on mesh {@code node}: {@code rest} = struck point, owning part's rest frame; {@code normal} = declared normal (mesh
+     * normal when curved), same frame; {@code nominal} = plate KE RHAe mm.
+     */
+    public record GlassHit(String plate, int node, Vector3f rest, Vector3f normal, float nominal) {
+    }
+
+    /** Brittle plates the line met, walk order. */
+    public List<GlassHit> glassHits() {
+        return glassHits;
     }
 
     public float residualPen() {

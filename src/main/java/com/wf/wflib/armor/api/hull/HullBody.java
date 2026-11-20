@@ -25,6 +25,8 @@ public interface HullBody {
 
     HullWear hullWear();
 
+    PlateWear plateWear();
+
     @Nullable
     HullProfile hullProfile();
 

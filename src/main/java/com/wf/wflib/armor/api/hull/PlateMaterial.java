@@ -2,9 +2,14 @@ package com.wf.wflib.armor.api.hull;
 
 /**
  * Per-mm armour value of a plate material vs one mm of RHA. {@code ce}: shaped charges; {@code hesh}: transmission
- * fraction of a squash-head blast; {@code spall}: spall cone/count scale.
+ * fraction of a squash-head blast; {@code spall}: spall cone/count scale; {@code brittle}: wears per plate and
+ * records chips ({@link PlateWear}), not per hull region.
  */
-public record PlateMaterial(String id, float ke, float ce, float hesh, float spall) {
+public record PlateMaterial(String id, float ke, float ce, float hesh, float spall, boolean brittle) {
+
+    public PlateMaterial(String id, float ke, float ce, float hesh, float spall) {
+        this(id, ke, ce, hesh, spall, false);
+    }
 
     public PlateMaterial {
         if (id == null || id.isEmpty()) {

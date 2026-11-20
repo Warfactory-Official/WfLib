@@ -15,6 +15,8 @@ public final class PlateMaterials {
         register(new PlateMaterial("aluminium", 0.35f, 0.4f, 1.0f, 1.5f));
         register(new PlateMaterial("nera", 1.1f, 2.0f, 0.0f, 0.5f));
         register(new PlateMaterial("spall_liner", 0.0f, 0.0f, 0.0f, 0.3f));
+        register(new PlateMaterial("glass", 0.12f, 0.15f, 1.0f, 3.0f, true));
+        register(new PlateMaterial("laminated", 0.35f, 0.4f, 0.3f, 0.8f, true));
     }
 
     private PlateMaterials() {

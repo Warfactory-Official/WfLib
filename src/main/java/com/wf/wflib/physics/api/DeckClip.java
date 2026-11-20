@@ -463,8 +463,8 @@ public final class DeckClip {
 
     /**
      * Shallowest SAT push of the box out of frame i's oriented box; up wins ties.
-     * @param mayDescend false => downward pushes skipped
-     * @return depth, 0 when none possible; push into out
+     * @param mayDescend false => downward push replaced by its horizontal part
+     * @return push length; 0 when none possible or penetration (any axis) within SKIN; push into out
      */
     private static double pushOriented(float[] frames, int i,
                                        double cx, double cy, double cz,
@@ -475,6 +475,7 @@ public final class DeckClip {
         double dx = cx - frames[f], dy = cy - frames[f + 1], dz = cz - frames[f + 2];
         double best = Double.POSITIVE_INFINITY;
         double bestUp = Double.NEGATIVE_INFINITY;
+        double shallowest = Double.POSITIVE_INFINITY;
         for (int k = 0; k < AXES; k++) {
             if (!axis(a, k)) {
                 continue;
@@ -484,20 +485,32 @@ public final class DeckClip {
             if (depth <= 0) {
                 return 0;
             }
+            shallowest = Math.min(shallowest, depth);
             double sign = s >= 0 ? 1 : -1;
-            double up = sign * a[1];
-            if (up < -AXIS_EPS && !mayDescend) {
-                continue;
+            double nx = sign * a[0], ny = sign * a[1], nz = sign * a[2];
+            double cost = depth;
+            double scale = depth + EPSILON;
+            if (ny < -AXIS_EPS && !mayDescend) {
+                // Horizontal part, lengthened to the same separation along n. Skipping the axis => sloped
+                // underside overhead exits along a deep side axis (C-5 clamshell: 1.48 shove).
+                double horizontal = nx * nx + nz * nz;
+                if (horizontal < AXIS_EPS) {
+                    continue;
+                }
+                cost = depth / Math.sqrt(horizontal);
+                scale /= horizontal;
+                ny = 0;
             }
-            if (depth < best - EPSILON || depth <= best + EPSILON && up > bestUp) {
-                best = depth;
-                bestUp = up;
-                out[0] = sign * a[0] * (depth + EPSILON);
-                out[1] = sign * a[1] * (depth + EPSILON);
-                out[2] = sign * a[2] * (depth + EPSILON);
+            if (cost < best - EPSILON || cost <= best + EPSILON && ny > bestUp) {
+                best = cost;
+                bestUp = ny;
+                out[0] = nx * scale;
+                out[1] = ny * scale;
+                out[2] = nz * scale;
             }
         }
-        return best == Double.POSITIVE_INFINITY ? 0 : best;
+        // SKIN gated on the true penetration: a permitted axis' cost alone fired at float-noise contact.
+        return best == Double.POSITIVE_INFINITY || shallowest <= SKIN ? 0 : best;
     }
 
 }

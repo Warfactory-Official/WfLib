@@ -52,7 +52,8 @@ class HullResolverTest {
             assertEquals(want[i], r.outcome(), "ratio " + ratio[i]);
             assertEquals(200, r.effectiveThickness(), 1e-2F);
         }
-        assertEquals(100 * 0.06F * 0.5F / 0.75F, frontal(hull, 100, ThreatKind.KINETIC).hullDamage(), 1e-3F, "spall");
+        assertEquals(0.0F, frontal(hull, 100, ThreatKind.KINETIC).hullDamage(), "absorbed: no hull damage");
+        assertEquals(100 * 0.06F * 0.5F / 0.75F, frontal(hull, 100, ThreatKind.KINETIC).partDamage(), 1e-3F, "spall");
         assertEquals(100, frontal(hull, 600, ThreatKind.KINETIC).hullDamage());
     }
 

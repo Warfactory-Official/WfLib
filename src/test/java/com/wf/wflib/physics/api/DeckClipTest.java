@@ -85,6 +85,30 @@ class DeckClipTest {
         assertTrue(out[1] > 0, "climbed " + out[1]);
     }
 
+    /** C-5 open right clamshell (hull-fitted box, carrier frame); its inner face overhangs the ground at y -5. */
+    private static final float[] CLAMSHELL = {0.3355372f, -5.1435924f, -34.58246f, 4.828332f, 2.0423121f, -19.2325f};
+    private static final float[] CLAMSHELL_FRAME = {2.5819345f, -1.5506401f, -26.907478f, 7.4360733f, 0.73608875f,
+            1.8330393f, 0.67653215f, -0.40653098f, 0.53457826f, 0.30209753f};
+
+    @Test
+    void groundedRiderTouchingASlopedUndersideIsLeftAlone() {
+        // Walked into the inner face: clip stops at contact; carrier-frame float rounding leaves it ~1e-6 inside.
+        double[] out = new double[3];
+        assertFalse(DeckClip.depenetrate(CLAMSHELL, CLAMSHELL_FRAME, 1, 2.3128, -4.1, -25.658,
+                0.3, 0.9, 0.3, false, 4, out), "pushed " + out[0] + " " + out[2]);
+    }
+
+    @Test
+    void groundedRiderUnderASlopedUndersideExitsUnderIt() {
+        double[] out = new double[3];
+        assertTrue(DeckClip.depenetrate(CLAMSHELL, CLAMSHELL_FRAME, 1, 2.5, -4.1, -26.5,
+                0.3, 0.9, 0.3, false, 4, out));
+        assertEquals(0, out[1]);
+        assertTrue(out[0] < 0 && Math.hypot(out[0], out[2]) < 0.2, "pushed " + out[0] + " " + out[2]);
+        assertFalse(DeckClip.depenetrate(CLAMSHELL, CLAMSHELL_FRAME, 1, 2.5 + out[0], -4.1, -26.5 + out[2],
+                0.3, 0.9, 0.3, false, 4, new double[3]));
+    }
+
     @Test
     void underTheRaisedEndIsOpen() {
         // Rider 0.9 tall on the ground under the high end: inside the AABB, clear of the slab.

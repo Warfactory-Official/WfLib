@@ -511,7 +511,7 @@ public final class RigidStep {
         for (StepBody member : island.members) {
             if (member.couplingJoint >= 0) {
                 RigidSolver.Joint joint = solver.joint(member.couplingJoint);
-                member.storeCoupling(joint);
+                member.storeCoupling(solver, member.couplingJoint);
                 if (DEBUG) {
                     LOGGER.info(String.format(Locale.ROOT, "[towjoint] %d J %.4f,%.4f,%.4f yaw %.4f axle %.4f",
                             member.owner.getId(), joint.impulse.x, joint.impulse.y, joint.impulse.z,

@@ -56,6 +56,7 @@ public final class PlateWalk {
     private float[] crossingAt = new float[4];
     private boolean[] crossingIn = new boolean[4];
     private List<WalkResult.EraHit> era;
+    private List<WalkResult.GlassHit> glass;
 
     public PlateWalk(Threat threat) {
         ThreatKind kind = threat.kind();
@@ -174,6 +175,15 @@ public final class PlateWalk {
         return cut(s.keep());
     }
 
+    /** Records a brittle plate crossing ({@link WalkResult#glassHits}); costs nothing. */
+    public PlateWalk glass(WalkResult.GlassHit hit) {
+        if (glass == null) {
+            glass = new ArrayList<>(2);
+        }
+        glass.add(hit);
+        return this;
+    }
+
     /** Air of {@code metres} along the line. */
     public PlateWalk gap(float metres) {
         if (stoppedAt >= 0 || !(metres > 0.0f)) {
@@ -204,6 +214,7 @@ public final class PlateWalk {
         return new WalkResult(budget, needed, Float.isNaN(markResidual) ? budget : markResidual,
                 Float.isNaN(markResidual) ? needed : markNeeded, transmit, layers, defeated, stoppedAt, residualAfter,
                 spall, crossingOf, Arrays.copyOf(crossingAt, crossing + 1), Arrays.copyOf(crossingIn, crossing + 1),
-                era == null ? List.of() : List.copyOf(era));
+                era == null ? List.of() : List.copyOf(era),
+                glass == null ? List.of() : List.copyOf(glass));
     }
 }

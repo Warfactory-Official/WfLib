@@ -245,13 +245,24 @@ public final class StepBody {
                     .sub(solver.body(body).com);
             joint.axleAxis.set(s.couplingLateral);
         }
+        for (int i = 0; i < s.ropeCount; i++) {
+            double[] r = s.ropePoints;
+            solver.addJoint(tractor.body, body,
+                    (float) (r[i * 6 + 3] - o[0]), (float) (r[i * 6 + 4] - o[1]), (float) (r[i * 6 + 5] - o[2]),
+                    (float) (r[i * 6] - o[0]), (float) (r[i * 6 + 1] - o[1]), (float) (r[i * 6 + 2] - o[2]), s.ropeLength[i])
+                    .impulse.set(coupling.ropeImpulses()[i]);
+        }
         joint.impulse.set(coupling.impulse());
         joint.yawImpulse = coupling.yawImpulse();
         joint.axleImpulse = coupling.axleImpulse();
         joint.rollImpulse = coupling.rollImpulse();
     }
 
-    void storeCoupling(RigidSolver.Joint joint) {
+    void storeCoupling(RigidSolver solver, int first) {
+        RigidSolver.Joint joint = solver.joint(first);
+        for (int i = 0; i < state.ropeCount; i++) {
+            coupling.ropeImpulses()[i].set(solver.joint(first + 1 + i).impulse);
+        }
         coupling.impulse().set(joint.impulse);
         coupling.impulses(joint.yawImpulse, joint.axleImpulse, joint.rollImpulse);
     }

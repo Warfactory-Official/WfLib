@@ -77,6 +77,28 @@ class HullWalkTest {
     }
 
     @Test
+    void clutterInFrontOfArmourIsScoredAgainstTheWholeStack() {
+        FakeHull h = hull("{\"fitting\":{\"layers\":[{\"mm\":4,\"mat\":\"rha\"}]},"
+                + "\"armour\":{\"layers\":[{\"mm\":300,\"mat\":\"rha\"}]}}");
+        h.script = List.of(cross(h, 3, "fitting", true), cross(h, 2.8f, "armour", false));
+        HullResult r = shoot(h, ap(30));
+        assertEquals(HullOutcome.ABSORBED, r.outcome(), "stopped by the armour 0.2 m behind, whatever its winding, not overmatched on the fitting");
+        assertEquals(304, r.effectiveThickness(), EPS);
+        assertEquals(4, r.nominalThickness(), EPS, "entry plate still the fitting");
+        assertTrue(r.hullDamage() < 5, "trace spall only");
+    }
+
+    @Test
+    void armourBehindAnExitingCrossingDoesNotChangeTheEntryOutcome() {
+        FakeHull h = hull("{\"skin\":{\"layers\":[{\"mm\":4,\"mat\":\"rha\"}]},"
+                + "\"back\":{\"layers\":[{\"mm\":300,\"mat\":\"rha\"}]}}");
+        h.script = List.of(cross(h, 3, "skin", true), cross(h, -3, "back", false));
+        HullResult r = shoot(h, ap(30));
+        assertEquals(HullOutcome.OVERMATCH, r.outcome(), "far wall stops it, the near skin was still beaten");
+        assertEquals(100, r.hullDamage());
+    }
+
+    @Test
     void crossingsCarryTheirDistanceAndTheBudgetAlongTheLine() {
         HullResult r = shoot(twoPlates(), ap(100));
         assertEquals(2, r.walk().crossings());

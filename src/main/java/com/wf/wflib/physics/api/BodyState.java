@@ -64,6 +64,10 @@ public final class BodyState {
     public Coupling coupling;
     /** World points: coupling, hitch, axle patch. */
     public final double[] couplingPoints = new double[9];
+    /** Extra rope legs: per leg towed point, hitch point (world) in {@link #ropePoints}, length in {@link #ropeLength}. */
+    public int ropeCount;
+    public final double[] ropePoints = new double[18];
+    public final float[] ropeLength = new float[3];
     public final Vector3f couplingLateral = new Vector3f();
     /** Rope length, < 0 ball; articulation (rad, +y) and its stop (NaN none); fifth-wheel roll (rad, NaN free). */
     public float couplingLength, couplingYaw, couplingYawLimit, couplingRoll;
