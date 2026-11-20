@@ -37,6 +37,7 @@ the look-at probe, recon/sonar, and the UI widget system other mods build HUDs f
 | [radiation](radiation.md) | NTM NEXT radiation field + item/inventory hazards: divergences, gaps |
 | [backpacks](backpacks.md) | worn backpack: player attachment + capability, inventory panel, lock, probe node, wfweight |
 | [physics](physics.md) | rigid-body engine, step slots, decks, prediction: api, config, traps |
+| [ntm-continuum-compat](ntm-continuum-compat.md) | draft plan for running with NTM: Continuum |
 | [soldiers](soldiers.md) | soldier players + squad AI, the weapon/grenade/medical SPIs, why it is slow and the async plan (snapshot / brain / body, record tier) |
 | [labs](labs.md) | WFLabs: headless data-mapping of the damage stack, run commands, tables, api |
 | [anomalies-and-artefacts](anomalies-and-artefacts.md) | STALKER Zone project: anomalies, tiered sites, artefacts, detectors, bolts; handoff state + remaining work |
