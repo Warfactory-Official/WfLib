@@ -70,9 +70,11 @@ public final class SectionScan {
                 }
                 int x0 = Math.max(minX, cx << 4), x1 = Math.min(maxX, (cx << 4) + 15);
                 int z0 = Math.max(minZ, cz << 4), z1 = Math.min(maxZ, (cz << 4) + 15);
+                // Per chunk: ChunkAccess.getHeight per column = EnumMap lookup + null check, the scan's residual cost.
+                Heightmap surface = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE);
                 for (int x = x0; x <= x1; x++) {
                     for (int z = z0; z <= z1; z++) {
-                        int top = Math.min(maxY, chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x & 15, z & 15));
+                        int top = Math.min(maxY, surface.getFirstAvailable(x & 15, z & 15) - 1);
                         for (int y = floorY; y <= top; y++) {
                             LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(y));
                             if (section.hasOnlyAir()) {

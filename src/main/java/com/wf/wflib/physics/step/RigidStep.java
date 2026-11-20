@@ -91,6 +91,19 @@ public final class RigidStep {
     }
     private static long statNanos, statTicks, statIslands, statBodies, statContacts;
 
+    public static final String[] STAGES = {"capture", "wake", "islands", "solve", "complete"};
+
+    /** Last stepped tick, written only while {@link #stats}; immutable, safe to read from the client thread of an integrated server. */
+    public record Tick(long totalNanos, long[] stageNanos, int islands, int bodies, int contacts, boolean async) {
+    }
+
+    private static volatile Tick lastTick;
+
+    /** Null until a tick stepped with stats on. */
+    public static Tick lastTick() {
+        return lastTick;
+    }
+
     /** Per stepped tick since the last drain: step us, islands, bodies, contacts. */
     public static String drainStats() {
         long ticks = Math.max(1, statTicks);
@@ -210,6 +223,8 @@ public final class RigidStep {
             return;
         }
         long startedAt = stats ? System.nanoTime() : 0;
+        long[] stage = stats ? new long[STAGES.length] : null;
+        long mark = startedAt;
         List<StepBody> steps = new ArrayList<>(registered.size());
         registered.sort(Comparator.comparingInt(step -> step.owner.getId()));
         PhysicsSettings settings = PhysicsSettings.current();
@@ -224,6 +239,11 @@ public final class RigidStep {
             steps.add(step);
         }
         registered.clear();
+        if (stats) {
+            long now = System.nanoTime();
+            stage[0] = now - mark;
+            mark = now;
+        }
         // Towed before its tractor ticked (or a sleeping tractor): coupling rows need both bodies.
         for (int i = 0; i < steps.size(); i++) {
             StepBody step = steps.get(i);
@@ -242,13 +262,28 @@ public final class RigidStep {
                 wake(near.get(k), steps, async);
             }
         }
+        if (stats) {
+            long now = System.nanoTime();
+            stage[1] = now - mark;
+            mark = now;
+        }
         List<Island> islands = islands(steps);
+        if (stats) {
+            long now = System.nanoTime();
+            stage[2] = now - mark;
+            mark = now;
+        }
         if (async) {
             solveShared(islands, settings);
         } else {
             for (Island island : islands) {
                 solve(island, settings);
             }
+        }
+        if (stats) {
+            long now = System.nanoTime();
+            stage[3] = now - mark;
+            mark = now;
         }
         // Carriers before riders: a rider's deck carry reads its carrier's flushed snapshot.
         for (int pass = 0; pass < 2; pass++) {
@@ -266,6 +301,13 @@ public final class RigidStep {
         }
         evict();
         if (stats) {
+            long end = System.nanoTime();
+            stage[4] = end - mark;
+            int contacts = 0;
+            for (Island island : islands) {
+                contacts += island.contacts;
+            }
+            lastTick = new Tick(end - startedAt, stage, islands.size(), steps.size(), contacts, async);
             statNanos += System.nanoTime() - startedAt;
             statTicks++;
             statIslands += islands.size();

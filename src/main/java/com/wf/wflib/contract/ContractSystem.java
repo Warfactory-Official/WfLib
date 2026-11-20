@@ -32,6 +32,11 @@ public final class ContractSystem implements WFSystem {
         return "contract";
     }
 
+    @Override
+    public boolean defaultEnabled() {
+        return false;
+    }
+
     /** Sites, soldiers and wallet come from soldier; the board and the sites' markers from map; the app from pda. */
     @Override
     public Set<String> requires() {
