@@ -20,22 +20,29 @@ nothing here has been run with both mods loaded. "Verified" means read in the so
 
 ## 0.1 Status
 
-Built and checked in a game unless marked.
+Everything marked *tested* is a GameTest in `bridge-continuum` that passes (17 required). Run them with
+`./gradlew -p bridge-continuum build` then `./gradlew runGameTestServer -PwithContinuum -PcontinuumOnly -x buildNatives`.
 
 | Piece | State |
 |---|---|
-| Continuum seams (worktree `~/Codebases/NTM-Continuum-compat`, branch `compat/wflib-seams`, commit `21a7aed7`) | `EntityNukeExplosionMK5.RAY` hook and an overridable `createRay`; `CommonConfig.override(category, name, value)` for addons. Compiles. **Not yet used** by the bridge, **not pushed**. |
-| WFLib armour profile data loader | `wflib:armor_profile` datapack registry (`ArmorAssignment`), synced, data wins over code-authored specs, priority between elements. In `ArmorProfiles.applyData`. Compiles; its JSON codec has no unit test yet. |
-| Bridge addon `bridge-continuum/` | Builds (`./gradlew -p bridge-continuum build`). Loads in the harness with WFLib, Golem Core and Continuum. At launch it writes a generated pack from Continuum's own bundled data: patches that empty its per-item resistance and strip `resistance` from every set (34 sets), and 137 seeded `wflib:armor_profile` elements (priority -10, so any hand-tuned element wins). Its self-check logs that no set still carries a resistance. |
-| Single reduction per hit | **Not proven.** The harness health model (WFMedical) scales every hit, so a raw damage comparison is noise: naked lost 2.56 per 10 arrow damage and a worn Steel Ranger set lost 1.67 to 1.95, which is not the 0.09 ratio a double reduction would give, but it is not a measurement either. Needs a GameTest in a clean world. |
-| Doors, level 1 | Built. The generated pack copies the 15 Continuum assembly recipes that output a door to the same path with the output pointed at the `wflib:` door of that name. Logged: 15 rewritten. **Not yet checked** that Continuum's assembly machine now crafts the WFLib door. Door items in Continuum's tab are not hidden yet. |
-| Glyphids, first part | Built. `EntityGlyphid.DROPS` (a new public listener list in WFLib's `dropGlyphidLoot`, which was empty); the bridge adds Continuum's meat with its odds. **Verified:** 8 WFLib glyphids killed, the drop was `hbm:glyphid_meat`. The natural-spawn veto (`Spawns.onSpawnCheck`) and the hive switch-off (`CommonConfig.override`, the new upstream seam) are in but **not yet observed**. WFLib colony placement where Continuum's hives were is not built. |
-| Switchboard group "NTM: Continuum" | Not built. The bridge has its own `wflib_continuum.toml` (`armour`) for now. |
+| Continuum seams (worktree `~/Codebases/NTM-Continuum-compat`, branch `compat/wflib-seams`, `21a7aed7`) | `EntityNukeExplosionMK5.RAY` hook with an overridable `createRay`; `CommonConfig.override`. In use. Not pushed. |
+| Armour | WFLib's `wflib:armor_profile` datapack registry; the bridge empties Continuum's per-item resistance, strips `resistance` from its 34 sets, seeds 137 profiles. *Tested:* data stood down, Continuum's own reduction is the identity, a hit on a worn set is reduced and not to the level a second reduction would leave, seeded pieces add up to the set (thresholds sum, resistances combine), the converter's maths, the profile codec reads and refuses. |
+| Doors, level 1 | The 15 assembly recipes make `wflib:` doors; Continuum's door items are off every creative tab. *Tested:* all 15 recipes, the tabs. Placed doors and levels 2 and 3 (substituting the blocks, keys and locks) are not built. |
+| Glyphids | Continuum's `entity_glyphid*` natural spawns vetoed, hives off (override plus config reload), WFLib glyphids drop Continuum's meat (new `EntityGlyphid.DROPS`). *Tested:* veto, hives, drops. Placement is WFLib's own seeder (`ColonyConfig.naturalSpacing`, default 512 blocks, 70% of cells); Continuum placed about one hive per 256 chunks, so WFLib colonies are sparser and bigger. A tuning choice, not code. |
+| Radiation | New `RadiationField.Provider` seam in WFLib. The bridge makes Continuum's field the one WFLib reads and feeds, and tells Continuum through `ContaminationUtil.RAD_IMMUNE` that players are WFLib's. Continuum's item hazards become `wflib:hazard` rows (from `hbm:hazards`), and its protection data become the WFLib tags (`hazmat`, `hazmat_advanced`, `digamma_protection`, `faraday`, `hazard_protection/*`). *Tested:* WFLib reads and feeds Continuum's field; players are immune to Continuum's contamination, a pig is not; every id-keyed hazard row matches level for level; every set that passes a check is in the tag. **Not proven:** one dose per player in a real exposure (a fake player cannot stand through Continuum's 200-tick grace); hazard modifiers (RBMK, RTG, depletion) are not carried, so those items use their base level. |
+| Nukes | WFLib's parallel MK5 ray behind Continuum's five-method `IExplosionRay`, answering the new hook. *Tested:* a 24-radius blast into solid stone and into solid dirt, craters within 10% (counted after the world writes settle). On by default. A failed WFLib ray ends the blast without Continuum's abort path. |
+| Switchboard | `FeatureSource` API in WFLib; the bridge's group "NTM: Continuum" (five boxes, master) is on the screen, seen live. *Tested:* registered, writes through. Clicking a box was not exercised. |
+| Not built | item masses (Continuum has no mass data, so a table would be invented), penetration rows (WFLib's values are hand-tuned; Continuum's blast resistance is not a substitute), door levels 2 and 3, `ILookOverlay`/probe, wiki app, soldiers using Continuum guns, drone containers, Continuum warheads as WFLib warheads. |
 
-Findings from running them together (Phase 0):
+Findings from running them together:
 * **WarForge and Golem Core do not load together as shipped.** `WarForgeMod.commonSetup` registers `GolemProtection` when `golemcore` is loaded, and that class
-  needs `dev.golem.core.world.Protection$Provider`, which exists in no Golem Core commit. Any pack with WarForge and Continuum crashes at common setup. WarForge had
-  to be taken out of the harness for the test; that is a fix on WarForge's or Golem's side.
+  needs `dev.golem.core.world.Protection$Provider`, which exists in no Golem Core commit. WarForge had to be taken out of the harness for the test.
+* **A mock player in a GameTest crashes the server in this stack** (`ahf:hit_authority`, `wfweight:weight_update` payloads with no connection); tests use a
+  fake player or a mob.
+* **Continuum's config is read in its own constructor, before an addon's.** `CommonConfig.override` therefore needs a reload (`MainRegistry.loadConfig`) to take;
+  the bridge does it. An upstream improvement is to re-apply overrides when they are declared late.
+* **Continuum's glyphid entity ids are `hbm:entity_glyphid*`**, not `hbm:glyphid*`; the first veto matched the wrong ids and the test caught it.
+* **A GameTest only registers when its template namespace is enabled**, so the bridge ships its own `wflib_continuum:empty` template.
 * Continuum's own build needs every node's Golem jar; a clean build here used a worktree registering only the two NeoForge nodes (not committed).
 
 ## 1. What we are dealing with

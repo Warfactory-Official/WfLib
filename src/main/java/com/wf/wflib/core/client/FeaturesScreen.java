@@ -292,7 +292,7 @@ public final class FeaturesScreen extends Screen {
             var needs = graph.direct(feature.id());
             if (!needs.isEmpty()) out.add("needs " + needs.stream().map(id -> FeatureCatalogue.byId(id).title()).collect(Collectors.joining(", ")));
             if (locked(feature)) out.add("needed by an installed mod");
-            else if (feature.system() != null) out.add("restart");
+            else if (feature.system() != null || sourceOf.containsKey(group.id())) out.add("restart");
             return out;
         }
 
