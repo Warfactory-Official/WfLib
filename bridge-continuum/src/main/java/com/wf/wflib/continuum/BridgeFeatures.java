@@ -15,14 +15,16 @@ final class BridgeFeatures implements FeatureSource {
             new Box("nukes", "WFLib nuclear ray", "Continuum's nuclear blasts run WFLib's parallel crater ray."),
             new Box("masses", "Masses for Continuum items", "Ultimate Weight gets a mass for every Continuum material item, from its material's density."),
             new Box("probe", "Continuum readouts in the probe", "Continuum's look-at readouts show in WFLib's probe panel instead of beside the crosshair."),
-            new Box("wiki", "Continuum manual in the PDA wiki", "Continuum's manual pages are WFLib wiki articles, opened for the items they describe."));
+            new Box("wiki", "Continuum manual in the PDA wiki", "Continuum's manual pages are WFLib wiki articles, opened for the items they describe."),
+            new Box("soldiers", "Soldiers with Continuum guns", "WFLib soldiers can be issued and fire Continuum's magazine-fed guns."),
+            new Box("warheads", "Continuum warheads on WFLib missiles", "Continuum's high-explosive and nuclear blasts are WFLib warheads."));
     private final Map<String, Boolean> started;
     private final boolean startedMaster;
 
     BridgeFeatures() {
         startedMaster = BridgeConfig.master().get();
         started = Map.of("armour", BridgeConfig.value("armour").get(), "doors", BridgeConfig.value("doors").get(), "glyphids", BridgeConfig.value("glyphids").get(),
-                "radiation", BridgeConfig.value("radiation").get(), "nukes", BridgeConfig.value("nukes").get(), "masses", BridgeConfig.value("masses").get(), "probe", BridgeConfig.value("probe").get(), "wiki", BridgeConfig.value("wiki").get());
+                "radiation", BridgeConfig.value("radiation").get(), "nukes", BridgeConfig.value("nukes").get(), "masses", BridgeConfig.value("masses").get(), "probe", BridgeConfig.value("probe").get(), "wiki", BridgeConfig.value("wiki").get(), "soldiers", BridgeConfig.value("soldiers").get(), "warheads", BridgeConfig.value("warheads").get());
     }
 
     @Override

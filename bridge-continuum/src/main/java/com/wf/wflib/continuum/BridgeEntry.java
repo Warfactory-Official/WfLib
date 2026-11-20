@@ -28,6 +28,8 @@ final class BridgeEntry implements ModEntry {
     public void registered() {
         if (BridgeConfig.masses() && net.neoforged.fml.ModList.get().isLoaded("wfweight")) ContinuumMasses.register();
         if (BridgeConfig.probe()) LookOverlayBridge.install();
+        if (BridgeConfig.soldiers() && com.wf.wflib.core.api.WFSystems.enabled("soldier")) SednaWeapon.install();
+        if (BridgeConfig.warheads() && com.wf.wflib.core.api.WFSystems.enabled("warhead")) WarheadBridge.install();
         if (BridgeConfig.glyphids()) Glyphids.install();
         if (BridgeConfig.radiation() && RadiationBridge.possible()) RadiationBridge.install();
         if (BridgeConfig.nukes() && com.wf.wflib.core.api.WFSystems.enabled("explosion")) Mk5Bridge.install();

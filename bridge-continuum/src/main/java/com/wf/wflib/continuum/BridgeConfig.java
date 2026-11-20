@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 /** {@code wflib_continuum.toml}: one switch per bridge. Read at start-up. */
 final class BridgeConfig {
-    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI;
+    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS;
     static final ModConfigSpec SPEC;
 
     static {
@@ -27,6 +27,10 @@ final class BridgeConfig {
                 .define("probe", true);
         WIKI = b.comment("Continuum's manual pages are written as WFLib wiki articles, bound to the items that trigger them, for the PDA's Wiki app (client).")
                 .define("wiki", true);
+        SOLDIERS = b.comment("WFLib soldiers can be issued and fire Continuum's magazine-fed guns, beside whichever gun mod owns their weapon slot.")
+                .define("soldiers", true);
+        WARHEADS = b.comment("Continuum's blasts are registered as WFLib warheads (wflib_continuum:he, nuclear, nuclear_small) that WFLib missiles, rounds and drones can carry.")
+                .define("warheads", true);
         SPEC = b.build();
     }
 
@@ -43,12 +47,22 @@ final class BridgeConfig {
             case "masses" -> MASSES;
             case "probe" -> PROBE;
             case "wiki" -> WIKI;
+            case "soldiers" -> SOLDIERS;
+            case "warheads" -> WARHEADS;
             default -> throw new IllegalArgumentException(id);
         };
     }
 
     static ModConfigSpec.BooleanValue master() {
         return MASTER;
+    }
+
+    static boolean warheads() {
+        return MASTER.get() && WARHEADS.get();
+    }
+
+    static boolean soldiers() {
+        return MASTER.get() && SOLDIERS.get();
     }
 
     static boolean wiki() {

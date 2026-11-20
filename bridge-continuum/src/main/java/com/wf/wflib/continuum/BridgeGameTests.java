@@ -26,6 +26,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
@@ -405,7 +406,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -500,6 +501,98 @@ public final class BridgeGameTests {
         }
         h.assertTrue(links > 100, "links were made: " + links);
         h.assertTrue(plain == 0, plain + " page(s) still carry raw [[ ]] markup");
+        h.succeed();
+    }
+    // ---------------------------------------------------------------- soldiers and guns
+
+    private static net.minecraft.server.level.ServerPlayer armed(GameTestHelper h, SednaWeapon weapon) {
+        // a fake player is a ServerPlayer without a connection: the same body a soldier has
+        net.minecraft.server.level.ServerPlayer p = net.neoforged.neoforge.common.util.FakePlayerFactory.getMinecraft(h.getLevel());
+        StringBuilder why = new StringBuilder();
+        int n = 0;
+        for (ResourceLocation id : weapon.guns()) {
+            String arm = weapon.arm(p, id, 2, List.of());
+            var ammo = weapon.ammo(p);
+            if (ammo != null && ammo.left() > 0 && ammo.spare() > 0) return p;
+            if (n++ < 4) why.append(" [").append(id).append(": ").append(arm).append(" -> ").append(ammo).append("]");
+        }
+        throw new IllegalStateException("no Continuum gun could be armed;" + why);
+    }
+
+    private static void tickGun(GameTestHelper h, net.minecraft.server.level.ServerPlayer p) {
+        ItemStack gun = p.getMainHandItem();
+        gun.getItem().inventoryTick(gun, h.getLevel(), p, p.getInventory().selected, true);
+    }
+
+    /** A soldier is issued a Continuum gun, reads its ammunition, and fires it: the magazine goes down. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 200)
+    public static void aSoldierFiresAContinuumGun(GameTestHelper h) {
+        SednaWeapon weapon = new SednaWeapon();
+        h.assertTrue(weapon.guns().size() > 3, "Continuum has several magazine-fed guns a soldier can use: " + weapon.guns().size());
+        net.minecraft.server.level.ServerPlayer p = armed(h, weapon);
+        int start = weapon.ammo(p).left();
+        h.assertTrue(weapon.ammo(p).capacity() >= start && start > 0, "loaded: " + weapon.ammo(p));
+        h.onEachTick(() -> {
+            tickGun(h, p);
+            if (weapon.ammo(p).left() < start) h.succeed();
+            else weapon.fire(p);
+        });
+    }
+
+    /** An empty gun is reloaded from a spare magazine: the reload starts, the gun is busy, and then it is loaded again. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 600)
+    public static void aSoldierReloadsAContinuumGun(GameTestHelper h) {
+        SednaWeapon weapon = new SednaWeapon();
+        net.minecraft.server.level.ServerPlayer p = armed(h, weapon);
+        ItemStack gun = p.getMainHandItem();
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        com.hbm.items.weapon.sedna.mags.IMagazine<?> mag = SednaWeapon.magazine((com.hbm.items.weapon.sedna.ItemGunBaseNT) gun.getItem(), gun);
+        mag.setAmount(gun, 0);
+        h.assertTrue(weapon.ammo(p).left() == 0, "emptied");
+        boolean[] started = {false};
+        h.onEachTick(() -> {
+            tickGun(h, p);
+            if (!started[0]) {
+                // the gun is drawing for the first ticks; ask until it takes the reload
+                if (weapon.reload(p)) started[0] = true;
+                return;
+            }
+            if (!weapon.busy(p) && weapon.ammo(p).left() > 0) h.succeed();
+        });
+    }
+    // ---------------------------------------------------------------- warheads
+
+    private static com.wf.wflib.warhead.api.WarheadCarrier carrier(GameTestHelper h) {
+        return new com.wf.wflib.warhead.api.WarheadCarrier() {
+            @Override
+            public Level level() {
+                return h.getLevel();
+            }
+
+            @Override
+            public int getFragmentCount() {
+                return 0;
+            }
+
+            @Override
+            public Vec3 angle() {
+                return new Vec3(0, -1, 0);
+            }
+        };
+    }
+
+    /** Continuum's nuclear warhead on a WFLib carrier raises Continuum's MK5 blast entity at the point, and the high-explosive one blows a crater. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 60)
+    public static void continuumWarheadsDetonateOnAWflibCarrier(GameTestHelper h) {
+        Vec3 at = h.absoluteVec(new Vec3(2.5, 3.0, 2.5));
+        net.minecraft.core.BlockPos below = net.minecraft.core.BlockPos.containing(at).below(2);
+        h.getLevel().setBlock(below, net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState(), 2);
+        com.wf.wflib.warhead.api.Warheads.get(WarheadBridge.HE).detonate(carrier(h), at);
+        h.assertTrue(h.getLevel().getBlockState(below).isAir(), "the high-explosive warhead blew the block under it");
+        com.wf.wflib.warhead.api.Warheads.get(WarheadBridge.NUCLEAR_SMALL).detonate(carrier(h), at.add(0, 10, 0));
+        var blasts = h.getLevel().getEntitiesOfClass(com.hbm.entity.logic.EntityNukeExplosionMK5.class, new AABB(at.add(-5, 0, -5), at.add(5, 20, 5)));
+        h.assertTrue(blasts.size() == 1, "one MK5 blast was raised: " + blasts.size());
+        blasts.get(0).discard();
         h.succeed();
     }
 }
