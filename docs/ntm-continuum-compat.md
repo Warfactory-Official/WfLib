@@ -1,193 +1,220 @@
-# NTM: Continuum compatibility (draft)
+# NTM: Continuum compatibility (draft 2)
 
-Status: **draft for discussion**. Written from a read of both code bases; nothing here has been run with both mods loaded yet.
-"Verified" below means read in the source, not observed in a game. Section 9 lists what needs deciding.
+Status: **draft for discussion**, second pass. Read from both code bases (Continuum `main` at `e2f987a5`, Golem Core `5275cc5`);
+nothing here has been run with both mods loaded. "Verified" means read in the source; "to validate" means it needs a test in a game.
+
+## 0. Decisions so far
+
+| | Decision |
+|---|---|
+| Armour | **WFLib's system wins.** Continuum's armour pieces get WFLib values; Continuum's own reduction stands down. |
+| Doors | **Follow WFLib's door system.** |
+| Method | **No mixins** where avoidable. Continuum is modular by design: use what it and Golem Core already expose. |
+| Golem Core | A **hard dependency** of Continuum, so it can be assumed whenever Continuum is present. |
+| Baseline | The Continuum repository as it stands (`~/Codebases/NTM-Continuum`, `main`), node `1.21.1-neoforge`. |
+| Glyphids | **WFLib's colony replaces Continuum's.** Anything Continuum owns that they need is brought across. |
+| Still open | radiation, nukes (my leanings in section 5), the exact bridge packaging (section 2). |
 
 ## 1. What we are dealing with
 
 | | WFLib | NTM: Continuum |
 |---|---|---|
-| Mod id | `wflib` | `hbm` (repo `Warfactory-Official/NTM-Continuum`, `~/Codebases/NTM-Continuum`) |
-| Scope | shared Warfactory library: ordnance, soldiers, armour, PDA, contracts, ports of parts of NTM | the whole of HBM's Nuclear Tech Mod (about 4,400 source files: machines, power, fluids, reactors, guns, missiles, space, world gen) |
-| Targets | 1.21.1 NeoForge | six nodes: 26.1 / 1.21.1 / 1.20.1 across NeoForge, Fabric, Forge; **our node is `1.21.1-neoforge`** |
-| Base layer | its own `core` (systems, hooks, features) | **Golem Core** (`dev.golem.core`): cross-version hooks, data maps, damage events, entity data |
-| Lineage | radiation, hazards, doors, nuke MK5, damage handling were ported from **NTM NEXT** | same lineage, ported separately |
+| Mod id | `wflib` | `hbm` |
+| Scope | shared Warfactory library; ports of parts of NTM (radiation, hazards, doors, MK5, damage) | the whole of HBM's Nuclear Tech Mod, about 4,400 source files |
+| Targets | 1.21.1 NeoForge | six nodes; ours is `1.21.1-neoforge` |
+| Base layer | own `core` (systems, features) | **Golem Core** (`dev.golem.core`): hooks, data maps, registry substitution, damage events |
 
-Because both descend from NTM NEXT, much of the code is the same ideas under two package names (`com.hbm.handler.radiation.RadiationSystemNT`
-and `com.wf.wflib.radiation.RadiationSystemNT`; `com.hbm.util.DamageResistanceHandler` and `com.wf.wflib.damage.api.DamageResistanceHandler`).
-That is why running them together is not safe by default: two copies of the same simulation, hooked to the same game events, each
-unaware of the other. It is also why compatibility is tractable: the data shapes line up.
+Both descend from NTM NEXT, so the same ideas exist twice under two package names. Run together, nothing is isolated: **confirmed in
+source, the damage is applied twice** (Golem's NeoForge bridge listens to `LivingIncomingDamageEvent` at normal priority, after WFLib has
+already reduced the hit at HIGH, and then reduces the already-reduced amount again).
 
-## 2. What "complete compatibility" should mean
+## 2. How to get in without mixins
 
-Four layers, in the order they have to be built.
+Golem Core was built so that other mods can change a Golem-based mod without patching it. Everything below is **verified present**.
 
-1. **Coexist.** Both installed, nothing is applied twice, nothing crashes, one HUD, one command per job. This is the floor.
-2. **Interoperate.** Continuum's items and blocks take part in WFLib's systems: its radioactive items have WFLib hazard rows, its armour has
-   WFLib protection profiles, its blocks have WFLib penetration and rad-resistance values, its items have weights. And the other way round
-   where it makes sense (a WFLib soldier can use a Continuum gun).
-3. **Override.** Where WFLib's implementation is better (the MK5 ray caster, the radiation field, the armour resolver, doors, the PDA),
-   Continuum's content runs on WFLib's engine when both are present, chosen per domain, switchable.
-4. **Present as one.** One place to see and switch it (the feature switchboard, `docs/features.md`), PDA apps for both without duplicates,
-   saves that carry over.
+| Seam | What it does | We use it for |
+|---|---|---|
+| **`ModEntries.start(entry)`** and `ModEntry.substitute() / declare() / registered()` | the one start-up path for Golem-based mods; `substitute()` runs before any registry is filled | the entry point of our bridge |
+| **`Substitutions.block / item / entry(registry, id, factory)`** | replaces another mod's block, item, block-entity type, entity type... **under its own id**, before registries fill; worlds, recipes, tags and the owner's own references keep working. The substitute must subclass the class it replaces; one mod per id; a miss is reported at registry fill | doors, MK5 entity, Continuum blocks that need WFLib behaviour |
+| **Data maps with patches** (`DataMaps`) | values on registry entries as data. A mod changes another mod's map with `data/<own ns>/value_maps/patches/<map ns>/<registry>/<map>.json` (`replace`, `values`, `remove`), applied after every copy of the map's own file, order well defined. `map.byId()` / `byTag()` read the merged result; `map.changed` fires on reload | neutralising Continuum's armour values; reading its hazard, armour and emission data |
+| **Hooks** (`Hook`, phases, `Verdict`) | about 50 in Continuum and Golem. *Replaceable* (listeners can decide): the whole `Environment` family (breathing, pressure, surface, orbit, sunlight, groundwater, gravity, compression, growth, satellites), `SkyOwnership.OWNERS`, `ContaminationUtil.RAD_IMMUNE`, `ItemReactorSensor.USE`, `ItemBedrockOreBase.SOURCE`. *Notify-only*: `HbmEvents` (explosion, bomb, missile, machine recipe, entity irradiated), `Environment.NUCLEAR_BLAST`, `AMBIENT_RADIATION`, `ArmorUtil.HAZMAT`, `ContaminationUtil.GEIGER_LINES`, `HazardTypeRadiation.STACK_RADIATION`, `ILookOverlay.PROVIDERS`, `TileEntityDoorGeneric.MOVED`, Golem `DamageEvents`, `Spawns.CHECKS` (a natural-spawn veto), `Attacks.INTERCEPTORS`, `Deaths.ALLOW`, `ChestLoot.INJECTIONS`, `BlockBreaks.HANDLERS` | stand-down verdicts, spawn vetoes, loot, look-at overlay, reacting to events |
+| **Datapack tools** | recipe removals (patch style), loot tables and biome modifiers with `neoforge:conditions` | door and glyphid recipes and drops, world gen |
+| **Plain static config fields** | Continuum's config classes are public static fields read live (`MobConfig.enableHives`, `RadiationConfig.enableChunkRads`; world-gen keys are bound to them) | switching a Continuum feature off from `registered()`. Not a mixin, but it writes another mod's field: fragile against `/hbm reload`. Prefer an upstream override API (below). |
 
-## 3. Collision map
+### Where the seams run out
 
-Strategy key: **Coexist** (make them not fight), **Bridge** (feed data across), **Defer** (one side switches itself off), **Replace**
-(WFLib's engine runs Continuum's content), **Hide** (suppress a duplicate in UI/creative).
+What is **not** replaceable today, and the smallest additive change that would fix each. These would be small pull requests to Continuum or
+Golem Core, not patches of ours:
 
-| Domain | Continuum (verified) | WFLib | When both load | Proposed |
-|---|---|---|---|---|
-| **Damage / armour reduction** | `util/DamageResistanceHandler`, `ArmorFSB`, `IResistanceProvider`; registered through Golem `DamageEvents.HURT` / `ATTACK`; armour values are data maps (`ArmorDataMaps`: radiation resistance, protection classes, sets, DT/DR) | `damage.DamageEventHandler` on `LivingIncomingDamageEvent` at HIGH, resolver in `armor` (DT and DR per type, per slot, wear charged to the layer that stopped it) | a hit can be reduced twice (once by each), or by the wrong one for the wearer | **Defer + Bridge**: WFLib resolves; Continuum's DT/DR table is read into WFLib armour profiles (section 5.2) and Continuum's own reduction is skipped for entities WFLib handled. First thing to prove with a test. |
-| **Radiation field** | `handler/radiation/RadiationSystemNT` (same algorithm), facade `ChunkRadiationManager.proxy`, sidecar `<dim>/hbm_radiation`, `RadiationFog`, config `RadiationConfig.enableChunkRads` | `radiation` system, sidecar `<dim>/wflib/radiation`, `/wfrad`, `GeigerHud` | two fields ticking, two fogs, two saves; a source added to one is invisible to the other | **Defer** one. Default: WFLib's runs, Continuum's tick is off (`enableChunkRads` is already a switch), Continuum's `ChunkRadiationManager.proxy` calls are redirected to ours. Import Continuum's sidecar on first load. |
-| **Item hazards / contamination** | `hazard/*` (`HazardSystem`, `HazardRegistry`, types, modifiers, transformers incl. RBMK/RTG/Zirnox), rows as data maps `hbm:hazards`; `util/ContaminationUtil`; `EntityEffectHandler` | `hazard` system, rows in the synced `wflib:hazard` registry, **no shipped rows**; `LivingHazardProps`, `HazardEntityEffects` | Continuum's items hurt via Continuum; WFLib's scan runs over the same inventory and finds nothing (no rows) or double-applies if rows are added | **Bridge**: generate `wflib:hazard` rows from `hbm:hazards` at server start, and let WFLib's scan own the effect while Continuum's per-tick hazard arm stands down. The modifiers that need Continuum items (RBMK, RTG, fuel depletion) stay in Continuum and are called through a seam (5.3). |
-| **Hazmat and protection checks** | `HazmatRegistry` (+ `HAZMAT` notify hook), `ArmorRegistry`, set checks, gas-mask filters | item tags `wflib:hazmat`, `hazmat_advanced`, `faraday`, `digamma_protection`, `hazard_protection/<class>`; armour wear + filter wear | two answers to "is this player protected" | **Bridge**: fill WFLib's tags from `ArmorDataMaps` (`PROTECTION_CLASSES`, `FARADAY_ARMOR`, sets) |
-| **Nuclear blast (MK5)** | `EntityNukeExplosionMK5`, `ExplosionNukeRayBatched`, `ExplosionNukeGeneric`, `EntityFalloutRain`, `EntityNukeTorex`, `BombConfig`, `Environment.NUCLEAR_BLAST` notify hook; spawned by bomb blocks and missiles | `explosion` system: `EntityNukeExplosionMK5`, `ExplosionNukeRayParallelized` (parallel, section snapshots), `Fallout` as a per-chunk ground source, torex | both entity types exist; a Continuum bomb runs Continuum's | **Replace** (opt-in, default on if the numbers match): when a Continuum bomb would spawn its MK5 entity, spawn WFLib's with the same parameters. Needs a seam in Continuum (5.4) or a mixin. Fallout stays one system (radiation owner). |
-| **Doors** | `ModDoorBlocks`: 14 `BlockDoorGeneric` doors (`DoorDecl`) plus `BlastDoor` and vanilla-style doors | `door`: 15 doors, one GemRender model each, redstone and key only, `DoorType` table | two sets of the same doors in the creative menu and in recipes | **Hide** one set (default: show Continuum's recipes, give WFLib's a conversion) or **Replace** the renderer. Decision needed (section 9). Tables share NTM's numbers so a bunker plan fits both. |
-| **Missiles / ordnance** | `entity/missile/*`, `CustomMissile*`, `MissileStruct`, warheads | `missile`, `warhead`, `round`, `countermeasure`, `drone`; the warhead framework is pluggable | independent unless a Continuum warhead should fly on a WFLib missile or the reverse | **Bridge** later: register Continuum warheads as WFLib warheads (SPI exists) so WFLib guidance flies them. Not needed for coexistence. |
-| **Mines, charges, detonators** | `MineConfig`, mine blocks, `ModExplosivesBlocks`, detonator items | `mine`, `demolition` (mining charge, detonator that fires "other detonatables") | duplicates; the detonator may or may not fire Continuum charges | **Bridge**: Continuum's charge blocks implement WFLib's detonatable seam (or the reverse) |
-| **Drones** | `ModDroneBlocks`, `IDroneContainer`, 37 classes | `drone` (delivery, mine-laying, demolition missions, squads), `work` | parallel features | **Coexist**; look at `IDroneContainer` to let WFLib drones service Continuum drone containers |
-| **Grenades, guns, magazines, barrels, lasers** | `items/weapon`, 53 gun classes, 10 magazine, 13 barrel, 17 laser | `grenade`, `magazine`, `barrel`, `laser`, `round`, `ammo`, soldier weapon SPIs | Continuum weapons do not know WFLib's magazine/barrel state | **Bridge** in two tiers: (a) soldiers can fire Continuum guns (a `SoldierWeapon` for Continuum), (b) barrel heat and magazines optional |
-| **Glyphids** | `Glyphid*` (22 classes) | `colony` (simulated colony, castes, nests, `EntityGlyphid`) | two glyphid populations | **Defer** one (open question: which); share spawn data |
-| **Satellites / space** | `ModSatelliteBlocks`, `SatelliteDataMaps`, `Environment` | `orbital` (orbits, ground stations, pads, shuttles, PDA console) | both own "satellite" | **Coexist**, then **Bridge**: Continuum's `Environment` answers (pressure, breathing) are a hook other mods already feed; WFLib orbital should answer through it |
-| **Radar / recon** | `ModRadarUtilityBlocks`, `IRadarDetectableNT`, 28 radar classes | `recon` (sensors, radar, telemetry), PDA Radar and Telemetry apps | parallel | **Bridge**: `IRadarDetectableNT` entities appear in WFLib radar |
-| **Physics** | `com.hbm.physics` (GJK, convex mesh, rigid body), `SubLevelBlasts` (Sable) | `physics` (rigid-body engine, decks, prediction), `ragdoll`, `corpse` | two engines; Continuum's is small and used for blasts and sub-levels | **Coexist** (they do different jobs); check `SubLevelBlasts` against WFLib decks |
-| **Pollution / soot** | `handler/pollution`, `RadiationConfig` soot and lead | none | n/a | **Keep Continuum's**; WFLib hazard can read it as a dose source |
-| **Wiki / PDA** | `wiaj`, `qmaw` (in-game wiki), `CommandWikiRender` | PDA with apps, `wiki` system, feature switchboard | two UIs | **Bridge**: a PDA app that opens Continuum's wiki pages; list both in the switchboard |
-| **Item weights** | none | `compat/wfweight` plus `ItemMasses` (mass of non-wflib items) | Continuum items weigh the default | **Bridge**: a mass table for Continuum items (cheap, high value, see 5.1) |
-| **Commands** | `/hbm...` (`HbmCommands`, `CommandRadiation`) | `/wfrad`, `/wflib ...` | two commands for the same thing | **Coexist**; alias where one side is deferred |
+| Gap | Smallest upstream seam |
+|---|---|
+| Damage: `DamageEvents.HURT` and `ATTACK` only notify, so Continuum's reduction cannot be skipped | none needed for armour: see 3.1, it is solved with data. Only entity-side providers and `ArmorFSB.handleHurt` stay, and those are not DT/DR. |
+| The MK5 ray is created inside `EntityNukeExplosionMK5.tick()` and held in a private field | a `protected IExplosionRay createRay(...)` factory, or a `Hook` that answers with a ray |
+| Config values are only changeable by editing the file | `CommonConfig.override(key, value)` applied after load, so addons can state intent without poking fields |
+| `ChunkRadiationManager.proxy` is a final facade over a static system | not needed if Continuum's field stays the owner (section 5.1) |
 
-Out of scope on purpose: Continuum's machines, power, fluids, conveyors, reactors, world generation. WFLib has nothing to say about them.
+### Packaging: a bridge addon, not code inside WFLib
 
-## 4. The mechanisms available
+Substituting Continuum classes means subclassing them, which needs Continuum **and Golem Core on the compile classpath**. Putting that in
+WFLib would load Continuum classes from a library every pack has, and breaks WFLib's own rule that its source does not name a peer's
+internals. Proposed instead:
 
-Continuum is a Warfactory project on Golem Core, so there are three kinds of way in. In order of preference.
+* a small **bridge addon** (working name `wflib-continuum`, id `wflib_continuum`), NeoForge 1.21.1 only, `compileOnly` on Golem Core and
+  Continuum, **mandatory dependencies on `wflib`, `hbm` and Golem Core**, so it loads only when all three exist;
+* it is a Golem-based mod: its `@Mod` constructor calls `ModEntries.start(entry)`, `substitute()` replaces what must be replaced,
+  `declare()` registers its own few things, `registered()` wires the bridges once every registry is filled;
+* it carries a **datapack** (value-map patches, recipes, loot, tags, WFLib armour and hazard rows for Continuum ids), so tuning is data and
+  changes need no code;
+* it lives in this repository as its own source set and jar (the same pattern Pluginless uses for `src/pda`), so it versions with WFLib;
+* the feature switchboard gets a **"NTM: Continuum" group** that appears only when `hbm` is loaded, one box per bridge (WFLib armour on
+  Continuum gear, WFLib doors, WFLib glyphids, ...), so any of it can be switched off.
 
-1. **Upstream seams.** Ask Continuum (and Golem Core) for the hook we need: a *cancellable* or *replaceable* version of what it already
-   publishes as notify-only (`HbmEvents`, `Environment.NUCLEAR_BLAST`, `HazmatRegistry.HAZMAT`, `DamageEvents`). Cleanest, survives refactors,
-   and the same team owns both sides. Slowest because it is a change in another repo.
-2. **Data.** Continuum already exposes most of what we need as data maps (`hbm:hazards`, armour resistance, protection classes, sets, DT/DR,
-   radiation emission per block). Reading them at server start and writing WFLib rows (hazard registry, tags, profiles, masses) needs no change in
-   Continuum and cannot break at runtime. This carries most of layer 2.
-3. **Our own mixins, applied only when `hbm` is loaded** (a mixin plugin that checks the mod list; `required = false`; targets pinned to a
-   Continuum version range). Brittle to refactors but available today. Use for the few places a seam does not exist yet: the
-   `ChunkRadiationManager.proxy` redirect, the MK5 spawn, the damage-handler skip. Each one is recorded in a table with the Continuum
-   version it was written against, and each has a GameTest that fails loudly when the target moves.
+## 3. Per-domain plans
 
-Supporting pieces:
+### 3.1 Armour and damage: WFLib values, Continuum's reduction off
+**Verified:** every number in Continuum's reduction comes from data maps (`ArmorDataMaps.DAMAGE_RESISTANCE` per item, `ARMOR_SETS` per set,
+`ENTITY_DAMAGE_RESISTANCE` per entity type). Its code layer (`registerItem` / `registerSet`) has no callers. So the reduction is data, and
+data can be patched. Steps:
 
-* **Soft dependency.** `compileOnly` on the Continuum 1.21.1-neoforge jar (and Golem Core), the same pattern as GregTech and WarForge in
-  `build.gradle`. Every touch goes behind `ContinuumCompat.active()`. The package is `com.wf.wflib.compat.continuum`. This respects the
-  architecture rule that wflib source does not name a dependent *mod*: Continuum is a peer, not a dependent, but the same hygiene applies,
-  so block and item ids live in datapack files (the `site_blocks` pattern), not in code, wherever they can.
-* **Providers in the switchboard.** A new group appears only when `hbm` is loaded, one box per overlapping domain: *Use WFLib's radiation /
-  armour resolution / MK5 / doors*. The box is the provider choice; defaults favour WFLib where this document says WFLib is better. Because the
-  box is read at launch like the rest, "which engine runs" never changes mid-game.
-* **A `Provider` record in `FeatureCatalogue`** (id, WFLib on, Continuum on) so the screen can say "Radiation: WFLib (Continuum's is off)" and the
-  config file can name it.
+1. **Neutralise** Continuum's reduction: a patch `data/wflib_continuum/value_maps/patches/hbm/item/damage_resistance.json` with
+   `{"replace": true}` empties the per-item map. The per-set map also carries things we must keep (set membership for hazmat and digamma
+   checks), so it cannot be replaced wholesale; the bridge instead serves a **derived patch** generated at load from Continuum's own
+   `armor_sets` (same entries, `resistance` removed) through an `AddPackFindersEvent` pack, so it follows Continuum updates with no copy to
+   maintain. Entity innate resistance is left alone at first (WFLib's resolver reads it already).
+2. **Give the pieces WFLib values.** WFLib's `ArmorProfiles.author(itemId, ArmorSpec)` is code only today; add a **data loader**
+   (`data/<ns>/wflib/armor_profiles/*.json`: item or tag, preset or explicit DT/DR per protection type, condition, inserts). That is
+   independently useful (any mod's armour can be tuned by a datapack) and it is where the bridge's table of Continuum pieces lives. WFLib
+   already derives a profile from vanilla attributes for armour it does not know, so there is no unprotected gap while the table is built.
+   Continuum's numbers (readable through `byId()`) seed a **first draft** of the table and are then tuned; they are not the final values.
+3. **Radiation resistance** (`RADIATION_RESISTANCE`) is replaced the same way: WFLib's armour `RADIATION` row decides the dose multiplier.
+4. What stays Continuum's on purpose: `ArmorFSB` set effects, power-armour battery drain, armour modules (`ArmorModHandler`), gas-mask
+   filter logic. None of it is DT/DR. **To validate:** that none of these re-reads the neutralised maps.
+5. `IResistanceProvider` (Continuum entities that add DT/DR dynamically) is called by WFLib's resolver as a `DynamicResistance` source.
 
-## 5. Per-domain plans
+Result: one reducer per hit, WFLib's, with Continuum armour behaving as authored WFLib armour (condition, wear, layers, inserts), and no
+mixin.
 
-### 5.1 Items and blocks (the cheap, high-value layer)
-Generate, at server start (and on `/reload`), from Continuum's registries and data maps:
-* `ItemMasses` entries for Continuum items (by category defaults, overridden by a shipped table).
-* penetration and hardness rows for Continuum blocks, using Continuum's own blast resistance as the source.
-* `wflib:rad_resistant` tag members from Continuum's `IRadResistantBlock` implementers and `markRadResistant` calls.
-* tag membership for `wflib:geiger_counter` (Continuum's Geiger items) so the HUD works.
-Effort: small. Risk: low. Does not need the engine decisions below.
+### 3.2 Doors: WFLib's system
+**Verified:** the two rosters are the same fourteen `DoorDecl` doors plus the blast door under the same names (`vault_door`,
+`transition_seal`, `silo_hatch`, `qe_containment`, `water_door`, ...), with the same dimensions in `DoorDecl` and `DoorType`.
+Continuum's `BlockDoorGeneric` is a multiblock machine with a lockable block entity; WFLib's `DoorBlock` is its own multiblock with
+placeholders, redstone-and-key opening and a GemRender model.
 
-### 5.2 Armour and the hit pipeline
-Order matters; this is the first real test.
-1. Read `ArmorDataMaps.DAMAGE_RESISTANCE` (per item), `ARMOR_SETS` (per set) and `ENTITY_DAMAGE_RESISTANCE` (per entity type) into WFLib `ArmorProfiles` for every Continuum armour item, at the same priority and with
-   the same per-type split WFLib uses (physical, blast, fire, ...), so Continuum armour is a first-class WFLib armour.
-2. Make exactly one reducer run per hit. WFLib resolves at `LivingIncomingDamageEvent` HIGH; Continuum reduces through Golem `DamageEvents.HURT`.
-   Preferred: an upstream flag, `DamageEvents.HURT` listeners skipped when an attribute on the event says "already resolved". Fallback: a
-   mixin on `DamageResistanceHandler` early-returning when WFLib has resolved the hit.
-3. `IResistanceProvider` (Continuum entities that add DT/DR dynamically) is called by WFLib's resolver as a `DynamicResistance` source (WFLib
-   already has `DynamicResistance`), so a Continuum boss keeps its behaviour.
-4. Wear and modules: Continuum armour mods (`ArmorModHandler`) stay Continuum's; WFLib reads the worn module's effect only through the
-   data map. Exoskeleton and power armour (`ArmorFSBPowered`) get a WFLib `Dress` only if the data map allows it, otherwise they stay un-managed
-   (WFLib already derives a profile from vanilla armour for pieces it does not know).
+Three levels, each usable alone, in the order I would do them:
 
-### 5.3 Radiation and hazards
-1. Decide the owner (default WFLib). Turn Continuum's chunk system off via its own switch (`enableChunkRads`) applied at config load, and redirect
-   `ChunkRadiationManager.proxy.*` to `RadiationSystem` (one mixin, or an upstream `proxy` seam).
-2. **Sources.** Continuum blocks that emit (`HazardDataMaps.RADIATION_EMISSION`) register as WFLib `wflib:rad_source` rows from the data map;
-   Continuum code that calls `incrementRad` goes through the redirect, so reactors and bombs feed WFLib's field with no change to them.
-3. **Saves.** On first load with both present, import `<dim>/hbm_radiation` into WFLib's sidecar (same shape, per chunk); otherwise worlds lose their
-   contamination when the owner changes.
-4. **Items and players.** Convert `hbm:hazards` to `wflib:hazard` rows; hazard modifiers that need Continuum items (RBMK, RTG, fuel depletion,
-   Zirnox) stay in Continuum and are exposed to WFLib as `HazardModifier`s through a registration on its side. `HazardTransformerRadiationME`
-   (AE2) is the gap WFLib's docs list: Continuum's version can be called.
-5. **HUD and commands.** One Geiger HUD (WFLib's), `/hbmrad` aliased to `/wfrad`.
-The `radiation.md` "Gaps" list is almost entirely things that only Continuum can fill because they need its items (RBMK, RTG, dosimeter,
-digamma). Compatibility is how WFLib's radiation gets complete.
+1. **Recipes and items (data only).** Remove Continuum's door recipes (patch-style recipe removal), add recipes that produce the WFLib door
+   with the same materials, hide the Continuum door items from the tabs. New doors are WFLib's. Worlds and structures keep their old ones.
+2. **Substitute the blocks.** `Substitutions.block("wflib_continuum", "hbm:vault_door", ...)` for each door with a `BlockDoorGeneric`
+   subclass that delegates to WFLib's door logic and model, plus `Substitutions.entry(..., "block_entity_type", ...)` for the door entity.
+   The id, loot, tags, recipes and every structure that places a Continuum door then get WFLib's behaviour. This is the part that needs care:
+   the substitute must satisfy Continuum's class contract (`BlockMultiblockMachine`, `IBomb`, `IToolable`, `IRadResistantBlock`) while doing
+   WFLib's job, so it is an adapter, not a rewrite. **To validate:** how many of Continuum's own callers cast to `TileEntityDoorGeneric`.
+3. **Key and lock parity.** Continuum's keys and padlocks (`TileEntityLockableBase`) map to WFLib's `DoorKeyItem` / `DoorLockItem`; a
+   conversion recipe and, for placed locks, a migration on load.
 
-### 5.4 Nukes
-Both have `EntityNukeExplosionMK5`; the mathematics should be near identical (same ancestry), so the proof is a **parity GameTest**: same bomb,
-same seed, compare destroyed block counts, crater profile and the fallout source strength between Continuum's `ExplosionNukeRayBatched` and
-WFLib's `ExplosionNukeRayParallelized`. If within tolerance, replace by default. The seam: Continuum bomb blocks and missiles call a spawn
-function for the MK5 entity; ask for a `Hook` there that can substitute the entity type (a Golem `Verdict`-style hook already exists for
-`Environment`). `BombConfig` values (`falloutRange`, `moreFallout`, `statFacNoRad`) are read and honoured by WFLib's version (they are on
-WFLib's own gap list). `Environment.NUCLEAR_BLAST` keeps firing from whichever runs, so Continuum's advancements and satellite detector keep working.
+`TileEntityDoorGeneric.MOVED` (notify) is the hook to keep Continuum's advancements and machines that listen to doors informed.
 
-### 5.5 Doors
-Same numbers, same idea, different code. The decision is about the player, not the engine: show both sets, or one. Two clean options:
-* **Alias**: Continuum's recipes stand; WFLib's door items are hidden from the creative menu and a datapack recipe converts either to the other.
-  WFLib's renderer draws Continuum's door blocks via a model override (a `DoorVisual` registered for `BlockDoorGeneric`), which is the
-  "WFLib does it better" path without two blocks.
-* **Hide**: simply hide WFLib's set when Continuum is present. Cheapest; loses the better renderer.
+### 3.3 Glyphids: WFLib's colony replaces Continuum's
+**Verified inventory.** Continuum: nine entity types (`glyphid`, `behemoth`, `brenda`, `scout`, `nuclear`, `bombardier`, `digger`,
+`brawler`, `blaster`) on its own AI and `GlyphidStats`; the hive world feature (`GlyphidHiveFeature`, gated by `MobConfig.enableHives`);
+`BlockGlyphid` hive blocks and `BlockGlyphidSpawner`; items `glyphid_meat`, `glyphid_meat_grilled`, `glyphid_gland`, `egg_glyphid`;
+33 lang keys; **no custom sounds** (it plays vanilla zombie sounds); no data-driven loot of its own (`Entities.noLoot`, drops in code).
+WFLib: the same nine castes under `colony` with the off-world simulation, nests, spawner blocks, and entity textures for all nine plus
+infestation (the same set of names as Continuum's, to compare pixel for pixel), an OBJ model of the same name.
 
-### 5.6 Everything else (later)
-Weapons for soldiers, warhead registration, radar targets, wiki app, drone containers, `Environment` answers for orbital: each is small once
-layers 1 to 3 hold and each is independent.
+So **almost nothing needs bringing over as files**, because WFLib already has the entity assets. What needs doing:
+
+| Need | How |
+|---|---|
+| Continuum glyphids stop appearing naturally | `Spawns.CHECKS` veto for the `hbm:glyphid*` entity types (replaceable, no config poke); hives off via the world-gen key or an upstream config override |
+| WFLib's colonies take their place in world gen | WFLib has a colony seeder (`ColonySeeder`); add a pass that places them where Continuum's hive feature would (biome and rarity from its `ModBiomeModifiers` entry) |
+| Drops Continuum players expect (meat, gland, eggs) | a WFLib entity loot table with `neoforge:conditions` mod_loaded `hbm` dropping `hbm:glyphid_meat` and `glyphid_gland`, same odds as Continuum's drop code (to read before writing it) |
+| Items and blocks that spawn Continuum glyphids (`egg_glyphid`, `glyphid_spawner`, hive blocks) | keep as plain items and decor, or substitute the spawner block with a subclass that spawns WFLib's caste (same `Substitutions` mechanism as doors) |
+| Hive block looks (`glyphid_base*`, eggs, stalactites, stalagmites: about 16 textures, mostly Continuum-only) | referenced by id from WFLib's nest generator when `hbm` is present; **only copy files** if you want WFLib nests to use that look without Continuum, which needs the licences checked first (Continuum is LGPL-3.0) and which I would not do by default |
+| Stats | Continuum's `GlyphidStats` (two profiles, `70K` and `NT`) are NTM's numbers and WFLib has its own `GlyphidStats`, probably the same table: a parity test, no code (to validate) |
+| Other Continuum code that references glyphids (`BlockAllocatorGlyphidDig` in explosions, `LootGenerator`) | keep working, they key off the Continuum entity types that no longer spawn |
+
+### 3.4 Hazards, hazmat, items
+**Verified:** Continuum's item hazards are the data map `hbm:hazards` (`HazardDataMaps.HAZARDS`, plus `HAZARD_MULTIPLIER`, `CELL_HAZARDS`
+and per-block `RADIATION_EMISSION`), with modifiers and transformers in code for RBMK, RTG, fuel depletion and Zirnox.
+WFLib ships no hazard rows (`wflib:hazard` is empty by design).
+
+* **Bridge**: at server start and on `HAZARDS.changed`, convert `HAZARDS.byId()` / `byTag()` into `wflib:hazard` rows, so WFLib's inventory
+  scan, Geiger HUD and PDA see Continuum's items. `RADIATION_EMISSION` becomes `wflib:rad_source` rows.
+* **One effect, not two.** WFLib applies the dose for players; Continuum is told to skip radiation on them through the replaceable
+  **`ContaminationUtil.RAD_IMMUNE`** hook (verdict `ALLOW` for players). Item hazards that are not radiation (toxic, explosive, hot,
+  hydroactive...) stay Continuum's. **To validate:** that `RAD_IMMUNE` gates the whole inventory-radiation path and not only the ambient one.
+* **Modifiers that need Continuum items** (RBMK, RTG, fuel depletion) stay in Continuum; their result reaches WFLib through
+  `HazardTypeRadiation.STACK_RADIATION` (a notify hook, so listeners can contribute) and the per-stack value WFLib reads.
+* **Hazmat and protection classes**: `ARMOR` protection classes, Faraday and digamma sets fill the WFLib item tags
+  (`wflib:hazmat`, `hazmat_advanced`, `faraday`, `digamma_protection`) from `ArmorDataMaps.PROTECTION_CLASSES`, `FARADAY_ARMOR`, `ARMOR_SETS`.
+* Gaps WFLib's own `radiation.md` lists (RBMK, RTG, dosimeter, digamma, AE2) are exactly what the bridge fills, by reading Continuum.
+
+### 3.5 Items, blocks and weights (cheap, high value)
+From Continuum's registries and data maps at server start: `ItemMasses` entries, block penetration and hardness rows (from blast
+resistance), the `wflib:rad_resistant` tag from `IRadResistantBlock` implementers, `wflib:geiger_counter` tag members. All data, no seams.
+
+### 3.6 Everything else, later
+`ILookOverlay.PROVIDERS` lets WFLib's look-at probe show Continuum block info (and the reverse); `Environment` hooks let WFLib's `orbital`
+answer pressure, breathing and sky ownership for Continuum machines; `IRadarDetectableNT` entities appear in WFLib radar; Continuum warheads
+registered as WFLib warheads (the SPI exists); a `SoldierWeapon` for Continuum guns; drone service of `IDroneContainer`.
+
+## 4. Seam inventory
+
+| Need | Seam | Status |
+|---|---|---|
+| Replace a Continuum block, item, entity or block-entity type | `Substitutions` | exists |
+| Neutralise or change Continuum data | data-map patches, derived pack | exists |
+| Read Continuum data | `DataMap.byId()`, `byTag()`, `changed` | exists |
+| Veto Continuum natural spawns | `Spawns.CHECKS` | exists |
+| Make Continuum skip radiation for an entity | `ContaminationUtil.RAD_IMMUNE` | exists |
+| Answer environment questions | `Environment.*` hooks | exists |
+| React to blasts, bombs, missiles, irradiation | `HbmEvents`, `Environment.NUCLEAR_BLAST` | exists (notify only) |
+| Swap the MK5 ray | `createRay` factory or hook | **needs one additive upstream change** |
+| Change Continuum config from an addon | `CommonConfig.override` | **needs one additive upstream change** |
+| Skip Continuum DT/DR | not needed | solved by data |
+
+## 5. Still-open domains, with my leaning
+
+### 5.1 Radiation field
+Both run the same algorithm. Without mixins the clean option is **Continuum's field stays the owner** when `hbm` is present, and WFLib's
+radiation system reads and writes through an adapter to it (WFLib keeps what it does better and which sits on top of the field: armour wear
+by dose, artefact soak, the GemRender Geiger HUD, the PDA, `wflib:hazard` rows, fog if wanted). The alternative, WFLib's field as owner,
+needs Continuum's own sources (reactors, bombs, hazard blocks calling `ChunkRadiationManager.proxy`) redirected into it, which is a mixin or
+an upstream seam. Needs your call; the adapter option costs one interface in WFLib's `radiation` and keeps saves untouched.
+
+### 5.2 Nukes
+`EntityNukeExplosionMK5` exists in both and the maths should be near identical. With the `createRay` seam (or a `tick()` override in a
+substituted subclass, which duplicates Continuum's logic and I would avoid), Continuum's bombs run WFLib's `ExplosionNukeRayParallelized`.
+First a **parity GameTest** (same bomb and seed, compare blocks destroyed, crater profile, fallout strength). `HbmEvents.BOMB_DETONATED`
+and `NUCLEAR_BLAST` keep firing from Continuum's entity, so its advancements and satellites keep working.
 
 ## 6. Phases
 
-| Phase | Deliverable | Needs |
-|---|---|---|
-| 0 | Test instance with WFLib and Continuum (1.21.1 NeoForge) and Golem Core; **conflict log**: mixin clashes, duplicate event handling, duplicate HUD, duplicate commands. A GameTest module `compat.continuum` that only runs when `hbm` is loaded. | a built Continuum jar (`build/prism-nukefx/hbm-neoforge-1.0.4-1.21.1-nukefx-local.jar` is the 1.21.1 NeoForge one on disk; confirm version) |
-| 1 | **Coexist**: one damage reduction per hit, one radiation owner with Continuum's off, one Geiger HUD. Switchboard group "NTM Continuum" with the provider boxes. | seams or mixins (section 4) |
-| 2 | **Interoperate by data**: hazard rows, armour profiles, tags, masses, penetration values (5.1, 5.2 steps 1 and 3, 5.3 steps 2 and 4). | none |
-| 3 | **Override**: MK5 parity test then replace; door alias; radiation save import. | upstream seam or mixin |
-| 4 | **Later bridges**: soldier weapons, warheads, radar, wiki, drones, orbital. | per item |
+| Phase | Deliverable |
+|---|---|
+| 0 | Test instance with WFLib, Golem Core and Continuum (1.21.1 NeoForge). **Conflict log** (double-applied events, duplicate HUD/commands). A `compat` GameTest module that runs only when all three load. Confirm the "to validate" items above. |
+| 1 | Bridge addon skeleton on `ModEntries`; switchboard group "NTM: Continuum"; **armour**: patches, derived set pack, WFLib armour-profile data loader, first-draft table. The single-reduction GameTest. |
+| 2 | **Data bridges**: hazard and emission rows, hazmat tags, masses, penetration, rad-resistant and Geiger tags; drift test. **Glyphids**: spawn veto, loot, colony placement. |
+| 3 | **Doors**: recipes and items, then block and block-entity substitution, then keys. **Radiation** adapter. |
+| 4 | **Nukes** after the parity test and the upstream seam. Later bridges (3.6). |
 
-Phase 0 and 2 can start now without any decision from Continuum's side.
+Phase 0 and the armour data loader (useful on its own) can start now.
 
-## 7. Verification
+## 7. Risks
 
-* Compat GameTests run in the Continuum-plus-WFLib instance only: single reduction (one hit, expected damage), one radiation field (source
-  placed through Continuum code is read by WFLib's `/wfrad get`), hazard row parity (every `hbm:hazards` entry has an equal WFLib row), MK5
-  parity, door placement.
-* A **drift check**: a test that reads Continuum's data maps and fails when a new item has no mapping, the same idea as the feature catalogue test.
-* The existing harness (`Warforge Harness Dev` instance and `ma_mcp.py`) plus a second instance with Continuum for screenshots of the
-  Geiger HUD, PDA and doors.
+* **Substitution is a contract.** A substitute must keep working for every Continuum caller of the original class (casts, interfaces).
+  Doors are the largest case; each substitution gets a GameTest that exercises Continuum's own callers.
+* **Derived pack timing.** The `armor_sets` derivation must run before Golem applies patches; to validate with Golem's `DataFiles.stackedFolder`.
+* **Writing another mod's static fields** is the weakest tool in the list; use it only until the config override exists.
+* **Drift between two Warfactory teams.** Parity tests (stats, doors, MK5) are the guard.
+* **Performance.** Row generation happens once per reload and is cached; no per-tick map lookups.
 
-## 8. Risks
+## 8. What I need from you
 
-* **Mixin brittleness.** Continuum is moving (1.0.1, six nodes). Every mixin needs a version range and a test. Prefer upstream seams.
-* **Two Warfactory teams, one lineage.** Duplicate fixes will drift; the parity tests are the guard.
-* **Golem Core on the classpath.** Compiling against Continuum needs Golem Core jars; the Gradle setup there is Stonecutter and multi-version, so
-  our `compileOnly` should point at the 1.21.1 NeoForge artefacts only.
-* **Save compatibility.** Changing the radiation owner must not lose contamination (5.3.3).
-* **Performance.** Hazard scans and damage handlers are hot paths; a bridge must not add a map lookup per tick per item. Generate rows once and
-  cache.
-
-## 9. Decisions needed
-
-1. **Who wins each overlap by default** (radiation, hazards, armour, nukes, doors, glyphids). The table proposes WFLib for radiation, armour and
-   nukes (pending parity), data bridge for hazards, and asks you about doors and glyphids.
-2. **Seams or mixins.** Are you willing to have a small set of cancellable hooks added to Continuum/Golem Core (damage handled, MK5 spawn,
-   radiation facade), or should compat carry its own mixins into Continuum for now?
-3. **Doors:** alias (Continuum's blocks, WFLib's renderer), hide, or keep both?
-4. **Hard or soft dependency on Golem Core.** Soft (compileOnly, reflection-free behind `active()`) is proposed.
-5. **Which Continuum version** is the supported baseline.
-6. **Glyphids:** which colony model survives when both are installed.
-7. **Defaults when Continuum is present:** should the NTM group appear ticked for WFLib's engines, or all unticked until a pack chooses?
-
-## 10. First steps if you say go
-
-1. Build or fetch the Continuum 1.21.1 NeoForge jar and Golem Core, set up the second harness instance, and capture the Phase 0 conflict log.
-2. Add `compat/continuum` with `ContinuumCompat.active()` and the data bridges of 5.1 (masses, penetration, rad-resistant tag, Geiger tag).
-3. Add the hazard-row and armour-profile generators (5.2.1, 5.3.4), with the drift test.
-4. Write the single-reduction and one-radiation-field GameTests so the Phase 1 work has a target.
+1. **Packaging:** a separate bridge addon jar in this repo (my recommendation) or the code inside WFLib behind a soft dependency.
+2. **Radiation:** Continuum's field owns with a WFLib adapter (my leaning), or WFLib's field owns and we ask for a redirect seam.
+3. **Nukes:** OK to ask for the `createRay` seam, or leave Continuum's MK5 alone for now.
+4. **Upstream changes:** are two small additive changes to Continuum (`createRay`, `CommonConfig.override`) acceptable to make?
+5. **Doors level:** stop at recipes and items first, or go to full block substitution from the start.
+6. **Glyphid hive look:** reference Continuum's block textures only when it is present (my recommendation), or copy them into WFLib.
