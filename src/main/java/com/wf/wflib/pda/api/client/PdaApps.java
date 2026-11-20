@@ -50,7 +50,7 @@ public final class PdaApps {
         List<PdaApp> all = APPS.values();
         for (int i = 0; i < all.size(); i++) {
             PdaApp app = all.get(i);
-            if (app.visible(player)) {
+            if (com.wf.wflib.core.api.Features.appShown(app.id()) && app.visible(player)) {
                 VISIBLE.add(app);
             }
         }

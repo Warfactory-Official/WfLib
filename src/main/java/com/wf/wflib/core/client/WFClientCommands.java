@@ -26,6 +26,10 @@ public final class WFClientCommands {
             Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new ModelGalleryScreen()));
             return 1;
         }));
+        event.getDispatcher().register(Commands.literal("wflibfeatures").executes(ctx -> {
+            Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new FeaturesScreen(null)));
+            return 1;
+        }));
         event.getDispatcher().register(AnomalyDebug.command());
         event.getDispatcher().register(Commands.literal("wfdebug").requires(s -> DebugGate.allowed()).then(Commands.literal("rounds")
                 .executes(ctx -> rounds(ctx.getSource(), !RoundDebug.enabled()))

@@ -3,6 +3,7 @@ package com.wf.wflib.contract;
 import com.wf.wflib.contract.command.PmcCommands;
 import com.wf.wflib.contract.item.PmcItems;
 import com.wf.wflib.core.api.CreativeTabs;
+import com.wf.wflib.core.api.Features;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.soldier.api.SoldierKillEvent;
 import net.neoforged.bus.api.IEventBus;
@@ -65,14 +66,14 @@ public final class ContractSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, e -> {
             if (e.getServer().getTickCount() % 20 == 0) {
                 ContractService.tick(e.getServer());
-                com.wf.wflib.contract.heat.HeatService.tick(e.getServer());
-                com.wf.wflib.contract.blacksite.BlackSiteService.tick(e.getServer());
-                com.wf.wflib.contract.daily.DailyBoard.tick(e.getServer());
+                if (Features.on("contract_heat")) com.wf.wflib.contract.heat.HeatService.tick(e.getServer());
+                if (Features.on("contract_blacksite")) com.wf.wflib.contract.blacksite.BlackSiteService.tick(e.getServer());
+                if (Features.on("contract_daily")) com.wf.wflib.contract.daily.DailyBoard.tick(e.getServer());
                 if (e.getServer().getTickCount() % 100 == 0) {
                     com.wf.wflib.contract.pda.PdaService.sendThreat(e.getServer());
                     com.wf.wflib.contract.pda.MissionSync.sendAll(e.getServer());
                 }
-                com.wf.wflib.contract.engagement.EngagementService.tick(e.getServer());
+                if (Features.on("contract_engagements")) com.wf.wflib.contract.engagement.EngagementService.tick(e.getServer());
                 com.wf.wflib.contract.site.SiteVehicles.tick(e.getServer());
             }
         });
@@ -86,7 +87,7 @@ public final class ContractSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(SoldierKillEvent.class, e -> {
             if (e.killedByPlayer() && e.killer().getServer() != null) {
                 ContractService.recordKill(e.killer().getServer(), e.killer().getUUID(), e.victimTeam());
-                com.wf.wflib.contract.heat.HeatService.onKill(e.killer().getServer(), e.killer().getUUID(), e.victimTeam());
+                if (Features.on("contract_heat")) com.wf.wflib.contract.heat.HeatService.onKill(e.killer().getServer(), e.killer().getUUID(), e.victimTeam());
             }
         });
     }

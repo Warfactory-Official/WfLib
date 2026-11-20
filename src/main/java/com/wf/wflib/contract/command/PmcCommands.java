@@ -28,7 +28,7 @@ public final class PmcCommands {
                         .suggests((c, b) -> SharedSuggestionProvider.suggest(Contracts.all().stream().map(x -> x.id().toString()), b))
                         .executes(PmcCommands::accept)))
                 .then(Commands.literal("status").executes(PmcCommands::status))
-                .then(Commands.literal("daily")
+                .then(Commands.literal("daily").requires(s -> com.wf.wflib.core.api.Features.on("contract_daily"))
                         .executes(c -> {
                             var offers = Contracts.all().stream().filter(x -> x.id().getPath().startsWith("daily/")).toList();
                             if (offers.isEmpty()) c.getSource().sendSuccess(() -> Component.literal("No daily contracts yet.").withStyle(ChatFormatting.GRAY), false);
@@ -86,7 +86,7 @@ public final class PmcCommands {
                                 .executes(c -> buildBase(c, new java.util.Random().nextLong()))
                                 .then(Commands.argument("seed", com.mojang.brigadier.arguments.LongArgumentType.longArg())
                                         .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"))))))
-                .then(Commands.literal("heat").executes(PmcCommands::heat))
+                .then(Commands.literal("heat").requires(s -> com.wf.wflib.core.api.Features.on("contract_heat")).executes(PmcCommands::heat))
                 .then(Commands.literal("analyze").executes(PmcCommands::analyze))
                 .then(Commands.literal("news").executes(c -> {
                     var lines = com.wf.wflib.contract.news.News.get(c.getSource().getServer()).latest(8);
@@ -94,12 +94,12 @@ public final class PmcCommands {
                     lines.forEach(l -> c.getSource().sendSuccess(() -> Component.literal("- " + l).withStyle(ChatFormatting.WHITE), false));
                     return lines.size();
                 }))
-                .then(Commands.literal("engagement").then(Commands.literal("start").requires(s -> s.hasPermission(2)).executes(c -> {
+                .then(Commands.literal("engagement").requires(s -> com.wf.wflib.core.api.Features.on("contract_engagements")).then(Commands.literal("start").requires(s -> s.hasPermission(2)).executes(c -> {
                     boolean ok = com.wf.wflib.contract.engagement.EngagementService.startNow(c.getSource().getServer());
                     if (!ok) c.getSource().sendFailure(Component.literal("One is running, or there is nothing to raise (needs saved friendly and enemy soldiers)."));
                     return ok ? 1 : 0;
                 })))
-                .then(Commands.literal("blacksite")
+                .then(Commands.literal("blacksite").requires(s -> com.wf.wflib.core.api.Features.on("contract_blacksite"))
                         .then(Commands.literal("status").executes(PmcCommands::blackSite))
                         .then(Commands.literal("start").requires(s -> s.hasPermission(2)).executes(c -> {
                             boolean ok = com.wf.wflib.contract.blacksite.BlackSiteService.start(c.getSource().getServer());
@@ -110,7 +110,7 @@ public final class PmcCommands {
                             com.wf.wflib.contract.blacksite.BlackSiteService.stop(c.getSource().getServer(), "The Black Site was shut down.");
                             return 1;
                         })))
-                .then(Commands.literal("bribe").then(Commands.argument("faction", StringArgumentType.word())
+                .then(Commands.literal("bribe").requires(s -> com.wf.wflib.core.api.Features.on("contract_heat")).then(Commands.argument("faction", StringArgumentType.word())
                         .executes(c -> bribe(c, 10)))));
     }
 
