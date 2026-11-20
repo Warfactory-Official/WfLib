@@ -134,7 +134,7 @@ def preview(name, distance, target=(0, 0, 0), azimuth=35, elevation=28):
     bpy.ops.render.render(write_still=True)
 
 
-RES = os.path.join(HERE, "..", "src", "main", "resources", "assets", "pmclib")
+RES = os.path.join(HERE, "..", "..", "src", "main", "resources", "assets", "wflib")
 
 
 def export(name, item=None, size=512):
@@ -220,7 +220,7 @@ def export(name, item=None, size=512):
     obj.select_set(True)
     bpy.ops.export_scene.gltf(filepath=glb, export_format="GLB", use_selection=True, export_yup=True, export_apply=False,
                               export_image_format="AUTO", export_extras=False, export_texcoords=True, export_normals=True)
-    patch_glb(glb, "pmclib:textures/item/%s_atlas.png" % item, "../../textures/item/%s_atlas.png" % item)
+    patch_glb(glb, "wflib:textures/item/%s_atlas.png" % item, "../../textures/item/%s_atlas.png" % item)
     print("EXPORTED %s dims(x,y,z m, blender axes) %.4f %.4f %.4f" % (item, dims.x, dims.y, dims.z))
 
 
