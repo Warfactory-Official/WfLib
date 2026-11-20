@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class PhotoAppLayoutTest {
     @Test
     void galleryLayoutBinds() {
-        PdaShell.register();
+        com.wf.wflib.pda.PdaShellOnce.ensure();
         PhotoApp.register();
         UiLayout layout = new UiLayout(ResourceLocation.fromNamespaceAndPath("test", "photos"),
                 new PhotoApp().build(), 0);

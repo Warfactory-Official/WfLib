@@ -1,4 +1,4 @@
-package com.wf.wflib.worldstats;
+package com.wf.wflib.worldstats.api;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

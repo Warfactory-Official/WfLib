@@ -573,5 +573,10 @@
   "wflib.squad.manage": "Squad management",
   "wflib.squad.wheel": "Squad orders",
   "wflib.squad.wheel_hint": "Release to give the order - scroll or 1-5 to change group",
-  "wflib.squad.no_point": "Look at a spot to send your squad there"
+  "wflib.squad.no_point": "Look at a spot to send your squad there",
+  "item.wflib.data_drive": "Flash Drive",
+  "item.wflib.cache_manifest": "Cache Manifest",
+  "item.wflib.intel_drive": "Hard Drive",
+  "item.wflib.laptop": "Laptop",
+  "item.wflib.narcotics_brick": "Wrapped Brick"
 }

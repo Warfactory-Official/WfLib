@@ -1,0 +1,17 @@
+{
+  "title": "Intel: Warlord",
+  "description": "Recovered data places a warlord at a hideout. Better intel narrows the search.",
+  "source": "intel",
+  "gate": { "rank": "contractor" },
+  "offer": { "distance": [600, 1200], "time_limit_min": 40 },
+  "site": {
+    "radius": 16,
+    "squads": [
+      { "faction": "enemy", "count": 1, "mode": "guard" },
+      { "faction": "enemy", "count": 6, "mode": "patrol" }
+    ]
+  },
+  "objectives": [ { "type": "kill_target", "squad": 0 } ],
+  "rewards": { "money": 1800, "rep": 55, "items": [ { "item": "minecraft:gold_ingot", "count": 12 } ] },
+  "failure": { "penalty_rep": 8 }
+}

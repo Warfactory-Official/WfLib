@@ -59,6 +59,7 @@ class ArchitectureTest {
             Map.entry("anomaly", Set.of("hazard")),
             Map.entry("artifact", Set.of("hazard")),
             Map.entry("colony", Set.of("mine", "industry")),
+            Map.entry("contract", Set.of("worldstats")),
             Map.entry("drone", Set.of("build", "mine")),
             Map.entry("mine", Set.of("probe")),
             Map.entry("compat", Set.of("armor", "artifact", "backpack", "carry", "magazine", "mine", "labs")));

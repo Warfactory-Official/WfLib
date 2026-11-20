@@ -1,0 +1,14 @@
+{
+  "title": "Gold Run",
+  "description": "Buy in, carry the gold to the drop, and sell it where nobody asks. Others will see you coming.",
+  "gate": { "rank": "proven" },
+  "offer": { "distance": [500, 900], "time_limit_min": 30 },
+  "site": {
+    "radius": 10,
+    "squads": [ { "faction": "enemy", "count": 4, "mode": "patrol" } ]
+  },
+  "smuggling": { "buy_in": 2000, "cargo": [ { "item": "minecraft:gold_ingot", "count": 16 } ] },
+  "objectives": [ { "type": "deliver_item", "item": "minecraft:gold_ingot", "count": 16 } ],
+  "rewards": { "money": 4200, "rep": 40, "items": [ { "item": "minecraft:gold_ingot", "count": 28 } ] },
+  "failure": { "penalty_rep": 8 }
+}

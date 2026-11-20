@@ -40,7 +40,7 @@ public final class StatsConfig {
         SCALE = b.comment("Text scale (also /worldstats scale, and shift or ctrl with the toggle key).").defineInRange("scale", 0.75, 0.4, 4.0);
         BACKGROUND = b.comment("Background shade behind the text, 0-255 alpha; 0 = none.").defineInRange("background", 96, 0, 255);
         UNITS = b.comment("Temperature units shown, any of C, F, K in order.").define("units", "FCK");
-        LINES = b.comment("One template per line. Tags: {fps} {day} {time} {dimension} {chunks} {biome} {temp} {humidity} {entities} {cx} {cz} {ox} {oz} {y} {facing} {light} {moon} {storm}. Other mods add tags through WorldStats.tag; a line whose tag nothing provides is left out (e.g. {threat} without PMCLib).")
+        LINES = b.comment("One template per line. Tags: {fps} {day} {time} {dimension} {chunks} {biome} {temp} {humidity} {entities} {cx} {cz} {ox} {oz} {y} {facing} {light} {moon} {storm}. Other mods add tags through WorldStats.tag; a line whose tag nothing provides is left out (e.g. {threat} without the contract system).")
                 .defineListAllowEmpty("lines", DEFAULT_LINES, o -> o instanceof String);
         SPEC = b.build();
     }

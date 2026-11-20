@@ -1,0 +1,15 @@
+{
+  "title": "High Value Target",
+  "description": "A commander is dug in with a small escort. Remove him.",
+  "offer": { "distance": [300, 600], "time_limit_min": 30 },
+  "site": {
+    "radius": 14,
+    "squads": [
+      { "faction": "enemy", "count": 1, "mode": "guard" },
+      { "faction": "enemy", "count": 4, "mode": "patrol" }
+    ]
+  },
+  "objectives": [ { "type": "kill_target", "squad": 0 } ],
+  "rewards": { "money": 750, "rep": 30, "items": [ { "item": "minecraft:gold_ingot", "count": 5 } ] },
+  "failure": { "penalty_rep": 5 }
+}

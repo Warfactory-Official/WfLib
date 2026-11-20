@@ -1,6 +1,9 @@
 package com.wf.wflib.soldier.api;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.util.UUID;
 
 /** A currency a mod provides (an economy mod's balance): hiring and wages can be priced in it. Register with {@link Recruiting#wallet(Wallet)}. */
 public interface Wallet {
@@ -21,4 +24,12 @@ public interface Wallet {
 
     /** Takes {@code amount}; false (and nothing taken) when the player does not have it. */
     boolean take(ServerPlayer player, int amount);
+
+    /**
+     * Pays {@code amount} to a player who may be offline (contract rewards); {@code reason} is for the economy's own history.
+     * False when it cannot, and the caller then falls back to items.
+     */
+    default boolean give(MinecraftServer server, UUID player, int amount, String reason) {
+        return false;
+    }
 }

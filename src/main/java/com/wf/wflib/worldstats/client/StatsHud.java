@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.wf.wflib.core.api.WFLib;
 import com.wf.wflib.worldstats.StatsConfig;
 import com.wf.wflib.worldstats.WeatherPacket;
-import com.wf.wflib.worldstats.WorldStats;
+import com.wf.wflib.worldstats.api.WorldStats;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;

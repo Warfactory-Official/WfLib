@@ -165,7 +165,8 @@ public class WFLibMod {
             new SuppressionSystem(),
             new PacksSystem(),
             new LabsSystem(),
-            new PhotoSystem());
+            new PhotoSystem(),
+            new com.wf.wflib.contract.ContractSystem());
 
     public WFLibMod(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.register(ServerTicks.Listeners.class);

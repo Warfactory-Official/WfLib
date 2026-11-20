@@ -1,0 +1,16 @@
+{
+  "title": "Data Recovery",
+  "description": "A drive with intelligence is in a defended camp. Recover it.",
+  "gate": { "rank": "contractor" },
+  "offer": { "distance": [400, 800], "time_limit_min": 35 },
+  "site": {
+    "radius": 16,
+    "squads": [
+      { "faction": "enemy", "count": 3, "mode": "guard" },
+      { "faction": "enemy", "count": 4, "mode": "patrol" }
+    ]
+  },
+  "objectives": [ { "type": "retrieve_item", "item": "wflib:data_drive", "count": 1 } ],
+  "rewards": { "money": 900, "rep": 35, "items": [ { "item": "minecraft:gold_ingot", "count": 6 } ] },
+  "failure": { "penalty_rep": 5 }
+}

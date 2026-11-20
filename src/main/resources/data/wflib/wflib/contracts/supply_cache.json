@@ -1,0 +1,12 @@
+{
+  "title": "Supply Cache",
+  "description": "A cache manifest sits in a barrel inside a guarded depot. Bring it out.",
+  "offer": { "distance": [250, 500], "time_limit_min": 25 },
+  "site": {
+    "radius": 12,
+    "squads": [ { "faction": "enemy", "count": 5, "mode": "patrol" } ]
+  },
+  "objectives": [ { "type": "retrieve_item", "item": "wflib:cache_manifest", "count": 1 } ],
+  "rewards": { "money": 500, "rep": 20, "items": [ { "item": "minecraft:gold_ingot", "count": 3 } ] },
+  "failure": { "penalty_rep": 3 }
+}
