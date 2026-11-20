@@ -17,14 +17,16 @@ final class BridgeFeatures implements FeatureSource {
             new Box("probe", "Continuum readouts in the probe", "Continuum's look-at readouts show in WFLib's probe panel instead of beside the crosshair."),
             new Box("wiki", "Continuum manual in the PDA wiki", "Continuum's manual pages are WFLib wiki articles, opened for the items they describe."),
             new Box("soldiers", "Soldiers with Continuum guns", "WFLib soldiers can be issued and fire Continuum's magazine-fed guns."),
-            new Box("warheads", "Continuum warheads on WFLib missiles", "Continuum's high-explosive and nuclear blasts are WFLib warheads."));
+            new Box("warheads", "Continuum warheads on WFLib missiles", "Continuum's high-explosive and nuclear blasts are WFLib warheads."),
+            new Box("penetration", "Penetration values", "Continuum's bullets carry a bore and a penetration in mm of steel to armour, plates and hulls."),
+            new Box("bullets", "Bullets as WFLib rounds", "Plain Continuum bullets are flown as WFLib rounds: lag compensation, terrain, tracers, ricochet."));
     private final Map<String, Boolean> started;
     private final boolean startedMaster;
 
     BridgeFeatures() {
         startedMaster = BridgeConfig.master().get();
-        started = Map.of("armour", BridgeConfig.value("armour").get(), "doors", BridgeConfig.value("doors").get(), "glyphids", BridgeConfig.value("glyphids").get(),
-                "radiation", BridgeConfig.value("radiation").get(), "nukes", BridgeConfig.value("nukes").get(), "masses", BridgeConfig.value("masses").get(), "probe", BridgeConfig.value("probe").get(), "wiki", BridgeConfig.value("wiki").get(), "soldiers", BridgeConfig.value("soldiers").get(), "warheads", BridgeConfig.value("warheads").get());
+        started = new java.util.HashMap<>();
+        for (Box box : BOXES) started.put(box.id(), BridgeConfig.value(box.id()).get());
     }
 
     @Override

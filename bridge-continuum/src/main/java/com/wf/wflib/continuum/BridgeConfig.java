@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 /** {@code wflib_continuum.toml}: one switch per bridge. Read at start-up. */
 final class BridgeConfig {
-    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS;
+    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION;
     static final ModConfigSpec SPEC;
 
     static {
@@ -31,6 +31,10 @@ final class BridgeConfig {
                 .define("soldiers", true);
         WARHEADS = b.comment("Continuum's blasts are registered as WFLib warheads (wflib_continuum:he, nuclear, nuclear_small) that WFLib missiles, rounds and drones can carry.")
                 .define("warheads", true);
+        PENETRATION = b.comment("Continuum's bullets carry a WFLib threat (bore, penetration in mm of steel) to armour, plates and hulls.")
+                .define("penetration", true);
+        BULLETS = b.comment("Plain Continuum bullets are flown as WFLib rounds (lag compensation, terrain, tracers, ricochet); loads with their own behaviour stay Continuum's.")
+                .define("bullets", true);
         SPEC = b.build();
     }
 
@@ -49,12 +53,22 @@ final class BridgeConfig {
             case "wiki" -> WIKI;
             case "soldiers" -> SOLDIERS;
             case "warheads" -> WARHEADS;
+            case "penetration" -> PENETRATION;
+            case "bullets" -> BULLETS;
             default -> throw new IllegalArgumentException(id);
         };
     }
 
     static ModConfigSpec.BooleanValue master() {
         return MASTER;
+    }
+
+    static boolean penetration() {
+        return MASTER.get() && PENETRATION.get();
+    }
+
+    static boolean bullets() {
+        return MASTER.get() && BULLETS.get();
     }
 
     static boolean warheads() {

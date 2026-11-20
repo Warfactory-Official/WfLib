@@ -45,6 +45,9 @@ final class WikiConverter {
         if (name == null || body == null) return null;
         String title = english(json.get("title"));
         if (title == null) title = name;
+        // Templates are fragments the manual pastes into other pages, not pages to read; their text is full of colour codes.
+        if (title.startsWith("Template:") || name.startsWith("Template:") || (json.has("noindex") && json.get("noindex").getAsBoolean())) return null;
+        body = FORMAT_CODE.matcher(body).replaceAll("");
 
         Set<String> items = new LinkedHashSet<>();
         if (json.has("trigger") && json.get("trigger").isJsonArray()) {
@@ -96,6 +99,8 @@ final class WikiConverter {
         md.append(text).append('\n');
         return md.toString();
     }
+
+    private static final Pattern FORMAT_CODE = Pattern.compile("§[0-9a-fk-or]");
 
     private static String english(JsonElement element) {
         if (element == null || !element.isJsonObject()) return null;

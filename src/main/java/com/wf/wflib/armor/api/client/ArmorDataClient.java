@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
 
@@ -20,6 +21,14 @@ public final class ArmorDataClient {
             ArmorProfiles.applyData(event.getPlayer().registryAccess().registry(ArmorAssignment.REGISTRY)
                     .map(r -> r.stream().toList()).orElse(List.of()));
         }
+    }
+
+    /** Armour another mod made, given a profile by data, shows the same numbers WFLib's own pieces do; its own pieces already do it themselves. */
+    @SubscribeEvent
+    public static void onTooltip(ItemTooltipEvent event) {
+        var item = event.getItemStack().getItem();
+        if (item instanceof com.wf.wflib.armor.api.ArmorPieceItem || item instanceof com.wf.wflib.armor.ArmorInsertItem) return;
+        com.wf.wflib.armor.ArmorTooltip.append(event.getItemStack(), event.getToolTip(), event.getFlags());
     }
 
     @SubscribeEvent

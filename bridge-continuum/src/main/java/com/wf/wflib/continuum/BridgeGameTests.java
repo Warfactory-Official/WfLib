@@ -13,6 +13,7 @@ import com.wf.wflib.armor.api.ArmorProfiles;
 import com.wf.wflib.armor.api.ProtectionType;
 import com.wf.wflib.colony.api.EntityGlyphid;
 import dev.golem.core.world.Spawns;
+import com.wf.wflib.round.api.Rounds;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -406,7 +407,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -489,7 +490,9 @@ public final class BridgeGameTests {
         Map<String, JsonObject> pages = WikiPack.read();
         Map<String, String> out = WikiConverter.convert(pages);
         h.assertTrue(pages.size() > 200, "Continuum's manual was read: " + pages.size());
-        h.assertTrue(out.size() >= pages.size() - 5, "nearly every page converts: " + out.size() + " of " + pages.size());
+        long fragments = pages.values().stream().filter(j -> j.has("noindex") && j.get("noindex").getAsBoolean()).count();
+        h.assertTrue(out.size() >= pages.size() - fragments - 5, "every page that is a page converts: " + out.size() + " of " + pages.size() + " (" + fragments + " are template fragments)");
+        h.assertTrue(out.keySet().stream().noneMatch(k -> k.contains("template")), "no template fragment became an article");
         int links = 0, plain = 0;
         for (String md : out.values()) {
             var m = java.util.regex.Pattern.compile("\\]\\(wflib_continuum:([^)]+)\\)").matcher(md);
@@ -594,5 +597,106 @@ public final class BridgeGameTests {
         h.assertTrue(blasts.size() == 1, "one MK5 blast was raised: " + blasts.size());
         blasts.get(0).discard();
         h.succeed();
+    }
+    // ---------------------------------------------------------------- bullets
+
+    private static com.hbm.items.weapon.sedna.BulletConfig round(String id) {
+        var c = com.hbm.items.weapon.sedna.BulletConfigs.get("hbm:" + id);
+        if (c == null) throw new IllegalStateException("no Continuum bullet config " + id);
+        return c;
+    }
+
+    private static com.hbm.entity.projectile.EntityBulletBaseMK4 bulletAt(GameTestHelper h, String id, float damage, Vec3 at, Vec3 heading) {
+        return new com.hbm.entity.projectile.EntityBulletBaseMK4(h.getLevel(), null, round(id), damage, 0.0F, at.x, at.y, at.z, heading.x, heading.y, heading.z);
+    }
+
+    /** Every Continuum bullet that is not an effect (flame, nuke, extinguisher, hook) has a cartridge in the table, and the figures order the way real ones do. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void everyBulletHasPenetrationAndTheFiguresOrder(GameTestHelper h) {
+        List<String> unknown = new java.util.ArrayList<>();
+        for (var c : com.hbm.items.weapon.sedna.BulletConfigs.all()) {
+            var p = BulletBridge.profile(c);
+            h.assertTrue(p != null && p.caliberMm() > 0 && p.penMm() >= 0, c.id + " has a profile");
+            String path = c.id.getPath();
+            boolean effect = path.startsWith("flame") || path.startsWith("nuke") || path.startsWith("fext") || path.startsWith("ct_")
+                    || path.startsWith("ammo_debug") || path.startsWith("folly") || path.startsWith("cluster") || path.startsWith("energy") || path.startsWith("g26")
+                    || path.startsWith("ni4ni") || path.startsWith("battery") || path.startsWith("pile");
+            if (!effect && !Ballistics.known(c)) unknown.add(path);
+        }
+        h.assertTrue(unknown.isEmpty(), "rounds the table does not know: " + unknown);
+        float[] pen = new float[8];
+        String[] order = {"p9_fmj", "r556_fmj", "r762_fmj", "bmg50_fmj", "bmg50_ap", "bmg50_du", "shell_ap", "shell_du"};
+        for (int i = 0; i < order.length; i++) pen[i] = BulletBridge.profile(round(order[i])).penMm();
+        for (int i = 1; i < order.length; i++) {
+            h.assertTrue(pen[i] > pen[i - 1], order[i] + " (" + pen[i] + " mm) beats " + order[i - 1] + " (" + pen[i - 1] + " mm)");
+        }
+        h.assertTrue(BulletBridge.profile(round("r556_fmj")).penMm() > BulletBridge.profile(round("r556_jhp")).penMm(), "a hollow point is worse against armour than a full metal jacket");
+        h.succeed();
+    }
+
+    /** A bullet of Continuum's that stays Continuum's still hands armour a threat through the damage source. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void aContinuumBulletCarriesAThreat(GameTestHelper h) {
+        var bullet = bulletAt(h, "r762_ap", 5.0F, h.absoluteVec(new Vec3(1.5, 2.0, 1.5)), new Vec3(1, 0, 0));
+        var source = com.hbm.lib.ModDamageSources.bullet(h.getLevel(), bullet.config.dmgClass.type(), bullet, null);
+        var strike = com.wf.wflib.damage.api.StrikeContext.of(source);
+        h.assertTrue(strike != null, "the damage source has a strike context");
+        var threat = strike.threat();
+        h.assertTrue(threat.penetrationMm() > BulletBridge.profile(round("r762_fmj")).penMm(), "armour piercing beats ball: " + threat);
+        h.assertTrue(BulletBridge.profile(round("shell_ap")).kind() == com.wf.wflib.damage.api.ThreatKind.KINETIC, "an AP shell is a penetrator");
+        h.assertTrue(BulletBridge.profile(round("g40_heat")).kind() == com.wf.wflib.damage.api.ThreatKind.HEAT, "a shaped charge is HEAT");
+        h.assertTrue(strike.velocity().length() > 0, "it knows its travel");
+        h.succeed();
+    }
+
+    /** A plain bullet's spawn becomes a WFLib round: Continuum's entity never joins, a round is in flight, and what it hurts is hurt. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 100)
+    public static void aPlainBulletIsFlownAsAWflibRound(GameTestHelper h) {
+        h.assertTrue(BulletBridge.presetOf(round("r556_fmj")) != null, "r556_fmj is plain");
+        h.assertTrue(BulletBridge.presetOf(round("r556_inc_fmj")) == null || BulletBridge.plain(round("r556_inc_fmj")), "an incendiary load is plain only if it has no behaviour of its own");
+        var level = h.getLevel();
+        net.minecraft.world.entity.monster.Husk husk = h.spawn(net.minecraft.world.entity.EntityType.HUSK, new net.minecraft.core.BlockPos(4, 10, 2));
+        husk.setNoAi(true);
+        Vec3 chest = husk.position().add(0, 1.0, 0);
+        Vec3 from = chest.add(-1.2, 0, 0);
+        int before = Rounds.count(level);
+        float hp = husk.getHealth();
+        var bullet = bulletAt(h, "r556_fmj", 4.0F, from, new Vec3(1, 0, 0));
+        level.addFreshEntity(bullet);
+        h.assertTrue(!bullet.isAddedToLevel(), "Continuum's own entity did not join the level");
+        h.assertTrue(Rounds.count(level) == before + 1, "a WFLib round took its place");
+        h.onEachTick(() -> {
+            if (husk.getHealth() < hp) h.succeed();
+            else if (h.getTick() > 60) h.fail("no damage: rounds in flight " + Rounds.count(level) + ", husk at " + husk.position() + " hp " + husk.getHealth() + ", from " + from);
+        });
+    }
+
+    /** The round that took the bullet's place is hurt by armour the way a WFLib round is: a worn Continuum plate takes the hit down. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 200)
+    public static void wornContinuumArmourStopsAConvertedBullet(GameTestHelper h) {
+        var level = h.getLevel();
+        net.minecraft.world.entity.monster.Husk bare = h.spawn(net.minecraft.world.entity.EntityType.HUSK, new net.minecraft.core.BlockPos(4, 10, 1));
+        net.minecraft.world.entity.monster.Husk plated = h.spawn(net.minecraft.world.entity.EntityType.HUSK, new net.minecraft.core.BlockPos(4, 10, 4));
+        for (var husk : List.of(bare, plated)) {
+            husk.setNoAi(true);
+            husk.setHealth(husk.getMaxHealth());
+            husk.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200.0);
+            husk.setHealth(200.0F);
+        }
+        var chest = BuiltInRegistries.ITEM.get(ResourceLocation.parse("hbm:hev_plate"));
+        h.assertTrue(chest != net.minecraft.world.item.Items.AIR, "hbm:hev_plate exists");
+        plated.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, new ItemStack(chest));
+        for (var husk : List.of(bare, plated)) {
+            Vec3 at = husk.position().add(0, 1.0, 0);
+            level.addFreshEntity(bulletAt(h, "r556_fmj", 6.0F, at.add(-3.0, 0, 0), new Vec3(1, 0, 0)));
+        }
+        h.onEachTick(() -> {
+            float lostBare = bare.getMaxHealth() - bare.getHealth();
+            float lostPlated = plated.getMaxHealth() - plated.getHealth();
+            if (lostBare > 0 && h.getTick() > 20) {
+                h.assertTrue(lostPlated < lostBare, "the plate took it down: bare lost " + lostBare + ", plated lost " + lostPlated);
+                h.succeed();
+            }
+        });
     }
 }
