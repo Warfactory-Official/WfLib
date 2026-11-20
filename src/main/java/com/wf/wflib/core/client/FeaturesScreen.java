@@ -36,6 +36,9 @@ public final class FeaturesScreen extends Screen {
     private static final int GREEN = 0xFF55FF55, WHITE = 0xFFFFFFFF, GREY = 0xFF8A8A8A, DIM = 0xFF555555, AMBER = 0xFFFFC857;
 
     private final Screen parent;
+    /** wflib's groups, then each registered source's, shown as groups of the same shape. */
+    private final List<Group> groups = new ArrayList<>(FeatureCatalogue.GROUPS);
+    private final Map<String, com.wf.wflib.core.api.FeatureSource> sourceOf = new HashMap<>();
     private final FeatureGraph graph = FeatureGraph.of(WFLibMod.SYSTEMS);
     /** The edited state: {@code <group>.enabled} and feature ids. */
     private final Map<String, Boolean> state = new HashMap<>(FeatureConfig.read());
@@ -44,6 +47,16 @@ public final class FeaturesScreen extends Screen {
     public FeaturesScreen(Screen parent) {
         super(Component.literal("WFLib features"));
         this.parent = parent;
+        for (var source : Features.sources()) {
+            List<Feature> boxes = new ArrayList<>();
+            for (var box : source.boxes()) {
+                boxes.add(new Feature(box.id(), box.title(), box.blurb(), true, null, null, List.of()));
+                state.put(box.id(), source.get(box.id()));
+            }
+            groups.add(new Group(source.id(), source.title(), source.blurb(), boxes));
+            state.put(source.id() + ".enabled", source.master());
+            sourceOf.put(source.id(), source);
+        }
     }
 
     // ---------------------------------------------------------------- model
@@ -96,17 +109,29 @@ public final class FeaturesScreen extends Screen {
     /** Whether what is ticked now differs from what the game started with (a locked box is not the player's choice). */
     private boolean changed() {
         Map<String, Boolean> started = Features.startup();
-        if (started.isEmpty()) return false;
-        for (Group g : FeatureCatalogue.GROUPS) {
+        for (Group g : groups) {
+            var source = sourceOf.get(g.id());
             for (Feature f : g.features()) {
-                if (Features.configuredOn(started, f) != (master(g) && ticked(f))) return true;
+                boolean will = master(g) && ticked(f);
+                if (source != null) {
+                    if ((source.startupMaster() && source.startup(f.id())) != will) return true;
+                } else if (!started.isEmpty() && Features.configuredOn(started, f) != will) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
     private void save() {
-        for (Group g : FeatureCatalogue.GROUPS) {
+        for (Group g : groups) {
+            var source = sourceOf.get(g.id());
+            if (source != null) {
+                source.master(master(g));
+                for (Feature f : g.features()) source.set(f.id(), ticked(f));
+                source.save();
+                continue;
+            }
             FeatureConfig.set(g, null, master(g));
             for (Feature f : g.features()) FeatureConfig.set(g, f, ticked(f));
         }
@@ -119,7 +144,7 @@ public final class FeaturesScreen extends Screen {
     protected void init() {
         int bottom = height - 28;
         list = new FeatureList(minecraft, width, bottom - 52, 34, 22);
-        for (Group g : FeatureCatalogue.GROUPS) {
+        for (Group g : groups) {
             list.add(new GroupRow(g));
             for (Feature f : g.features()) list.add(new FeatureRow(g, f));
         }
@@ -129,7 +154,7 @@ public final class FeaturesScreen extends Screen {
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose()).bounds(x, height - 24, bw, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Reset to defaults"), b -> {
             state.clear();
-            for (Group g : FeatureCatalogue.GROUPS) {
+            for (Group g : groups) {
                 state.put(g.id() + ".enabled", true);
                 for (Feature f : g.features()) state.put(f.id(), f.defaultOn());
             }
@@ -142,9 +167,9 @@ public final class FeaturesScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
         super.render(g, mouseX, mouseY, partial);
         g.drawCenteredString(font, title, width / 2, 8, WHITE);
-        int groupsOn = (int) FeatureCatalogue.GROUPS.stream().filter(this::master).count();
-        long on = FeatureCatalogue.GROUPS.stream().flatMap(gr -> gr.features().stream().filter(f -> effective(gr, f))).count();
-        g.drawCenteredString(font, Component.literal(on + " of " + FeatureCatalogue.all().size() + " features on, " + groupsOn + " of " + FeatureCatalogue.GROUPS.size() + " groups"), width / 2, 20, GREY);
+        int groupsOn = (int) groups.stream().filter(this::master).count();
+        long on = groups.stream().flatMap(gr -> gr.features().stream().filter(f -> effective(gr, f))).count();
+        g.drawCenteredString(font, Component.literal(on + " of " + groups.stream().mapToInt(gr -> gr.features().size()).sum() + " features on, " + groupsOn + " of " + groups.size() + " groups"), width / 2, 20, GREY);
         if (changed()) {
             g.drawCenteredString(font, Component.literal("Restart the game to apply the changes you made").withStyle(ChatFormatting.GOLD), width / 2, height - 40, AMBER);
         } else {

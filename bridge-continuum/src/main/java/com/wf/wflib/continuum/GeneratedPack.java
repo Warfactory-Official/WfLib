@@ -47,6 +47,7 @@ final class GeneratedPack {
         write(root.resolve("pack.mcmeta"), "{\"pack\":{\"pack_format\":48,\"description\":\"WFLib: Continuum bridge (generated at launch)\"}}");
         if (BridgeConfig.armour()) armour(root);
         if (BridgeConfig.doors()) DoorRecipes.generate(root);
+        if (BridgeConfig.radiation()) HazardBridge.generate(root);
         return root;
     }
 

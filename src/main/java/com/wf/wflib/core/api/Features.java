@@ -19,6 +19,8 @@ public final class Features {
     private static volatile Map<String, Boolean> read = Map.of();
     private static volatile Set<String> hiddenApps = Set.of();
 
+    private static final java.util.List<FeatureSource> SOURCES = new java.util.concurrent.CopyOnWriteArrayList<>();
+
     private Features() {
     }
 
@@ -58,5 +60,15 @@ public final class Features {
     public static boolean systemConfigured(String system, boolean fallback) {
         Feature f = FeatureCatalogue.ofSystem(system);
         return f == null ? fallback : read.isEmpty() ? f.defaultOn() : configuredOn(read, f);
+    }
+
+    /** Puts a mod's own group of switches on the switchboard screen. Call once, at construction. */
+    public static void register(FeatureSource source) {
+        SOURCES.add(source);
+    }
+
+    /** Groups other mods put on the switchboard, in registration order. */
+    public static java.util.List<FeatureSource> sources() {
+        return SOURCES;
     }
 }

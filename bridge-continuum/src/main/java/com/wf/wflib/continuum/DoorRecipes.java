@@ -4,6 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 
 import java.io.IOException;
@@ -26,6 +29,19 @@ final class DoorRecipes {
             "large_vehicle_door", "cargo_door", "blast_door");
 
     private DoorRecipes() {
+    }
+
+    static boolean isContinuumDoor(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return id.getNamespace().equals("hbm") && DOORS.contains(id.getPath());
+    }
+
+    /** Continuum's fifteen door items leave every creative tab; the WFLib doors are in WFLib's. Placed doors and the items themselves are untouched. */
+    static void hideContinuumDoors(net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent event) {
+        java.util.List<ItemStack> doors = new java.util.ArrayList<>();
+        event.getParentEntries().forEach(stack -> { if (isContinuumDoor(stack)) doors.add(stack); });
+        event.getSearchEntries().forEach(stack -> { if (isContinuumDoor(stack) && !doors.contains(stack)) doors.add(stack); });
+        for (ItemStack stack : doors) event.remove(stack, net.minecraft.world.item.CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
     }
 
     static void generate(Path pack) throws IOException {

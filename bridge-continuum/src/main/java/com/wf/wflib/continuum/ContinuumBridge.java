@@ -32,7 +32,11 @@ public final class ContinuumBridge {
     public ContinuumBridge(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.STARTUP, BridgeConfig.SPEC, "wflib_continuum.toml");
         ModEntries.start(new BridgeEntry());
+        com.wf.wflib.core.api.Features.register(new BridgeFeatures());
         modBus.addListener(AddPackFindersEvent.class, ContinuumBridge::addPacks);
+        modBus.addListener(net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent.class, event -> {
+            if (BridgeConfig.doors()) DoorRecipes.hideContinuumDoors(event);
+        });
         modBus.addListener(net.neoforged.neoforge.event.RegisterGameTestsEvent.class, e -> e.register(BridgeGameTests.class));
     }
 

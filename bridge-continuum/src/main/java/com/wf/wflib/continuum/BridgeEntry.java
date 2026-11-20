@@ -27,6 +27,8 @@ final class BridgeEntry implements ModEntry {
     @Override
     public void registered() {
         if (BridgeConfig.glyphids()) Glyphids.install();
+        if (BridgeConfig.radiation() && RadiationBridge.possible()) RadiationBridge.install();
+        if (BridgeConfig.nukes() && com.wf.wflib.core.api.WFSystems.enabled("explosion")) Mk5Bridge.install();
         if (!BridgeConfig.armour()) return;
         // After every datapack load: if any Continuum set still carries a resistance, the patch did not apply and a hit is reduced twice.
         ArmorDataMaps.ARMOR_SETS.changed.register(() -> {
