@@ -37,7 +37,9 @@ public final class SiteImpl {
                 String tid = PREFIX + id + "_" + n++;
                 book.put(new Territory(tid, "Site " + id, "", dimension, squad.at() != null ? squad.at() : centre,
                         Math.max(2, squad.radius() > 0 ? squad.radius() : spec.radius()),
-                        level.getMinBuildHeight(), level.getMaxBuildHeight(), squad.route(),
+                        // a squad with a post of its own stays at that level: raised by the heightmap it would stand on the roof of the building it guards
+                        squad.at() != null ? (int) Math.floor(squad.at().y) - 2 : level.getMinBuildHeight(),
+                        squad.at() != null ? (int) Math.floor(squad.at().y) + 4 : level.getMaxBuildHeight(), squad.route(),
                         new Garrison(squad.count(), squad.units(), squad.mode(), Garrison.MAX_RESPAWN_SECONDS)));
                 made.add(tid);
             }

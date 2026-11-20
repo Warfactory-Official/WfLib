@@ -45,7 +45,8 @@ public final class Soldiers {
     /** The soldier's person name (custom name, else the profile name): what maps and squad lists show. */
     public static String displayName(ServerPlayer soldier) {
         var n = soldier.getCustomName();
-        return n == null ? soldier.getGameProfile().getName() : n.getString();
+        // older saved variants carry the grade in brackets ("Ivan Petrov (Conscript)"); a person's name has none
+        return n == null ? soldier.getGameProfile().getName() : n.getString().replaceFirst("\\s*\\((Conscript|Regular|Veteran|Elite)\\)$", "");
     }
 
     /**
