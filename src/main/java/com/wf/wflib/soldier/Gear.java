@@ -24,6 +24,7 @@ public final class Gear {
             covered.addAll(c.covers());
             exo |= c.exo() && c.slot().equals("chest");
         }
+        catalogue.requireWholeSets(want.armour());
         if (!role.isEmpty()) {
             if (SoldierRole.of(role) == SoldierRole.HEAVY && !exo) throw new IllegalArgumentException("Equip an installed exoskeleton for the heavy role");
         }

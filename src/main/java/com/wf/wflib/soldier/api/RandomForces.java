@@ -22,6 +22,8 @@ public final class RandomForces {
     private static final int[] RANGE = {60, 80, 100, 120}, SPARES = {2, 3, 4, 6};
     private static final double[][] ARMOUR_CHANCE = {{0.25, 0.1, 0, 0}, {0.6, 0.6, 0.3, 0.2}, {0.9, 0.9, 0.7, 0.5}, {1, 1, 1, 0.9}};
     private static final String[] SLOTS = {"head", "chest", "legs", "feet"};
+    /** By grade, the share of soldiers in a whole set of power armour ({@link SoldierCatalogue#SETS}): somewhat uncommon, and never for recruits. */
+    static final double[] POWER_SET_CHANCE = {0, 0.04, 0.07, 0.12};
 
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("wflib/soldier");
     private static SoldierCatalogue catalogue;
@@ -151,7 +153,7 @@ public final class RandomForces {
         float spread = (float) (SPREAD[grade] * (role == SoldierRole.SNIPER ? 0.5 : 1));
         String name = SoldierNames.display(rnd);
         for (int attempt = 0; attempt < 6; attempt++) {
-            Map<String, String> armour = attempt == 5 ? Map.of() : pick(rnd, cat, grade);
+            Map<String, String> armour = attempt == 5 ? Map.of() : armour(rnd, cat, grade);
             SoldierTemplate t = new SoldierTemplate(id, name.length() > 48 ? name.substring(0, 48) : name, faction, role, gun, List.copyOf(grenades), armour,
                     SPARES[grade], range, Math.max(0.25f, spread));
             try {
@@ -165,12 +167,21 @@ public final class RandomForces {
         return new SoldierTemplate(id, name, faction, SoldierRole.RIFLEMAN, gun, List.of(), Map.of(), SPARES[grade], RANGE[grade], (float) SPREAD[grade]);
     }
 
-    private static Map<String, String> pick(Random rnd, SoldierCatalogue cat, int grade) {
+    /** A soldier of {@code grade}'s armour: now and then a whole power armour set, else a piece or none per slot from what is worn on its own. */
+    public static Map<String, String> armour(Random rnd, SoldierCatalogue cat, int grade) {
+        if (rnd.nextDouble() < POWER_SET_CHANCE[grade]) {
+            List<Map<String, SoldierCatalogue.Choice>> sets = new ArrayList<>(cat.wholeSets().values());
+            if (!sets.isEmpty()) {
+                Map<String, String> armour = new TreeMap<>();
+                sets.get(rnd.nextInt(sets.size())).forEach((slot, c) -> armour.put(slot, c.key()));
+                return armour;
+            }
+        }
         Map<String, String> armour = new TreeMap<>();
         for (int s = 0; s < SLOTS.length; s++) {
             if (rnd.nextDouble() >= ARMOUR_CHANCE[grade][s]) continue;
             final String slot = SLOTS[s];
-            List<SoldierCatalogue.Choice> options = cat.all().stream().filter(c -> c.slot().equals(slot) && !c.exo()).toList();
+            List<SoldierCatalogue.Choice> options = cat.all().stream().filter(c -> c.slot().equals(slot) && !c.exo() && c.set() == null).toList();
             if (!options.isEmpty()) armour.put(slot, options.get(rnd.nextInt(options.size())).key());
         }
         return armour;

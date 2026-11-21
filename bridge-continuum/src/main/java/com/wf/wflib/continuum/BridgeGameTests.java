@@ -407,7 +407,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx", "pda", "explosives")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx", "pda", "explosives", "floodlights")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -705,13 +705,19 @@ public final class BridgeGameTests {
     @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 400, batch = "bases")
     public static void aBaseCanBeBuiltOfContinuumBlocks(GameTestHelper h) {
         var ids = com.wf.wflib.contract.site.SiteStyles.available().stream().map(st -> st.id()).toList();
-        h.assertTrue(ids.containsAll(List.of("wflib_continuum:ntm_military", "wflib_continuum:ntm_industrial", "wflib_continuum:ntm_bunker")), "the three NTM looks are offered: " + ids);
+        h.assertTrue(ids.containsAll(List.of("wflib_continuum:ntm_military", "wflib_continuum:ntm_silo", "wflib_continuum:ntm_signal", "wflib_continuum:ntm_depot",
+                "wflib_continuum:ntm_industrial", "wflib_continuum:ntm_bunker")), "the NTM looks are offered: " + ids);
+        for (String kit : List.of("ntm_military", "ntm_silo", "ntm_depot")) {
+            var st = com.wf.wflib.contract.site.SiteStyles.byId(kit);
+            h.assertTrue(st.parts().containsKey("hazard") && st.parts().containsKey("wire"), kit + " has its parts");
+        }
         var level = h.getLevel();
         var origin = h.absolutePos(new net.minecraft.core.BlockPos(2, 10, 2));
         var palette = com.wf.wflib.contract.site.Palette.at(level, origin, "ntm_military");
         h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.body()).toString().equals("hbm:brick_concrete"), "the body is NTM brick concrete: " + palette.body());
         h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.bars()).toString().equals("hbm:fence_metal_post"), "the fence posts are capped");
-        h.assertTrue(palette.fenceWall() && !palette.mixedWalls() && palette.weather().isEmpty(), "a military base is fenced, one material, unweathered");
+        h.assertTrue(palette.layout("perimeter", "").equals("layered") && palette.layout("hall", "").equals("quonset") && !palette.mixedWalls(), "a military base has NTM's layered perimeter and Quonset halls");
+        h.assertTrue(palette.weather().keySet().stream().allMatch(b -> BuiltInRegistries.BLOCK.getKey(b).getPath().equals("brick_concrete")), "wear stays inside the brick-concrete family");
         h.assertTrue(BuiltInRegistries.BLOCK.getKey(palette.fence()).toString().equals("hbm:fence_metal"), "the fence is NTM chain-link");
         var plain = com.wf.wflib.contract.site.Palette.at(level, origin, "plain");
         h.assertTrue(plain.bars() == net.minecraft.world.level.block.Blocks.IRON_BARS && plain.weather().isEmpty(), "plain is untouched");
@@ -735,7 +741,8 @@ public final class BridgeGameTests {
         }
         h.assertTrue(ntm > 50, "the base stands in NTM blocks: " + ntm);
         // one kit: nothing outside the style's own blocks, plus the lamp and fence it names
-        var allowed = java.util.Set.of("brick_concrete", "concrete", "concrete_asbestos", "asphalt", "concrete_slab", "reinforced_glass", "deco_steel", "reinforced_lamp_on", "fence_metal", "fence_metal_post");
+        var allowed = java.util.Set.of("brick_concrete", "brick_concrete_cracked", "brick_concrete_broken", "brick_light", "concrete", "asphalt", "concrete_slab", "reinforced_glass", "deco_steel",
+                "reinforced_lamp_on", "fence_metal", "fence_metal_post", "sandbags", "concrete_colored", "concrete_colored_ext", "barbed_wire", "steel_scaffold", "spotlight_halogen", "spotlight_beam");
         h.assertTrue(allowed.containsAll(families), "the base is built of its kit only: " + families);
         h.succeed();
     }
@@ -852,6 +859,68 @@ public final class BridgeGameTests {
         h.assertTrue(level.getBlockState(b).isAir(), "lifted, not blown");
         h.assertTrue(!level.getEntitiesOfClass(ItemEntity.class, new AABB(b).inflate(2)).isEmpty(), "and drops as an item");
         p.getInventory().clearContent();
+        h.succeed();
+    }
+
+    // ---------------------------------------------------------------- floodlights
+
+    /** Continuum's beam blocks are still its class but give no light: the GPU lights replace them. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void floodlightBeamBlocksGiveNoLight(GameTestHelper h) {
+        var beam = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("hbm:floodlight_beam"));
+        h.assertTrue(beam instanceof com.hbm.blocks.machine.FloodlightBeam, "the beam is still Continuum's class: " + beam);
+        h.assertTrue(beam.defaultBlockState().getLightEmission() == 0, "the beam gives no light: " + beam.defaultBlockState().getLightEmission());
+        h.assertTrue(FloodlightBridge.dayScale(0.2F) == 1F && Math.abs(FloodlightBridge.dayScale(1F) - FloodlightBridge.DAY) < 1e-6, "full at night, a trace at noon");
+        h.succeed();
+    }
+
+    /** The light leaves along the way Continuum casts its rays: the model's lamp normal agrees with the tile's centre ray for every mounting and tilt. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void floodlightBeamsFollowTheirRays(GameTestHelper h) {
+        for (int meta = 0; meta < 8; meta++) {
+            for (float rotation = -90; rotation <= 90; rotation += 30) {
+                // TileEntityFloodlight.getRayEndpoint, centre ray (no spread)
+                float r = rotation;
+                if (meta == 1 || meta == 7 || meta == 6) r = 180 - r;
+                Vec3 ray = new Vec3(1, 0, 0).zRot((float) (r / 180D * Math.PI));
+                if (meta == 6 || meta == 7 || meta == 2) ray = ray.yRot((float) (Math.PI / 2D));
+                if (meta == 3) ray = ray.yRot((float) -(Math.PI / 2D));
+                if (meta == 4) ray = ray.yRot((float) Math.PI);
+                var beam = FloodlightBridge.beam(FloodlightBridge.pose(meta, rotation));
+                double dot = beam.x * ray.x + beam.y * ray.y + beam.z * ray.z;
+                h.assertTrue(dot > 0.99, "meta " + meta + " tilt " + rotation + ": light " + beam + " but rays " + ray);
+            }
+        }
+        h.succeed();
+    }
+
+    // ---------------------------------------------------------------- power armour on soldiers
+
+    /** Power armour is drawn as whole sets, somewhat uncommonly, and a lone piece is refused. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 20)
+    public static void powerArmourIsIssuedAsWholeSets(GameTestHelper h) {
+        var cat = com.wf.wflib.soldier.SoldierCatalogue.create();
+        var sets = cat.wholeSets();
+        h.assertTrue(sets.size() >= 3, "Continuum's power suits are whole sets: " + sets.keySet());
+        var rnd = new java.util.Random(42);
+        int whole = 0, n = 2000;
+        for (int i = 0; i < n; i++) {
+            var armour = com.wf.wflib.soldier.api.RandomForces.armour(rnd, cat, 3);
+            long power = armour.values().stream().filter(k -> cat.get(k).set() != null).count();
+            h.assertTrue(power == 0 || power == 4 && armour.values().stream().map(k -> cat.get(k).set()).distinct().count() == 1,
+                    "a soldier wears a whole set or none: " + armour);
+            if (power == 4) whole++;
+        }
+        h.assertTrue(whole > n * 0.06 && whole < n * 0.2, "somewhat uncommon: " + whole + " of " + n);
+        var one = sets.values().iterator().next();
+        boolean refused = false;
+        try {
+            cat.requireWholeSets(java.util.Map.of("chest", one.get("chest").key()));
+        } catch (IllegalArgumentException e) {
+            refused = true;
+        }
+        h.assertTrue(refused, "a lone power chestplate is refused");
+        cat.requireWholeSets(java.util.Map.of("head", one.get("head").key(), "chest", one.get("chest").key(), "legs", one.get("legs").key(), "feet", one.get("feet").key()));
         h.succeed();
     }
 }

@@ -17,6 +17,7 @@ final class BridgeEntry implements ModEntry {
                 ContinuumBridge.LOG.warn("This Continuum has no CommonConfig.override: its glyphid hives stay on until it is switched off in its own config (12.G00_enableHives)");
             }
         }
+        if (BridgeConfig.floodlights()) FloodlightBridge.substitute();
         // Doors, the MK5 ray and spawner blocks come here as their levels are built (docs/ntm-continuum-compat.md, 3.2 and 5.2).
     }
 
@@ -28,10 +29,16 @@ final class BridgeEntry implements ModEntry {
     public void registered() {
         if (BridgeConfig.masses() && net.neoforged.fml.ModList.get().isLoaded("wfweight")) ContinuumMasses.register();
         if (BridgeConfig.probe()) LookOverlayBridge.install();
-        if (BridgeConfig.soldiers() && com.wf.wflib.core.api.WFSystems.enabled("soldier")) SednaWeapon.install();
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient() && net.neoforged.fml.ModList.get().isLoaded("ahf")) ArmBends.install();
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) FirstPersonSleeves.install();
+        if (BridgeConfig.soldiers() && com.wf.wflib.core.api.WFSystems.enabled("soldier")) {
+            SednaWeapon.install();
+            PowerArmour.install();
+        }
         if (BridgeConfig.warheads() && com.wf.wflib.core.api.WFSystems.enabled("warhead")) WarheadBridge.install();
         if (BridgeConfig.pda()) PdaBridge.install();
         if (BridgeConfig.explosives()) ExplosivesBridge.install();
+        if (BridgeConfig.floodlights()) FloodlightBridge.install();
         if (BridgeConfig.explosionFx()) ExplosionFxBridge.install();
         if (BridgeConfig.recon()) ReconBridge.install();
         if (BridgeConfig.orbit() && com.wf.wflib.core.api.WFSystems.enabled("orbital")) OrbitBridge.install();

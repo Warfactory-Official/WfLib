@@ -4,7 +4,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 /** {@code wflib_continuum.toml}: one switch per bridge. Read at start-up. */
 final class BridgeConfig {
-    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION, RECON, ORBIT, EXPLOSIONFX, PDA, EXPLOSIVES;
+    private static final ModConfigSpec.BooleanValue MASTER, ARMOUR, DOORS, GLYPHIDS, RADIATION, NUKES, MASSES, PROBE, WIKI, SOLDIERS, WARHEADS, BULLETS, PENETRATION, RECON, ORBIT, EXPLOSIONFX, PDA, EXPLOSIVES, FLOODLIGHTS;
     static final ModConfigSpec SPEC;
 
     static {
@@ -45,6 +45,8 @@ final class BridgeConfig {
                 .define("pda", true);
         EXPLOSIVES = b.comment("Continuum's landmines and charges can be wired to a WFLib detonator; its landmines show in the probe with a defuse row.")
                 .define("explosives", true);
+        FLOODLIGHTS = b.comment("Each lit Continuum floodlight casts two GemRender spot cones where its head points, and its light blocks give no light: the GPU lights replace them (needs GemRender's lights; a shader pack turns them off and then floodlights are dark).")
+                .define("floodlights", true);
         SPEC = b.build();
     }
 
@@ -70,6 +72,7 @@ final class BridgeConfig {
             case "explosionfx" -> EXPLOSIONFX;
             case "pda" -> PDA;
             case "explosives" -> EXPLOSIVES;
+            case "floodlights" -> FLOODLIGHTS;
             default -> throw new IllegalArgumentException(id);
         };
     }
@@ -80,6 +83,10 @@ final class BridgeConfig {
 
     static boolean penetration() {
         return MASTER.get() && PENETRATION.get();
+    }
+
+    static boolean floodlights() {
+        return MASTER.get() && FLOODLIGHTS.get();
     }
 
     static boolean explosives() {
