@@ -407,7 +407,7 @@ public final class BridgeGameTests {
     public static void theBridgeIsOnTheSwitchboard(GameTestHelper h) {
         var source = com.wf.wflib.core.api.Features.sources().stream().filter(x -> x.id().equals("ntm_continuum")).findFirst().orElse(null);
         h.assertTrue(source != null, "the bridge's group is registered");
-        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx", "pda")), "one box per bridge");
+        h.assertTrue(source.boxes().stream().map(com.wf.wflib.core.api.FeatureSource.Box::id).toList().equals(List.of("armour", "doors", "glyphids", "radiation", "nukes", "masses", "probe", "wiki", "soldiers", "warheads", "penetration", "bullets", "recon", "orbit", "explosionfx", "pda", "explosives")), "one box per bridge");
         boolean before = source.get("nukes");
         source.set("nukes", !before);
         h.assertTrue(source.get("nukes") == !before, "a box writes through to the config");
@@ -823,6 +823,35 @@ public final class BridgeGameTests {
         h.assertTrue(PdaBridge.broadcast(List.of(carrier), at.x + PdaBridge.HEARING * 2, at.z, net.minecraft.network.chat.Component.literal("t"), com.wf.wflib.pda.api.PdaAlert.Tier.INFO, PdaBridge.HEARING) == 0, "one out of range is not");
         h.assertTrue(PdaBridge.nuclear("hbm:missile_nuclear") && !PdaBridge.nuclear("hbm:missile_generic"), "nuclear launches are told apart");
         carrier.getInventory().clearContent();
+        h.succeed();
+    }
+
+    // ---------------------------------------------------------------- explosives
+
+    /** A Continuum landmine is an explosive to WFLib's detonator, goes off with its circuit, and a defuser lifts it without a blast. */
+    @GameTest(templateNamespace = "wflib_continuum", template = "empty", timeoutTicks = 40)
+    public static void continuumLandminesAnswerTheDetonatorAndTheDefuser(GameTestHelper h) {
+        var level = h.getLevel();
+        var mine = BuiltInRegistries.BLOCK.get(ResourceLocation.parse("hbm:mine_ap"));
+        var plain = net.minecraft.world.level.block.Blocks.STONE.defaultBlockState();
+        h.assertTrue(!com.wf.wflib.demolition.api.IDetonatable.isExplosive(plain), "stone is no explosive");
+        net.minecraft.core.BlockPos a = h.absolutePos(new net.minecraft.core.BlockPos(2, 2, 2)), b = h.absolutePos(new net.minecraft.core.BlockPos(6, 2, 6));
+        level.setBlockAndUpdate(a.below(), plain);
+        level.setBlockAndUpdate(b.below(), plain);
+        level.setBlockAndUpdate(a, mine.defaultBlockState());
+        level.setBlockAndUpdate(b, mine.defaultBlockState());
+        h.assertTrue(com.wf.wflib.demolition.api.IDetonatable.isExplosive(level.getBlockState(a)), "a Continuum mine is explosive to WFLib");
+        h.assertTrue(com.wf.wflib.demolition.api.IDetonatable.tryDetonate(level, a, null), "the circuit sets it off");
+        h.assertTrue(level.getBlockState(a).isAir(), "the mine is gone with its blast");
+        net.minecraft.server.level.ServerPlayer p = net.neoforged.neoforge.common.util.FakePlayerFactory.get(level, new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("mine-defuser".getBytes()), "mine_defuser"));
+        p.setPos(h.absoluteVec(new Vec3(6.5, 2.0, 4.5)));
+        p.getInventory().clearContent();
+        h.assertTrue(!ExplosivesBridge.defuse(p, level, b, level.getBlockState(b)), "without a defuser it stays");
+        p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse("hbm:defuser"))));
+        h.assertTrue(ExplosivesBridge.defuse(p, level, b, level.getBlockState(b)), "with one it comes up");
+        h.assertTrue(level.getBlockState(b).isAir(), "lifted, not blown");
+        h.assertTrue(!level.getEntitiesOfClass(ItemEntity.class, new AABB(b).inflate(2)).isEmpty(), "and drops as an item");
+        p.getInventory().clearContent();
         h.succeed();
     }
 }

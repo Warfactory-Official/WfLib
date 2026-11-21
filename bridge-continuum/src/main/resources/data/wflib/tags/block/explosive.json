@@ -1,0 +1,57 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "hbm:mine_ap",
+      "required": false
+    },
+    {
+      "id": "hbm:mine_he",
+      "required": false
+    },
+    {
+      "id": "hbm:mine_shrap",
+      "required": false
+    },
+    {
+      "id": "hbm:mine_fat",
+      "required": false
+    },
+    {
+      "id": "hbm:mine_naval",
+      "required": false
+    },
+    {
+      "id": "hbm:charge_dynamite",
+      "required": false
+    },
+    {
+      "id": "hbm:charge_miner",
+      "required": false
+    },
+    {
+      "id": "hbm:charge_c4",
+      "required": false
+    },
+    {
+      "id": "hbm:charge_semtex",
+      "required": false
+    },
+    {
+      "id": "hbm:det_charge",
+      "required": false
+    },
+    {
+      "id": "hbm:det_miner",
+      "required": false
+    },
+    {
+      "id": "hbm:block_semtex",
+      "required": false
+    },
+    {
+      "id": "hbm:block_c4",
+      "required": false
+    }
+  ]
+}

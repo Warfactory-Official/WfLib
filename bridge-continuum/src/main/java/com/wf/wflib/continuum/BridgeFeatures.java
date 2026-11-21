@@ -23,7 +23,8 @@ final class BridgeFeatures implements FeatureSource {
             new Box("recon", "Continuum on the radar", "Continuum's missiles and rockets are contacts on WFLib's radar and scopes; its explosions are heard by seismic sensors."),
             new Box("orbit", "Continuum satellites in orbit", "Continuum's satellites appear in WFLib's orbital catalogue and the PDA satellites app."),
             new Box("explosionfx", "WFLib explosion effects (experimental)", "Continuum's small, standard and large explosions are drawn with GemRender's shockwave, cloud and thrown ground."),
-            new Box("pda", "Continuum alerts on the PDA", "Missile launches and impacts, large blasts, satellites and radiation doses show as PDA alerts."));
+            new Box("pda", "Continuum alerts on the PDA", "Missile launches and impacts, large blasts, satellites and radiation doses show as PDA alerts."),
+            new Box("explosives", "Continuum mines and charges on the detonator", "Continuum's landmines and charges can be wired to a WFLib detonator; its landmines show in the probe with a defuse row."));
     private final Map<String, Boolean> started;
     private final boolean startedMaster;
 
