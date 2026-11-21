@@ -6,6 +6,7 @@ import com.wf.wflib.armor.api.ArmorMaterials;
 import com.wf.wflib.armor.api.ArmorPieceItem;
 import com.wf.wflib.armor.api.ArmorPreset;
 import com.wf.wflib.armor.api.ArmorPresets;
+import com.wf.wflib.armor.api.ArmorAssignment;
 import com.wf.wflib.armor.api.ArmorProfiles;
 import com.wf.wflib.armor.api.ProtectionType;
 import com.wf.wflib.armor.api.client.ArmorPieceClient;
@@ -98,6 +99,11 @@ public final class ArmorSystem implements WFSystem {
 
         ExoPopup.register();
         ArmorComponents.register(modBus);
+        modBus.addListener(net.neoforged.neoforge.registries.DataPackRegistryEvent.NewRegistry.class, event ->
+                event.dataPackRegistry(ArmorAssignment.REGISTRY, ArmorAssignment.CODEC, ArmorAssignment.CODEC));
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGH, net.neoforged.neoforge.event.server.ServerAboutToStartEvent.class,
+                event -> ArmorProfiles.applyData(event.getServer().registryAccess().registry(ArmorAssignment.REGISTRY)
+                        .map(r -> r.stream().toList()).orElse(List.of())));
         modBus.addListener(ArmorSystem::onRegister);
         modBus.addListener(FMLCommonSetupEvent.class, event -> event.enqueueWork(() -> ArmorPresets.live()
                 .forEach(preset -> {
@@ -135,6 +141,7 @@ public final class ArmorSystem implements WFSystem {
     @Override
     public void registerClient(IEventBus modBus) {
         NeoForge.EVENT_BUS.register(ArmorPieceClient.class);
+        NeoForge.EVENT_BUS.register(com.wf.wflib.armor.api.client.ArmorDataClient.class);
         if (WFSystems.enabled("probe")) {
             DressProbe.registerClient();
         }

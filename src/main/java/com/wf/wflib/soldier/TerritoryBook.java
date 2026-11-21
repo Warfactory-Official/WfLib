@@ -16,7 +16,7 @@ import java.util.Map;
 
 /** The world's territories, saved with it (so on dedicated servers too). */
 public final class TerritoryBook extends SavedData {
-    public static final int MAX = 128;
+    public static final int MAX = 640;
     private final Map<String, Territory> regions = new LinkedHashMap<>();
 
     public static TerritoryBook get(MinecraftServer s) {

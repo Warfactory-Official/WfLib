@@ -24,8 +24,10 @@ import com.wf.wflib.core.api.WFSystems;
 public class WFLibClient {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public WFLibClient(IEventBus modEventBus) {
+    public WFLibClient(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
         WFSystems.startClient(WFLib.MODID, modEventBus);
+        container.registerExtensionPoint(net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
+                (mod, parent) -> new com.wf.wflib.core.client.FeaturesScreen(parent));
     }
 
     @SubscribeEvent

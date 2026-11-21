@@ -7,8 +7,30 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.demolition.DemolitionTags;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
+
 /** A block that can be set off by a {@link DetonatorItem}. */
 public interface IDetonatable {
+
+    /**
+     * Another mod's explosive blocks: each answers for a state it knows how to set off, else null. Only blocks tagged
+     * {@code wflib:explosive} are asked, so a mod opts a block in by data and by an adapter here.
+     */
+    List<Function<BlockState, IDetonatable>> ADAPTERS = new CopyOnWriteArrayList<>();
+
+    /** The detonatable behind {@code state}: the block itself, or an adapter's answer; null when it is none or not tagged. */
+    @Nullable
+    static IDetonatable of(BlockState state) {
+        if (!state.is(DemolitionTags.EXPLOSIVE)) return null;
+        if (state.getBlock() instanceof IDetonatable d) return d;
+        for (Function<BlockState, IDetonatable> adapter : ADAPTERS) {
+            IDetonatable d = adapter.apply(state);
+            if (d != null) return d;
+        }
+        return null;
+    }
 
     /**
      * Set this block off.
@@ -22,7 +44,7 @@ public interface IDetonatable {
      * be detonated in code (implements this interface).
      */
     static boolean isExplosive(BlockState state) {
-        return state.is(DemolitionTags.EXPLOSIVE) && state.getBlock() instanceof IDetonatable;
+        return of(state) != null;
     }
 
     /**
@@ -32,7 +54,8 @@ public interface IDetonatable {
      */
     static boolean tryDetonate(ServerLevel level, BlockPos pos, @Nullable Player cause) {
         BlockState state = level.getBlockState(pos);
-        if (state.is(DemolitionTags.EXPLOSIVE) && state.getBlock() instanceof IDetonatable detonatable) {
+        IDetonatable detonatable = of(state);
+        if (detonatable != null) {
             detonatable.detonate(level, pos, state, cause);
             return true;
         }

@@ -71,6 +71,33 @@ public final class SquadClient {
             if (Minecraft.getInstance().screen instanceof CommandWheel) CommandWheel.drive(e.getInput());     // walk while choosing an order
         });
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent.class, OrderMarkers::onRenderLevel);
+        // soldiers are told apart by their orders and the squad list, not by floating names
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderNameTagEvent.class, e -> {
+            if (isSoldier(e.getEntity())) e.setCanRender(net.neoforged.neoforge.common.util.TriState.FALSE);
+        });
+        com.wf.wflib.map.api.client.WFMaps.radar(SquadClient::radar);
+    }
+
+    /** How far a soldier of yours shows on a map's radar. Past it the map shows nothing: a squad you cannot see is not on your map. */
+    public static final double RADAR_RANGE = 64;
+
+    /** A server player the tab list does not list is a soldier (the server unlists them all). */
+    public static boolean isSoldier(net.minecraft.world.entity.Entity e) {
+        if (!(e instanceof net.minecraft.world.entity.player.Player p)) return false;
+        var connection = Minecraft.getInstance().getConnection();
+        var info = connection == null ? null : connection.getPlayerInfo(p.getUUID());
+        return info != null && !connection.getListedOnlinePlayers().contains(info);
+    }
+
+    /** Your own soldiers within {@link #RADAR_RANGE} as small dots with their names; every other soldier is left off the map. */
+    private static com.wf.wflib.map.api.client.RadarFilter.Verdict radar(net.minecraft.world.entity.Entity e) {
+        if (!isSoldier(e)) return null;
+        var me = Minecraft.getInstance().player;
+        if (me == null || me.distanceToSqr(e) > RADAR_RANGE * RADAR_RANGE) return com.wf.wflib.map.api.client.RadarFilter.Verdict.HIDE;
+        for (SquadPackets.Member m : members) {
+            if (m.uuid().equals(e.getUUID())) return com.wf.wflib.map.api.client.RadarFilter.Verdict.dot(m.name(), 0x7CFC6A);
+        }
+        return com.wf.wflib.map.api.client.RadarFilter.Verdict.HIDE;
     }
 
     public static void roster(List<SquadPackets.Member> list) {

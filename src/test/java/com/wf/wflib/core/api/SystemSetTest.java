@@ -88,15 +88,15 @@ class SystemSetTest {
     }
 
     @Test
-    void requireEnablesLateWithWarningAndRegisters() {
+    void requireEnablesLateQuietlyAndRegisters() {
         SystemSet s = set(Set.of("base"));
         s.start(null, null);
         s.require("dep", "a");
         assertEquals(List.of("base", "a", "b", "c").stream().sorted().toList(), registered.stream().sorted().toList());
-        assertEquals(3, issues.size());
+        assertEquals(0, issues.size(), "a mod needing a system is not a mistake in the config");
         assertEquals(Set.of("base", "a", "b", "c"), s.effective());
         s.require("dep2", "a");
-        assertEquals(3, issues.size());
+        assertEquals(0, issues.size());
     }
 
     @Test
@@ -181,8 +181,7 @@ class SystemSetTest {
             assertFalse(WFSystems.enabled("dep:idle"));
             assertEquals(Set.of("dep:aux", "dep:gun"), dep.qualifiedEffective());
             assertTrue(registered.contains("a") && registered.contains("b"));
-            assertTrue(issues.stream().anyMatch(i -> i.translationArgs().contains("a")
-                    && i.translationArgs().contains("dep:gun") && i.translationArgs().contains("wflib")));
+            assertTrue(issues.stream().noneMatch(i -> i.translationArgs().contains("wflib")), "wflib systems a dependent needs turn on without a warning");
             assertTrue(issues.stream().anyMatch(i -> i.translationArgs().contains("aux")));
         } finally {
             WFSystems.reset();

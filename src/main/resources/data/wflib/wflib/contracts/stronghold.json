@@ -1,0 +1,18 @@
+{
+  "title": "Stronghold",
+  "description": "A warlord holds a walled fortress with towers, trenches and outposts. Break it and take him.",
+  "offer": { "distance": [350, 700], "time_limit_min": 50 },
+  "gate": { "rank": "proven" },
+  "site": {
+    "radius": 44,
+    "base": "fortress",
+    "squads": [
+      { "faction": "enemy", "count": 2, "mode": "guard" },
+      { "faction": "enemy", "count": 6, "mode": "patrol" },
+      { "faction": "enemy", "count": 4, "mode": "patrol" }
+    ]
+  },
+  "objectives": [ { "type": "kill_target", "squad": 0 } ],
+  "rewards": { "money": 4000, "rep": 90, "items": [ { "item": "minecraft:gold_ingot", "count": 26 } ] },
+  "failure": { "penalty_rep": 20 }
+}

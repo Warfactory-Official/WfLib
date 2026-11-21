@@ -169,7 +169,7 @@ public final class Recruits {
             book.removePending(p);
             try {
                 var c = hirer.hire(owner, p.variant(), true);
-                owner.sendSystemMessage(Component.literal(c.callsign + " has arrived and joined " + Companion.TEAMS[c.fireTeam]));
+                owner.sendSystemMessage(Component.literal(c.person() + " has arrived and joined " + Companion.TEAMS[c.fireTeam]));
             } catch (IllegalArgumentException ex) {
                 owner.sendSystemMessage(Component.literal("A hire could not arrive: " + ex.getMessage()));
             }

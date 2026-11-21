@@ -75,7 +75,7 @@ public final class SoldierEditor {
             p.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(.6);
             p.setHealth(40);
         }
-        p.setCustomName(Component.literal(u.name())); p.setCustomNameVisible(true);
+        p.setCustomName(Component.literal(u.name())); p.setCustomNameVisible(false);
         var bot=SoldierAi.botOf(p.getGameProfile().getName()); bot.range=u.range(); bot.spreadDeg=u.spread();
         return p;
     }

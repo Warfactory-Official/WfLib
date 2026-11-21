@@ -811,8 +811,20 @@ public class EntityGlyphid extends Monster implements DynamicResistance, Glyphid
         dropGlyphidLoot(level, looting);
     }
 
-    /** Caste-specific drops. Empty until the glyphid item set lands with the hive port. */
+    /** A drop another mod adds to every glyphid's death: the glyphid, the level and the killer's looting level. */
+    @FunctionalInterface
+    public interface GlyphidDrop {
+        void drop(EntityGlyphid glyphid, ServerLevel level, int looting);
+    }
+
+    /** Listeners called by {@link #dropGlyphidLoot}; add at setup, never remove. */
+    public static final java.util.List<GlyphidDrop> DROPS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /** Caste-specific drops: whatever {@link #DROPS} lists. WFLib has no glyphid items of its own yet. */
     protected void dropGlyphidLoot(ServerLevel level, int looting) {
+        for (GlyphidDrop drop : DROPS) {
+            drop.drop(this, level, looting);
+        }
     }
 
     @Override

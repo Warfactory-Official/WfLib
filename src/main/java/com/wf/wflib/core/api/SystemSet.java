@@ -21,6 +21,7 @@ import java.util.function.Predicate;
  * on system or by {@link #require}. Only on systems get {@code register}/{@code registerClient}.
  */
 public final class SystemSet {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SystemSet.class);
     private static final String BY_REQUIRE =
             "{0}: system ''{1}'' is off in {2} but {3} needs it; it was turned on.";
 
@@ -101,7 +102,7 @@ public final class SystemSet {
             }
         }
         for (String id : List.copyOf(fresh)) {
-            closure(id, fresh);
+            closure(id, fresh, true);
         }
         activate(fresh);
     }
@@ -117,7 +118,7 @@ public final class SystemSet {
         }
     }
 
-    /** Turns on, with their requirements, systems a dependent needs; legal until {@link #close}. */
+    /** Turns on, with their requirements, systems a dependent needs; legal until {@link #close}. Quiet: a mod needing a system is not a mistake in the config. */
     public synchronized void require(String requirer, String... ids) {
         started("require");
         if (closed) {
@@ -130,9 +131,9 @@ public final class SystemSet {
             }
             known(id);
             if (!on.contains(id) && fresh.add(id)) {
-                issues.accept(ModLoadingIssue.warning(BY_REQUIRE, modId, id, configFile, requirer));
+                LOGGER.info("{}: system '{}' was turned on because {} needs it", modId, id, requirer);
             }
-            closure(id, fresh);
+            closure(id, fresh, false);
         }
         activate(fresh);
     }
@@ -142,7 +143,8 @@ public final class SystemSet {
         closed = true;
     }
 
-    private void closure(String root, Set<String> fresh) {
+    /** @param warn whether a requirement switched off in the config is a loading warning (the file contradicts itself) or just a fact (a mod needs it) */
+    private void closure(String root, Set<String> fresh, boolean warn) {
         Deque<String> work = new ArrayDeque<>();
         work.add(root);
         while (!work.isEmpty()) {
@@ -153,7 +155,8 @@ public final class SystemSet {
                 }
                 known(need);
                 if (!on.contains(need) && fresh.add(need)) {
-                    issues.accept(ModLoadingIssue.warning(BY_REQUIRE, modId, need, configFile, from));
+                    if (warn) issues.accept(ModLoadingIssue.warning(BY_REQUIRE, modId, need, configFile, from));
+                    else LOGGER.info("{}: system '{}' was turned on because {} needs it", modId, need, from);
                     work.add(need);
                 }
             }

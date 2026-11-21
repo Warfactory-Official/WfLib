@@ -36,6 +36,55 @@ public final class Soldiers {
     private Soldiers() {
     }
 
+    /** The role a saved variant plays ("rifle", "sniper", "mg", "medic", "heavy", "assault", "grenadier"), or "rifle" for one that is gone. */
+    public static String roleOf(MinecraftServer server, String variant) {
+        var unit = com.wf.wflib.soldier.SoldierRoster.get(server).units().get(variant);
+        return unit == null ? "rifle" : unit.role().id;
+    }
+
+    /** The soldier's person name (custom name, else the profile name): what maps and squad lists show. */
+    public static String displayName(ServerPlayer soldier) {
+        var n = soldier.getCustomName();
+        // older saved variants carry the grade in brackets ("Ivan Petrov (Conscript)"); a person's name has none
+        return n == null ? soldier.getGameProfile().getName() : n.getString().replaceFirst("\\s*\\((Conscript|Regular|Veteran|Elite)\\)$", "");
+    }
+
+    /**
+     * Takes a soldier out of every client's tab list (it stays a player for everything else). A client treats an unlisted
+     * player entry as a soldier, which is how the maps tell them from people.
+     */
+    public static void unlist(MinecraftServer server, ServerPlayer soldier) {
+        var packet = unlisted(server, soldier);
+        if (packet != null) server.getPlayerList().broadcastAll(packet);
+    }
+
+    /** Tells a player who just joined which soldiers are not listed (the join packets list everyone). */
+    public static void unlistAllFor(ServerPlayer human) {
+        var server = human.getServer();
+        if (server == null) return;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (!(p instanceof SoldierPlayer)) continue;
+            var packet = unlisted(server, p);
+            if (packet != null) human.connection.send(packet);
+        }
+    }
+
+    private static net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket unlisted(MinecraftServer server, ServerPlayer soldier) {
+        // the packet has no public constructor for an unlisted entry, so it is written the way the wire has it and read back
+        var buf = new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), server.registryAccess());
+        try {
+            buf.writeEnumSet(java.util.EnumSet.of(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED),
+                    net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.class);
+            buf.writeCollection(List.of(soldier), (b, p) -> {
+                b.writeUUID(p.getUUID());
+                b.writeBoolean(false);
+            });
+            return net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.STREAM_CODEC.decode(buf);
+        } finally {
+            buf.release();
+        }
+    }
+
     /** True while a soldier's join or death would otherwise show in chat. */
     public static boolean quiet() {
         return SoldierPlayer.quiet();
@@ -72,6 +121,10 @@ public final class Soldiers {
         wear(p, spec.armour());
         Headlamp.issue(p);
         SoldierAi.spawned(server, name, spec, owner == null ? null : owner.getUUID(), at, yaw);
+        // a person's name for maps and lists (the profile name stays unique and short: Vasya_Ace_3); never drawn over the head
+        p.setCustomName(net.minecraft.network.chat.Component.literal(SoldierNames.display(new java.util.Random(name.hashCode()))));
+        p.setCustomNameVisible(false);
+        unlist(server, p);
         return p;
     }
 

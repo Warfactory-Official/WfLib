@@ -23,7 +23,10 @@ public final class PmcClient {
             if (PmcApp.open() && ++ticks % REFRESH_TICKS == 0) request();
         });
         modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class, com.wf.wflib.contract.item.client.PmcItemModels::register);
-        if (com.wf.wflib.core.api.WFSystems.enabled("worldstats")) com.wf.wflib.worldstats.api.WorldStats.tag("threat", () -> threat.isEmpty() ? null : threat);
+        if (com.wf.wflib.core.api.WFSystems.enabled("worldstats")) {
+            com.wf.wflib.worldstats.api.WorldStats.tag("threat", () -> threat.isEmpty() ? null : threat);
+            com.wf.wflib.worldstats.api.WorldStats.section("missions", PmcClient::missionLines);
+        }
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
             PmcApp.register();
             PdaApps.register(PmcApp.INSTANCE, 700);
@@ -90,6 +93,49 @@ public final class PmcClient {
     /** The server's word on this operator's tier; shown by WFLib's world-stats overlay as {threat}. */
     public static void threat(String text) {
         threat = text;
+    }
+
+    private record Mission(PmcNet.Mission data, long seenAt) {}
+
+    private static volatile java.util.List<Mission> missions = java.util.List.of();
+
+    /** The contracts this player is on (waypoints and the mission log). Client thread. */
+    public static void missions(java.util.List<PmcNet.Mission> list) {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        long now = mc.level == null ? 0 : mc.level.getGameTime();
+        missions = list.stream().map(m -> new Mission(m, now)).toList();
+        com.wf.wflib.map.api.client.WFMaps.waypoints("missions", list.stream().map(m -> new com.wf.wflib.map.api.client.MapWaypoint(
+                m.title(), net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,
+                net.minecraft.resources.ResourceLocation.parse(m.dimension())), new net.minecraft.core.BlockPos(m.x(), m.y(), m.z()), 0xFFD24A)).toList());
+    }
+
+    /** The mission log's lines for the overlay: a header, then each contract with how far off it is and how long is left. */
+    static java.util.List<String> missionLines() {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        if (missions.isEmpty() || mc.player == null || mc.level == null) return null;
+        java.util.List<String> out = new java.util.ArrayList<>();
+        out.add("\u00a76Missions");
+        long now = mc.level.getGameTime();
+        for (Mission m : missions) {
+            var d = m.data();
+            String where;
+            if (!d.dimension().equals(mc.level.dimension().location().toString())) {
+                where = "other dimension";
+            } else {
+                double dx = d.x() + 0.5 - mc.player.getX(), dz = d.z() + 0.5 - mc.player.getZ();
+                int dist = (int) Math.round(Math.sqrt(dx * dx + dz * dz));
+                where = (dist >= 1000 ? String.format(java.util.Locale.ROOT, "%.1f km", dist / 1000.0) : dist + " m") + " " + compass(dx, dz);
+            }
+            long left = Math.max(0, d.ticksLeft() - (now - m.seenAt())) / 20;
+            out.add("\u00a7e" + d.title() + " \u00a7f" + where + " \u00a77" + (left / 60) + ":" + String.format(java.util.Locale.ROOT, "%02d", left % 60));
+        }
+        return out;
+    }
+
+    private static String compass(double dx, double dz) {
+        String[] names = {"E", "SE", "S", "SW", "W", "NW", "N", "NE"};
+        double a = Math.toDegrees(Math.atan2(dz, dx));
+        return names[(int) Math.floorMod(Math.round(a / 45.0), 8)];
     }
 
     public static void accept(Snapshot s) {

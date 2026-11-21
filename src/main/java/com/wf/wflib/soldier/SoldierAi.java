@@ -2066,7 +2066,13 @@ public final class SoldierAi {
     }
 
     static String arm(ServerPlayer p, ResourceLocation gunId, int spares, List<ResourceLocation> grenades) {
-        return SoldierServices.weapon().arm(p, gunId, spares, grenades);
+        try {
+            return SoldierServices.weapon().arm(p, gunId, spares, grenades);
+        } catch (IllegalArgumentException e) {
+            // A soldier saved with a gun whose mod is gone must not take the server tick with it: it stays unarmed.
+            com.mojang.logging.LogUtils.getLogger().warn("Soldier {} cannot be armed with {}: {}", p.getGameProfile().getName(), gunId, e.getMessage());
+            return "unarmed: " + e.getMessage();
+        }
     }
 
     private static Method forward, strafing, sprinting, sneaking;

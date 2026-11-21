@@ -16,6 +16,10 @@ public interface MapHost {
     /** Replace everything {@code layer} drew. Client thread. Empty list = clear. */
     void show(String layer, ResourceKey<Level> dimension, List<MapShape> shapes);
 
+    /** Replace every waypoint {@code layer} made (a map mod's own waypoints, not overlays). Client thread. Empty list = clear. */
+    default void waypoints(String layer, List<MapWaypoint> list) {
+    }
+
     default boolean hasFullscreen() {
         return false;
     }

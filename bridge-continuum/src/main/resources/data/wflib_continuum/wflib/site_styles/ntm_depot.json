@@ -1,0 +1,47 @@
+{
+  "_about": "After the asbestos buildings of NTM's military_base: asbestos brick and concrete on light asphalt, a low asbestos wall with chain-link and wire, steel Quonset halls, lattice towers all round, a lattice mast.",
+  "weight": 2,
+  "layout": {
+    "paved": "false",
+    "perimeter": "layered",
+    "gate": "frame",
+    "gateTowers": "lattice",
+    "cornerTowers": "lattice",
+    "hall": "quonset",
+    "mast": "lattice"
+  },
+  "roles": {
+    "heavy": "hbm:concrete_asbestos",
+    "body": "hbm:brick_asbestos",
+    "trim": "hbm:concrete_asbestos",
+    "plinth": "hbm:concrete_asbestos",
+    "band": "hbm:concrete_asbestos",
+    "floor": "hbm:concrete",
+    "slab": "hbm:concrete_asbestos_slab",
+    "glass": "hbm:reinforced_glass",
+    "steel": "hbm:deco_steel",
+    "hesco": "hbm:concrete_asbestos",
+    "bag": "hbm:sandbags",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:fence_metal_post",
+    "fence": "hbm:fence_metal",
+    "fencePost": "hbm:fence_metal_post",
+    "edge": "hbm:concrete_asbestos",
+    "mark": "hbm:concrete_colored",
+    "boomA": "minecraft:red_concrete",
+    "boomB": "hbm:concrete_asbestos"
+  },
+  "parts": {
+    "hazard": "hbm:concrete_colored_ext[type=hazard]",
+    "poleA": "hbm:concrete_colored[color=red]",
+    "poleB": "hbm:concrete_colored[color=white]",
+    "wire": "hbm:barbed_wire",
+    "lattice": "hbm:steel_scaffold[orient=horizontal_north_south,variant=steel]",
+    "cab": "hbm:platemetal_base",
+    "arch": "hbm:deco_steel",
+    "lamp": "hbm:spotlight_halogen[facing=down,broken=false]"
+  },
+  "containers": [
+    "hbm:platemetal_base"
+  ]
+}

@@ -170,7 +170,11 @@ neoForge {
         }
         gameTestServer {
             type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            // -PwithContinuum adds NTM: Continuum, Golem Core and the bridge (bridge-continuum/) to the run, and its tests to the namespaces;
+            // -PcontinuumOnly runs only the bridge's.
+            systemProperty 'neoforge.enabledGameTestNamespaces',
+                    project.hasProperty('continuumOnly') ? 'wflib_continuum'
+                            : project.hasProperty('withContinuum') ? "${project.mod_id},wflib_continuum" : project.mod_id
         }
         data {
             data()
@@ -187,6 +191,7 @@ neoForge {
                     project.hasProperty('labs') ? 'run-labs'
                             : project.hasProperty('withIR') ? 'run-ir'
                             : project.hasProperty('withWarforge') ? 'run-warforge'
+                            : project.hasProperty('withContinuum') ? 'run-continuum'
                             : delegate.name == 'gameTestServer' ? 'run-gametest' : 'run')
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             logLevel = org.slf4j.event.Level.DEBUG
@@ -394,6 +399,13 @@ dependencies {
     if (project.hasProperty('withWarforge')) {
         localRuntime("com.flansmod.warforge:warforge-remaintained-1.21.1-neoforge:${warforge_version}-SNAPSHOT") { transitive = false }
         localRuntime "com.lowdragmc.ldlib2:ldlib2-neoforge-${minecraft_version}:${ldlib2_version}:all"
+    }
+
+    // Dev-only: `-PwithContinuum` puts NTM: Continuum, Golem Core and the bridge addon on the dev run (build the bridge first:
+    // ./gradlew -p bridge-continuum build). Jar paths in gradle.properties. Off by default.
+    if (project.hasProperty('withContinuum')) {
+        localRuntime files(continuum_golem_jar, continuum_hbm_jar, continuum_bridge_jar)
+        localRuntime("warfactory.ultimateweight:wfweight-1.21.1-neoforge:1.0.0-SNAPSHOT") { transitive = false }
     }
 
     // --- Immersive Railroading (compile-only optional integration) ---------------------------

@@ -48,6 +48,45 @@ public final class ArmorProfiles {
         clearDerived();
     }
 
+    /** Datapack elements ({@link ArmorAssignment}), highest priority last so that a later match overrides; replaced whole on each load. */
+    private static volatile java.util.List<ArmorAssignment> data = java.util.List.of();
+
+    /** Installs the datapack plane (server at start, remote client at login) over the code plane. */
+    public static void applyData(java.util.Collection<ArmorAssignment> assignments) {
+        java.util.List<ArmorAssignment> sorted = new java.util.ArrayList<>(assignments);
+        sorted.sort(java.util.Comparator.comparingInt(ArmorAssignment::priority));
+        data = java.util.List.copyOf(sorted);
+        org.slf4j.LoggerFactory.getLogger("wflib/armor").info("{} armour profile element(s) loaded from data", sorted.size());
+        AUTHORED_MEMO.clear();
+        clearDerived();
+    }
+
+    /** Tags bound or changed: what a tag target covers may have moved. */
+    public static void tagsChanged() {
+        AUTHORED_MEMO.clear();
+        clearDerived();
+    }
+
+    @Nullable
+    private static ArmorSpec dataSpec(Item item) {
+        java.util.List<ArmorAssignment> list = data;
+        if (list.isEmpty()) {
+            return null;
+        }
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        var holder = BuiltInRegistries.ITEM.wrapAsHolder(item);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            try {
+                if (list.get(i).targets().contains(holder)) {
+                    return list.get(i).toSpec(id, ArmorUnits.POINTS_PER_DAMAGE);
+                }
+            } catch (IllegalStateException unboundTag) {
+                // tags not bound yet: this element covers nothing until they are
+            }
+        }
+        return null;
+    }
+
     /** @return the spec for this stack, or null if it is not armour this system knows about */
     @Nullable
     public static ArmorSpec specFor(ItemStack stack) {
@@ -55,8 +94,8 @@ public final class ArmorProfiles {
             return null;
         }
         Item item = stack.getItem();
-        ArmorSpec authored = AUTHORED_MEMO.computeIfAbsent(item, i -> Optional.ofNullable(
-                AUTHORED.get(BuiltInRegistries.ITEM.getKey(i)))
+        ArmorSpec authored = AUTHORED_MEMO.computeIfAbsent(item, i -> Optional.ofNullable(dataSpec(i))
+                .or(() -> Optional.ofNullable(AUTHORED.get(BuiltInRegistries.ITEM.getKey(i))))
                 .map(s -> s.withMaxCondition(conditionScale(i, s.maxCondition())))).orElse(null);
         if (authored != null) {
             return rebase(authored, stack);

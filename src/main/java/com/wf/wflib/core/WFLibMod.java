@@ -105,7 +105,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 public class WFLibMod {
     public static final String MODID = "wflib";
 
-    static final List<WFSystem> SYSTEMS = List.of(
+    public static final List<WFSystem> SYSTEMS = List.of(
             new SimSystem(),
             new SoldierSystem(),
             new CompatSystem(),
@@ -176,7 +176,8 @@ public class WFLibMod {
         ServerTicks.STOPPING.register(
                 ResourceLocation.fromNamespaceAndPath(MODID, "workers"),
                 TickOrder.WORKERS_STOP, server -> WorkerPool.shutdown());
-        WFSystems.define(MODID, modEventBus, modContainer, SYSTEMS);
+        com.wf.wflib.core.features.FeatureConfig.register(modContainer);
+        WFSystems.define(MODID, modEventBus, modContainer, SYSTEMS, id -> com.wf.wflib.core.api.Features.systemConfigured(id, true));
         if (LabsSystem.headlessRequested() && !FMLEnvironment.production) {
             WFLibContent.everything(MODID + " labs");
         }

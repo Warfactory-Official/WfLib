@@ -17,9 +17,10 @@ import java.util.List;
  * Glare on a soldier's headlamp shining at the camera: a hot core, a halo and star / anamorphic streaks, additive
  * billboards at the lamp drawn in the level pass (so exports and replays have them), strongest looking straight down the
  * beam and gone past the cone. Depth-tested: anything in front of the lamp hides it per pixel. The lamps are the ones
- * {@link SoldierLightClient} submits, one frame late.
+ * {@link SoldierLightClient} submits, one frame late, and any other mod's lamps given to {@link #add(double, double, double, Vector3f, int, float, float, float, float, boolean)}
+ * during the frame (a floodlight's: the spot lights GemRender draws have no glare of their own).
  */
-final class LampFlare {
+public final class LampFlare {
     /** Core / halo / streak reach as angles from the camera, rad; the world size clamps keep far lamps seen, near ones sane. */
     private static final float CORE_RAD = 0.006F, HALO_RAD = 0.05F, STREAK_RAD = 0.2F;
     private static final float CORE_MIN = 0.04F, CORE_MAX = 0.35F, HALO_MIN = 0.25F, HALO_MAX = 3.0F, STREAK_MIN = 0.8F,
@@ -34,9 +35,31 @@ final class LampFlare {
     /** Daylight washes a flare out. */
     private static final float DAY = 0.45F;
 
-    private record Source(double x, double y, double z, Vector3f dir) {}
+    private record Source(double x, double y, double z, Vector3f dir, int rgb, float inner, float outer, float range, float scale, boolean star) {}
 
     private static final List<Source> SOURCES = new ArrayList<>();
+    /** Other mods' lamps for the frame being drawn; emptied once it is. */
+    private static final List<Source> OTHERS = new ArrayList<>();
+    private static boolean listening;
+
+    /** Draws flares from now on; once, whoever asks first. */
+    static synchronized void listen() {
+        if (listening) return;
+        listening = true;
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(LampFlare::onRenderLevel);
+    }
+
+    /**
+     * A lamp of this frame that flares at a camera inside its beam: at {@code (x, y, z)}, shining along {@code dir}, with the colour and cone of the light it
+     * casts ({@code range} blocks, half angles in degrees); {@code scale} sizes core, halo and streaks against a soldier's headlamp (1). {@code star}: the
+     * screen-aligned star and streak too; without it only the round core and halo, which look the same however the camera turns. Render thread; call every
+     * frame the lamp is lit (a light provider's collect is the place).
+     */
+    public static void add(double x, double y, double z, Vector3f dir, int rgb, float innerDeg, float outerDeg, float range, float scale, boolean star) {
+        if (FeedPass.active()) return;
+        listen();
+        OTHERS.add(new Source(x, y, z, new Vector3f(dir), rgb, innerDeg, outerDeg, range, scale, star));
+    }
 
     private LampFlare() {}
 
@@ -46,7 +69,8 @@ final class LampFlare {
     }
 
     static void add(double x, double y, double z, Vector3f dir) {
-        if (!FeedPass.active()) SOURCES.add(new Source(x, y, z, new Vector3f(dir)));
+        if (!FeedPass.active()) SOURCES.add(new Source(x, y, z, new Vector3f(dir), SoldierLightClient.COLOR, SoldierLightClient.INNER,
+                SoldierLightClient.OUTER, SoldierLightClient.RANGE, 1, true));
     }
 
     /** How much of the flare shows: 1 inside the inner cone, 0 at {@code CONE_SLACK} x the outer half angle. */
@@ -75,7 +99,7 @@ final class LampFlare {
     static void onRenderLevel(RenderLevelStageEvent e) {
         if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || FeedPass.active()) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || SOURCES.isEmpty()) return;
+        if (mc.level == null || SOURCES.isEmpty() && OTHERS.isEmpty()) return;
         Camera cam = e.getCamera();
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
         VertexConsumer vc = buffers.getBuffer(LampFlareTypes.ADDITIVE);
@@ -83,26 +107,29 @@ final class LampFlare {
         float day = mc.level.isDay() ? DAY : 1;
         Vector3f right = new Vector3f(1, 0, 0).rotate(cam.rotation());
         Vector3f up = new Vector3f(0, 1, 0).rotate(cam.rotation());
-        float r = (SoldierLightClient.COLOR >> 16 & 255) / 255F, g = (SoldierLightClient.COLOR >> 8 & 255) / 255F,
-                b = (SoldierLightClient.COLOR & 255) / 255F;
-        for (Source s : SOURCES) {
+        List<Source> all = new ArrayList<>(SOURCES);
+        all.addAll(OTHERS);
+        OTHERS.clear();
+        for (Source s : all) {
+            float r = (s.rgb >> 16 & 255) / 255F, g = (s.rgb >> 8 & 255) / 255F, b = (s.rgb & 255) / 255F;
             Vector3f to = new Vector3f((float) (cam.getPosition().x - s.x), (float) (cam.getPosition().y - s.y),
                     (float) (cam.getPosition().z - s.z));
             float dist = to.length();
             if (dist < 0.3F) continue;
             to.div(dist);
-            float k = visibility(s.dir, to, SoldierLightClient.INNER, SoldierLightClient.OUTER)
-                    * distanceFade(dist, SoldierLightClient.RANGE) * day * GAIN;
+            float k = visibility(s.dir, to, s.inner, s.outer) * distanceFade(dist, s.range) * day * GAIN;
             if (k <= 0.01F) continue;
-            // Camera-relative, lifted toward the camera.
+            float halo = s.scale * size(dist, HALO_RAD, HALO_MIN, HALO_MAX), core = s.scale * size(dist, CORE_RAD, CORE_MIN, CORE_MAX),
+                    streak = s.scale * size(dist, STREAK_RAD, STREAK_MIN, STREAK_MAX);
+            // Camera-relative, lifted toward the camera: along the line to the eye it stays on the lamp on screen. A star-less glare (a fixture's) is lifted by
+            // its halo, so the housing it sits in cannot cut the disc.
+            float lift = s.star ? LIFT : Math.min(LIFT + halo, dist * 0.5F);
             Vector3f c = new Vector3f((float) (s.x - cam.getPosition().x), (float) (s.y - cam.getPosition().y),
-                    (float) (s.z - cam.getPosition().z)).add(new Vector3f(to).mul(LIFT));
-            float halo = size(dist, HALO_RAD, HALO_MIN, HALO_MAX), core = size(dist, CORE_RAD, CORE_MIN, CORE_MAX),
-                    streak = size(dist, STREAK_RAD, STREAK_MIN, STREAK_MAX);
+                    (float) (s.z - cam.getPosition().z)).add(new Vector3f(to).mul(lift));
             glow(vc, pose, c, right, up, halo, r, g, b, 0.5F * Math.min(k, 1), 2.2F);
             // Looking straight down the beam adds the star; off to the side only the halo.
             float star = Math.max(0, k - 0.35F) / 0.65F;
-            if (star > 0) streaks(vc, pose, c, right, up, streak, r, g, b, star);
+            if (star > 0 && s.star) streaks(vc, pose, c, right, up, streak, r, g, b, star);
             glow(vc, pose, c, right, up, core, 1, 1, 1, Math.min(k * 1.4F, 1), 1.4F);
         }
         buffers.endBatch(LampFlareTypes.ADDITIVE);

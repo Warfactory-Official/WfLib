@@ -16,7 +16,7 @@ import java.util.List;
  */
 public record ContractDef(ResourceLocation id, String title, String description, Rank gate, int minDistance, int maxDistance,
                           int timeLimitMinutes, int radius, List<Squad> squads, List<Objective> objectives, int money, int rep,
-                          int penaltyRep, String employer, int buyIn, List<Cargo> cargo, String source, List<Cargo> items) {
+                          int penaltyRep, String employer, int buyIn, List<Cargo> cargo, String source, List<Cargo> items, String base) {
     public static final int MAX_SQUADS = 8, MAX_SQUAD_SIZE = 60, MAX_MONEY = 10_000_000, MAX_REP = 1000;
 
     /**
@@ -144,7 +144,7 @@ public record ContractDef(ResourceLocation id, String title, String description,
         }
         String source = j.has("source") ? string(j, "source") : "board";
         if (!source.equals("board") && !source.equals("intel")) throw new IllegalArgumentException("source is board or intel");
-        return new ContractDef(id, title, description, gate, lo, hi, limit, radius, squads, objectives, money, rep, penalty, employer, buyIn, cargo, source, items);
+        return new ContractDef(id, title, description, gate, lo, hi, limit, radius, squads, objectives, money, rep, penalty, employer, buyIn, cargo, source, items, site.has("base") ? baseId(site) : "");
     }
 
     /** The file form of this contract: {@code parse(id, toJson())} gives it back. Daily contracts are saved this way. */
@@ -178,6 +178,7 @@ public record ContractDef(ResourceLocation id, String title, String description,
             sq.add(o);
         }
         site.add("squads", sq);
+        if (!base.isEmpty()) site.addProperty("base", base);
         j.add("site", site);
         JsonArray obj = new JsonArray();
         for (Objective o : objectives) {
@@ -232,6 +233,13 @@ public record ContractDef(ResourceLocation id, String title, String description,
         }
         j.addProperty("source", source);
         return j;
+    }
+
+    /** The base archetype a site names ("outpost", "compound", "fortress"); anything else is refused when the file loads. */
+    private static String baseId(JsonObject site) {
+        String id = string(site, "base");
+        com.wf.wflib.contract.site.BaseKind.byId(id);
+        return id;
     }
 
     private static String string(JsonObject j, String key) {

@@ -55,6 +55,20 @@ public final class PlayerArms {
     /** Forearm twist segments: joints lower, twist1..{@code TWISTS - 1}, fist. */
     public static final int TWISTS = 6;
 
+    /**
+     * Another mod's armour on the first-person arms: sleeves drawn on the posed bones. {@code arms} are, per side (right 0, left 1), frames that take a
+     * vanilla arm part's local space (blocks, model axes) to the frame {@code base} draws from: the upper arm at {@code [side * 2]} (good above the elbow,
+     * 4 px down the part), the forearm at {@code [side * 2 + 1]} (below it). Returns which sides it covered (bit 0 right, bit 1 left), so their skin
+     * sleeves are hidden; 0 when the player wears nothing of it. Render thread.
+     */
+    @FunctionalInterface
+    public interface Sleeves {
+        int draw(AbstractClientPlayer player, Matrix4fc[] arms, Matrix4f base, int light, DirectPass pass);
+    }
+
+    public static final java.util.List<Sleeves> SLEEVES = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final Matrix4f[] sleeveFrames = {new Matrix4f(), new Matrix4f(), new Matrix4f(), new Matrix4f()};
+
     /** Shoulder -> elbow; elbow -> fist end. */
     public record Lengths(float upper, float forearm) { }
 
@@ -197,6 +211,19 @@ public final class PlayerArms {
             GemRenderGltfModel armour = armoured ? ArmorPieceClient.model(worn) : null;
             if (armour != null) {
                 armour(armour, base, light, argb, pass);
+            }
+        }
+        if (!SLEEVES.isEmpty()) {
+            for (int side = 0; side < 2; side++) {
+                float axis = (side == 0 ? -1 : 1) / 16F;
+                sleeveFrames[side * 2].set(palette[joints[side][0]]).scale(UPPER_ACROSS, lengths.upper() / ELBOW, UPPER_ACROSS).translate(-axis, 0, 0);
+                sleeveFrames[side * 2 + 1].set(palette[joints[side][1]]).scale(FOREARM_ACROSS, lengths.forearm() / (FIST - ELBOW), FOREARM_ACROSS)
+                        .translate(-axis, -ELBOW, 0);
+            }
+            for (Sleeves sleeves : SLEEVES) {
+                int sides = sleeves.draw(player, sleeveFrames, base, light, pass);
+                covered[0] |= (sides & 1) != 0;
+                covered[1] |= (sides & 2) != 0;
             }
         }
         bindSkins();

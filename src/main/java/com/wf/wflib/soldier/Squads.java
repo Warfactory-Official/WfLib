@@ -72,8 +72,8 @@ public final class Squads {
             p.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(.6);
             p.setHealth(40);
         }
-        p.setCustomName(Component.literal(c.callsign.replace('_', ' ')));
-        p.setCustomNameVisible(true);
+        p.setCustomName(Component.literal(c.person()));
+        p.setCustomNameVisible(false);
         SoldierAi.Bot b = SoldierAi.botOf(p.getGameProfile().getName());
         b.companion = c.id;
         b.fireTeam = c.fireTeam;

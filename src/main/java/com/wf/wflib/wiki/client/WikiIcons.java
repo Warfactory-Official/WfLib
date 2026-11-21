@@ -6,8 +6,10 @@ import com.wf.gemrender.ui.Canvas;
 import com.wf.wflib.wiki.api.Article;
 import com.wf.wflib.wiki.api.Wiki;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.client.model.data.ModelData;
 
@@ -47,6 +49,10 @@ final class WikiIcons {
         if (sprite == null) {
             sprite = Minecraft.getInstance().getItemRenderer().getItemModelShaper().getItemModel(item)
                     .getParticleIcon(ModelData.EMPTY);
+            // An item drawn by a special renderer has no particle of its own (a mod's reactor columns): its block still does.
+            if (sprite.contents().name().equals(MissingTextureAtlasSprite.getLocation()) && item instanceof BlockItem block) {
+                sprite = Minecraft.getInstance().getBlockRenderer().getBlockModelShaper().getParticleIcon(block.getBlock().defaultBlockState());
+            }
             SPRITES.put(item, sprite);
         }
         canvas.sprite(sprite, x, y, x + size, y + size, -1);
