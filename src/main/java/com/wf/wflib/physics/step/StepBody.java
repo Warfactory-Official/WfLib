@@ -489,6 +489,8 @@ public final class StepBody {
      * {@link #candidateOrigin}: shapes and contacts use it too, contacts shifted to the solver origin after.
      */
     private static final double CANDIDATE_PAD = 2;
+    /** Cache only at or below these (b/t, rad/t): moving body misses every step, pad + bookkeeping cost +30-55% (measured, nimitz). */
+    private static final float CACHE_SPEED = 0.02f, CACHE_SPIN = 0.005f;
     private boolean candidatesValid;
     private long geometryVersion;
     private final double[] candidateOrigin = new double[3];
@@ -534,7 +536,8 @@ public final class StepBody {
     /** Block, drive-surface and deck contacts of every world shape, into buffer (relative to solverOrigin). */
     private void collideWorld(ConvexContacts narrow, @Nullable NarrowNative native_, ContactBuffer buffer, double[] solverOrigin,
                               DeckView link, boolean deck, int deckCount, boolean cull) {
-        boolean cacheable = native_ != null && cull;
+        boolean cacheable = native_ != null && cull && velocity.lengthSquared() <= CACHE_SPEED * CACHE_SPEED
+                && spin.lengthSquared() <= CACHE_SPIN * CACHE_SPIN;
         boolean reuse = cacheable && candidatesCurrent();
         double[] origin = reuse ? candidateOrigin : solverOrigin;
         boolean reachable;
