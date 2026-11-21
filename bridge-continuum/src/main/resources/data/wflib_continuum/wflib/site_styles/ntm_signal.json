@@ -1,0 +1,50 @@
+{
+  "_about": "After NTM's radio_house and forest_post: weathered brick-concrete blocks among grass, a solid concrete panel wall, concrete lookouts, a lattice radio mast on the plaza.",
+  "weight": 2,
+  "layout": {
+    "paved": "false",
+    "perimeter": "panel",
+    "gate": "open",
+    "gateTowers": "lookout",
+    "cornerTowers": "lookout",
+    "hall": "flat",
+    "mast": "lattice"
+  },
+  "roles": {
+    "heavy": "hbm:concrete",
+    "body": "hbm:brick_concrete",
+    "trim": "hbm:concrete",
+    "plinth": "hbm:concrete",
+    "band": "hbm:concrete",
+    "floor": "hbm:concrete",
+    "slab": "hbm:concrete_slab",
+    "glass": "hbm:reinforced_glass",
+    "steel": "hbm:deco_rusty_steel",
+    "hesco": "hbm:concrete",
+    "bag": "hbm:sandbags",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:fence_metal_post",
+    "fence": "hbm:fence_metal",
+    "fencePost": "hbm:fence_metal_post",
+    "edge": "hbm:brick_concrete",
+    "mark": "hbm:concrete_colored",
+    "boomA": "minecraft:red_concrete",
+    "boomB": "hbm:concrete"
+  },
+  "parts": {
+    "lattice": "hbm:steel_scaffold[orient=horizontal_north_south,variant=steel]",
+    "hazard": "hbm:concrete_colored_ext[type=hazard]",
+    "lamp": "hbm:spotlight_halogen[facing=down,broken=false]"
+  },
+  "containers": [
+    "hbm:deco_rusty_steel"
+  ],
+  "weather": {
+    "hbm:brick_concrete": [
+      "hbm:brick_concrete_cracked",
+      "hbm:brick_concrete_broken",
+      "hbm:brick_concrete_mossy"
+    ]
+  },
+  "weatherChance": 0.25
+}

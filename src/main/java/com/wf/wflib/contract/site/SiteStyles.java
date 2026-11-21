@@ -26,8 +26,15 @@ public final class SiteStyles extends SimpleJsonResourceReloadListener {
     /** How often the unstyled look comes up against a style of weight 1. */
     public static final int PLAIN_WEIGHT = 2;
 
+    /**
+     * @param layout how the base is put together, beyond its materials (see {@link Palette#layout}): {@code perimeter} (panel, hesco, fence, layered),
+     *      {@code gate} (open, frame), {@code gateTowers} and {@code cornerTowers} (lookout, lattice), {@code hall} (flat, quonset), {@code mast} (pole, lattice),
+     *      {@code paved} and {@code silo} (true, false)
+     * @param parts block states for the pieces only some looks have, properties allowed ({@code "hbm:concrete_colored_ext[type=hazard]"}):
+     *      {@code hazard} (pads and gate headers), {@code poleA}/{@code poleB} (the barrier pole's stripes), {@code wire}, {@code lattice}, {@code cab}, {@code arch}, {@code hatch}
+     */
     public record Style(String id, int weight, Map<String, Block> roles, Map<Block, List<Block>> weather, float weatherChance, List<Block> containers,
-                        boolean fenceWall, boolean mixedWalls) {
+                        boolean fenceWall, boolean mixedWalls, Map<String, String> layout, Map<String, net.minecraft.world.level.block.state.BlockState> parts) {
     }
 
     private static volatile List<Style> styles = List.of();
@@ -85,7 +92,27 @@ public final class SiteStyles extends SimpleJsonResourceReloadListener {
         }
         boolean fenceWall = json.has("wall") && "fence".equals(json.get("wall").getAsString());
         boolean mixed = json.has("mixedWalls") && json.get("mixedWalls").getAsBoolean();
-        return weight > 0 ? new Style(id, weight, Map.copyOf(roles), Map.copyOf(weather), chance, List.copyOf(containers), fenceWall, mixed) : null;
+        Map<String, String> layout = new LinkedHashMap<>();
+        if (json.has("layout")) for (var e : json.getAsJsonObject("layout").entrySet()) layout.put(e.getKey(), e.getValue().getAsString());
+        if (fenceWall) layout.putIfAbsent("perimeter", "fence");
+        Map<String, net.minecraft.world.level.block.state.BlockState> parts = new LinkedHashMap<>();
+        if (json.has("parts")) {
+            for (var e : json.getAsJsonObject("parts").entrySet()) {
+                var state = state(e.getValue().getAsString());
+                if (state == null) return null;
+                parts.put(e.getKey(), state);
+            }
+        }
+        return weight > 0 ? new Style(id, weight, Map.copyOf(roles), Map.copyOf(weather), chance, List.copyOf(containers), fenceWall, mixed, Map.copyOf(layout), Map.copyOf(parts)) : null;
+    }
+
+    /** {@code ns:block} or {@code ns:block[prop=value,...]}; null when the block is not registered or a property does not fit it. */
+    private static net.minecraft.world.level.block.state.BlockState state(String id) {
+        try {
+            return net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), id, false).blockState();
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+            return null;
+        }
     }
 
     private static Block block(String id) {

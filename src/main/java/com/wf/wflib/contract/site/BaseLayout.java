@@ -30,6 +30,7 @@ public final class BaseLayout {
     }
 
     public static BasePlan plan(BaseKind kind, int cx, int cz, int padY, Random rng, Terrain ground) {
+        if (kind.wall > 0) return StreetPlan.plan(kind, cx, cz, padY, rng, ground);
         List<Piece> pieces = new ArrayList<>();
         List<Zone> zones = new ArrayList<>();
         List<Slot> vehicles = new ArrayList<>();
@@ -118,7 +119,6 @@ public final class BaseLayout {
             pool.add(new Object[]{Type.GENERATOR, 6, 5});
             pool.add(new Object[]{Type.CONTAINERS, 9, 7});
             pool.add(new Object[]{Type.YARD, 7, 6});
-            pool.add(new Object[]{Type.MEDICAL, 8, 6});
             if (kind == BaseKind.FORTRESS) {
                 pool.add(new Object[]{Type.HELIPAD, 11, 11});
                 pool.add(new Object[]{Type.CONTAINERS, 9, 7});
@@ -152,6 +152,12 @@ public final class BaseLayout {
             if (at != null) pieces.add(new Piece(Type.LIGHT, at[0], padY, at[1], 1, 1, 0, 5));
         }
 
+        return new BasePlan(kind, cx, cz, padY, wall, pieces, outside(kind, cx, cz, padY, rng, ground, pieces, zones), vehicles, cache);
+    }
+
+    /** What stands outside the wall (nests, trench runs, outposts) and the beats round it; the zones, with outer heights from the ground. */
+    static List<Zone> outside(BaseKind kind, int cx, int cz, int padY, Random rng, Terrain ground, List<Piece> pieces, List<Zone> zones) {
+        boolean walled = kind.wall > 0;
         // outside: nests covering the approaches, trench runs
         int ringR = walled ? kind.wall + 10 : kind.radius - 2;
         double base = rng.nextDouble() * Math.PI * 2;
@@ -212,7 +218,7 @@ public final class BaseLayout {
                 fixed.add(z);
             }
         }
-        return new BasePlan(kind, cx, cz, padY, wall, pieces, fixed, vehicles, cache);
+        return fixed;
     }
 
     private static void barracks(List<Piece> pieces, List<Zone> zones, List<int[]> taken, Random rng, BaseKind kind, boolean walled, int cx, int cz, int padY, int inner, int i) {
@@ -223,24 +229,24 @@ public final class BaseLayout {
         if (i == 0 || kind == BaseKind.FORTRESS) zones.add(new Zone(Role.RESERVE, at[0], padY, at[1], 2, List.of(), 2.0));
     }
 
-    private static boolean standable(Terrain t, int x, int z) {
+    static boolean standable(Terrain t, int x, int z) {
         return t.available(x, z) && t.surface(x, z) == Terrain.Surface.SOLID && !t.wet(x, z);
     }
 
-    private static int standing(Terrain t, int padY, int cx, int cz, int footprint, int x, int z) {
+    static int standing(Terrain t, int padY, int cx, int cz, int footprint, int x, int z) {
         int dx = x - cx, dz = z - cz;
         return dx * dx + dz * dz <= footprint * footprint ? padY : t.ground(x, z);
     }
 
     /** A route of eight points round a square of half-size {@code half}: corners and midpoints. {@code y} of 0 is filled in from the ground later. */
-    private static List<int[]> square(int cx, int cz, int half, java.util.function.IntUnaryOperator y) {
+    static List<int[]> square(int cx, int cz, int half, java.util.function.IntUnaryOperator y) {
         int[][] d = {{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}};
         List<int[]> out = new ArrayList<>();
         for (int i = 0; i < d.length; i++) out.add(new int[]{cx + d[i][0] * half, y.applyAsInt(i), cz + d[i][1] * half});
         return out;
     }
 
-    private static List<int[]> circle(int cx, int cz, int r, int n, int y) {
+    static List<int[]> circle(int cx, int cz, int r, int n, int y) {
         List<int[]> out = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             double a = i * Math.PI * 2 / n;
@@ -249,12 +255,12 @@ public final class BaseLayout {
         return out;
     }
 
-    private static boolean clash(List<int[]> taken, int x, int z, int hw, int hd) {
+    static boolean clash(List<int[]> taken, int x, int z, int hw, int hd) {
         for (int[] t : taken) if (x + hw >= t[0] && x - hw <= t[2] && z + hd >= t[1] && z - hd <= t[3]) return true;
         return false;
     }
 
-    private static void take(List<int[]> taken, int x, int z, int w, int d) {
+    static void take(List<int[]> taken, int x, int z, int w, int d) {
         taken.add(new int[]{x - w / 2 - MARGIN, z - d / 2 - MARGIN, x + w / 2 + MARGIN, z + d / 2 + MARGIN});
     }
 

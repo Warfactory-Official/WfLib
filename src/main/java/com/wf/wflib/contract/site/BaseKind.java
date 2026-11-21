@@ -23,8 +23,8 @@ import java.util.Locale;
  */
 public enum BaseKind {
     OUTPOST(16, 0, 0, 1, 0, 0, 2, 0, 0, 6, 0),
-    COMPOUND(28, 18, 4, 4, 2, 0, 3, 2, 1, 1, 8),
-    FORTRESS(44, 28, 6, 8, 3, 2, 6, 4, 3, 2, 18);
+    COMPOUND(40, 30, 3, 6, 2, 0, 3, 2, 1, 1, 8),
+    FORTRESS(48, 38, 4, 8, 3, 2, 6, 4, 3, 2, 18);
 
     public final int radius, wall, wallHeight, towers, barracks, bunkers, nests, trenches, outposts, bays, minSoldiers;
 

@@ -90,4 +90,30 @@ class BaseLayoutTest {
         var p = BaseLayout.plan(BaseKind.FORTRESS, 1000, -500, 70, new Random(5), wet);
         assertEquals(0, p.zones().stream().filter(z -> z.role() == Role.OUTPOST).count());
     }
+
+    @Test
+    void aWalledBaseIsLaidOutOnStreets() {
+        var lots = List.of(Type.COMMAND, Type.BARRACKS, Type.MESS, Type.MEDICAL, Type.ARMORY, Type.GENERATOR, Type.CONTAINERS, Type.YARD, Type.DEPOT, Type.BUNKER, Type.BAY, Type.HELIPAD);
+        for (BaseKind k : List.of(BaseKind.COMPOUND, BaseKind.FORTRESS)) {
+            for (long seed = 0; seed < 40; seed++) {
+                var p = plan(k, seed);
+                var paths = p.pieces().stream().filter(x -> x.type() == Type.PATH).toList();
+                var buildings = p.pieces().stream().filter(x -> lots.contains(x.type()) && Math.abs(x.x() - 1000) < k.wall && Math.abs(x.z() + 500) < k.wall).toList();
+                assertTrue(p.pieces().stream().filter(x -> x.type() == Type.ROAD).count() >= 6, k + " seed " + seed + ": roads, a lane and a plaza");
+                assertTrue(buildings.size() >= (k == BaseKind.FORTRESS ? 14 : 9), k + " seed " + seed + ": only " + buildings.size() + " buildings");
+                for (Piece b : buildings) {
+                    assertTrue(paths.stream().anyMatch(x -> Math.abs(x.x() - b.x()) <= (x.w() + b.w()) / 2 + 1 && Math.abs(x.z() - b.z()) <= (x.d() + b.d()) / 2 + 1),
+                            k + " seed " + seed + ": " + b + " has no path to a road");
+                }
+                assertEquals(1, p.pieces().stream().filter(x -> x.type() == Type.TOWER).map(Piece::style).distinct().count(), k + " seed " + seed + ": towers of one design");
+            }
+        }
+    }
+
+    @Test
+    void mostCompoundsHaveRoomForAPad() {
+        int with = 0;
+        for (long seed = 0; seed < 40; seed++) if (plan(BaseKind.COMPOUND, seed).pieces().stream().anyMatch(x -> x.type() == Type.HELIPAD)) with++;
+        assertTrue(with >= 20, "a pad (or a silo) in " + with + " of 40 compounds");
+    }
 }

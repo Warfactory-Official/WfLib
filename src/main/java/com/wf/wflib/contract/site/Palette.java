@@ -41,11 +41,13 @@ import java.util.Map;
  * @param fencePost the posts of it
  * @param fenceWall the perimeter is a fence, not a wall of hesco or concrete
  * @param mixedWalls a wall may run stretches of hesco and of concrete; a styled base keeps to one material
+ * @param layout the style's structural choices (see {@link SiteStyles.Style#layout}); empty for the plain look
+ * @param parts the style's extra block states (see {@link SiteStyles.Style#parts})
  */
 public record Palette(Block heavy, Block body, Block trim, Block floor, Block slab, Block glass, Block steel, Block hesco, Block bag,
                       Block ground, Block light, Block bed, List<Block> containers, Block bars, Map<Block, List<Block>> weather, float weatherChance,
                       Block plinth, Block band, Block edge, Block mark, Block boomA, Block boomB, Block fence, Block fencePost, boolean fenceWall,
-                      boolean mixedWalls) {
+                      boolean mixedWalls, Map<String, String> layout, Map<String, net.minecraft.world.level.block.state.BlockState> parts) {
     public enum Climate { TEMPERATE, ARID, COLD }
 
     private static final Map<Climate, Palette> CACHE = new EnumMap<>(Climate.class);
@@ -63,23 +65,23 @@ public record Palette(Block heavy, Block body, Block trim, Block floor, Block sl
     public static synchronized Palette of(Climate c) {
         return CACHE.computeIfAbsent(c, k -> switch (k) {
             case TEMPERATE -> new Palette(mod("heavy", Blocks.GRAY_CONCRETE), mod("body", Blocks.LIGHT_GRAY_CONCRETE),
-                    Blocks.GRAY_CONCRETE, Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_STONE_SLAB, mod("glass", Blocks.TINTED_GLASS),
+                    Blocks.GRAY_CONCRETE, Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_STONE_SLAB, mod("glass", Blocks.GLASS),
                     mod("steel", Blocks.IRON_BLOCK), mod("hesco", Blocks.TUFF), mod("bag", Blocks.PACKED_MUD),
                     Blocks.COARSE_DIRT, Blocks.SEA_LANTERN, Blocks.GREEN_BED,
                     List.of(Blocks.GREEN_CONCRETE, Blocks.BLUE_CONCRETE, Blocks.GRAY_CONCRETE, Blocks.RED_CONCRETE), Blocks.IRON_BARS, Map.of(), 0f,
-                    Blocks.GRAY_CONCRETE, null, Blocks.YELLOW_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.RED_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.IRON_BARS, Blocks.IRON_BARS, false, false);
+                    Blocks.GRAY_CONCRETE, null, Blocks.SMOOTH_STONE, Blocks.WHITE_CONCRETE, Blocks.RED_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.IRON_BARS, Blocks.IRON_BARS, false, false, Map.of(), Map.of());
             case ARID -> new Palette(mod("heavy", Blocks.GRAY_CONCRETE), Blocks.SMOOTH_SANDSTONE,
-                    Blocks.TERRACOTTA, Blocks.CUT_SANDSTONE, Blocks.SMOOTH_SANDSTONE_SLAB, mod("glass", Blocks.TINTED_GLASS),
+                    Blocks.TERRACOTTA, Blocks.CUT_SANDSTONE, Blocks.SMOOTH_SANDSTONE_SLAB, mod("glass", Blocks.GLASS),
                     mod("steel", Blocks.IRON_BLOCK), mod("hesco", Blocks.TUFF), mod("bag", Blocks.PACKED_MUD),
                     Blocks.PACKED_MUD, Blocks.SEA_LANTERN, Blocks.BROWN_BED,
                     List.of(Blocks.ORANGE_CONCRETE, Blocks.BROWN_CONCRETE, Blocks.LIGHT_GRAY_CONCRETE, Blocks.YELLOW_CONCRETE), Blocks.IRON_BARS, Map.of(), 0f,
-                    Blocks.GRAY_CONCRETE, null, Blocks.YELLOW_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.RED_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.IRON_BARS, Blocks.IRON_BARS, false, false);
+                    Blocks.GRAY_CONCRETE, null, Blocks.SMOOTH_STONE, Blocks.WHITE_CONCRETE, Blocks.RED_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.IRON_BARS, Blocks.IRON_BARS, false, false, Map.of(), Map.of());
             case COLD -> new Palette(mod("heavy", Blocks.GRAY_CONCRETE), Blocks.WHITE_CONCRETE,
-                    Blocks.GRAY_CONCRETE, Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_STONE_SLAB, mod("glass", Blocks.TINTED_GLASS),
+                    Blocks.GRAY_CONCRETE, Blocks.POLISHED_ANDESITE, Blocks.SMOOTH_STONE_SLAB, mod("glass", Blocks.GLASS),
                     mod("steel", Blocks.IRON_BLOCK), mod("hesco", Blocks.TUFF), mod("bag", Blocks.PACKED_MUD),
                     Blocks.SNOW_BLOCK, Blocks.SEA_LANTERN, Blocks.GRAY_BED,
                     List.of(Blocks.BLUE_CONCRETE, Blocks.RED_CONCRETE, Blocks.LIGHT_GRAY_CONCRETE, Blocks.CYAN_CONCRETE), Blocks.IRON_BARS, Map.of(), 0f,
-                    Blocks.GRAY_CONCRETE, null, Blocks.YELLOW_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.RED_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.IRON_BARS, Blocks.IRON_BARS, false, false);
+                    Blocks.GRAY_CONCRETE, null, Blocks.SMOOTH_STONE, Blocks.WHITE_CONCRETE, Blocks.RED_CONCRETE, Blocks.WHITE_CONCRETE, Blocks.IRON_BARS, Blocks.IRON_BARS, false, false, Map.of(), Map.of());
         });
     }
 
@@ -113,7 +115,22 @@ public record Palette(Block heavy, Block body, Block trim, Block floor, Block sl
                 r.getOrDefault("bars", bars), style.weather(), style.weatherChance(),
                 r.getOrDefault("plinth", trim2), r.getOrDefault("band", trim2), r.getOrDefault("edge", edge), r.getOrDefault("mark", mark),
                 r.getOrDefault("boomA", boomA), r.getOrDefault("boomB", boomB), r.getOrDefault("fence", fence), r.getOrDefault("fencePost", fencePost),
-                style.fenceWall(), style.mixedWalls());
+                style.fenceWall(), style.mixedWalls(), style.layout(), style.parts());
+    }
+
+    /** The style's choice for {@code key}, or {@code fallback}. */
+    public String layout(String key, String fallback) {
+        return layout.getOrDefault(key, fallback);
+    }
+
+    public boolean flag(String key) {
+        return "true".equals(layout.get(key));
+    }
+
+    /** The style's block state for {@code name}, or {@code fallback}. */
+    public net.minecraft.world.level.block.state.BlockState part(String name, Block fallback) {
+        var s = parts.get(name);
+        return s != null ? s : fallback.defaultBlockState();
     }
 
     /** {@code state}, or a worn variant of it: a share of a weathering block's placements. Draws from {@code rng} only for a block that has variants. */

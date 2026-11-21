@@ -1,27 +1,54 @@
 {
+  "_about": "After NTM's military_base: brick-concrete buildings on an asphalt compound, a low wall with chain-link and wire, a steel gate frame with a striped pole, lattice towers at the gates and concrete lookouts at the corners, Quonset halls.",
   "weight": 3,
-  "wall": "fence",
-  "mixedWalls": false,
+  "layout": {
+    "paved": "false",
+    "perimeter": "layered",
+    "gate": "frame",
+    "gateTowers": "lattice",
+    "cornerTowers": "lookout",
+    "hall": "quonset",
+    "mast": "pole"
+  },
   "roles": {
     "heavy": "hbm:brick_concrete",
     "body": "hbm:brick_concrete",
-    "trim": "hbm:concrete_asbestos",
+    "trim": "hbm:concrete",
     "plinth": "hbm:concrete",
-    "band": "hbm:concrete_asbestos",
+    "band": "hbm:concrete",
     "floor": "hbm:asphalt",
     "slab": "hbm:concrete_slab",
     "glass": "hbm:reinforced_glass",
     "steel": "hbm:deco_steel",
     "hesco": "hbm:brick_concrete",
-    "bag": "hbm:concrete_slab",
+    "bag": "hbm:sandbags",
     "light": "hbm:reinforced_lamp_on",
     "bars": "hbm:fence_metal_post",
     "fence": "hbm:fence_metal",
     "fencePost": "hbm:fence_metal_post",
-    "edge": "hbm:concrete_asbestos",
-    "mark": "hbm:concrete_asbestos",
-    "boomA": "hbm:deco_steel",
-    "boomB": "hbm:concrete_asbestos"
+    "edge": "hbm:concrete",
+    "mark": "hbm:concrete_colored",
+    "boomA": "minecraft:red_concrete",
+    "boomB": "hbm:concrete"
   },
-  "containers": ["hbm:deco_steel"]
+  "parts": {
+    "hazard": "hbm:concrete_colored_ext[type=hazard]",
+    "poleA": "hbm:concrete_colored[color=red]",
+    "poleB": "hbm:concrete_colored[color=white]",
+    "wire": "hbm:barbed_wire",
+    "lattice": "hbm:steel_scaffold[orient=horizontal_north_south,variant=steel]",
+    "cab": "hbm:deco_steel",
+    "arch": "hbm:concrete",
+    "lamp": "hbm:spotlight_halogen[facing=down,broken=false]"
+  },
+  "containers": [
+    "hbm:deco_steel"
+  ],
+  "weather": {
+    "hbm:brick_concrete": [
+      "hbm:brick_concrete_cracked",
+      "hbm:brick_concrete_broken"
+    ]
+  },
+  "weatherChance": 0.12
 }

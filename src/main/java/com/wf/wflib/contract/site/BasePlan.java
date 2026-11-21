@@ -17,7 +17,11 @@ public record BasePlan(BaseKind kind, int cx, int cz, int padY, Wall wall, List<
 
     public enum Type {
         COMMAND, BARRACKS, CABIN, DEPOT, TOWER, BUNKER, NEST, YARD, MAST, BAY, LIGHT, TRENCH,
-        MESS, MEDICAL, ARMORY, CONTAINERS, GENERATOR, HELIPAD, CHECKPOINT, BARRIER
+        MESS, MEDICAL, ARMORY, CONTAINERS, GENERATOR, HELIPAD, CHECKPOINT, BARRIER,
+        /** Paving: {@code facing} 0 a main road (curbs, centre line), 1 a street (curbs), 2 a plaza, 3 the service lane inside the wall. */
+        ROAD,
+        /** A footpath from a door to its road. */
+        PATH
     }
 
     /** A piece of the base. {@code (x, y, z)} is its centre at standing level; {@code w} runs along x and {@code d} along z before {@code facing} turns it; {@code style} picks among the piece's looks. */

@@ -47,6 +47,8 @@ public final class BaseBuilder {
     private int gear;
     /** Blocks whose shape depends on their neighbours (bars, fences, stairs): re-shaped once everything stands. */
     private final List<BlockPos> shaped = new ArrayList<>();
+    /** The plan's paved rectangles, so a road's curb stops where another road crosses it. */
+    private final List<Piece> roads = new ArrayList<>();
 
     private BaseBuilder(ServerLevel level, Palette pal, RandomSource rng) {
         this.level = level;
@@ -59,6 +61,7 @@ public final class BaseBuilder {
         b.gear = (int) Math.floorMod(seed, 4L);
         b.load(plan);
         b.grade(plan);
+        for (Piece p : plan.pieces()) if (p.type() == BasePlan.Type.ROAD) b.roads.add(p);
         if (plan.wall() != null) b.wall(plan);
         for (Piece p : plan.pieces()) b.piece(p, plan);
         b.reshape();
@@ -79,20 +82,21 @@ public final class BaseBuilder {
         int r = plan.kind().radius;
         for (int dx = -r - APRON; dx <= r + APRON; dx++) {
             for (int dz = -r - APRON; dz <= r + APRON; dz++) {
-                double d = Math.sqrt(dx * dx + dz * dz);
+                double d = plan.wall() != null ? Math.max(Math.abs(dx), Math.abs(dz)) : Math.sqrt(dx * dx + dz * dz);   // a walled base is square
                 if (d > r + APRON) continue;
                 int x = plan.cx() + dx, z = plan.cz() + dz;
                 int natural = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z);       // first free block over the real ground
                 int target = d <= r ? plan.padY() : plan.padY() + (int) Math.round((natural - plan.padY()) * ((d - r) / APRON));
-                setColumn(x, z, natural, target);
+                boolean paved = plan.wall() != null && pal.flag("paved") && Math.abs(dx) < plan.wall().half() && Math.abs(dz) < plan.wall().half();
+                setColumn(x, z, natural, target, paved ? pal.floor() : pal.ground());
             }
         }
     }
 
     /** Makes the ground in a column end at {@code target} (the first free block): fills up or cuts down, then clears what stood above. */
-    private void setColumn(int x, int z, int natural, int target) {
-        for (int y = Math.min(natural, target); y < target; y++) set(x, y, z, y == target - 1 ? pal.ground().defaultBlockState() : Blocks.DIRT.defaultBlockState());
-        if (target - 1 >= natural && target - 1 > level.getMinBuildHeight()) set(x, target - 1, z, pal.ground().defaultBlockState());
+    private void setColumn(int x, int z, int natural, int target, Block surface) {
+        for (int y = Math.min(natural, target); y < target; y++) set(x, y, z, y == target - 1 ? surface.defaultBlockState() : Blocks.DIRT.defaultBlockState());
+        if ((target - 1 >= natural || surface != pal.ground()) && target - 1 > level.getMinBuildHeight()) set(x, target - 1, z, surface.defaultBlockState());   // a paved compound replaces the turf too
         int top = Math.max(natural, target) + CLEAR;
         for (int y = target; y < top; y++) {
             if (!level.getBlockState(at.set(x, y, z)).isAir()) set(x, y, z, Blocks.AIR.defaultBlockState());
@@ -176,6 +180,25 @@ public final class BaseBuilder {
         }
     }
 
+    /**
+     * {@code upright} turned to lie along {@code axis}, for a lattice that has an orientation. NTM's scaffold names it by the face it was placed on:
+     * {@code horizontal_*} stands upright, {@code vertical_east_west} / {@code vertical_north_south} lie along x / z. The block as it is when it has none.
+     */
+    private static BlockState lying(BlockState upright, Direction.Axis axis) {
+        var prop = upright.getBlock().getStateDefinition().getProperty("orient");
+        if (prop == null) return upright;
+        return withValue(upright, prop, axis == Direction.Axis.X ? "vertical_east_west" : "vertical_north_south");
+    }
+
+    private static <T extends Comparable<T>> BlockState withValue(BlockState s, net.minecraft.world.level.block.state.properties.Property<T> prop, String name) {
+        return prop.getValue(name).map(v -> s.setValue(prop, v)).orElse(s);
+    }
+
+    /** A light fixture hanging from what is above it (a post's shade, a roof): the style's lamp, else the flush light block. */
+    private BlockState lamp() {
+        return pal.part("lamp", pal.light());
+    }
+
     private Block accent(int style) {
         return pal.containers().get(Math.floorMod(style, pal.containers().size()));
     }
@@ -190,87 +213,143 @@ public final class BaseBuilder {
 
     // ---------------------------------------------------------------- the wall
 
-    /** The block of one wall cell at {@code h} above the pad, for the wall's style and the stretch it is in. */
-    private boolean hescoStretch(BasePlan plan, int i) {
-        return switch (plan.wall().style()) {
-            case BasePlan.Wall.HESCO -> true;
-            case BasePlan.Wall.MIXED -> pal.mixedWalls() && Math.floorMod((i + plan.wall().half()) / 7, 2) == 1;
-            default -> false;
-        };
-    }
-
     private void wall(BasePlan plan) {
         var w = plan.wall();
         int h = w.height(), half = w.half(), cx = plan.cx(), cz = plan.cz(), y = plan.padY();
         boolean thick = plan.kind() == BaseKind.FORTRESS && !pal.fenceWall();
+        boolean hesco = w.style() == BasePlan.Wall.HESCO;
         int[][] inward = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
         for (int side = 0; side < 4; side++) {
             for (int i = -half; i <= half; i++) {
                 int x = side == 1 ? cx + half : side == 3 ? cx - half : cx + i;
                 int z = side == 0 ? cz - half : side == 2 ? cz + half : cz + i;
-                boolean hesco = hescoStretch(plan, i);
-                if (pal.fenceWall()) fenceCell(x, z, y, h, i);
-                else wallCell(x, z, y, h, i, hesco, false);
+                Direction.Axis run = side == 0 || side == 2 ? Direction.Axis.X : Direction.Axis.Z;
+                switch (pal.layout("perimeter", "panel")) {
+                    case "fence" -> fenceCell(x, z, y, h, i, run);
+                    case "layered" -> layeredCell(x, z, y, i, run);
+                    default -> wallCell(x, z, y, h, i, hesco, false);
+                }
                 if (thick) wallCell(x + inward[side][0], z + inward[side][1], y, h - 1, i, hesco, true);
             }
         }
-        for (int side = -1; side <= 1; side += 2) gate(plan, side, thick);
+        for (int side = 0; side < 4; side++) gate(plan, side, thick);
     }
 
-    /** One column of the wall: reinforced concrete with a pilaster, glass slit, floodlight and a parapet, or hesco topped with bags. */
+    /** One column of the wall. Concrete is cast in panels four wide between taller posts, capped with a slab; hesco is a run of cages with a course of bags on top. */
     private void wallCell(int x, int z, int y, int h, int i, boolean hesco, boolean inner) {
         if (hesco) {
             fill(x, y, z, x, y + h - 2, z, pal.hesco());
             set(x, y + h - 1, z, pal.bag());
-            if (!inner && Math.floorMod(i, 2) == 0) set(x, y + h, z, pal.bag());
+            return;
+        }
+        if (!inner && Math.floorMod(i, 4) == 0) {
+            fill(x, y, z, x, y + h, z, pal.trim());                                                    // the post between panels
             return;
         }
         fill(x, y, z, x, y + h - 1, z, pal.heavy());
-        if (inner) return;
-        if (Math.floorMod(i, 6) == 0) fill(x, y, z, x, y + h, z, pal.trim());            // pilaster
-        else if (Math.floorMod(i, 5) == 2) set(x, y + h - 2, z, pal.glass());           // firing slit
-        else if (Math.floorMod(i, 8) == 4) set(x, y + h - 1, z, pal.light());           // floodlight in the coping
-        else set(x, y + h, z, Math.floorMod(i, 2) == 0 ? pal.heavy().defaultBlockState() : pal.bars().defaultBlockState());
+        if (!inner) set(x, y + h, z, slab(pal.slab(), SlabType.BOTTOM));                              // the panel's cap
     }
 
-    /** One column of a chain-link fence: mesh the height of the wall, a taller capped post every fourth cell. */
-    private void fenceCell(int x, int z, int y, int h, int i) {
+    /** One column of a chain-link fence: mesh the height of the wall, a taller capped post every fourth cell; a coil of wire along the top when the style has wire. */
+    private void fenceCell(int x, int z, int y, int h, int i, Direction.Axis run) {
         int top = Math.max(3, h - 1);
         if (Math.floorMod(i, 4) == 0) {
             fill(x, y, z, x, y + top, z, pal.fencePost());
             set(x, y + top + 1, z, pal.bars());                                                       // a cap on each post
         } else {
             fill(x, y, z, x, y + top - 1, z, pal.fence());
+            if (pal.parts().containsKey("wire")) set(x, y + top, z, wire(run));
         }
     }
 
-    /** A five-wide vehicle gate in the middle of a side: steel header, striped boom posts, floodlights. */
+    /** NTM's perimeter: a low wall two high, chain-link on it, a coil of wire along the top, a post every fourth cell. */
+    private void layeredCell(int x, int z, int y, int i, Direction.Axis run) {
+        fill(x, y, z, x, y + 1, z, pal.heavy());
+        if (Math.floorMod(i, 4) == 0) {
+            fill(x, y + 2, z, x, y + 4, z, pal.fencePost());
+            return;
+        }
+        fill(x, y + 2, z, x, y + 3, z, pal.fence());
+        set(x, y + 4, z, wire(run));
+    }
+
+    /** The style's wire, its coil laid along the wall: NTM's wire faces along its run (east or west along x, north or south along z), as in its military base. */
+    private BlockState wire(Direction.Axis run) {
+        BlockState w = pal.part("wire", pal.fence());
+        return w.hasProperty(BlockStateProperties.HORIZONTAL_FACING)
+                ? w.setValue(BlockStateProperties.HORIZONTAL_FACING, run == Direction.Axis.X ? Direction.EAST : Direction.NORTH) : w;
+    }
+
+    /** An opening five wide where a road meets the wall ({@code side} 0 north, 1 east, 2 south, 3 west): open to the sky, a lamp on a post either side. */
     private void gate(BasePlan plan, int side, boolean thick) {
         var w = plan.wall();
         int h = w.height(), half = w.half(), cx = plan.cx(), cz = plan.cz(), y = plan.padY();
-        boolean ns = w.axis() == 0;
-        int gx = ns ? 0 : side * half, gz = ns ? side * half : 0;
-        int in = -side;                                           // inward step along the gate axis
+        boolean alongX = side == 0 || side == 2;                                  // the wall runs along x here
+        int gx = side == 1 ? half : side == 3 ? -half : 0, gz = side == 0 ? -half : side == 2 ? half : 0;
+        int in = side == 0 || side == 3 ? 1 : -1;                                 // inward across the wall
         for (int k = -2; k <= 2; k++) {
             for (int d = 0; d <= (thick ? 1 : 0); d++) {
-                int x = cx + gx + (ns ? k : in * d), z = cz + gz + (ns ? in * d : k);
-                fill(x, y, z, x, y + h + 1, z, Blocks.AIR);
-                set(x, y + h - 1, z, pal.steel());
-                set(x, y - 1, z, pal.floor());                                        // paved lane
+                int x = cx + gx + (alongX ? k : in * d), z = cz + gz + (alongX ? in * d : k);
+                fill(x, y, z, x, y + Math.max(h, 5) + 1, z, Blocks.AIR);
+                set(x, y - 1, z, pal.floor());
             }
         }
-        for (int d = -8; d <= 10; d++) {                                                                  // the road through the gate, edged in yellow
-            for (int k = -3; k <= 3; k++) {
-                int x = cx + gx + (ns ? k : in * d), z = cz + gz + (ns ? in * d : k);
-                if (Math.abs(k) == 3 && d > (thick ? 1 : 0) || Math.abs(k) == 3 && d < 0) set(x, y - 1, z, pal.edge());
-                else if (Math.abs(k) < 3 && (d > (thick ? 1 : 0) || d < 0)) set(x, y - 1, z, d % 4 == 0 && k == 0 ? pal.mark() : pal.floor());
-            }
-        }
+        boolean frame = "frame".equals(pal.layout("gate", "open"));
+        int top = frame ? y + 5 : y + h + 1;
         for (int k = -3; k <= 3; k += 6) {
-            int x = cx + gx + (ns ? k : 0), z = cz + gz + (ns ? 0 : k);
-            for (int yy = y; yy <= y + h; yy++) set(x, yy, z, (yy - y) % 2 == 0 ? pal.boomA() : pal.boomB());
-            set(x, y + h + 1, z, pal.light());
+            for (int d = 0; d <= (thick ? 1 : 0); d++) {
+                int x = cx + gx + (alongX ? k : in * d), z = cz + gz + (alongX ? in * d : k);
+                fill(x, y, z, x, top, z, frame ? pal.steel() : pal.trim());
+                if (d == 0 && !frame) set(x, top, z, pal.light());                   // a lamp set into the post's head
+            }
         }
+        if (frame) {                                                                // a steel frame: a striped header across the opening, lamps under it
+            for (int k = -2; k <= 2; k++) {
+                int x = cx + gx + (alongX ? k : 0), z = cz + gz + (alongX ? 0 : k);
+                set(x, top, z, pal.part("hazard", pal.steel()));
+                if (Math.abs(k) == 2) set(x + (alongX ? 0 : in), top - 1, z + (alongX ? in : 0), lamp());
+            }
+        }
+        boolean main = w.axis() == 0 ? alongX : !alongX;
+        if (main && pal.parts().containsKey("poleA")) {                             // the striped barrier pole, just inside, on one side
+            int x = cx + gx + (alongX ? 4 : in * 2), z = cz + gz + (alongX ? in * 2 : 4);
+            for (int yy = 0; yy < 4; yy++) set(x, y + yy, z, pal.parts().get(yy % 2 == 0 ? "poleA" : "poleB"));
+        }
+    }
+
+    // ---- paving
+
+    private boolean inOtherRoad(Piece self, int x, int z) {
+        for (Piece r : roads) {
+            if (r == self) continue;
+            int xa = x0(r), za = z0(r);
+            if (x >= xa && x < xa + r.w() && z >= za && z < za + r.d()) return true;
+        }
+        return false;
+    }
+
+    /** A road, street, plaza or lane (see {@link BasePlan.Type#ROAD}): paved at ground level; a road's curbs stop where another crosses it. */
+    private void road(Piece p) {
+        int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y() - 1;
+        boolean alongX = p.w() >= p.d();
+        int mid = alongX ? p.z() : p.x();
+        for (int x = xa; x <= xb; x++) {
+            for (int z = za; z <= zb; z++) {
+                if (p.facing() == 3) {
+                    set(x, y, z, pal.flag("paved") ? pal.floor() : pal.ground());
+                    continue;
+                }
+                boolean rim = p.facing() < 2 && (alongX ? z == za || z == zb : x == xa || x == xb);
+                boolean dash = p.facing() == 0 && (alongX ? z == mid && Math.floorMod(x, 4) < 2 : x == mid && Math.floorMod(z, 4) < 2);
+                if ((rim || dash) && inOtherRoad(p, x, z)) rim = dash = false;
+                set(x, y, z, rim ? pal.edge() : dash ? pal.mark() : pal.floor());
+            }
+        }
+    }
+
+    /** A footpath: paved at ground level. */
+    private void path(Piece p) {
+        fill(x0(p), p.y() - 1, z0(p), x0(p) + p.w() - 1, p.y() - 1, z0(p) + p.d() - 1, pal.floor());
     }
 
     // ---------------------------------------------------------------- pieces
@@ -286,14 +365,26 @@ public final class BaseBuilder {
             case GENERATOR -> generator(p);
             case CONTAINERS -> containers(p);
             case YARD -> yard(p);
-            case HELIPAD -> helipad(p);
+            case HELIPAD -> {
+                if (pal.flag("silo")) silo(p);
+                else helipad(p);
+            }
             case CHECKPOINT -> checkpoint(p);
-            case BARRIER -> barrier(p);
+            case BARRIER -> barrier(p, plan);
+            case ROAD -> road(p);
+            case PATH -> path(p);
             case BUNKER -> bunker(p);
             case DEPOT -> depot(p);
-            case TOWER -> tower(p);
+            case TOWER -> {
+                boolean corner = plan.wall() != null && Math.abs(p.x() - plan.cx()) == plan.wall().half() && Math.abs(p.z() - plan.cz()) == plan.wall().half();
+                if ("lattice".equals(pal.layout(corner ? "cornerTowers" : "gateTowers", "lookout"))) latticeTower(p);
+                else tower(p);
+            }
             case NEST -> nest(p);
-            case MAST -> mast(p);
+            case MAST -> {
+                if ("lattice".equals(pal.layout("mast", "pole"))) latticeMast(p);
+                else mast(p);
+            }
             case BAY -> bay(p);
             case LIGHT -> light(p);
             case TRENCH -> trench(p);
@@ -333,7 +424,7 @@ public final class BaseBuilder {
         fill(xa - 1, y - 1, za - 1, xb + 1, y - 1, zb + 1, pal.floor());
         shell(xa, y, za, xb, y + h - 1, zb, wallBlock);
         ring(xa, y, za, xb, zb, pal.plinth());
-        if (((st >> 4) & 1) == 0) ring(xa, y + h - 1, za, xb, zb, pal.band() != null ? pal.band() : accent(gear));              // one band colour for the whole base
+        if (((st >> 4) & 1) == 0) ring(xa, y + h - 1, za, xb, zb, pal.band() != null ? pal.band() : pal.trim());              // one band colour for the whole base
         for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + h, c[1], pal.trim());
         fill(xa - 1, y + h, za - 1, xb + 1, y + h, zb + 1, pal.trim());                                // roof
         ring(xa - 1, y + h + 1, za - 1, xb + 1, zb + 1, Blocks.AIR);
@@ -377,14 +468,11 @@ public final class BaseBuilder {
             case 0 -> {                                                                              // a solar array
                 for (int x = xa + 1; x < xb; x += 2) for (int z = za + 1; z < zb; z += 2) set(x, top, z, Blocks.DAYLIGHT_DETECTOR);
             }
-            case 1 -> {                                                                              // air handling and an antenna
+            case 1 -> {                                                                              // air handling
                 set(xa + 1, top, za + 1, pal.steel());
                 set(xa + 1, top + 1, za + 1, Blocks.IRON_TRAPDOOR);
                 set(xb - 1, top, zb - 1, pal.steel());
                 set(xb - 1, top + 1, zb - 1, Blocks.IRON_TRAPDOOR);
-                set(p.x(), top, p.z(), Blocks.IRON_BARS);
-                fill(p.x(), top + 1, p.z(), p.x(), top + 3, p.z(), Blocks.IRON_BARS);
-                set(p.x(), top + 4, p.z(), Blocks.LIGHTNING_ROD);
             }
             case 2 -> {                                                                              // a water tank on a stand
                 set(xb - 1, top, za + 1, pal.steel());
@@ -393,8 +481,9 @@ public final class BaseBuilder {
                 set(xb - 2, top + 1, za + 1, Blocks.BARREL);
                 set(xa + 1, top, zb - 1, Blocks.IRON_TRAPDOOR);
             }
-            default -> {
-                set(p.x(), top, p.z(), Blocks.LIGHTNING_ROD);
+            default -> {                                                                             // one air handler in the middle
+                set(p.x(), top, p.z(), pal.steel());
+                set(p.x(), top + 1, p.z(), Blocks.IRON_TRAPDOOR);
             }
         }
     }
@@ -464,12 +553,9 @@ public final class BaseBuilder {
         return side.getOpposite();
     }
 
+    /** Every building of a base is of the same body; only the armoury, the bunkers and the medical block differ, for what they are. */
     private Block bodyFor(Piece p) {
-        return switch (Math.floorMod(p.style(), 3)) {
-            case 1 -> accent(p.style() >> 2);
-            case 2 -> pal.heavy();
-            default -> pal.body();
-        };
+        return pal.body();
     }
 
     /** The operations room: a map table, a briefing lectern, a radio, a workbench and stock chests; the contract's cache goes in at {@code (xa+2, za+2)}. */
@@ -485,8 +571,7 @@ public final class BaseBuilder {
             if (c[0] == xa + 2 && c[1] == za + 2) continue;                                           // the cache
             Block b = switch (i % 5) {
                 case 0 -> Blocks.CARTOGRAPHY_TABLE;
-                case 1 -> Blocks.LECTERN;
-                case 2 -> Blocks.JUKEBOX;                                                              // the radio
+                case 1, 2 -> Blocks.CHEST;
                 case 3 -> Blocks.CRAFTING_TABLE;
                 default -> Blocks.CHEST;
             };
@@ -514,7 +599,7 @@ public final class BaseBuilder {
 
     /** Bunks: a row of beds along each long wall, a locker between each pair; a steel door and a bench. */
     private void barracks(Piece p) {
-        building(p, bodyFor(p), true);
+        hall(p);
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
         boolean alongX = p.w() >= p.d();
         if (alongX) {
@@ -542,7 +627,7 @@ public final class BaseBuilder {
     /** A prefab cabin: a one-room container module with a bunk, a workbench and stores. */
     private void cabin(Piece p) {
         Piece small = new Piece(p.type(), p.x(), p.y(), p.z(), p.w(), p.d(), p.facing(), 3, p.style());
-        building(small, accent(p.style()), false);
+        building(small, pal.body(), false);
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
         for (int x = xa + 1; x < xb - 1; x++) if (!nearDoor(small, x, zb - 1)) { bed(x, y, zb - 1, Direction.EAST, pal.bed()); break; }
         set(xa + 1, y, za + 1, Blocks.CRAFTING_TABLE);
@@ -552,7 +637,7 @@ public final class BaseBuilder {
 
     /** Smokers and a furnace on a counter, a sink, a cold store; long tables with benches. */
     private void mess(Piece p) {
-        building(p, bodyFor(p), true);
+        hall(p);
         int y = p.y();
         Direction back = back(p);
         List<int[]> row = edge(p, back);
@@ -724,7 +809,8 @@ public final class BaseBuilder {
                 boolean edge = Math.max(Math.abs(dx), Math.abs(dz)) == r;
                 boolean h = (Math.abs(dx) == 2 && Math.abs(dz) <= 2) || (dz == 0 && Math.abs(dx) <= 2);
                 boolean ring = Math.abs(Math.hypot(dx, dz) - (r - 1)) < 0.6;
-                Block b = h ? pal.mark() : ring ? pal.edge() : edge ? pal.plinth() : pal.floor();
+                BlockState b = (h ? pal.mark() : ring ? pal.edge() : edge ? pal.plinth() : pal.floor()).defaultBlockState();
+                if (ring && pal.parts().containsKey("hazard")) b = pal.parts().get("hazard");
                 set(p.x() + dx, y, p.z() + dz, b);
             }
         }
@@ -740,20 +826,19 @@ public final class BaseBuilder {
             set(gx, p.y() + 1, gz, pal.glass());
             set(gx, p.y() + 2, gz, pal.glass());
         }
-        set(p.x(), p.y(), p.z(), Blocks.LECTERN, dir(p.facing()));
     }
 
-    /** A wing of hesco or jersey barriers running out from a gate, so that an approach is a funnel. */
-    private void barrier(Piece p) {
-        boolean alongZ = p.facing() == 0;
+    /** A wing of barriers running out from a gate, so that an approach is a funnel: hesco for a hesco wall, else concrete jersey blocks. */
+    private void barrier(Piece p, BasePlan plan) {
+        boolean alongZ = p.facing() == 0, hesco = plan.wall() != null && plan.wall().style() == BasePlan.Wall.HESCO;
         for (int i = -3; i <= 3; i++) {
             int x = p.x() + (alongZ ? 0 : i), z = p.z() + (alongZ ? i : 0);
             set(x, p.y() - 1, z, pal.ground());
-            if ((p.style() & 1) == 0) {
+            if (hesco) {
                 fill(x, p.y(), z, x, p.y() + 1, z, pal.hesco());
             } else {
                 set(x, p.y(), z, pal.heavy());
-                set(x, p.y() + 1, z, i % 2 == 0 ? pal.boomA() : pal.boomB());
+                set(x, p.y() + 1, z, slab(pal.slab(), SlabType.BOTTOM));
             }
         }
     }
@@ -815,49 +900,39 @@ public final class BaseBuilder {
 
     // ---- structures
 
-    /** A watchtower: a concrete shaft or a steel-framed one, a ladder inside, firing slits, and a roofed platform with a sandbag or concrete parapet and a searchlight. */
+    /**
+     * A watchtower, one design for every tower of a base: a concrete shaft with posts at the corners, a steel door facing into the
+     * base and a ladder up the back; an open lookout on top (a breast-high parapet, corner posts, a roof overhanging it) with a
+     * searchlight under the roof.
+     */
     private void tower(Piece p) {
         int s = p.w(), xa = x0(p), za = z0(p), xb = xa + s - 1, zb = za + s - 1, y = p.y(), h = p.height();
-        boolean steel = (p.style() & 1) == 1;
+        Direction out = dir(p.facing()), back = out.getOpposite();
         fill(xa, y - 1, za, xb, y - 1, zb, pal.heavy());
-        shell(xa, y, za, xb, y + h - 1, zb, steel ? pal.trim() : pal.heavy());
-        if (steel) {                                                                                    // an open lattice, steel at the corners, solid on the ladder side
-            for (int x = xa + 1; x < xb; x++) {
-                fill(x, y + 1, za, x, y + h - 2, za, Blocks.IRON_BARS);
-                fill(x, y + 1, zb, x, y + h - 2, zb, Blocks.IRON_BARS);
-            }
-            for (int z = za + 1; z < zb; z++) {
-                fill(xa, y + 1, z, xa, y + h - 2, z, Blocks.IRON_BARS);
-                fill(xb, y + 1, z, xb, y + h - 2, z, Blocks.IRON_BARS);
-            }
-            fill(xa + 1, y + 1, zb, xb - 1, y + h - 2, zb, pal.trim());
-        }
-        for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + h + 3, c[1], pal.steel());
-        fill(xa, y + h - 1, za, xb, y + h - 1, zb, steel ? pal.steel() : pal.plinth());                // the platform
-        ring(xa, y + h, za, xb, zb, steel ? pal.bag() : pal.heavy());                                  // parapet
-        for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y + h, c[1], c[0], y + h + 3, c[1], pal.steel());
-        for (int x = xa + 1; x < xb; x++) {                                                             // a firing slot over the parapet, glass over that
-            for (int yy = y + h + 2; yy <= y + h + 3; yy++) {
-                set(x, yy, za, pal.glass());
-                set(x, yy, zb, pal.glass());
-            }
+        shell(xa, y, za, xb, y + h - 1, zb, pal.heavy());
+        for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + h + 3, c[1], pal.trim());
+        fill(xa, y + h - 1, za, xb, y + h - 1, zb, pal.trim());                                        // the floor of the lookout
+        for (int x = xa + 1; x < xb; x++) {                                                             // the parapet, between the posts
+            set(x, y + h, za, pal.heavy());
+            set(x, y + h, zb, pal.heavy());
         }
         for (int z = za + 1; z < zb; z++) {
-            for (int yy = y + h + 2; yy <= y + h + 3; yy++) {
-                set(xa, yy, z, pal.glass());
-                set(xb, yy, z, pal.glass());
-            }
+            set(xa, y + h, z, pal.heavy());
+            set(xb, y + h, z, pal.heavy());
         }
         // the roof is five above the platform: a soldier's post finds the highest floor within four, and it must find the platform, not the roof
-        fill(xa, y + h + 4, za, xb, y + h + 4, zb, pal.trim());
-        set(p.x(), y + h + 4, p.z(), pal.light());                                                      // the searchlight
-        int lx = s > 3 ? xa + 1 : p.x(), lz = zb - 1;
-        for (int yy = y; yy < y + h; yy++) set(lx, yy, lz, Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.NORTH));
-        if (s > 3) set(lx, y + h - 1, lz, Blocks.AIR);
-        if (!steel) for (int yy = y + 2; yy < y + h - 2; yy += 3) set(p.x(), yy, za, pal.glass());
-        fill(p.x(), y, zb, p.x(), y + 1, zb, Blocks.AIR);                                               // a door at the foot
-        ironDoor(p.x(), y, zb, Direction.SOUTH);
-        if (s > 3) set(p.x() + 1, y, zb - 1, Blocks.CHEST, Direction.NORTH);
+        fill(xa - 1, y + h + 4, za - 1, xb + 1, y + h + 4, zb + 1, pal.trim());
+        set(p.x(), y + h + 3, p.z(), lamp());                                                           // the searchlight, under the roof
+        int r = s / 2 - 1, lx = p.x() + back.getStepX() * r, lz = p.z() + back.getStepZ() * r;
+        for (int yy = y; yy < y + h; yy++) set(lx, yy, lz, Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, out));
+        set(lx, y + h - 1, lz, Blocks.AIR);                                                             // the hatch
+        int dx = p.x() + out.getStepX() * (s / 2), dz = p.z() + out.getStepZ() * (s / 2);
+        fill(dx, y, dz, dx, y + 1, dz, Blocks.AIR);
+        ironDoor(dx, y, dz, out);
+        if (s > 3) {
+            Direction side = out.getClockWise();
+            set(p.x() + side.getStepX(), y, p.z() + side.getStepZ(), Blocks.CHEST, side.getOpposite());
+        }
     }
 
     /** A firing position facing {@code facing}: sandbags, hesco with a bag top, or a low concrete pillbox with a slit; an ammunition drum behind. */
@@ -894,62 +969,191 @@ public final class BaseBuilder {
         set(bx, y, bz, Blocks.BARREL);
     }
 
-    /** A communications mast: a steel mast with crossbars of rods, a cabinet at its foot, a solar cell. */
+    /** A communications mast: a steel foot, a pole with a rod on top, a cabinet beside it. */
     private void mast(Piece p) {
         int y = p.y(), h = p.height();
         fill(p.x() - 1, y - 1, p.z() - 1, p.x() + 1, y - 1, p.z() + 1, pal.floor());
         fill(p.x(), y, p.z(), p.x(), y + 2, p.z(), pal.steel());
         fill(p.x(), y + 3, p.z(), p.x(), y + h - 2, p.z(), Blocks.IRON_BARS);
-        for (int yy = y + 5; yy < y + h - 1; yy += 3) {                                                  // dipoles
-            set(p.x() + 1, yy, p.z(), Blocks.END_ROD.defaultBlockState().setValue(BlockStateProperties.FACING, Direction.EAST));
-            set(p.x() - 1, yy, p.z(), Blocks.END_ROD.defaultBlockState().setValue(BlockStateProperties.FACING, Direction.WEST));
-        }
         set(p.x(), y + h - 1, p.z(), Blocks.LIGHTNING_ROD);
         set(p.x() + 1, y, p.z(), pal.steel());                                                           // the cabinet
         set(p.x() + 1, y + 1, p.z(), Blocks.IRON_TRAPDOOR);
-        set(p.x(), y, p.z() + 1, Blocks.DAYLIGHT_DETECTOR);
     }
 
     /** A floodlight on a steel pole. */
     private void light(Piece p) {
         fill(p.x(), p.y(), p.z(), p.x(), p.y() + p.height() - 2, p.z(), Blocks.IRON_BARS);
-        set(p.x(), p.y() + p.height() - 1, p.z(), pal.light());
+        set(p.x(), p.y() + p.height() - 1, p.z(), lamp());
         set(p.x(), p.y() + p.height(), p.z(), Blocks.IRON_TRAPDOOR);                                      // the shade
     }
 
-    /** A vehicle bay: a paved hard-stand with yellow marking, a heavy back wall with floodlights, and hesco or concrete side walls; open at the front and the top so any vehicle clears. */
+    /** A vehicle bay: a paved hard-stand open to its road, a heavy back wall with floodlights, low side walls, posts at the corners; open at the top so any vehicle clears. */
     private void bay(Piece p) {
         int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
+        Direction out = dir(p.facing());
         fill(xa, y - 1, za, xb, y - 1, zb, pal.floor());
-        ring(xa, y - 1, za, xb, zb, pal.edge());
-        for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) fill(c[0], y, c[1], c[0], y + p.height(), c[1], pal.steel());
-        fill(xa, y, za, xb, y + 2, za, pal.heavy());                                                     // the back wall
-        for (int z = za + 1; z < zb; z++) {
-            Block b = (p.style() & 1) == 0 ? pal.hesco() : pal.heavy();
-            fill(xa, y, z, xa, y + 1, z, b);
-            fill(xb, y, z, xb, y + 1, z, b);
+        if (pal.parts().containsKey("hazard")) {                                    // the hard-stand edged in hazard stripes
+            for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) if (x == xa || x == xb || z == za || z == zb) set(x, y - 1, z, pal.parts().get("hazard"));
         }
-        for (int x = xa + 1; x < xb; x += 4) set(x, y + 3, za, pal.light());
+        for (int x = xa; x <= xb; x++) {
+            for (int z = za; z <= zb; z++) {
+                Direction side = x == xa ? Direction.WEST : x == xb ? Direction.EAST : z == za ? Direction.NORTH : z == zb ? Direction.SOUTH : null;
+                if (side == null || side == out) continue;
+                boolean corner = (x == xa || x == xb) && (z == za || z == zb);
+                if (corner) fill(x, y, z, x, y + p.height(), z, pal.trim());
+                else if (side == out.getOpposite()) fill(x, y, z, x, y + 2, z, pal.heavy());
+                else fill(x, y, z, x, y + 1, z, pal.heavy());
+            }
+        }
+        int bx = p.x() - out.getStepX() * (p.w() / 2), bz = p.z() - out.getStepZ() * (p.d() / 2);
+        Direction along = out.getClockWise();
+        for (int k = -2; k <= 2; k += 4) set(bx + along.getStepX() * k, y + 2, bz + along.getStepZ() * k, pal.light());   // set into the back wall
     }
 
-    /** A trench: two wide, two deep, floored with concrete slab, the lip lined with bags and hesco in turn. */
+    // ---- NTM pieces
+
+    /** A barracks or mess: a flat-roofed building, or a Quonset hall when the style says so. */
+    private void hall(Piece p) {
+        if ("quonset".equals(pal.layout("hall", "flat"))) quonset(p);
+        else building(p, bodyFor(p), true);
+    }
+
+    /**
+     * A Quonset hall: a barrel roof stepped down to the ground along the long side, gable ends of the body block with a window,
+     * a steel door through the curve on the street side, lamps along the ridge.
+     */
+    private void quonset(Piece p) {
+        int xa = x0(p), za = z0(p), xb = xa + p.w() - 1, zb = za + p.d() - 1, y = p.y();
+        boolean alongX = p.w() >= p.d();
+        int width = alongX ? p.d() : p.w(), length = alongX ? p.w() : p.d();
+        double c = (width - 1) / 2.0, r = width / 2.0 + 0.1;
+        int[] hi = new int[width];
+        for (int i = 0; i < width; i++) hi[i] = 1 + (int) Math.floor(Math.sqrt(Math.max(0, r * r - (i - c) * (i - c))));
+        BlockState arch = pal.part("arch", pal.trim());
+        fill(xa - 1, y - 1, za - 1, xb + 1, y - 1, zb + 1, pal.floor());
+        for (int j = 0; j < length; j++) {
+            boolean end = j == 0 || j == length - 1;
+            for (int i = 0; i < width; i++) {
+                for (int yy = 0; yy <= hi[i]; yy++) {
+                    int x = alongX ? xa + j : xa + i, z = alongX ? za + i : za + j;
+                    boolean shell = i == 0 || i == width - 1 || yy == hi[i] || hi[i - 1] < yy || hi[i + 1] < yy;
+                    if (shell) set(x, y + yy, z, arch);
+                    else if (end) set(x, y + yy, z, yy == 2 && Math.abs(i - c) <= 1 ? pal.glass().defaultBlockState() : pal.body().defaultBlockState());
+                    else set(x, y + yy, z, Blocks.AIR.defaultBlockState());
+                }
+            }
+            int mid = (int) Math.floor(c);
+            if (!end && j % 3 == 1) {
+                int x = alongX ? xa + j : xa + mid, z = alongX ? za + mid : za + j;
+                set(x, y + hi[mid], z, pal.light());
+            }
+        }
+        Direction out = dir(p.facing());
+        int dx = p.x() + out.getStepX() * (p.w() / 2), dz = p.z() + out.getStepZ() * (p.d() / 2);
+        if (out.getStepX() > 0) dx = xb;
+        if (out.getStepX() < 0) dx = xa;
+        if (out.getStepZ() > 0) dz = zb;
+        if (out.getStepZ() < 0) dz = za;
+        fill(dx, y, dz, dx, y + 1, dz, Blocks.AIR);
+        ironDoor(dx, y, dz, out);
+        Direction along = out.getClockWise();
+        fill(dx + along.getStepX(), y, dz + along.getStepZ(), dx + along.getStepX(), y + 1, dz + along.getStepZ(), Blocks.AIR);
+    }
+
+    /**
+     * A steel lattice tower on stilts, as at NTM's gates: four lattice legs, a steel ladder column in the middle, a cab of
+     * steel plate with a band of windows and an overhanging roof, a searchlight under it.
+     */
+    private void latticeTower(Piece p) {
+        int s = p.w(), xa = x0(p), za = z0(p), xb = xa + s - 1, zb = za + s - 1, y = p.y(), h = p.height();
+        Direction out = dir(p.facing());
+        BlockState leg = pal.part("lattice", pal.steel()), cab = pal.part("cab", pal.steel());
+        for (int[] c : new int[][]{{xa, za}, {xb, za}, {xa, zb}, {xb, zb}}) {
+            fill(c[0], y - 1, c[1], c[0], y - 1, c[1], pal.heavy());
+            for (int yy = y; yy < y + h - 1; yy++) set(c[0], yy, c[1], leg);
+        }
+        BlockState braceX = lying(leg, Direction.Axis.X), braceZ = lying(leg, Direction.Axis.Z);
+        for (int yy = y + 3; yy < y + h - 1; yy += 4) {                                   // a brace round the legs every four, lying along its run
+            for (int x = xa + 1; x < xb; x++) {
+                set(x, yy, za, braceX);
+                set(x, yy, zb, braceX);
+            }
+            for (int z = za + 1; z < zb; z++) {
+                set(xa, yy, z, braceZ);
+                set(xb, yy, z, braceZ);
+            }
+        }
+        fill(p.x(), y, p.z(), p.x(), y + h - 2, p.z(), pal.steel());                     // the ladder column
+        int lx = p.x() + out.getStepX(), lz = p.z() + out.getStepZ();
+        for (int yy = y; yy < y + h; yy++) set(lx, yy, lz, Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, out));
+        for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) set(x, y + h - 1, z, cab);   // the cab floor
+        set(lx, y + h - 1, lz, Blocks.AIR.defaultBlockState());                           // the hatch
+        for (int yy = y + h; yy <= y + h + 3; yy++) {
+            for (int x = xa; x <= xb; x++) {
+                for (int z = za; z <= zb; z++) {
+                    boolean rim = x == xa || x == xb || z == za || z == zb, corner = (x == xa || x == xb) && (z == za || z == zb);
+                    if (!rim) continue;
+                    boolean window = !corner && (yy == y + h + 1 || yy == y + h + 2);
+                    set(x, yy, z, window ? pal.glass().defaultBlockState() : cab);
+                }
+            }
+        }
+        for (int x = xa - 1; x <= xb + 1; x++) for (int z = za - 1; z <= zb + 1; z++) set(x, y + h + 4, z, cab);   // the roof
+        set(p.x(), y + h + 3, p.z(), lamp());
+    }
+
+    /** A radio mast of lattice on the plaza: three by three legs, platforms every five, a steel spar and a beacon on top, a cabinet at its foot. */
+    private void latticeMast(Piece p) {
+        int y = p.y(), top = y + 18;
+        BlockState leg = pal.part("lattice", pal.steel());
+        fill(p.x() - 2, y - 1, p.z() - 2, p.x() + 2, y - 1, p.z() + 2, pal.heavy());
+        for (int yy = y; yy < top; yy++) {
+            for (int dx = -1; dx <= 1; dx += 2) for (int dz = -1; dz <= 1; dz += 2) set(p.x() + dx, yy, p.z() + dz, leg);
+            if ((yy - y) % 5 == 4) {                                                       // a brace ring, each piece lying along its side
+                for (int d = -1; d <= 1; d += 2) {
+                    set(p.x(), yy, p.z() + d, lying(leg, Direction.Axis.X));
+                    set(p.x() + d, yy, p.z(), lying(leg, Direction.Axis.Z));
+                }
+            }
+        }
+        fill(p.x(), y + 1, p.z(), p.x(), top + 3, p.z(), pal.steel());
+        set(p.x(), top + 4, p.z(), Blocks.LIGHTNING_ROD);
+        set(p.x(), top - 1, p.z() + 1, lamp());
+        set(p.x(), y, p.z(), pal.steel());
+    }
+
+    /**
+     * A missile silo pad, as on NTM's silo: a hazard-striped square, a concrete apron, a steel hatch in the middle with the
+     * style's hatch block, bollards at the corners and lamps on two of them.
+     */
+    private void silo(Piece p) {
+        int y = p.y() - 1, r = p.w() / 2;
+        BlockState hazard = pal.part("hazard", pal.edge());
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                int m = Math.max(Math.abs(dx), Math.abs(dz));
+                boolean big = r >= 5;
+                BlockState b = m == r || big && m == r - 1 ? hazard : m <= (big ? 2 : 1) ? pal.steel().defaultBlockState() : pal.heavy().defaultBlockState();
+                set(p.x() + dx, y, p.z() + dz, b);
+            }
+        }
+        if (pal.parts().containsKey("hatch")) set(p.x(), y, p.z(), pal.parts().get("hatch"));
+        for (int[] c : new int[][]{{-r, -r}, {r, -r}, {-r, r}, {r, r}}) {
+            set(p.x() + c[0], y + 1, p.z() + c[1], pal.steel());
+            if (c[0] < 0) set(p.x() + c[0], y + 2, p.z() + c[1], pal.light());
+        }
+    }
+
+    /** A sandbag revetment across an approach: a line of bags two high on the ground, a firing notch every fourth, an ammunition drum behind. No digging. */
     private void trench(Piece p) {
         boolean alongX = (p.facing() & 1) == 0;
-        int len = p.w(), wid = p.d(), y = p.y();
+        int len = p.w(), y = p.y();
         for (int i = -len / 2; i <= len / 2; i++) {
-            for (int j = 0; j < wid; j++) {
-                int x = p.x() + (alongX ? i : j), z = p.z() + (alongX ? j : i);
-                fill(x, y - 3, z, x, y + 1, z, Blocks.AIR);
-                set(x, y - 3, z, slab(pal.slab(), SlabType.TOP));
-                set(x, y - 4, z, Blocks.DIRT);
-            }
-            int lx = p.x() + (alongX ? i : -1), lz = p.z() + (alongX ? -1 : i);
-            int rx = p.x() + (alongX ? i : wid), rz = p.z() + (alongX ? wid : i);
-            Block lip = Math.floorMod(i / 3, 2) == 0 ? pal.bag() : pal.hesco();
-            set(lx, y, lz, lip);
-            set(rx, y, rz, lip);
+            int x = p.x() + (alongX ? i : 0), z = p.z() + (alongX ? 0 : i);
+            set(x, y - 1, z, pal.ground());
+            set(x, y, z, pal.bag());
+            if (Math.floorMod(i, 4) != 0) set(x, y + 1, z, pal.bag());
         }
-        int bx = p.x() + (alongX ? 0 : 0), bz = p.z() + (alongX ? 0 : 0);
-        set(bx, y - 2, bz, Blocks.BARREL);                                                                // an ammunition drum on the floor
+        set(p.x() + (alongX ? 0 : 1), y, p.z() + (alongX ? 1 : 0), Blocks.BARREL);
     }
 }
