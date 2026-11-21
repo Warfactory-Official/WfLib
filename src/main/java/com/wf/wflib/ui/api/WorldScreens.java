@@ -35,6 +35,13 @@ public final class WorldScreens {
     @Nullable
     public static ResourceLocation texture(Object key, UiLayout layout, UiContext context, float distance, float width,
                                            float height, float fallbackUnitsWidth, int maxFps) {
+        return texture(key, layout, context, distance, width, height, fallbackUnitsWidth, maxFps, 0xFF000000);
+    }
+
+    /** {@link #texture} with the surface cleared to {@code clear} (ARGB; alpha 0 => see-through where nothing is drawn). */
+    @Nullable
+    public static ResourceLocation texture(Object key, UiLayout layout, UiContext context, float distance, float width,
+                                           float height, float fallbackUnitsWidth, int maxFps, int clear) {
         if (distance > RANGE) {
             return null;
         }
@@ -45,7 +52,7 @@ public final class WorldScreens {
         float unitsH = unitsW / aspect;
         int pixelsPerUnit = pixelsPerUnit(key, distance, width, unitsW, unitsH);
         return UiSurfaces.request(key, layout, context, Math.round(unitsW * pixelsPerUnit),
-                Math.round(unitsH * pixelsPerUnit), unitsW, unitsH, contentW, contentH, maxFps, 0xFF000000);
+                Math.round(unitsH * pixelsPerUnit), unitsW, unitsH, contentW, contentH, maxFps, clear);
     }
 
     /**

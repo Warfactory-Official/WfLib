@@ -115,7 +115,7 @@ public final class BuiltinWidgets {
         add("scatter", p -> new Scatter(p.expr("items"), p.expr("x", "0"), p.expr("y", "0"),
                 p.choice("pivot", Point.class, Point.TOP_LEFT), p.widget("child")));
         add("repeat", p -> new Repeat(p.expr("items"), p.flag("vertical", false), p.number("gap", 0),
-                p.choice("align", Align.class, Align.START), p.integer("max", 0), p.integer("columns", 0),
+                p.choice("align", Align.class, Align.START), p.integer("max", 0), p.integer("columns", 0), p.integer("rows", 0),
                 p.widget("child")));
         add("tape", BuiltinWidgets::tape);
         add("ladder", p -> new Ladder(p.expr("pitch"), p.number("ppd"), p.number("step"), p.number("range"),

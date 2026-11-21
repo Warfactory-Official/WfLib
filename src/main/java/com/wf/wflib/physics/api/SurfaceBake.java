@@ -20,6 +20,8 @@ public final class SurfaceBake {
     static final float CLEARANCE = 0.5f;
     private static final int SPAN = 16 + 2 * PAD, COLUMNS = SPAN * SPAN;
     private static final float FLAT = 1.0e-3f, EPS = 1.0e-6f;
+    /** Neighbour within SNAP counts as the floor itself: paths, carpets, snow layers make no hill (box contacts carry them). */
+    static final float SNAP = 0.125f + EPS;
     /** n.y above: support (ground, skirt never drops it). */
     public static final float SUPPORT_NORMAL = 0.7f;
     /** Support <=> b^2 + c^2 < STEEP for plane y = a + b x + c z. */
@@ -157,7 +159,7 @@ public final class SurfaceBake {
                 float own = y[i], sum = 4 * own;
                 for (int d = 0; d < 8; d++) {
                     int j = near[i * 8 + d];
-                    sum += WEIGHT[d] * (j < 0 ? own : y[j]);
+                    sum += WEIGHT[d] * (j < 0 || Math.abs(y[j] - own) <= SNAP ? own : y[j]);
                 }
                 smooth[i] = sum / 16;
             }
@@ -189,6 +191,8 @@ public final class SurfaceBake {
                             int j = near[i * 8 + d];
                             if (j < 0) {
                                 sum += own;
+                            } else if (Math.abs(y[j] - floor) <= SNAP) {
+                                sum += smooth[j] - y[j] + floor;
                             } else {
                                 sum += smooth[j];
                                 highest = Math.max(highest, y[j]);

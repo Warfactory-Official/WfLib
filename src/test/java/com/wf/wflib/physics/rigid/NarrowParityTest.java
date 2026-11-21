@@ -83,7 +83,7 @@ class NarrowParityTest {
             }
 
             int count = nat.worldContacts(shapeCount, frames, handles, false, envelope, boxes, boxCount, triangles, triangleCount,
-                    MARGIN, DEPTH);
+                    MARGIN, DEPTH, null, 0);
             int next = 0;
             float[] triangle = new float[9];
             for (int s = 0; s < shapeCount; s++) {

@@ -214,6 +214,19 @@ public final class DriveSurface {
             this.sections = sections;
         }
 
+        /** Same baked section objects (identity) over the same keys. */
+        public boolean sameSections(View other) {
+            if (other == null || other.sections.size() != sections.size()) {
+                return false;
+            }
+            for (var entry : sections.long2ObjectEntrySet()) {
+                if (other.sections.get(entry.getLongKey()) != entry.getValue()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         @Override
         public double top(int x, int y, int z) {
             return tops.top(x, y, z);

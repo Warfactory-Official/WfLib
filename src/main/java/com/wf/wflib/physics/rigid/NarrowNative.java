@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.sun.management.HotSpotDiagnosticMXBean;
 import com.wf.wflib.physics.api.ConvexHull;
 import org.joml.Options;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -49,6 +50,11 @@ public final class NarrowNative {
     private IntBuffer outInts = out.asIntBuffer();
     private long outAddress = address(out);
     private int at;
+    /** Whose geometry the input buffer's box/triangle words hold. */
+    @Nullable
+    private Object residentOwner;
+    private long residentVersion;
+    private int residentWords;
     private int count;
 
     public NarrowNative() {
@@ -104,13 +110,15 @@ public final class NarrowNative {
      * @return contacts, shape = frame index; read with {@link #x} ... {@link #source}.
      */
     public int worldContacts(int shapeCount, float[] frames, long[] hulls, boolean cull, float[] envelope, float[] boxes,
-                             int boxCount, float[] triangles, int triangleCount, float margin, float depth) {
+                             int boxCount, float[] triangles, int triangleCount, float margin, float depth, @Nullable Object resident,
+                             long version) {
         int words = 12 + shapeCount * (FRAME + 2) + boxCount * 6 + triangleCount * 13;
         if (in.capacity() < words * 4) {
             in = ByteBuffer.allocateDirect(Integer.highestOneBit(words * 4) * 2).order(ByteOrder.nativeOrder());
             inFloats = in.asFloatBuffer();
             inInts = in.asIntBuffer();
             inAddress = address(in);
+            residentOwner = null;
         }
         at = 0;
         putInt(shapeCount);
@@ -126,8 +134,14 @@ public final class NarrowNative {
             inFloats.put(at, frames, s * FRAME, FRAME);
             at += FRAME;
         }
-        putFloats(boxes, boxCount * 6);
-        putFloats(triangles, triangleCount * 13);
+        // Boxes + triangles stay in the input buffer between calls: same owner, version and layout => unchanged words.
+        if (resident == null || resident != residentOwner || version != residentVersion || words != residentWords) {
+            putFloats(boxes, boxCount * 6);
+            putFloats(triangles, triangleCount * 13);
+            residentOwner = resident;
+            residentVersion = version;
+            residentWords = words;
+        }
         int capacity = out.capacity() / (RECORD * 4);
         count = worldContacts(context, inAddress, outAddress, capacity);
         if (count > capacity) {

@@ -34,6 +34,20 @@ class SurfaceBakeTest {
     }
 
     @Test
+    void lipsUpToAEighthMakeNoHill() {
+        for (float lip : new float[]{-0.0625f, 0.0625f, 0.125f}) {
+            BoxBuffer boxes = new BoxBuffer();
+            boxes.add(-8, 0, -8, 8, 1, 24);
+            boxes.add(8, 0, -8, 24, 1 + lip, 24);
+            assertEquals(0, SurfaceBake.bake(0, 0, 0, boxes).triangleCount(), "lip " + lip);
+        }
+        BoxBuffer boxes = new BoxBuffer();
+        boxes.add(-8, 0, -8, 8, 1, 24);
+        boxes.add(8, 0, -8, 24, 1.25f, 24);
+        assertTrue(SurfaceBake.bake(0, 0, 0, boxes).triangleCount() > 0, "quarter block");
+    }
+
+    @Test
     void oneBlockStepBecomesAnSCurveCuttingAndFillingHalfABlock() {
         BoxBuffer boxes = ground();
         boxes.add(8, 1, -8, 24, 2, 24);

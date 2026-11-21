@@ -171,11 +171,11 @@ public final class Ui {
     }
 
     public static WidgetDef grid(String items, int columns, float gap, WidgetDef child) {
-        return new Repeat(items, false, gap, Align.START, 0, columns, child);
+        return new Repeat(items, false, gap, Align.START, 0, columns, 0, child);
     }
 
     public static WidgetDef repeat(String items, boolean vertical, float gap, WidgetDef child) {
-        return new Repeat(items, vertical, gap, Align.START, 0, 0, child);
+        return new Repeat(items, vertical, gap, Align.START, 0, 0, 0, child);
     }
 
     /** Padded button; {@code hover} doubles as the pressed colour. */

@@ -12,6 +12,7 @@ import com.wf.wflib.physics.api.DeckView;
 import com.wf.wflib.physics.api.HullTag;
 import com.wf.wflib.physics.api.OrientedBoxes;
 import com.wf.wflib.physics.api.PhysicsBody;
+import com.wf.wflib.physics.api.SectionCollision;
 import com.wf.wflib.physics.api.SectionSource;
 import com.wf.wflib.physics.api.SpringRows;
 import com.wf.wflib.physics.api.StepResult;
@@ -25,8 +26,10 @@ import com.wf.wflib.physics.rigid.Polytope;
 import com.wf.wflib.physics.rigid.RigidSolver;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
@@ -427,8 +430,6 @@ public final class StepBody {
     void worldContacts(RigidSolver solver, ConvexContacts narrow, @Nullable NarrowNative native_, ContactBuffer buffer) {
         double[] origin = solver.origin;
         buffer.clear();
-        boxes.clear();
-        ChunkCollisionCache.collectBoxes(sections, gather, boxes);
         sessions.clear();
         sessionBase.clear();
         providerBoxes.clear();
@@ -436,25 +437,140 @@ public final class StepBody {
             owner.providerBoxes(gather, sessions, sessionBase, providerBoxes);
         }
         sessionBase.add(providerBoxes.size());
-        DriveSurface.View view = surface;
         DeckView link = owner.deck();
         boolean deck = link.active();
         int deckCount = deck ? link.deckCount() : 0;
-        candidateSections.clear();
-        candidateTriangles.clear();
-        view.triangles(gather, (section, t) -> {
-            candidateSections.add(section);
-            candidateTriangles.add(t);
-        });
-        // Nothing solid in reach (open air, open water): no shape to pose, no contact to find.
-        boolean reachable = !boxes.isEmpty() || !candidateTriangles.isEmpty() || deckCount > 0 || providerBoxes.size() > 0;
-        worldShapeCount = 0;
-        worldFrameCount = 0;
         // Deck / provider boxes are collided by the Java narrowphase per posed shape: no envelope.
         boolean cull = deckCount == 0 && providerBoxes.size() == 0;
+        collideWorld(narrow, native_, buffer, origin, link, deck, deckCount, cull);
+        contactFrom = solver.contactCount();
+        // Upright sprung belly frictionless, wheels down or not: high-centred on stair edges (tracks hanging) a 0.5
+        // belly braked a T-90 to a stop on a 1:4 hill. Lift contacts => no slide down slopes.
+        // Towed on wheels: rolls; the axle row grips sideways (unsprung MIM-104 dragged its belly at 0.5, train stalled).
+        // Carried (afloat): heave spring presses a grounded bow into the bed => 0.5 grip >> screw thrust, never backed off.
+        // Unsprung gear down: Coulomb 0.5 held a full-thrust A-10 parked (0.0095 b/t per tick zeroed).
+        boolean rolling = gear || coupling != null && coupling.axle();
+        float friction = rolling || carried || sprung && hullRotation.transform(new Vector3f(0, 1, 0)).y > BELLY_SPIN_UP ? 0 : FRICTION;
+        int deckSupports = 0;
+        if (contactTags.length < buffer.size()) {
+            contactTags = new int[Math.max(buffer.size(), contactTags.length * 2)];
+        }
+        for (int k = 0, size = buffer.size(); k < size; k++) {
+            contactTags[k] = buffer.tagA(k);
+            boolean wedged = false;
+            if (buffer.separation(k) < -WEDGE_DEPTH) {
+                for (int j = 0; j < size && !wedged; j++) {
+                    wedged = buffer.separation(j) < -WEDGE_DEPTH && buffer.normalX(k) * buffer.normalX(j)
+                            + buffer.normalY(k) * buffer.normalY(j) + buffer.normalZ(k) * buffer.normalZ(j) < -0.5f;
+                }
+            }
+            RigidSolver.Contact c = solver.addContact(0, body, buffer.x(k), buffer.y(k), buffer.z(k),
+                    buffer.normalX(k), buffer.normalY(k), buffer.normalZ(k), buffer.separation(k));
+            // Any carrier piece: riverine hull top = deck top => reduction kept hull points, rider never parked.
+            boolean carrier = buffer.tagA(k) < 0 && -1 - buffer.tagA(k) < deckCount;
+            // Carrier support = world support rule: a nose meeting the lowered ramp rides up it.
+            c.lift = buffer.flags(k) == LIFT || carrier && buffer.normalY(k) > SurfaceBake.SUPPORT_NORMAL;
+            // Deck walls, providers: Coulomb. Deck lift = world belly rule (wheels probe decks): 0.5 on the lip held a tank.
+            c.friction = buffer.tagA(k) < 0 && !(carrier && c.lift) ? FRICTION : friction;
+            c.restitution = restitution;
+            c.wedged = wedged;
+            warm(c, c.anchorB);
+            if (carrier && buffer.normalY(k) > SurfaceBake.SUPPORT_NORMAL) {
+                deckSupports++;
+            }
+        }
+        contactTo = solver.contactCount();
+        link.supportContacts(deckSupports + springs(solver));
+    }
+
+    /**
+     * Candidate cache (native, envelope-culled bodies): boxes, triangles, vertices, envelope of {@link #candidateBounds} stay
+     * valid while the gather lies inside it and the section snapshots / baked sections are the same objects. Their frame is
+     * {@link #candidateOrigin}: shapes and contacts use it too, contacts shifted to the solver origin after.
+     */
+    private static final double CANDIDATE_PAD = 2;
+    private boolean candidatesValid;
+    private long geometryVersion;
+    private final double[] candidateOrigin = new double[3];
+    private AABB candidateBounds;
+    private DriveSurface.View candidateSurface;
+    private SectionCollision[] candidateSnapshots = new SectionCollision[0];
+
+    private boolean candidatesCurrent() {
+        AABB c = candidateBounds;
+        return candidatesValid && gather.minX >= c.minX && gather.minY >= c.minY && gather.minZ >= c.minZ
+                && gather.maxX <= c.maxX && gather.maxY <= c.maxY && gather.maxZ <= c.maxZ
+                && surface.sameSections(candidateSurface) && snapshots(candidateBounds, false);
+    }
+
+    /** Section snapshots over bounds are the stored ones (identity); store => replaces them. */
+    private boolean snapshots(AABB bounds, boolean store) {
+        int x0 = Mth.floor(bounds.minX) >> 4, x1 = Mth.floor(bounds.maxX) >> 4;
+        int y0 = Mth.floor(bounds.minY) >> 4, y1 = Mth.floor(bounds.maxY) >> 4;
+        int z0 = Mth.floor(bounds.minZ) >> 4, z1 = Mth.floor(bounds.maxZ) >> 4;
+        int count = (x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1);
+        if (candidateSnapshots.length != count) {
+            if (!store) {
+                return false;
+            }
+            candidateSnapshots = new SectionCollision[count];
+        }
+        int i = 0;
+        for (int x = x0; x <= x1; x++) {
+            for (int y = y0; y <= y1; y++) {
+                for (int z = z0; z <= z1; z++, i++) {
+                    SectionCollision section = sections.section(SectionPos.asLong(x, y, z));
+                    if (store) {
+                        candidateSnapshots[i] = section;
+                    } else if (candidateSnapshots[i] != section) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Block, drive-surface and deck contacts of every world shape, into buffer (relative to solverOrigin). */
+    private void collideWorld(ConvexContacts narrow, @Nullable NarrowNative native_, ContactBuffer buffer, double[] solverOrigin,
+                              DeckView link, boolean deck, int deckCount, boolean cull) {
+        boolean cacheable = native_ != null && cull;
+        boolean reuse = cacheable && candidatesCurrent();
+        double[] origin = reuse ? candidateOrigin : solverOrigin;
+        boolean reachable;
+        if (reuse) {
+            reachable = true;
+        } else {
+            AABB bounds = cacheable ? gather.inflate(CANDIDATE_PAD) : gather;
+            boxes.clear();
+            gridBuilt = false;
+            boxGrid = cacheable ? (boxGrid != null ? boxGrid : new Long2ObjectOpenHashMap<>()) : null;
+            geometryVersion++;
+            ChunkCollisionCache.collectBoxes(sections, bounds, boxes);
+            candidateSections.clear();
+            candidateTriangles.clear();
+            surface.triangles(bounds, (section, t) -> {
+                candidateSections.add(section);
+                candidateTriangles.add(t);
+            });
+            // Nothing solid in reach (open air, open water): no shape to pose, no contact to find.
+            reachable = !boxes.isEmpty() || !candidateTriangles.isEmpty() || deckCount > 0 || providerBoxes.size() > 0;
+            candidatesValid = cacheable && reachable;
+            if (candidatesValid) {
+                System.arraycopy(solverOrigin, 0, candidateOrigin, 0, 3);
+                candidateBounds = bounds;
+                candidateSurface = surface;
+                snapshots(bounds, true);
+            }
+        }
+        DriveSurface.View view = surface;
+        worldShapeCount = 0;
+        worldFrameCount = 0;
         boolean javaPosed = native_ == null || !cull;
         if (reachable) {
-            candidates(origin);
+            if (!reuse) {
+                candidates(origin);
+            }
             worldFrames(origin, native_ != null);
             if (javaPosed) {
                 poseWorldShapes(cull);
@@ -463,7 +579,8 @@ public final class StepBody {
         int nativeCount = 0;
         if (native_ != null && worldFrameCount > 0) {
             nativeCount = native_.worldContacts(worldFrameCount, worldFrames, worldHandles, cull, envelope, candidateBoxes,
-                    boxes.size(), candidateVertices, candidateTriangles.size(), margin, FILL_DEPTH);
+                    boxes.size(), candidateVertices, candidateTriangles.size(), margin, FILL_DEPTH, candidatesValid ? this : null,
+                    geometryVersion);
         } else {
             reach.enclose(worldShapes, worldShapeCount);
         }
@@ -575,44 +692,14 @@ public final class StepBody {
             });
             buffer.reduce(from);
         }
-        contactFrom = solver.contactCount();
-        // Upright sprung belly frictionless, wheels down or not: high-centred on stair edges (tracks hanging) a 0.5
-        // belly braked a T-90 to a stop on a 1:4 hill. Lift contacts => no slide down slopes.
-        // Towed on wheels: rolls; the axle row grips sideways (unsprung MIM-104 dragged its belly at 0.5, train stalled).
-        // Carried (afloat): heave spring presses a grounded bow into the bed => 0.5 grip >> screw thrust, never backed off.
-        // Unsprung gear down: Coulomb 0.5 held a full-thrust A-10 parked (0.0095 b/t per tick zeroed).
-        boolean rolling = gear || coupling != null && coupling.axle();
-        float friction = rolling || carried || sprung && hullRotation.transform(new Vector3f(0, 1, 0)).y > BELLY_SPIN_UP ? 0 : FRICTION;
-        int deckSupports = 0;
-        if (contactTags.length < buffer.size()) {
-            contactTags = new int[Math.max(buffer.size(), contactTags.length * 2)];
-        }
-        for (int k = 0, size = buffer.size(); k < size; k++) {
-            contactTags[k] = buffer.tagA(k);
-            boolean wedged = false;
-            if (buffer.separation(k) < -WEDGE_DEPTH) {
-                for (int j = 0; j < size && !wedged; j++) {
-                    wedged = buffer.separation(j) < -WEDGE_DEPTH && buffer.normalX(k) * buffer.normalX(j)
-                            + buffer.normalY(k) * buffer.normalY(j) + buffer.normalZ(k) * buffer.normalZ(j) < -0.5f;
-                }
-            }
-            RigidSolver.Contact c = solver.addContact(0, body, buffer.x(k), buffer.y(k), buffer.z(k),
-                    buffer.normalX(k), buffer.normalY(k), buffer.normalZ(k), buffer.separation(k));
-            // Any carrier piece: riverine hull top = deck top => reduction kept hull points, rider never parked.
-            boolean carrier = buffer.tagA(k) < 0 && -1 - buffer.tagA(k) < deckCount;
-            // Carrier support = world support rule: a nose meeting the lowered ramp rides up it.
-            c.lift = buffer.flags(k) == LIFT || carrier && buffer.normalY(k) > SurfaceBake.SUPPORT_NORMAL;
-            // Deck walls, providers: Coulomb. Deck lift = world belly rule (wheels probe decks): 0.5 on the lip held a tank.
-            c.friction = buffer.tagA(k) < 0 && !(carrier && c.lift) ? FRICTION : friction;
-            c.restitution = restitution;
-            c.wedged = wedged;
-            warm(c, c.anchorB);
-            if (carrier && buffer.normalY(k) > SurfaceBake.SUPPORT_NORMAL) {
-                deckSupports++;
+        if (origin != solverOrigin) {
+            float dx = (float) (origin[0] - solverOrigin[0]), dy = (float) (origin[1] - solverOrigin[1]),
+                    dz = (float) (origin[2] - solverOrigin[2]);
+            for (int k = 0, size = buffer.size(); k < size; k++) {
+                buffer.set(k, buffer.x(k) + dx, buffer.y(k) + dy, buffer.z(k) + dz, buffer.normalX(k), buffer.normalY(k),
+                        buffer.normalZ(k), buffer.separation(k), buffer.flags(k));
             }
         }
-        contactTo = solver.contactCount();
-        link.supportContacts(deckSupports + springs(solver));
     }
 
     private void deckContacts(ConvexContacts narrow, ContactBuffer buffer, Polytope shape, DeckView link, int deckCount,
@@ -873,22 +960,22 @@ public final class StepBody {
      * left; false => nothing left. Boxes merge per section: SAT edge axis at a seam, n (0, 0.56, -0.83), stopped every
      * wheeled vehicle at z 32 and flipped it.
      */
-    private static boolean exposed(ContactBuffer buffer, int k, BoxBuffer boxes, double[] origin) {
+    private boolean exposed(ContactBuffer buffer, int k, BoxBuffer boxes, double[] origin) {
         int i = buffer.tagA(k);
         double x = Mth.clamp(buffer.x(k) + origin[0], boxes.minX(i) + FACE_STEP, boxes.maxX(i) - FACE_STEP);
         double y = Mth.clamp(buffer.y(k) + origin[1], boxes.minY(i) + FACE_STEP, boxes.maxY(i) - FACE_STEP);
         double z = Mth.clamp(buffer.z(k) + origin[2], boxes.minZ(i) + FACE_STEP, boxes.maxZ(i) - FACE_STEP);
         float nx = buffer.normalX(k), ny = buffer.normalY(k), nz = buffer.normalZ(k);
-        if (nx > FACE_COMPONENT && solid(boxes, boxes.maxX(i) + FACE_STEP, y, z)
-                || nx < -FACE_COMPONENT && solid(boxes, boxes.minX(i) - FACE_STEP, y, z)) {
+        if (nx > FACE_COMPONENT && solid(boxes.maxX(i) + FACE_STEP, y, z)
+                || nx < -FACE_COMPONENT && solid(boxes.minX(i) - FACE_STEP, y, z)) {
             nx = 0;
         }
-        if (ny > FACE_COMPONENT && solid(boxes, x, boxes.maxY(i) + FACE_STEP, z)
-                || ny < -FACE_COMPONENT && solid(boxes, x, boxes.minY(i) - FACE_STEP, z)) {
+        if (ny > FACE_COMPONENT && solid(x, boxes.maxY(i) + FACE_STEP, z)
+                || ny < -FACE_COMPONENT && solid(x, boxes.minY(i) - FACE_STEP, z)) {
             ny = 0;
         }
-        if (nz > FACE_COMPONENT && solid(boxes, x, y, boxes.maxZ(i) + FACE_STEP)
-                || nz < -FACE_COMPONENT && solid(boxes, x, y, boxes.minZ(i) - FACE_STEP)) {
+        if (nz > FACE_COMPONENT && solid(x, y, boxes.maxZ(i) + FACE_STEP)
+                || nz < -FACE_COMPONENT && solid(x, y, boxes.minZ(i) - FACE_STEP)) {
             nz = 0;
         }
         float length = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
@@ -903,8 +990,51 @@ public final class StepBody {
         return true;
     }
 
-    private static boolean solid(BoxBuffer boxes, double x, double y, double z) {
+    /** Cell edge, blocks: {@link #boxGrid} key = floor(coord / 8). */
+    private static final int GRID_SHIFT = 3;
+    /** Candidate-cache lifetime: box indices per cell they overlap; null => linear scan (boxes change every tick). */
+    private Long2ObjectOpenHashMap<IntArrayList> boxGrid;
+    private boolean gridBuilt;
+
+    private static long cell(double x, double y, double z) {
+        return ((long) (Mth.floor(x) >> GRID_SHIFT) & 0x1FFFFF) << 42 | ((long) (Mth.floor(z) >> GRID_SHIFT) & 0x1FFFFF) << 21
+                | (long) (Mth.floor(y) >> GRID_SHIFT) & 0x1FFFFF;
+    }
+
+    private void buildGrid() {
+        boxGrid.clear();
         for (int i = 0, size = boxes.size(); i < size; i++) {
+            int x0 = Mth.floor(boxes.minX(i)) >> GRID_SHIFT, x1 = Mth.floor(boxes.maxX(i)) >> GRID_SHIFT;
+            int y0 = Mth.floor(boxes.minY(i)) >> GRID_SHIFT, y1 = Mth.floor(boxes.maxY(i)) >> GRID_SHIFT;
+            int z0 = Mth.floor(boxes.minZ(i)) >> GRID_SHIFT, z1 = Mth.floor(boxes.maxZ(i)) >> GRID_SHIFT;
+            for (int x = x0; x <= x1; x++) {
+                for (int y = y0; y <= y1; y++) {
+                    for (int z = z0; z <= z1; z++) {
+                        boxGrid.computeIfAbsent(cell(x << GRID_SHIFT, y << GRID_SHIFT, z << GRID_SHIFT), c -> new IntArrayList()).add(i);
+                    }
+                }
+            }
+        }
+        gridBuilt = true;
+    }
+
+    private boolean solid(double x, double y, double z) {
+        if (boxGrid == null) {
+            return solid(x, y, z, null);
+        }
+        if (!gridBuilt) {
+            buildGrid();
+        }
+        return solid(x, y, z, boxGrid.get(cell(x, y, z)));
+    }
+
+    /** Point strictly inside a box of {@code candidates} (null => all boxes). */
+    private boolean solid(double x, double y, double z, @Nullable IntArrayList candidates) {
+        if (candidates == null && boxGrid != null) {
+            return false;
+        }
+        for (int n = 0, size = candidates != null ? candidates.size() : boxes.size(); n < size; n++) {
+            int i = candidates != null ? candidates.getInt(n) : n;
             if (x > boxes.minX(i) && x < boxes.maxX(i) && y > boxes.minY(i) && y < boxes.maxY(i) && z > boxes.minZ(i)
                     && z < boxes.maxZ(i)) {
                 return true;

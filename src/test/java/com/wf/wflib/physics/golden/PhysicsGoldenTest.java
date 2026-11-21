@@ -179,7 +179,7 @@ class PhysicsGoldenTest {
                 triangles[c * 13 + 12] = Float.intBitsToFloat(c);
             }
             int count = nat.worldContacts(shapeCount, frames, handles, false, envelope, boxes, boxCount, triangles,
-                    triangleCount, 0.1f, 1.0f);
+                    triangleCount, 0.1f, 1.0f, null, 0);
             h = mix(h, count);
             for (int k = 0; k < count; k++) {
                 h = mix(h, nat.x(k));
