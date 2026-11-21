@@ -135,7 +135,9 @@ class FeatureCatalogueTest {
     void defaultsAreTheCataloguesAndUnsetIsOn() {
         Features.install(Map.of("military.enabled", true));
         assertFalse(Features.systemConfigured("anomaly", true), "anomalies default off");
-        assertTrue(Features.systemConfigured("soldier", false));
+        assertFalse(Features.systemConfigured("soldier", true), "soldiers default off");
+        assertFalse(Features.systemConfigured("contract", true), "contracts default off");
         assertTrue(Features.systemConfigured("ammo", true), "a system no feature names is not gated");
+        for (Feature f : FeatureCatalogue.groupOf("soldier").features()) assertFalse(f.defaultOn(), f.id() + " defaults off");
     }
 }

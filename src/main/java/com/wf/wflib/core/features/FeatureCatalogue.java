@@ -62,12 +62,13 @@ public final class FeatureCatalogue {
 
     public static final List<Group> GROUPS = List.of(
             new Group("military", "Private Military", "AI soldiers you can hire and command, and the contracts that send you after them.", List.of(
-                    system("soldier", "Soldiers", "Squads with orders, patrol posts, depots and fire teams; hiring and the squad wheel.", "wflib:reinforcements"),
-                    system("contract", "Contracts", "The job board, reputation and ranks, built enemy bases, payouts.", "wflib:contracts"),
-                    flag("contract_heat", "Heat and hunters", "Kills raise heat; enough of it sends hunter teams after you and closes factions to you.", "contract"),
-                    flag("contract_blacksite", "Black Site", "The roaming site that can be seized and defended in waves.", "contract"),
-                    flag("contract_engagements", "Engagements", "Friendly and enemy squads that clash in the open and move the war.", "contract"),
-                    flag("contract_daily", "Daily board", "The generated daily contracts.", "contract"))),
+                    // off unless a pack turns them on (or a mod that needs them requires them): soldiers and everything built on them
+                    off(system("soldier", "Soldiers", "Squads with orders, patrol posts, depots and fire teams; hiring and the squad wheel.", "wflib:reinforcements")),
+                    off(system("contract", "Contracts", "The job board, reputation and ranks, built enemy bases, payouts.", "wflib:contracts")),
+                    off(flag("contract_heat", "Heat and hunters", "Kills raise heat; enough of it sends hunter teams after you and closes factions to you.", "contract")),
+                    off(flag("contract_blacksite", "Black Site", "The roaming site that can be seized and defended in waves.", "contract")),
+                    off(flag("contract_engagements", "Engagements", "Friendly and enemy squads that clash in the open and move the war.", "contract")),
+                    off(flag("contract_daily", "Daily board", "The generated daily contracts.", "contract")))),
             new Group("weapons", "Weapons and Optics", "What a gun mod hangs on a weapon, and what the shooter feels.", List.of(
                     system("magazine", "Magazines", "Magazine items and reload state."),
                     system("barrel", "Barrels", "Barrel and muzzle attachments."),
