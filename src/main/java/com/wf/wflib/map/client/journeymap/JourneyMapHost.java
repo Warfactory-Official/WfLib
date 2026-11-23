@@ -54,6 +54,30 @@ public final class JourneyMapHost implements MapHost {
         return "journeymap";
     }
 
+    private final Map<String, List<journeymap.api.v2.common.waypoint.Waypoint>> waypointsShown = new HashMap<>();
+
+    @Override
+    public void waypoints(String layer, List<com.wf.wflib.map.api.client.MapWaypoint> list) {
+        List<journeymap.api.v2.common.waypoint.Waypoint> previous = this.waypointsShown.remove(layer);
+        if (previous != null) {
+            previous.forEach(w -> this.api.removeWaypoint(WFLib.MODID, w));
+        }
+        List<journeymap.api.v2.common.waypoint.Waypoint> out = new ArrayList<>();
+        for (var w : list) {
+            try {
+                var made = journeymap.api.v2.common.waypoint.WaypointFactory.createClientWaypoint(WFLib.MODID, w.pos(), w.name(), w.dimension(), false);
+                made.setColor(w.color() & 0xFFFFFF);
+                this.api.addWaypoint(WFLib.MODID, made);
+                out.add(made);
+            } catch (RuntimeException e) {
+                LOGGER.warn("Could not add the waypoint {}", w.name(), e);
+            }
+        }
+        if (!out.isEmpty()) {
+            this.waypointsShown.put(layer, out);
+        }
+    }
+
     @Override
     public boolean hasFullscreen() {
         return true;

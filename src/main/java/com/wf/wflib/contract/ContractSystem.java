@@ -3,6 +3,7 @@ package com.wf.wflib.contract;
 import com.wf.wflib.contract.command.PmcCommands;
 import com.wf.wflib.contract.item.PmcItems;
 import com.wf.wflib.core.api.CreativeTabs;
+import com.wf.wflib.core.api.Features;
 import com.wf.wflib.core.api.WFSystem;
 import com.wf.wflib.soldier.api.SoldierKillEvent;
 import net.neoforged.bus.api.IEventBus;
@@ -56,18 +57,29 @@ public final class ContractSystem implements WFSystem {
         container.registerConfig(ModConfig.Type.COMMON, com.wf.wflib.contract.difficulty.DifficultyConfig.SPEC, "wflib-contract.toml");
         modBus.addListener(RegisterPayloadHandlersEvent.class,
                 e -> com.wf.wflib.contract.pda.PmcNet.register(e, snap -> com.wf.wflib.contract.client.PmcClient.accept(snap),
-                        com.wf.wflib.contract.client.PmcClient::threat));
-        NeoForge.EVENT_BUS.addListener(AddReloadListenerEvent.class, e -> e.addListener(new Contracts()));
+                        com.wf.wflib.contract.client.PmcClient::threat, com.wf.wflib.contract.client.PmcClient::missions));
+        NeoForge.EVENT_BUS.addListener(AddReloadListenerEvent.class, e -> {
+            e.addListener(new Contracts());
+            e.addListener(new com.wf.wflib.contract.site.SiteBlocks());
+            e.addListener(new com.wf.wflib.contract.site.SiteStyles());
+        });
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, e -> PmcCommands.register(e.getDispatcher()));
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, e -> {
             if (e.getServer().getTickCount() % 20 == 0) {
                 ContractService.tick(e.getServer());
-                com.wf.wflib.contract.heat.HeatService.tick(e.getServer());
-                com.wf.wflib.contract.blacksite.BlackSiteService.tick(e.getServer());
-                com.wf.wflib.contract.daily.DailyBoard.tick(e.getServer());
-                if (e.getServer().getTickCount() % 100 == 0) com.wf.wflib.contract.pda.PdaService.sendThreat(e.getServer());
-                com.wf.wflib.contract.engagement.EngagementService.tick(e.getServer());
+                if (Features.on("contract_heat")) com.wf.wflib.contract.heat.HeatService.tick(e.getServer());
+                if (Features.on("contract_blacksite")) com.wf.wflib.contract.blacksite.BlackSiteService.tick(e.getServer());
+                if (Features.on("contract_daily")) com.wf.wflib.contract.daily.DailyBoard.tick(e.getServer());
+                if (e.getServer().getTickCount() % 100 == 0) {
+                    com.wf.wflib.contract.pda.PdaService.sendThreat(e.getServer());
+                    com.wf.wflib.contract.pda.MissionSync.sendAll(e.getServer());
+                }
+                if (Features.on("contract_engagements")) com.wf.wflib.contract.engagement.EngagementService.tick(e.getServer());
+                com.wf.wflib.contract.site.SiteVehicles.tick(e.getServer());
             }
+        });
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.class, e -> {
+            if (e.getEntity() instanceof net.minecraft.server.level.ServerPlayer p && p.getServer() != null) com.wf.wflib.contract.pda.MissionSync.send(p.getServer(), p);
         });
         NeoForge.EVENT_BUS.addListener(ServerStoppedEvent.class, e -> {
             com.wf.wflib.soldier.api.RandomForces.forget();
@@ -76,7 +88,7 @@ public final class ContractSystem implements WFSystem {
         NeoForge.EVENT_BUS.addListener(SoldierKillEvent.class, e -> {
             if (e.killedByPlayer() && e.killer().getServer() != null) {
                 ContractService.recordKill(e.killer().getServer(), e.killer().getUUID(), e.victimTeam());
-                com.wf.wflib.contract.heat.HeatService.onKill(e.killer().getServer(), e.killer().getUUID(), e.victimTeam());
+                if (Features.on("contract_heat")) com.wf.wflib.contract.heat.HeatService.onKill(e.killer().getServer(), e.killer().getUUID(), e.victimTeam());
             }
         });
     }

@@ -1,0 +1,46 @@
+{
+  "_about": "After NTM's missile silo: smooth concrete buildings on asphalt behind chain-link and wire, a steel gate frame, concrete lookouts, a hazard-striped silo pad, hazard-edged bays.",
+  "weight": 2,
+  "layout": {
+    "paved": "false",
+    "perimeter": "fence",
+    "gate": "frame",
+    "gateTowers": "lookout",
+    "cornerTowers": "lookout",
+    "hall": "flat",
+    "mast": "pole",
+    "silo": "true"
+  },
+  "roles": {
+    "heavy": "hbm:concrete",
+    "body": "hbm:concrete",
+    "trim": "hbm:reinforced_stone",
+    "plinth": "hbm:reinforced_stone",
+    "band": "hbm:reinforced_stone",
+    "floor": "hbm:asphalt",
+    "slab": "hbm:concrete_slab",
+    "glass": "hbm:reinforced_glass",
+    "steel": "hbm:deco_steel",
+    "hesco": "hbm:concrete",
+    "bag": "hbm:sandbags",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:fence_metal_post",
+    "fence": "hbm:fence_metal",
+    "fencePost": "hbm:fence_metal_post",
+    "edge": "hbm:concrete",
+    "mark": "hbm:concrete_colored",
+    "boomA": "minecraft:red_concrete",
+    "boomB": "hbm:concrete"
+  },
+  "parts": {
+    "hazard": "hbm:concrete_colored_ext[type=hazard]",
+    "poleA": "hbm:concrete_colored[color=red]",
+    "poleB": "hbm:concrete_colored[color=white]",
+    "wire": "hbm:barbed_wire",
+    "lattice": "hbm:steel_scaffold[orient=horizontal_north_south,variant=steel]",
+    "lamp": "hbm:spotlight_halogen[facing=down,broken=false]"
+  },
+  "containers": [
+    "hbm:deco_steel"
+  ]
+}

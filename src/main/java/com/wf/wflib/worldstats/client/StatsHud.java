@@ -165,6 +165,10 @@ public final class StatsHud {
                     lines.add(line);
                 }
             }
+            for (var section : WorldStats.sections().values()) {
+                List<String> extra = section.get();
+                if (extra != null) lines.addAll(extra);
+            }
         }
         return lines;
     }

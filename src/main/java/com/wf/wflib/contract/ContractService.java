@@ -1,11 +1,18 @@
 package com.wf.wflib.contract;
 
+import com.wf.wflib.contract.site.SiteSelector;
+import com.wf.wflib.contract.site.Palette;
+import com.wf.wflib.contract.site.LevelTerrain;
+import com.wf.wflib.contract.site.BaseSoldiers;
+import com.wf.wflib.contract.site.BasePlan;
+import com.wf.wflib.contract.site.BaseLayout;
+import com.wf.wflib.contract.site.BaseKind;
+import com.wf.wflib.contract.site.BaseBuilder;
 import com.wf.wflib.contract.api.Parties;
 import com.wf.wflib.contract.profile.Profile;
 import com.wf.wflib.contract.profile.ProfileBook;
 import com.wf.wflib.contract.profile.Rank;
 import com.wf.wflib.map.api.MarkerData;
-import com.wf.wflib.soldier.api.SiteFinder;
 import com.wf.wflib.soldier.api.SiteSpec;
 import com.wf.wflib.soldier.api.Sites;
 import com.wf.wflib.soldier.api.SoldierOrder;
@@ -109,37 +116,54 @@ public final class ContractService {
             if (sessions.of(member).isPresent()) throw new Refused("Someone in your group already has a contract");
         }
         ServerLevel level = player.serverLevel();
-        var found = SiteFinder.find(level, new SiteFinder.Request(player.position(), def.minDistance(), def.maxDistance(), def.radius(),
-                PLAYER_CLEARANCE, true, 24), RNG);
-        if (found.isEmpty()) throw new Refused("No suitable ground found at that distance; try again");
-        Vec3 centre = found.get();
-
-        List<SiteSpec.Squad> squads = new ArrayList<>();
+        double tier = com.wf.wflib.contract.difficulty.Difficulty.get(server).tier(server, player.getUUID());
+        boolean daily = def.id().getPath().startsWith("daily/");
+        List<BaseSoldiers.Group> own = new ArrayList<>();
+        List<String> pool = new ArrayList<>();
         for (ContractDef.Squad s : def.squads()) {
-            boolean daily = def.id().getPath().startsWith("daily/");
-            double tier = com.wf.wflib.contract.difficulty.Difficulty.get(server).tier(server, player.getUUID());
             List<String> units = !s.units().isEmpty() ? s.units() : com.wf.wflib.soldier.api.RandomForces.units(server, s.faction(), com.wf.wflib.contract.difficulty.Tier.grade(tier));
             if (units.isEmpty()) throw new Refused("No soldiers to raise for faction '" + s.faction() + "': save some in the soldier editor, or install a gun mod so a default squad can be made");
-            squads.add(new SiteSpec.Squad(units, daily ? s.count() : com.wf.wflib.contract.difficulty.Tier.squadSize(s.count(), tier), s.mode().equals("patrol") ? SoldierOrder.Kind.PATROL : SoldierOrder.Kind.GUARD));
+            own.add(new BaseSoldiers.Group(units, daily ? s.count() : com.wf.wflib.contract.difficulty.Tier.squadSize(s.count(), tier)));
+            for (String u : units) if (!pool.contains(u)) pool.add(u);
         }
         if (def.buyIn() > 0 && !Money.canAfford(player, def.buyIn())) throw new Refused("The buy-in is " + Money.format(def.buyIn()) + ", and you cannot cover it");
+        for (ContractDef.Objective o : def.objectives()) {
+            if (o instanceof ContractDef.RetrieveItem r && BuiltInRegistries.ITEM.get(r.item()) == net.minecraft.world.item.Items.AIR) {
+                throw new Refused("This contract names an unknown item: " + r.item());
+            }
+        }
+
+        // where, and what stands there: the ground is surveyed, a base laid out and built on it, the force posted through it
+        int ownTotal = own.stream().mapToInt(BaseSoldiers.Group::count).sum();
+        BaseKind wantedKind = def.base().isEmpty() ? BaseKind.forForce(ownTotal + (int) Math.round(tier * 3)) : BaseKind.byId(def.base());
+        long t0 = System.nanoTime();
+        var found = SiteSelector.find(level, player.position(), def.minDistance(), def.maxDistance(), wantedKind, PLAYER_CLEARANCE, RNG);
+        if (found.isEmpty()) throw new Refused("No suitable ground found at that distance; try again");
+        var spot = found.get();
+        long seed = RNG.nextLong();
+        BasePlan plan = BaseLayout.plan(spot.kind(), spot.x(), spot.z(), spot.padY(), new java.util.Random(seed), new LevelTerrain(level, true));
+        BaseBuilder.build(level, plan, Palette.at(level, new BlockPos(spot.x(), spot.padY(), spot.z())), seed);
+        ContractSystem.LOGGER.info("Built a {} for {} at {}, {} in {} ms", spot.kind().id(), def.id(), spot.x(), spot.z(), (System.nanoTime() - t0) / 1_000_000);
+        Vec3 centre = new Vec3(plan.cx() + 0.5, plan.padY(), plan.cz() + 0.5);
+        int wantedSoldiers = Math.max(ownTotal, spot.kind().minSoldiers + (int) Math.round(tier * 2));
+        List<SiteSpec.Squad> squads = BaseSoldiers.assign(plan, own, wantedSoldiers, pool, u -> com.wf.wflib.soldier.api.Soldiers.roleOf(server, u), new java.util.Random(seed));
         UUID id = UUID.randomUUID();
         String siteId = "c" + id.toString().replace("-", "").substring(0, 12);
         try {
-            Sites.create(level, siteId, centre, new SiteSpec(def.radius(), squads));
+            Sites.create(level, siteId, centre, new SiteSpec(spot.kind().radius, squads));
         } catch (IllegalArgumentException e) {
             throw new Refused("Could not set up the site: " + e.getMessage());
         }
+        com.wf.wflib.contract.site.SiteVehicles.register(server, siteId, level, plan.vehicles());
 
         BlockPos cache = null;
+        int stored = 0;
         for (ContractDef.Objective o : def.objectives()) {
             if (o instanceof ContractDef.RetrieveItem r) {
-                Item item = BuiltInRegistries.ITEM.get(r.item());
-                if (item == net.minecraft.world.item.Items.AIR) {
-                    Sites.get(server, siteId).ifPresent(com.wf.wflib.soldier.api.Site::remove);
-                    throw new Refused("This contract names an unknown item: " + r.item());
-                }
-                cache = place(level, centre, def.radius(), new ItemStack(item, r.count()));
+                BlockPos at = new BlockPos(plan.cache()[0] + stored++, plan.cache()[1], plan.cache()[2]);
+                level.setBlock(at, net.minecraft.world.level.block.Blocks.BARREL.defaultBlockState(), 3);
+                if (level.getBlockEntity(at) instanceof Container c) c.setItem(0, new ItemStack(BuiltInRegistries.ITEM.get(r.item()), r.count()));
+                if (cache == null) cache = at;
             }
         }
 
@@ -151,14 +175,16 @@ public final class ContractService {
             ItemStack goods = new ItemStack(BuiltInRegistries.ITEM.get(c.item()), c.count());
             if (!player.getInventory().add(goods)) player.drop(goods, false);
         }
-        hold(level, centre, true);
+        hold(level, centre, spot.kind().radius + 32, true);
         long deadline = level.getGameTime() + def.timeLimitMinutes() * 1200L;
-        Session session = new Session(id, def.id(), player.getUUID(), party, siteId, level.dimension().location().toString(), centre, deadline, cache);
-        sessions.put(session);
         BlockPos marked = BlockPos.containing(centre);
         if (intel != null) {
             int[] off = com.wf.wflib.contract.intel.Intel.offset(intel, new java.util.Random());
             marked = marked.offset(off[0], 0, off[1]);
+        }
+        Session session = new Session(id, def.id(), player.getUUID(), party, siteId, level.dimension().location().toString(), centre, deadline, cache, marked, spot.kind().radius + 8);
+        sessions.put(session);
+        if (intel != null) {
             var profiles = ProfileBook.get(server);
             var mine = profiles.of(player.getUUID()).leads;
             for (int i = 0; i < mine.size(); i++) if (mine.get(i)[0].equals(def.id().toString())) { mine.remove(i); break; }
@@ -168,14 +194,21 @@ public final class ContractService {
         if (!def.cargo().isEmpty()) {
             server.getPlayerList().broadcastSystemMessage(Component.literal("Smuggling traffic reported near " + (int) centre.x + ", " + (int) centre.z + ".").withStyle(ChatFormatting.GOLD), false);
         }
-        tell(server, session, Component.literal("Contract accepted: " + def.title() + ". Marked on your map; " + def.timeLimitMinutes() + " minutes.").withStyle(ChatFormatting.GREEN));
+        tell(server, session, Component.literal("Contract accepted: " + def.title() + ". Waypoint set; " + def.timeLimitMinutes() + " minutes.").withStyle(ChatFormatting.GREEN));
+        com.wf.wflib.contract.pda.MissionSync.sendAll(server);
         return session;
     }
 
     /** Keeps the chunks round the site's middle loaded while the job lasts: soldiers are only raised in loaded chunks, so without this a far site stays empty until someone walks up. */
     public static void hold(ServerLevel level, Vec3 centre, boolean on) {
+        hold(level, centre, 24, on);
+    }
+
+    /** Holds every chunk within {@code radius} blocks of the centre (at most six chunks out: a fortress and its outposts). */
+    public static void hold(ServerLevel level, Vec3 centre, int radius, boolean on) {
         BlockPos at = BlockPos.containing(centre);
-        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) level.setChunkForced((at.getX() >> 4) + dx, (at.getZ() >> 4) + dz, on);
+        int c = Math.min(6, radius / 16 + 1);
+        for (int dx = -c; dx <= c; dx++) for (int dz = -c; dz <= c; dz++) level.setChunkForced((at.getX() >> 4) + dx, (at.getZ() >> 4) + dz, on);
     }
 
     private static String label(ContractDef def) {
@@ -204,7 +237,7 @@ public final class ContractService {
             }
             ServerLevel level = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(s.dimension())));
             if (level == null) continue;
-            if (HELD.add(s.id())) hold(level, s.centre(), true);       // a job taken before a restart (or before this was added) holds its ground too
+            if (HELD.add(s.id())) hold(level, s.centre(), s.radius(), true);       // a job taken before a restart (or before this was added) holds its ground too
             var status = Engine.evaluate(def, s.deadline(), snapshot(server, level, def, s));
             if (status != Engine.Status.ACTIVE) finish(server, s, def, status);
         }
@@ -217,7 +250,7 @@ public final class ContractService {
         });
         Map<ResourceLocation, Integer> held = new HashMap<>(), atSite = new HashMap<>();
         for (ServerPlayer p : party(server, s)) {
-            boolean there = p.level() == level && p.position().distanceToSqr(s.centre().x, p.getY(), s.centre().z) <= (double) def.radius() * def.radius();
+            boolean there = p.level() == level && p.position().distanceToSqr(s.centre().x, p.getY(), s.centre().z) <= (double) Math.max(def.radius(), s.radius()) * Math.max(def.radius(), s.radius());
             for (ContractDef.Objective o : def.objectives()) {
                 if (o instanceof ContractDef.RetrieveItem r) {
                     held.merge(r.item(), p.getInventory().countItem(BuiltInRegistries.ITEM.get(r.item())), Integer::sum);
@@ -241,10 +274,11 @@ public final class ContractService {
     /** Ends a contract: pays or penalises, takes the site down. */
     public static void finish(MinecraftServer server, Session s, ContractDef def, Engine.Status status) {
         SessionBook.get(server).remove(s.id());
+        com.wf.wflib.contract.pda.MissionSync.sendAll(server);
         HELD.remove(s.id());
         Sites.get(server, s.siteId()).ifPresent(com.wf.wflib.soldier.api.Site::remove);
         ServerLevel siteLevel = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(s.dimension())));
-        if (siteLevel != null) hold(siteLevel, s.centre(), false);
+        if (siteLevel != null) hold(siteLevel, s.centre(), s.radius(), false);
         removeMarker(server, s);
         var profiles = ProfileBook.get(server);
         long nowTick = server.overworld().getGameTime();

@@ -53,6 +53,25 @@ public final class PmcNet {
         }
     }
 
+    /** One accepted contract as the mission log and the map waypoint need it. {@code ticksLeft} counts down from the moment the packet is read. */
+    public record Mission(String title, int x, int y, int z, String dimension, int ticksLeft) {
+        public static final StreamCodec<FriendlyByteBuf, Mission> CODEC = StreamCodec.composite(
+                ByteBufCodecs.stringUtf8(96), Mission::title, ByteBufCodecs.VAR_INT, Mission::x, ByteBufCodecs.VAR_INT, Mission::y,
+                ByteBufCodecs.VAR_INT, Mission::z, ByteBufCodecs.stringUtf8(64), Mission::dimension, ByteBufCodecs.VAR_INT, Mission::ticksLeft, Mission::new);
+    }
+
+    /** The contracts this player is on, sent whenever they change and every few seconds. */
+    public record Missions(java.util.List<Mission> list) implements CustomPacketPayload {
+        public static final Type<Missions> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(com.wf.wflib.core.api.WFLib.MODID, "contract_missions"));
+        public static final StreamCodec<FriendlyByteBuf, Missions> CODEC = StreamCodec.composite(
+                Mission.CODEC.apply(ByteBufCodecs.list(16)), Missions::list, Missions::new);
+
+        @Override
+        public Type<Missions> type() {
+            return TYPE;
+        }
+    }
+
     public record State(String json) implements CustomPacketPayload {
         public static final Type<State> TYPE = new Type<>(STATE);
         public static final StreamCodec<FriendlyByteBuf, State> CODEC = StreamCodec.composite(
@@ -65,7 +84,7 @@ public final class PmcNet {
     }
 
     /** Mod bus. {@code client} receives the state; it is only called on a client. */
-    public static void register(RegisterPayloadHandlersEvent event, java.util.function.Consumer<Snapshot> client, java.util.function.Consumer<String> threat) {
+    public static void register(RegisterPayloadHandlersEvent event, java.util.function.Consumer<Snapshot> client, java.util.function.Consumer<String> threat, java.util.function.Consumer<java.util.List<Mission>> missions) {
         PayloadRegistrar r = event.registrar("contract-1");
         r.playToServer(Request.TYPE, Request.CODEC, (pkt, ctx) -> {
             if (ctx.player() instanceof ServerPlayer p) PdaService.send(p, "");
@@ -74,6 +93,7 @@ public final class PmcNet {
             if (ctx.player() instanceof ServerPlayer p) PdaService.act(p, pkt.verb(), pkt.arg());
         });
         r.playToClient(Threat.TYPE, Threat.CODEC, (pkt, ctx) -> ctx.enqueueWork(() -> threat.accept(pkt.text())));
+        r.playToClient(Missions.TYPE, Missions.CODEC, (pkt, ctx) -> ctx.enqueueWork(() -> missions.accept(pkt.list())));
         r.playToClient(State.TYPE, State.CODEC, (pkt, ctx) -> ctx.enqueueWork(() -> client.accept(Snapshot.fromJson(pkt.json()))));
     }
 }

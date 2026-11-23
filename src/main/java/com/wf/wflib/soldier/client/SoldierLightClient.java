@@ -44,7 +44,7 @@ public final class SoldierLightClient {
         modBus.addListener(FMLClientSetupEvent.class, e -> e.enqueueWork(() -> {
             Lights.register(SoldierLightClient::collect);
             NightKey.UNHANDLED.set(WFLib.MODID, SoldierLightClient::flipOwnLamp);
-            NeoForge.EVENT_BUS.addListener(LampFlare::onRenderLevel);
+            LampFlare.listen();
         }));
     }
 

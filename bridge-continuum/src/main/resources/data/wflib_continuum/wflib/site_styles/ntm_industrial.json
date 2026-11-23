@@ -1,0 +1,27 @@
+{
+  "weight": 2,
+  "wall": "fence",
+  "mixedWalls": false,
+  "roles": {
+    "heavy": "hbm:reinforced_brick",
+    "body": "hbm:platemetal_base",
+    "trim": "hbm:deco_steel",
+    "plinth": "hbm:concrete",
+    "band": "hbm:deco_steel",
+    "floor": "hbm:concrete",
+    "slab": "hbm:concrete_slab",
+    "glass": "hbm:reinforced_glass",
+    "steel": "hbm:deco_steel",
+    "hesco": "hbm:reinforced_brick",
+    "bag": "hbm:concrete_slab",
+    "light": "hbm:reinforced_lamp_on",
+    "bars": "hbm:fence_metal_post",
+    "fence": "hbm:fence_metal",
+    "fencePost": "hbm:fence_metal_post",
+    "edge": "hbm:concrete",
+    "mark": "hbm:concrete",
+    "boomA": "hbm:deco_steel",
+    "boomB": "hbm:platemetal_base"
+  },
+  "containers": ["hbm:deco_steel"]
+}

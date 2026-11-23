@@ -98,7 +98,10 @@ public final class SoldierSystem implements WFSystem {
                 e -> {
                     if (e.getEntity() instanceof ServerPlayer p) {
                         VoiceDelivery.offer(p);
-                        if (!(p instanceof SoldierPlayer)) Squads.deployAll(p);   // their soldiers come back with them
+                        if (!(p instanceof SoldierPlayer)) {
+                            com.wf.wflib.soldier.api.Soldiers.unlistAllFor(p);        // the join packets list every soldier in the tab menu
+                            Squads.deployAll(p);   // their soldiers come back with them
+                        }
                     }
                 });
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedOutEvent.class, e -> {

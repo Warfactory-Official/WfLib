@@ -10,6 +10,9 @@ import java.util.function.Supplier;
 /** The mods a soldier works through, supplied by whichever mod owns the guns, grenades and medicine. */
 public final class SoldierServices {
     private static volatile SoldierWeapon weapon;
+    /** Further gun mods that work their own guns beside {@link #weapon}; see {@link CombinedWeapon}. */
+    private static final java.util.List<SoldierWeapon> EXTRA_WEAPONS = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static volatile SoldierWeapon combined;
     private static volatile SoldierThrowables throwables;
     private static volatile SoldierMedical medical = SoldierMedical.NONE;
 
@@ -34,6 +37,16 @@ public final class SoldierServices {
 
     public static void weapon(SoldierWeapon impl) {
         weapon = impl;
+        combined = null;
+    }
+
+    /**
+     * Adds a gun mod beside the one registered with {@link #weapon}: a soldier holding one of its guns works it through {@code impl}, any other through the first
+     * registration. Call at setup; the order of calls is the order they are asked in.
+     */
+    public static void addWeapon(SoldierWeapon impl) {
+        EXTRA_WEAPONS.add(impl);
+        combined = null;
     }
 
     public static void throwables(SoldierThrowables impl) {
@@ -47,12 +60,23 @@ public final class SoldierServices {
     /** @throws IllegalStateException when no gun mod has registered one: a soldier cannot fight without */
     public static SoldierWeapon weapon() {
         SoldierWeapon w = weapon;
-        if (w == null) throw new IllegalStateException("No SoldierWeapon registered: a gun mod must call SoldierServices.weapon");
-        return w;
+        if (EXTRA_WEAPONS.isEmpty()) {
+            if (w == null) throw new IllegalStateException("No SoldierWeapon registered: a gun mod must call SoldierServices.weapon");
+            return w;
+        }
+        SoldierWeapon c = combined;
+        if (c == null) {
+            java.util.List<SoldierWeapon> all = new java.util.ArrayList<>();
+            if (w != null) all.add(w);
+            all.addAll(EXTRA_WEAPONS);
+            c = all.size() == 1 ? all.get(0) : new CombinedWeapon(all);
+            combined = c;
+        }
+        return c;
     }
 
     public static boolean hasWeapon() {
-        return weapon != null;
+        return weapon != null || !EXTRA_WEAPONS.isEmpty();
     }
 
     public static SoldierThrowables throwables() {

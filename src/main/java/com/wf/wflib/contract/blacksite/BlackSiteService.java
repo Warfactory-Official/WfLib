@@ -44,8 +44,9 @@ public final class BlackSiteService {
         }
         ServerLevel level = server.overworld();
         Set<UUID> in = new HashSet<>();
+        // soldiers (the site's own guards) are server players too, but only people capture an uplink: a guard in range would freeze it for good
         for (ServerPlayer p : level.players()) {
-            if (p.isSpectator() || p.position().distanceToSqr(book.pos.getX() + 0.5, p.getY(), book.pos.getZ() + 0.5) > (double) RANGE * RANGE) continue;
+            if (p.isSpectator() || p instanceof com.wf.wflib.soldier.api.SoldierPlayer || p.position().distanceToSqr(book.pos.getX() + 0.5, p.getY(), book.pos.getZ() + 0.5) > (double) RANGE * RANGE) continue;
             in.add(p.getUUID());
         }
         if (book.capture.step(in, com.wf.wflib.contract.api.Parties::membersOf)) {

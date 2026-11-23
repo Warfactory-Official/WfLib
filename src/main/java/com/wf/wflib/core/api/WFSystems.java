@@ -41,9 +41,19 @@ public final class WFSystems {
                 });
     }
 
+    /** As {@link #define(String, IEventBus, ModContainer, List)} with the on/off choice supplied rather than read from {@code <modid>-systems.toml}. */
+    public static SystemSet define(String modId, IEventBus modBus, ModContainer container, List<? extends WFSystem> systems,
+                                   Predicate<String> configured) {
+        return define(modId, modBus, container, systems, configured,
+                issue -> {
+                    ModLoader.addLoadingIssue(issue);
+                    LOGGER.warn(FMLTranslations.translateIssueEnglish(issue));
+                });
+    }
+
     static SystemSet define(String modId, IEventBus modBus, ModContainer container, List<? extends WFSystem> systems,
                             Predicate<String> configured, Consumer<ModLoadingIssue> issues) {
-        SystemSet set = new SystemSet(modId, SystemsConfig.file(modId), systems, configured, issues);
+        SystemSet set = new SystemSet(modId, WFLIB.equals(modId) ? com.wf.wflib.core.features.FeatureConfig.FILE : SystemsConfig.file(modId), systems, configured, issues);
         synchronized (SETS) {
             if (SETS.putIfAbsent(modId, set) != null) {
                 throw new IllegalStateException("Systems of " + modId + " already defined");

@@ -28,7 +28,7 @@ public final class PmcCommands {
                         .suggests((c, b) -> SharedSuggestionProvider.suggest(Contracts.all().stream().map(x -> x.id().toString()), b))
                         .executes(PmcCommands::accept)))
                 .then(Commands.literal("status").executes(PmcCommands::status))
-                .then(Commands.literal("daily")
+                .then(Commands.literal("daily").requires(s -> com.wf.wflib.core.api.Features.on("contract_daily"))
                         .executes(c -> {
                             var offers = Contracts.all().stream().filter(x -> x.id().getPath().startsWith("daily/")).toList();
                             if (offers.isEmpty()) c.getSource().sendSuccess(() -> Component.literal("No daily contracts yet.").withStyle(ChatFormatting.GRAY), false);
@@ -71,7 +71,26 @@ public final class PmcCommands {
                                         })))))
                 .then(Commands.literal("abandon").executes(PmcCommands::abandon))
                 .then(Commands.literal("profile").executes(PmcCommands::profile))
-                .then(Commands.literal("heat").executes(PmcCommands::heat))
+                .then(Commands.literal("rep").requires(x -> x.hasPermission(2))
+                        .then(Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                                .then(Commands.argument("amount", com.mojang.brigadier.arguments.IntegerArgumentType.integer(-100000, 100000)).executes(c -> {
+                                    var who = net.minecraft.commands.arguments.EntityArgument.getPlayer(c, "player");
+                                    int now = com.wf.wflib.contract.api.Standing.bumpRep(c.getSource().getServer(), who.getUUID(), com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "amount"));
+                                    c.getSource().sendSuccess(() -> Component.literal(who.getGameProfile().getName() + " has " + now + " reputation (" + com.wf.wflib.contract.api.Standing.rank(c.getSource().getServer(), who.getUUID()) + ")."), true);
+                                    return now;
+                                }))))
+                // QA: raise a base of a kind where the operator stands, no soldiers, no contract
+                .then(Commands.literal("buildbase").requires(x -> x.hasPermission(2))
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.Arrays.stream(com.wf.wflib.contract.site.BaseKind.values()).map(com.wf.wflib.contract.site.BaseKind::id), sb))
+                                .executes(c -> buildBase(c, new java.util.Random().nextLong(), null))
+                                .then(Commands.argument("seed", com.mojang.brigadier.arguments.LongArgumentType.longArg())
+                                        .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"), null))
+                                        .then(Commands.argument("style", StringArgumentType.word())
+                                                .suggests((c, sb) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.stream.Stream.concat(java.util.stream.Stream.of("plain"),
+                                                        com.wf.wflib.contract.site.SiteStyles.available().stream().map(st -> st.id().substring(st.id().indexOf(':') + 1))), sb))
+                                                .executes(c -> buildBase(c, com.mojang.brigadier.arguments.LongArgumentType.getLong(c, "seed"), StringArgumentType.getString(c, "style")))))))
+                .then(Commands.literal("heat").requires(s -> com.wf.wflib.core.api.Features.on("contract_heat")).executes(PmcCommands::heat))
                 .then(Commands.literal("analyze").executes(PmcCommands::analyze))
                 .then(Commands.literal("news").executes(c -> {
                     var lines = com.wf.wflib.contract.news.News.get(c.getSource().getServer()).latest(8);
@@ -79,12 +98,12 @@ public final class PmcCommands {
                     lines.forEach(l -> c.getSource().sendSuccess(() -> Component.literal("- " + l).withStyle(ChatFormatting.WHITE), false));
                     return lines.size();
                 }))
-                .then(Commands.literal("engagement").then(Commands.literal("start").requires(s -> s.hasPermission(2)).executes(c -> {
+                .then(Commands.literal("engagement").requires(s -> com.wf.wflib.core.api.Features.on("contract_engagements")).then(Commands.literal("start").requires(s -> s.hasPermission(2)).executes(c -> {
                     boolean ok = com.wf.wflib.contract.engagement.EngagementService.startNow(c.getSource().getServer());
                     if (!ok) c.getSource().sendFailure(Component.literal("One is running, or there is nothing to raise (needs saved friendly and enemy soldiers)."));
                     return ok ? 1 : 0;
                 })))
-                .then(Commands.literal("blacksite")
+                .then(Commands.literal("blacksite").requires(s -> com.wf.wflib.core.api.Features.on("contract_blacksite"))
                         .then(Commands.literal("status").executes(PmcCommands::blackSite))
                         .then(Commands.literal("start").requires(s -> s.hasPermission(2)).executes(c -> {
                             boolean ok = com.wf.wflib.contract.blacksite.BlackSiteService.start(c.getSource().getServer());
@@ -95,7 +114,7 @@ public final class PmcCommands {
                             com.wf.wflib.contract.blacksite.BlackSiteService.stop(c.getSource().getServer(), "The Black Site was shut down.");
                             return 1;
                         })))
-                .then(Commands.literal("bribe").then(Commands.argument("faction", StringArgumentType.word())
+                .then(Commands.literal("bribe").requires(s -> com.wf.wflib.core.api.Features.on("contract_heat")).then(Commands.argument("faction", StringArgumentType.word())
                         .executes(c -> bribe(c, 10)))));
     }
 
@@ -183,6 +202,24 @@ public final class PmcCommands {
             c.getSource().sendFailure(Component.literal(e.getMessage()));
             return 0;
         }
+    }
+
+    private static int buildBase(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack> c, long seed, String style) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var src = c.getSource();
+        com.wf.wflib.contract.site.BaseKind kind;
+        try {
+            kind = com.wf.wflib.contract.site.BaseKind.byId(StringArgumentType.getString(c, "kind"));
+        } catch (IllegalArgumentException e) {
+            src.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+        var level = src.getLevel();
+        int x = net.minecraft.core.BlockPos.containing(src.getPosition()).getX(), z = net.minecraft.core.BlockPos.containing(src.getPosition()).getZ();
+        int padY = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR_WG, x, z);
+        var plan = com.wf.wflib.contract.site.BaseLayout.plan(kind, x, z, padY, new java.util.Random(seed), new com.wf.wflib.contract.site.LevelTerrain(level, true));
+        com.wf.wflib.contract.site.BaseBuilder.build(level, plan, com.wf.wflib.contract.site.Palette.at(level, new net.minecraft.core.BlockPos(x, padY, z), style), seed);
+        src.sendSuccess(() -> Component.literal("Built a " + kind.id() + " at " + x + ", " + padY + ", " + z + " (seed " + seed + ")."), true);
+        return 1;
     }
 
     private static int heat(CommandContext<CommandSourceStack> c) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
