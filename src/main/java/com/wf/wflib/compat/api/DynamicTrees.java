@@ -1,4 +1,4 @@
-package com.wf.wflib.compat.dynamictrees;
+package com.wf.wflib.compat.api;
 
 import com.dtteam.dynamictrees.block.branch.BranchBlock;
 import com.dtteam.dynamictrees.entity.FallingTreeEntity;

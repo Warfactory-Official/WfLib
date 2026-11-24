@@ -4,14 +4,16 @@ import com.wf.wflib.damage.api.BlastDamageSource;
 import com.wf.wflib.explosion.BlastCorpses;
 import com.wf.wflib.explosion.debug.ExplosionTrace;
 import com.wf.wflib.core.api.HitRouter;
+import com.mojang.logging.LogUtils;
 import java.util.ArrayList;
+import java.util.Comparator;
+import org.slf4j.Logger;
 import net.minecraft.core.Direction;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -24,6 +26,12 @@ import java.util.Map;
 
 /** Range = nearest AABB point (not centre); density = max over up to 7 LOS probes (vanilla: 1). */
 public class EntityProcessorCross implements IEntityProcessor {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+    /** Entity-stage radius cap; beyond (or NaN) => stage refused. */
+    public static final float MAX_RADIUS = 512.0F;
+    /** Nearest-first cut when more entities are in reach. */
+    public static final int MAX_ENTITIES = 2048;
 
     protected double nodeDist;
     protected IEntityRangeMutator range;
@@ -71,12 +79,25 @@ public class EntityProcessorCross implements IEntityProcessor {
         Map<Player, Vec3> affectedPlayers = new HashMap<>();
 
         size = blastRadius(explosion, size);
+        if (!(size <= MAX_RADIUS)) {
+            LOGGER.error("Blast entity stage refused: radius {} (cap {}) at {},{},{}", size, MAX_RADIUS, x, y, z);
+            return new HashMap<>();
+        }
 
         AABB area = new AABB(x - size - 1, y - size - 1, z - size - 1, x + size + 1, y + size + 1, z + size + 1);
         List<Entity> list = level.getEntities(allowSelfDamage ? null : explosion.exploder, area);
         EventHooks.onExplosionDetonate(level, explosion.compat, list, size);
 
+        if (list.size() > MAX_ENTITIES) {
+            LOGGER.warn("Blast at {},{},{} radius {}: {} entities in reach, nearest {} processed", x, y, z, size,
+                    list.size(), MAX_ENTITIES);
+            list = new ArrayList<>(list);
+            list.sort(Comparator.comparingDouble(e -> nearestSurfaceDistanceScaled(e, x, y, z, 1.0F)));
+            list = list.subList(0, MAX_ENTITIES);
+        }
+
         Vec3[] nodes = buildNodes(x, y, z);
+        BlastExposure.Meter meter = new BlastExposure.Meter(new LoadedRays(level));
 
         // pass 1: knockback + record damage per entity
         Map<Entity, Float> damageMap = new HashMap<>();
@@ -109,7 +130,8 @@ public class EntityProcessorCross implements IEntityProcessor {
 
             double density = 0;
             for (Vec3 node : nodes) {
-                density = Math.max(density, Explosion.getSeenPercent(node, entity));
+                density = Math.max(density, meter.seen(node, entity.getBoundingBox()));
+                if (density >= 1.0) break;
             }
 
             double knockback = (1.0D - distanceScaled) * density;
@@ -143,6 +165,11 @@ public class EntityProcessorCross implements IEntityProcessor {
                         deltaY * knockback * knockbackMult,
                         deltaZ * knockback * knockbackMult));
             }
+        }
+
+        if (meter.degraded() > 0) {
+            LOGGER.warn("Blast at {},{},{} radius {}: exposure work budget spent, {} boxes on one centre ray", x, y, z,
+                    size, meter.degraded());
         }
 
         BlastDamageHooks.damage(this, explosion, level, x, y, z, size);

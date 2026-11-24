@@ -63,7 +63,7 @@ public class BlockProcessorStandard implements IBlockProcessor {
                 }
             }
 
-            if (com.wf.wflib.compat.dynamictrees.DynamicTrees.hit(state, level, pos, explosion)) {
+            if (com.wf.wflib.compat.api.DynamicTrees.hit(state, level, pos, explosion)) {
                 continue;
             }
             // fires wasExploded: notifies block entities/observers
