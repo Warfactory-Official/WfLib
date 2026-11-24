@@ -3,6 +3,7 @@ package com.wf.wflib.physics.api;
 import com.wf.wflib.physics.step.RigidStep;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
+import org.jetbrains.annotations.Nullable;
 
 /** Per-level rigid step: bodies registered during their tick are stepped together at {@code TickOrder.PHYSICS}. */
 public final class PhysicsStep {
@@ -52,5 +53,22 @@ public final class PhysicsStep {
     /** Per stepped tick since the last drain: step us, islands, bodies, contacts; region mode. */
     public static String drainStats() {
         return RigidStep.drainStats();
+    }
+
+    /** Stage names, index-aligned with {@link Tick#stageNanos()}. */
+    public static final String[] STAGES = RigidStep.STAGES;
+
+    /**
+     * Last stepped tick (any partition), written only while {@link #setStats} is on; immutable, safe to read from the
+     * client thread of an integrated server. {@code region} -1 = level step.
+     */
+    public record Tick(long totalNanos, long[] stageNanos, int islands, int bodies, int contacts, boolean async,
+                       int region) {
+    }
+
+    /** Null until a tick stepped with stats on. */
+    @Nullable
+    public static Tick lastTick() {
+        return RigidStep.lastTick();
     }
 }

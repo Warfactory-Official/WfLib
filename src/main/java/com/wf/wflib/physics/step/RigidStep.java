@@ -1,6 +1,7 @@
 package com.wf.wflib.physics.step;
 
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.physics.api.PhysicsStep;
 import com.wf.wflib.physics.api.BodyState;
 import com.wf.wflib.physics.api.ChunkCollisionCache;
 import com.wf.wflib.physics.api.Coupling;
@@ -124,18 +125,10 @@ public final class RigidStep {
 
     public static final String[] STAGES = {"capture", "wake", "islands", "solve", "complete"};
 
-    /**
-     * Last stepped tick (any partition), written only while {@link #stats}; immutable, safe to read from the client
-     * thread of an integrated server. {@code region} -1 = level step.
-     */
-    public record Tick(long totalNanos, long[] stageNanos, int islands, int bodies, int contacts, boolean async,
-                       int region) {
-    }
-
-    private static volatile Tick lastTick;
+    private static volatile PhysicsStep.Tick lastTick;
 
     /** Null until a tick stepped with stats on. */
-    public static Tick lastTick() {
+    public static PhysicsStep.Tick lastTick() {
         return lastTick;
     }
 
@@ -562,7 +555,7 @@ public final class RigidStep {
             for (Island island : islands) {
                 contacts += island.contacts;
             }
-            lastTick = new Tick(end - startedAt, stage, islands.size(), steps.size(), contacts, async, region);
+            lastTick = new PhysicsStep.Tick(end - startedAt, stage, islands.size(), steps.size(), contacts, async, region);
             statNanos.add(System.nanoTime() - startedAt);
             statTicks.increment();
             statIslands.add(islands.size());
