@@ -48,6 +48,7 @@
     "compat.MixinNotifiableEnergyContainer",
     "testkit.MixinGameTestServer",
     "physics.MixinEntityDeck",
+    "physics.MixinLevelRegionIndexTickEnd",
     "physics.MixinLevelChunkCollision",
     "physics.MixinLivingEntityDeck",
     "physics.MixinPlayerDeck",

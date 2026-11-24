@@ -1,5 +1,6 @@
 package com.wf.wflib.laser.api;
 
+import com.wf.wflib.core.api.HitRouter;
 import com.wf.wflib.damage.api.WFDamageTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -54,8 +55,10 @@ public final class LaserDamage {
         float damage = perTick(rated, massOf(target), armor, resistance);
         DamageSource source = new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
                 .getHolderOrThrow(WFDamageTypes.LASER), shooter, shooter, from);
-        target.invulnerableTime = 0;
-        target.hurt(source, damage);
+        HitRouter.apply(level, target, () -> {
+            target.invulnerableTime = 0;
+            target.hurt(source, damage);
+        });
         draw(level, from, to);
     }
 

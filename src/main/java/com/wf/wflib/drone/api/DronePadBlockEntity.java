@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.EnumSet;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -115,7 +116,14 @@ public class DronePadBlockEntity extends BlockEntity implements MenuProvider, Dr
 
     public void onRedstone(boolean powered) {
         if (powered && !this.wasPowered) {
-            this.dispatch();
+            if (this.level instanceof ServerLevel serverLevel) {
+                // Redstone can reach here from a region worker; dispatch spawns drones, touches shared registries.
+                ChunkTicketOps.run(serverLevel, () -> {
+                    if (!this.isRemoved()) {
+                        this.dispatch();
+                    }
+                });
+            }
         }
         this.wasPowered = powered;
         this.setChanged();

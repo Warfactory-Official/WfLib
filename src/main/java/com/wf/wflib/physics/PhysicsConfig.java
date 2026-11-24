@@ -12,6 +12,7 @@ public final class PhysicsConfig {
     private static final ModConfigSpec.BooleanValue ASYNC_STEP;
     private static final ModConfigSpec.BooleanValue NATIVE_NARROWPHASE;
     private static final ModConfigSpec.IntValue THREADS;
+    private static final ModConfigSpec.EnumValue<PhysicsSettings.RegionStep> REGION_STEP;
     private static final ModConfigSpec.BooleanValue DECK_PARENTING;
     private static final ModConfigSpec.BooleanValue CARRIER_DECKS;
 
@@ -26,6 +27,9 @@ public final class PhysicsConfig {
         NATIVE_NARROWPHASE = b.comment("Body-vs-terrain contacts in the native library (bit-equal to the Java path;"
                 + " platforms without it fall back).").define("nativeNarrowphase", true);
         THREADS = b.comment("Step worker threads; 0 = half the CPU cores.").defineInRange("threads", 0, 0, 64);
+        REGION_STEP = b.comment("Region-threaded host (Tessellate): each region steps its own bodies on its thread."
+                + " auto = on when the host is present; off = one step per level on the main thread.")
+                .defineEnum("regionStep", PhysicsSettings.RegionStep.AUTO);
         DECK_PARENTING = b.comment("Entities on a body's deck ride in its frame (off: pushed out instead).")
                 .define("deckParenting", true);
         CARRIER_DECKS = b.comment("Bodies rest on other bodies' landing pieces.").define("carrierDecks", true);
@@ -45,7 +49,7 @@ public final class PhysicsConfig {
 
     static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) return;
-        values = new PhysicsSettings(ASYNC_STEP.get(), NATIVE_NARROWPHASE.get(), THREADS.get());
+        values = new PhysicsSettings(ASYNC_STEP.get(), NATIVE_NARROWPHASE.get(), THREADS.get(), REGION_STEP.get());
         deck = new DeckSettings(DECK_PARENTING.get(), CARRIER_DECKS.get());
     }
 }

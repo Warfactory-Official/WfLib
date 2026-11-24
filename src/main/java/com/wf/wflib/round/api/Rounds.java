@@ -24,21 +24,26 @@ import com.wf.wflib.round.pen.BlockDamage;
 import com.wf.wflib.round.pen.PenTable;
 import com.wf.wflib.round.terrain.AsyncTerrainSource;
 import com.wf.wflib.round.terrain.SectionSolidity;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.sim.api.SimKind;
 import com.wf.wflib.sim.api.SimTier;
 import com.wf.wflib.sim.api.SimWorld;
+import com.wf.wflib.sim.api.WorldInbox;
 import com.wf.wflib.warhead.api.Warheads;
 import com.wf.wflib.explosion.api.BlastPayload;
 import com.wf.wflib.explosion.api.BlastTarget;
 import com.wf.wflib.explosion.api.ExplosionCreator;
 import com.wf.wflib.explosion.api.FxMute;
+import com.wf.wflib.core.api.HitRouter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -68,8 +73,12 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import com.wf.wflib.round.DeferredImpacts;
 import com.wf.wflib.round.VirtualGroundEvents;
@@ -129,9 +138,56 @@ public final class Rounds implements SimKind<RoundBatch> {
     /** Rewound broadphase scratch; server thread, not re-entered. */
     private static final List<LivingEntity> CANDIDATES = new ArrayList<>();
 
-    private static long nextKey = 1L;
+    /** World thread: plain counter. Region workers: atomic, from {@code 1L << 62} => ranges disjoint. */
+    private static long nextWorldKey = 1L;
+    private static final AtomicLong NEXT_WORKER_KEY = new AtomicLong(1L << 62);
+
+    private static long nextKey() {
+        return WorldInbox.offWorld() ? NEXT_WORKER_KEY.getAndIncrement() : nextWorldKey++;
+    }
+
+    private record Launch(long key, KineticPreset preset, Vec3 at, Vec3 velocity, @Nullable Entity shooter,
+                          @Nullable UUID faction, float damageScale, int rewindTicks, int shooterSeq, float lead) {
+    }
+
+    /** Launches from region workers; drained at the top of {@link #resolve}. */
+    private static final Map<ResourceKey<Level>, WorldInbox<Launch>> LAUNCHES = new ConcurrentHashMap<>();
+
+    /** Destroy ({@code at == null}) or deflect from region workers; drained at the top of {@link #resolve}. */
+    private record Edit(long key, @Nullable Vec3 at, @Nullable Vec3 velocity) {
+    }
+
+    private static final Map<ResourceKey<Level>, WorldInbox<Edit>> EDITS = new ConcurrentHashMap<>();
+    /** Armour answers of parked strikes, posted from the target owner's thread; drained after {@link #EDITS}. */
+    private static final Map<ResourceKey<Level>, WorldInbox<Runnable>> ANSWERS = new ConcurrentHashMap<>();
+    private static final Map<ResourceKey<Level>, RoundSnapshot> SNAPSHOTS = new ConcurrentHashMap<>();
 
     private Rounds() {
+    }
+
+    private static WorldInbox<Edit> edits(ServerLevel level) {
+        return EDITS.computeIfAbsent(level.dimension(), k -> new WorldInbox<>());
+    }
+
+    private static WorldInbox<Runnable> answers(ServerLevel level) {
+        return ANSWERS.computeIfAbsent(level.dimension(), k -> new WorldInbox<>());
+    }
+
+    private static RoundSnapshot snapshot(ServerLevel level) {
+        RoundSnapshot s = SNAPSHOTS.get(level.dimension());
+        if (s == null) {
+            s = SNAPSHOTS.computeIfAbsent(level.dimension(), k -> new RoundSnapshot());
+        }
+        s.demand();
+        return s;
+    }
+
+    private static void applyEdit(ServerLevel level, Edit e) {
+        if (e.at == null) {
+            destroy(level, e.key);
+        } else {
+            deflect(level, e.key, e.at, e.velocity);
+        }
     }
 
     private static RoundBatch batch(ServerLevel level) {
@@ -196,12 +252,23 @@ public final class Rounds implements SimKind<RoundBatch> {
             throw new IllegalArgumentException("rewind " + rewindTicks + ", damage scale " + damageScale
                     + ", lead " + lead);
         }
-        long key = nextKey++;
-        RoundBatch b = batch(level);
-        int i = b.add(key, preset, at.x, at.y, at.z, velocity.x, velocity.y, velocity.z,
-                shooter == null ? -1 : shooter.getId(), faction, damageScale, rewindTicks, shooterSeq, lead);
-        RoundNetwork.sync(level, b, i);
+        long key = nextKey();
+        Launch launch = new Launch(key, preset, at, velocity, shooter, faction, damageScale, rewindTicks,
+                shooterSeq, lead);
+        if (WorldInbox.offWorld()) {
+            LAUNCHES.computeIfAbsent(level.dimension(), k -> new WorldInbox<>()).post(launch);
+        } else {
+            admit(level, launch);
+        }
         return key;
+    }
+
+    private static void admit(ServerLevel level, Launch l) {
+        RoundBatch b = batch(level);
+        int i = b.add(l.key, l.preset, l.at.x, l.at.y, l.at.z, l.velocity.x, l.velocity.y, l.velocity.z,
+                l.shooter == null ? -1 : l.shooter.getId(), l.faction, l.damageScale, l.rewindTicks, l.shooterSeq,
+                l.lead);
+        RoundNetwork.sync(level, b, i);
     }
 
     public static int count(ServerLevel level) {
@@ -211,6 +278,9 @@ public final class Rounds implements SimKind<RoundBatch> {
     /** Position of a round in flight; null once it has ended. */
     @Nullable
     public static Vec3 position(ServerLevel level, long key) {
+        if (WorldInbox.offWorld()) {
+            return snapshot(level).position(key);
+        }
         RoundBatch b = batch(level);
         int i = b.indexOf(key);
         return i < 0 ? null : new Vec3(b.x[i], b.y[i], b.z[i]);
@@ -218,6 +288,9 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     @Nullable
     public static KineticPreset preset(ServerLevel level, long key) {
+        if (WorldInbox.offWorld()) {
+            return snapshot(level).preset(key);
+        }
         RoundBatch b = batch(level);
         int i = b.indexOf(key);
         return i < 0 ? null : b.preset[i];
@@ -239,6 +312,9 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     @Nullable
     public static Vec3 velocity(ServerLevel level, long key) {
+        if (WorldInbox.offWorld()) {
+            return snapshot(level).velocity(key);
+        }
         RoundBatch b = batch(level);
         int i = b.indexOf(key);
         return i < 0 ? null : new Vec3(b.vx[i], b.vy[i], b.vz[i]);
@@ -254,6 +330,10 @@ public final class Rounds implements SimKind<RoundBatch> {
     /** Shooter of a round in flight, if still loaded; null once ended. */
     @Nullable
     public static Entity shooter(ServerLevel level, long key) {
+        if (WorldInbox.offWorld()) {
+            int id = snapshot(level).shooterId(key);
+            return id < 0 ? null : level.getEntity(id);
+        }
         RoundBatch b = batch(level);
         int i = b.indexOf(key);
         return i < 0 || b.shooter[i] < 0 ? null : level.getEntity(b.shooter[i]);
@@ -261,6 +341,9 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     /** Rounds in {@code box}: keys. */
     public static long[] within(ServerLevel level, AABB box) {
+        if (WorldInbox.offWorld()) {
+            return snapshot(level).within(box);
+        }
         RoundBatch b = batch(level);
         long[] found = new long[b.size];
         int n = 0;
@@ -281,6 +364,10 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     /** Destroy a round in flight (active protection): no warhead. @return false if it had already ended */
     public static boolean destroy(ServerLevel level, long key) {
+        if (WorldInbox.offWorld()) {
+            edits(level).post(new Edit(key, null, null));
+            return true;
+        }
         RoundBatch b = batch(level);
         int i = b.indexOf(key);
         if (i < 0) {
@@ -295,6 +382,10 @@ public final class Rounds implements SimKind<RoundBatch> {
      * resynced, as after a ricochet. @return false if it had already ended
      */
     public static boolean deflect(ServerLevel level, long key, Vec3 at, Vec3 velocity) {
+        if (WorldInbox.offWorld()) {
+            edits(level).post(new Edit(key, at, velocity));
+            return true;
+        }
         RoundBatch b = batch(level);
         int i = b.indexOf(key);
         if (i < 0) {
@@ -332,6 +423,27 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     @Override
     public void resolve(ServerLevel level, SimTier<RoundBatch> tier) {
+        this.advance(level, tier);
+        RoundSnapshot snapshot = SNAPSHOTS.get(level.dimension());
+        if (snapshot != null) {
+            List<RoundBatch> view = tier.view();
+            snapshot.publish(view.isEmpty() ? null : view.get(0));
+        }
+    }
+
+    private void advance(ServerLevel level, SimTier<RoundBatch> tier) {
+        WorldInbox<Launch> inbox = LAUNCHES.get(level.dimension());
+        if (inbox != null) {
+            inbox.drain(l -> admit(level, l));
+        }
+        WorldInbox<Edit> edits = EDITS.get(level.dimension());
+        if (edits != null) {
+            edits.drain(e -> applyEdit(level, e));
+        }
+        WorldInbox<Runnable> answered = ANSWERS.get(level.dimension());
+        if (answered != null) {
+            answered.drain(Runnable::run);
+        }
         VirtualGroundEvents.drain(level);
         DeferredImpacts.get(level).apply(level);
         if (tier.view().isEmpty()) {
@@ -342,6 +454,9 @@ public final class Rounds implements SimKind<RoundBatch> {
             return;
         }
         RoundBatch b = tier.view().get(0);
+        if (b.parked != null && !b.parked.isEmpty()) {
+            expireParked(level, b);
+        }
         long t0 = System.nanoTime();
         for (int i = 0; i < b.size; ) {
             if (!step(level, b, i)) {
@@ -377,6 +492,9 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     /** @return false if round {@code i} ended (the next round now sits at {@code i}) */
     private static boolean step(ServerLevel level, RoundBatch b, int i) {
+        if (b.parked != null && b.parked.containsKey(b.key[i])) {
+            return true;
+        }
         KineticPreset preset = b.preset[i];
         b.dark[i] = false;
         if (--b.life[i] <= 0 || b.y[i] < level.getMinBuildHeight() - VOID_DEPTH && b.vy[i] <= 0.0) {
@@ -476,44 +594,27 @@ public final class Rounds implements SimKind<RoundBatch> {
                     struck.add(eh.entity);
                     continue;
                 }
+                if (park(level, b, i, eh, from, end, velocity, shooter)) {
+                    return true;
+                }
                 ProjectileStrikeEvent strike = strike(level, preset, null, key, eh, from, end, velocity,
                         shooter, b.faction[i], b.damageScale[i], b.ricochets[i] < Ricochet.MAX, b.ricochets[i] > 0);
                 // Listeners may end this round (destroy => swap-remove); keys are unique.
                 if (i >= b.size || b.key[i] != key) {
                     return false;
                 }
+                if (finish(level, b, i, preset, eh, strike, shooter)) {
+                    return false;
+                }
                 ProjectileStrikeEvent.Outcome outcome = strike.outcome();
-                if (outcome == ProjectileStrikeEvent.Outcome.DUD) {
-                    end(level, b, i, eh.at, RoundEnd.DUD);
-                    return false;
-                }
-                if (outcome == ProjectileStrikeEvent.Outcome.PROCEED && preset.detonateOnEntity()) {
-                    detonate(level, b, i, strike.detonation() != null ? strike.detonation() : eh.at, shooter,
-                            RoundEnd.ENTITY);
-                    return false;
-                }
-                if (outcome == ProjectileStrikeEvent.Outcome.STOP) {
-                    if (preset.detonateOnEntity() && !preset.postPen()) {
-                        detonate(level, b, i, strike.detonation() != null ? strike.detonation() : eh.at, shooter,
-                                RoundEnd.ENTITY);
-                    } else {
-                        end(level, b, i, eh.at, RoundEnd.ENTITY);
-                    }
-                    return false;
-                }
-                if (outcome == ProjectileStrikeEvent.Outcome.THROUGH && preset.postPen()) {
-                    Vec3 out = strike.through();
-                    b.vx[i] = out.x;
-                    b.vy[i] = out.y;
-                    b.vz[i] = out.z;
-                    detonate(level, b, i, strike.detonation() != null ? strike.detonation()
-                            : eh.at.add(out.normalize().scale(POST_PEN_DEPTH)), shooter, RoundEnd.ENTITY);
-                    return false;
-                }
                 if (struck == null) {
                     struck = new ArrayList<>(2);
                 }
                 struck.add(eh.entity);
+                if (outcome == ProjectileStrikeEvent.Outcome.PROCEED) {
+                    keepPassing = true;
+                    b.passing[i] = eh.entity.getId();
+                }
                 if (outcome == ProjectileStrikeEvent.Outcome.RICOCHET) {
                     glanced = eh;
                     glance = strike.ricochet();
@@ -798,14 +899,14 @@ public final class Rounds implements SimKind<RoundBatch> {
         UUID owner = ticket(b.key[i]);
         for (long c : b.chunks[i]) {
             if (!segment.contains(c)) {
-                DetonationChunkGuard.CONTROLLER.forceChunk(level, owner, ChunkPos.getX(c), ChunkPos.getZ(c), false,
+                ChunkTicketOps.force(DetonationChunkGuard.CONTROLLER, level, owner, ChunkPos.getX(c), ChunkPos.getZ(c), false,
                         true);
             }
         }
         long[] held = segment.toLongArray();
         for (long c : held) {
             if (!contains(b.chunks[i], c)) {
-                DetonationChunkGuard.CONTROLLER.forceChunk(level, owner, ChunkPos.getX(c), ChunkPos.getZ(c), true,
+                ChunkTicketOps.force(DetonationChunkGuard.CONTROLLER, level, owner, ChunkPos.getX(c), ChunkPos.getZ(c), true,
                         true);
             }
         }
@@ -1056,7 +1157,7 @@ public final class Rounds implements SimKind<RoundBatch> {
             for (int cx = (hit.getX() - r) >> 4; cx <= (hit.getX() + r) >> 4; cx++) {
                 for (int cz = (hit.getZ() - r) >> 4; cz <= (hit.getZ() + r) >> 4; cz++) {
                     held.add(ChunkPos.asLong(cx, cz));
-                    DetonationChunkGuard.CONTROLLER.forceChunk(level, ticket(key), cx, cz, true, true);
+                    ChunkTicketOps.force(DetonationChunkGuard.CONTROLLER, level, ticket(key), cx, cz, true, true);
                 }
             }
             b.chunks[i] = held.toLongArray();
@@ -1119,7 +1220,7 @@ public final class Rounds implements SimKind<RoundBatch> {
             burrow = preset.burrow();
         }
         RoundBatch b = batch(level);
-        int i = b.add(nextKey++, preset, d.at().x, d.at().y, d.at().z, 0.0, 0.0, 0.0,
+        int i = b.add(nextKey(), preset, d.at().x, d.at().y, d.at().z, 0.0, 0.0, 0.0,
                 shooter == null ? -1 : shooter.getId(), d.faction(), 1.0f, 0, NO_SEQ, 0.0f);
         b.rest[i] = fuse;
         b.burrow[i] = burrow;
@@ -1128,7 +1229,7 @@ public final class Rounds implements SimKind<RoundBatch> {
 
     private static void release(ServerLevel level, RoundBatch b, int i) {
         for (long c : b.chunks[i]) {
-            DetonationChunkGuard.CONTROLLER.forceChunk(level, ticket(b.key[i]), ChunkPos.getX(c), ChunkPos.getZ(c),
+            ChunkTicketOps.force(DetonationChunkGuard.CONTROLLER, level, ticket(b.key[i]), ChunkPos.getX(c), ChunkPos.getZ(c),
                     false, true);
         }
         b.chunks[i] = RoundBatch.NO_CHUNKS;
@@ -1152,6 +1253,9 @@ public final class Rounds implements SimKind<RoundBatch> {
      */
     private static void end(ServerLevel level, RoundBatch b, int i, Vec3 at, RoundEnd reason, boolean owed) {
         release(level, b, i);
+        if (b.parked != null) {
+            b.parked.remove(b.key[i]);
+        }
         PRELOAD_WAITED.remove(b.key[i]);
         RoundNetwork.ended(level, b, i, at, reason);
         KineticPreset preset = b.preset[i];
@@ -1176,7 +1280,142 @@ public final class Rounds implements SimKind<RoundBatch> {
         Warheads.get(preset.warheadId()).detonate(new RoundCarrier(level, preset, angle, shooter, faction), at);
     }
 
-    /** Strike event, then the direct hit when it proceeds; the preset's pierce rides on the source. */
+    /**
+     * Entity striker ({@link RocketEntity}) vs a {@link BlastTarget} another region owns: strike on its owner, {@code answer}
+     * on the striker's owner. @return false: caller owns the target, {@link #strike} inline
+     */
+    static boolean strikeAway(ServerLevel level, KineticPreset preset, Entity projectile, Object key, EntityHit eh,
+                              Vec3 from, Vec3 segmentEnd, Vec3 velocity, @Nullable Entity shooter,
+                              @Nullable UUID faction, java.util.function.Consumer<ProjectileStrikeEvent> answer) {
+        if (!(eh.entity instanceof BlastTarget) || !HitRouter.foreign(level, eh.entity)) {
+            return false;
+        }
+        return StrikeRelay.start(level, eh.entity,
+                () -> strike(level, preset, projectile, key, eh, from, segmentEnd, velocity, shooter, faction, 1.0f,
+                        false, false),
+                reply -> {
+                    if (!HitRouter.defer(level, projectile, () -> answer.accept(reply))) {
+                        answer.accept(reply);
+                    }
+                });
+    }
+
+    /** Answers that end the round at the hit. @return true: ended, index {@code i} is gone */
+    private static boolean finish(ServerLevel level, RoundBatch b, int i, KineticPreset preset, EntityHit eh,
+                                  ProjectileStrikeEvent strike, @Nullable Entity shooter) {
+        ProjectileStrikeEvent.Outcome outcome = strike.outcome();
+        if (outcome == ProjectileStrikeEvent.Outcome.DUD) {
+            end(level, b, i, eh.at, RoundEnd.DUD);
+            return true;
+        }
+        if (outcome == ProjectileStrikeEvent.Outcome.PROCEED && preset.detonateOnEntity()) {
+            detonate(level, b, i, strike.detonation() != null ? strike.detonation() : eh.at, shooter, RoundEnd.ENTITY);
+            return true;
+        }
+        if (outcome == ProjectileStrikeEvent.Outcome.STOP) {
+            if (preset.detonateOnEntity() && !preset.postPen()) {
+                detonate(level, b, i, strike.detonation() != null ? strike.detonation() : eh.at, shooter,
+                        RoundEnd.ENTITY);
+            } else {
+                end(level, b, i, eh.at, RoundEnd.ENTITY);
+            }
+            return true;
+        }
+        if (outcome == ProjectileStrikeEvent.Outcome.THROUGH && preset.postPen()) {
+            Vec3 out = strike.through();
+            b.vx[i] = out.x;
+            b.vy[i] = out.y;
+            b.vz[i] = out.z;
+            detonate(level, b, i, strike.detonation() != null ? strike.detonation()
+                    : eh.at.add(out.normalize().scale(POST_PEN_DEPTH)), shooter, RoundEnd.ENTITY);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Strike on a {@link BlastTarget} another region owns: round stays out of {@link #step} until the owner's answer
+     * arrives ({@link #resume}); <= {@link StrikeRelay#PARK_TICKS} else lost at the hit point.
+     * @return false: caller owns the target, strike inline
+     */
+    private static boolean park(ServerLevel level, RoundBatch b, int i, EntityHit eh, Vec3 from, Vec3 end,
+                                Vec3 velocity, @Nullable Entity shooter) {
+        if (!(eh.entity instanceof BlastTarget) || !HitRouter.foreign(level, eh.entity)) {
+            return false;
+        }
+        long key = b.key[i];
+        KineticPreset preset = b.preset[i];
+        UUID faction = b.faction[i];
+        float scale = b.damageScale[i];
+        boolean canRicochet = b.ricochets[i] < Ricochet.MAX;
+        boolean tumbling = b.ricochets[i] > 0;
+        if (b.parked == null) {
+            b.parked = new HashMap<>();
+        }
+        b.parked.put(key, new RoundBatch.Parked(eh, level.getGameTime() + StrikeRelay.PARK_TICKS));
+        boolean routed = StrikeRelay.start(level, eh.entity,
+                () -> strike(level, preset, null, key, eh, from, end, velocity, shooter, faction, scale, canRicochet,
+                        tumbling),
+                answer -> answers(level).post(() -> resume(level, key, eh, velocity, answer)));
+        if (!routed) {
+            b.parked.remove(key);
+        }
+        return routed;
+    }
+
+    /** World thread: the owner's answer for the round parked on {@code key}; null = target removed, round flies on. */
+    private static void resume(ServerLevel level, long key, EntityHit eh, Vec3 velocity,
+                               @Nullable ProjectileStrikeEvent answer) {
+        RoundBatch b = batch(level);
+        if (b.parked == null || b.parked.remove(key) == null) {
+            return;
+        }
+        int i = b.indexOf(key);
+        if (i < 0 || answer == null) {
+            return;
+        }
+        KineticPreset preset = b.preset[i];
+        Entity shooter = b.shooter[i] < 0 ? null : level.getEntity(b.shooter[i]);
+        if (finish(level, b, i, preset, eh, answer, shooter)) {
+            return;
+        }
+        StrikeRelay.Next next = StrikeRelay.next(answer, eh.at, velocity);
+        b.x[i] = next.at().x;
+        b.y[i] = next.at().y;
+        b.z[i] = next.at().z;
+        b.vx[i] = next.velocity().x;
+        b.vy[i] = next.velocity().y;
+        b.vz[i] = next.velocity().z;
+        b.lead[i] = 0.0f;
+        b.passing[i] = eh.entity.getId();
+        if (next.glance()) {
+            b.ricochets[i]++;
+            RoundNetwork.ricocheted(level, b, i, eh.at, next.normal(), RoundSurface.ENTITY, 0L);
+            if (preset.hasEffects(ImpactTrigger.RICOCHET)) {
+                ImpactEffects.fire(new ImpactContext(level, ImpactTrigger.RICOCHET, preset, key, null, shooter,
+                        b.faction[i], eh.at, next.velocity(), null, eh.entity, eh.parts, null, null));
+                if (b.indexOf(key) < 0) {
+                    return;
+                }
+            }
+        }
+        RoundNetwork.sync(level, b, i);
+    }
+
+    private static void expireParked(ServerLevel level, RoundBatch b) {
+        long now = level.getGameTime();
+        for (Map.Entry<Long, RoundBatch.Parked> e : new ArrayList<>(b.parked.entrySet())) {
+            if (e.getValue().deadline() < now) {
+                b.parked.remove(e.getKey());
+                int i = b.indexOf(e.getKey());
+                if (i >= 0) {
+                    end(level, b, i, e.getValue().hit().at, RoundEnd.ENTITY);
+                }
+            }
+        }
+    }
+
+    /** Strike event, then the direct hit when it proceeds; the preset's pierce rides on the source. Armour listeners mutate a {@link BlastTarget}: on its owner, see {@link #park} / {@link StrikeRelay}. */
     static ProjectileStrikeEvent strike(ServerLevel level, KineticPreset preset, @Nullable Entity projectile,
                                         Object key, EntityHit eh, Vec3 from, Vec3 segmentEnd, Vec3 velocity,
                                         @Nullable Entity shooter, @Nullable UUID faction, float damageScale,
@@ -1207,7 +1446,19 @@ public final class Rounds implements SimKind<RoundBatch> {
                 jetOwned(preset, eh.entity) ? threat.withPenetration(0.0f) : threat, from, velocity, key,
                 segmentEnd, eh.when, eh.parts);
         float damage = impactDamage(preset, velocity) * damageScale;
-        // One hit per round: i-frames from anything else must not swallow it (MG streams).
+        ImpactContext hit = ctx;
+        List<ImpactEffect> rolled = effects;
+        if (HitRouter.foreign(level, eh.entity)) {
+            HitRouter.defer(level, eh.entity, () -> hurt(preset, eh, source, damage, velocity, rolled, hit));
+        } else {
+            hurt(preset, eh, source, damage, velocity, rolled, hit);
+        }
+        return strike;
+    }
+
+    /** One hit per round: i-frames from anything else must not swallow it (MG streams). Runs on the target's owner. */
+    private static void hurt(KineticPreset preset, EntityHit eh, RoundDamageSource source, float damage, Vec3 velocity,
+                             List<ImpactEffect> effects, @Nullable ImpactContext ctx) {
         if (eh.entity instanceof LivingEntity living) {
             Vec3 before = living.getDeltaMovement();
             WFDamage.hurtIgnoringIFrames(living, source, damage * headshotFactor(preset, living, eh));
@@ -1219,7 +1470,6 @@ public final class Rounds implements SimKind<RoundBatch> {
         for (ImpactEffect e : effects) {
             e.apply(ctx);
         }
-        return strike;
     }
 
     /** Warhead jet / EFP resolves a {@link BlastTarget}'s armour from the detonation point: the direct hit carries no penetration. */

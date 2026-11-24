@@ -6,6 +6,7 @@ import com.wf.wflib.colony.api.EntityGlyphid;
 import com.wf.wflib.colony.api.GlyphidStats;
 import com.wf.wflib.colony.api.GlyphidTasks;
 import com.wf.wflib.colony.api.GlyphidWaypoint;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -45,6 +46,9 @@ public class EntityGlyphidScout extends EntityGlyphid {
     private static final int VENOM_AMPLIFIER = 3;
 
     private int settling;
+    /** Written by the main-thread settle op; consumed by the owning tick. 0 none, 1 founded, -1 refused. */
+    private volatile int settleResult;
+    private boolean settleQueued;
 
     public EntityGlyphidScout(EntityType<? extends EntityGlyphidScout> type, Level level) {
         super(type, level);
@@ -99,6 +103,10 @@ public class EntityGlyphidScout extends EntityGlyphid {
         super.customServerAiStep();
 
         if (!(level() instanceof ServerLevel server) || tickCount % SCOUT_INTERVAL != 0) {
+            return;
+        }
+        if (settleQueued) {
+            applySettle();
             return;
         }
 
@@ -169,8 +177,23 @@ public class EntityGlyphidScout extends EntityGlyphid {
     /** Become the colony. */
     private void settle(ServerLevel server) {
         settling = 0;
+        if (settleQueued) {
+            return;
+        }
+        settleQueued = true;
+        int x = getBlockX(), y = getBlockY(), z = getBlockZ();
+        ChunkTicketOps.run(server, () -> settleResult = ColonyManager.settle(server, x, y, z) == null ? -1 : 1);
+        applySettle();
+    }
 
-        if (ColonyManager.settle(server, getBlockX(), getBlockY(), getBlockZ()) == null) {
+    private void applySettle() {
+        int result = settleResult;
+        if (result == 0) {
+            return;
+        }
+        settleResult = 0;
+        settleQueued = false;
+        if (result < 0) {
             // Too near spawn, or the colony cap is full. Stop trying to found here.
             setCurrentTask(GlyphidTasks.TASK_IDLE, null);
             return;

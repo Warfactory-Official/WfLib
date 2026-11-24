@@ -22,7 +22,6 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +43,8 @@ public final class DetachedBodyStream {
     private static final int TICKET_REFRESH = 20;
     private static final int WAKEUP_RECORD_INTERVAL = 40;
 
-    private static final Set<Entity> HOSTS = new HashSet<>();
+    // Join/leave events fire on whichever thread adds the entity; iterated on main.
+    private static final Set<Entity> HOSTS = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
     private static long ticks;
 

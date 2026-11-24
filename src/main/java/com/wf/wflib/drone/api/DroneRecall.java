@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -7,9 +8,9 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.util.Unit;
 import net.minecraft.world.level.ChunkPos;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Bringing a drone back that has fallen out of the loaded world. */
 public final class DroneRecall {
@@ -20,8 +21,8 @@ public final class DroneRecall {
     private static final TicketType<Unit> RECALL = TicketType.create("wf_drone_recall", (a, b) -> 0, 200);
     private static final int RESTAMP = 40;
 
-    private static final Map<UUID, GlobalPos> LAST_SEEN = new HashMap<>();
-    private static final Map<UUID, Long> STAMPED = new HashMap<>();
+    private static final Map<UUID, GlobalPos> LAST_SEEN = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> STAMPED = new ConcurrentHashMap<>();
 
     private DroneRecall() {
     }
@@ -54,12 +55,10 @@ public final class DroneRecall {
             return false;
         }
         long now = level.getGameTime();
-        Long last = STAMPED.get(id);
-        if (last != null && now - last < RESTAMP) {
-            return true;
+        if (STAMPED.merge(id, now, (last, n) -> n - last < RESTAMP ? last : n) == now) {
+            ChunkTicketOps.run(level, () -> level.getChunkSource()
+                    .addRegionTicket(RECALL, new ChunkPos(at.pos()), TICKET_DISTANCE, Unit.INSTANCE));
         }
-        STAMPED.put(id, now);
-        level.getChunkSource().addRegionTicket(RECALL, new ChunkPos(at.pos()), TICKET_DISTANCE, Unit.INSTANCE);
         return true;
     }
 

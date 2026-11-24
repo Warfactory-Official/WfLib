@@ -6,6 +6,7 @@ import com.wf.wflib.colony.api.EntityGlyphid;
 import com.wf.wflib.colony.api.GlyphidCaste;
 import com.wf.wflib.colony.api.GlyphidTasks;
 import com.wf.wflib.colony.api.SimGlyphidManager;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -71,9 +72,12 @@ public class GlyphidSpawnerBlockEntity extends BlockEntity {
         if (!place(level, pos, colony, caste)) {
             return;
         }
-        colony.population -= 1.0;
-        colony.garrison++;
-        ColonyData.get(level).setDirty();
+        // Colony counters are main-thread owned (ColonyManager); region worker posts the debit.
+        ChunkTicketOps.run(level, () -> {
+            colony.population -= 1.0;
+            colony.garrison++;
+            ColonyData.get(level).setDirty();
+        });
     }
 
     /** Put one defender on the surface of the mound. */

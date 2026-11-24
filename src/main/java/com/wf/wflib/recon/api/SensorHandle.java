@@ -8,10 +8,11 @@ public final class SensorHandle {
 
     private final long id;
     private final BlockPos pos;
-    private SensorSpec spec;
+    private volatile SensorSpec spec;
     private ReconTerrain terrain = ReconTerrain.EMPTY;
     private long terrainStamp;
-    private long lastRefresh;
+    private volatile long lastRefresh;
+    private volatile boolean live = true;
     private long lastSweep;
 
     SensorHandle(BlockPos pos, SensorSpec spec, long gameTime) {
@@ -46,6 +47,20 @@ public final class SensorHandle {
 
     long lastRefresh() {
         return lastRefresh;
+    }
+
+    /** False once the network has dropped this sensor; a holder must re-register. */
+    public boolean live() {
+        return live;
+    }
+
+    void kill() {
+        this.live = false;
+    }
+
+    /** Owner-thread refresh of an unchanged spec: no network mutation. */
+    void touch(long gameTime) {
+        this.lastRefresh = gameTime;
     }
 
     /** <b>Sweeps are phase-aligned to the world clock, not free-running from whenever the sensor was built.</b> */

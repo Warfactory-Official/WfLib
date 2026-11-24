@@ -22,7 +22,8 @@ import java.util.Comparator;
 
 /**
  * Per-level cache of SectionCollision snapshots; physics asks geometry without touching a live
- * PalettedContainer. prepare(): tick-thread only, builds. collectBoxes()/anyBoxIn()/Cursor:
+ * PalettedContainer. prepare(): tick or region step threads, builds; concurrent callers may build a slot twice
+ * (same snapshot, last write kept). collectBoxes()/anyBoxIn()/Cursor:
  * worker-safe, read finished snapshots only. invalidate(): LevelChunk.setBlockState mixin + chunk
  * load/unload events. Pin captures refs into PinnedSections (tick thread) for a deterministic
  * off-thread solve.
@@ -187,7 +188,7 @@ public final class ChunkCollisionCache implements SectionSource {
         return snapshot;
     }
 
-    /** Tick-thread only: column array writes happen only there, so the sweep may index it directly. Worker threads use readSlot. */
+    /** prepare() threads; the sweep indexes the column unlocked (racing write => stale slot until the next prepare). Island workers use readSlot. */
     private Column readColumn(long columnKey) {
         long stamp = sectionsLock.tryOptimisticRead();
         Column column;
@@ -208,12 +209,15 @@ public final class ChunkCollisionCache implements SectionSource {
         return column;
     }
 
-    private void write(long columnKey, int slot, SectionCollision snapshot) {
+    /** @return the column written: a concurrent evict / chunk drop may already have unmapped it. */
+    private Column write(long columnKey, int slot, SectionCollision snapshot) {
         long stamp = sectionsLock.writeLock();
         try {
             Column column = columns.get(columnKey);
             if (column == null) {
                 column = new Column(sectionCount);
+                // Stamped now: a concurrent prepare's evict must not drop a column built this tick.
+                column.lastUseTick = tick;
                 columns.put(columnKey, column);
             }
             SectionCollision previous = column.bySection[slot];
@@ -232,6 +236,7 @@ public final class ChunkCollisionCache implements SectionSource {
             if (!snapshot.isEmpty()) {
                 retained++;
             }
+            return column;
         } finally {
             sectionsLock.unlockWrite(stamp);
         }
@@ -286,7 +291,7 @@ public final class ChunkCollisionCache implements SectionSource {
         }
     }
 
-    /** Tick-thread only. @return false is exact: no overlapping section holds collision shapes. */
+    /** Tick or region step thread. @return false is exact: no overlapping section holds collision shapes. */
     public boolean prepare(Level level, AABB bounds) {
         return prepareAndPin(level, bounds, null);
     }
@@ -335,8 +340,7 @@ public final class ChunkCollisionCache implements SectionSource {
                             chunk = level.getChunkSource().getChunkNow(sectionX, sectionZ);
                             looked = true;
                         }
-                        write(columnKey, slot, build(chunk, slot + minSection));
-                        column = readColumn(columnKey);
+                        column = write(columnKey, slot, build(chunk, slot + minSection));
                     }
                 }
                 // Was a volatile write per section: 1500 barriers on a carrier. One stamp/column now.

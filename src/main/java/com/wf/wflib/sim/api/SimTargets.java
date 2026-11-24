@@ -1,7 +1,6 @@
 package com.wf.wflib.sim.api;
 
 import com.wf.wflib.missile.api.SimGhostSyncPacket;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -13,6 +12,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import com.wf.wflib.missile.api.SimGhosts;
 import com.wf.wflib.missile.api.SimMissile;
@@ -28,7 +29,7 @@ public final class SimTargets {
     /** Ticks a {@link #keep} lasts; refreshed every tick by holders. */
     public static final int KEEP_TICKS = 40;
 
-    private static final Object2LongOpenHashMap<UUID> KEPT = new Object2LongOpenHashMap<>();
+    private static final ConcurrentHashMap<UUID, AtomicLong> KEPT = new ConcurrentHashMap<>();
 
     private SimTargets() {
     }
@@ -90,17 +91,26 @@ public final class SimTargets {
     }
 
     public static void keep(Entity e) {
-        KEPT.put(e.getUUID(), e.level().getGameTime() + KEEP_TICKS);
+        long until = e.level().getGameTime() + KEEP_TICKS;
+        AtomicLong slot = KEPT.get(e.getUUID());
+        if (slot == null) {
+            slot = KEPT.putIfAbsent(e.getUUID(), new AtomicLong(until));
+            if (slot == null) {
+                return;
+            }
+        }
+        slot.lazySet(until);
     }
 
     public static boolean kept(Entity e) {
-        return KEPT.getLong(e.getUUID()) > e.level().getGameTime();
+        AtomicLong until = KEPT.get(e.getUUID());
+        return until != null && until.get() > e.level().getGameTime();
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
         long now = event.getServer().overworld().getGameTime();
         if (now % KEEP_TICKS == 0L) {
-            KEPT.object2LongEntrySet().removeIf(en -> en.getLongValue() <= now);
+            KEPT.values().removeIf(until -> until.get() <= now);
         }
     }
 

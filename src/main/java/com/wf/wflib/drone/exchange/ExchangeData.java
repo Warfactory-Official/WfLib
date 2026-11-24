@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.exchange;
 
+import com.wf.wflib.core.api.LevelCache;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -23,12 +24,14 @@ public final class ExchangeData extends SavedData {
     /** How long a finished or cancelled exchange is kept before being forgotten. */
     private static final long RETENTION_TICKS = 6000L;
 
+    private static final LevelCache<ExchangeData> CACHE = LevelCache.overworld(NAME,
+            new SavedData.Factory<>(ExchangeData::new, (tag, reg) -> ExchangeData.load(tag)));
+
     private final Map<UUID, Exchange> byId = new LinkedHashMap<>();
     private final Map<UUID, Long> retiredAt = new LinkedHashMap<>();
 
     public static ExchangeData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(ExchangeData::new, (tag, reg) -> ExchangeData.load(tag)), NAME);
+        return CACHE.get(server);
     }
 
     public static ExchangeData get(ServerLevel level) {

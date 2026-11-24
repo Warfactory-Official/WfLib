@@ -5,10 +5,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Live smoke cells per server level; mob line of sight fails through {@link #OPAQUE} blocks of smoke. */
 public final class SmokeScreens {
@@ -16,28 +15,42 @@ public final class SmokeScreens {
     /** Blocks of smoke along a sight line that hide what is behind it. */
     public static final double OPAQUE = 2.0;
 
-    private static final Map<Level, List<MistEntity>> CELLS = new IdentityHashMap<>();
+    /** Copy-on-write arrays; read path lock-free, allocation-free. */
+    private static final Map<Level, MistEntity[]> CELLS = new ConcurrentHashMap<>();
 
     private SmokeScreens() {
     }
 
     public static void add(MistEntity cell) {
-        CELLS.computeIfAbsent(cell.level(), l -> new ArrayList<>()).add(cell);
+        CELLS.compute(cell.level(), (l, cells) -> {
+            if (cells == null) {
+                return new MistEntity[] {cell};
+            }
+            MistEntity[] grown = Arrays.copyOf(cells, cells.length + 1);
+            grown[cells.length] = cell;
+            return grown;
+        });
     }
 
     public static void remove(MistEntity cell) {
-        List<MistEntity> cells = CELLS.get(cell.level());
-        if (cells != null) {
-            cells.remove(cell);
-            if (cells.isEmpty()) {
-                CELLS.remove(cell.level());
+        CELLS.computeIfPresent(cell.level(), (l, cells) -> {
+            for (int i = 0; i < cells.length; i++) {
+                if (cells[i] == cell) {
+                    if (cells.length == 1) {
+                        return null;
+                    }
+                    MistEntity[] shrunk = new MistEntity[cells.length - 1];
+                    System.arraycopy(cells, 0, shrunk, 0, i);
+                    System.arraycopy(cells, i + 1, shrunk, i, cells.length - i - 1);
+                    return shrunk;
+                }
             }
-        }
+            return cells;
+        });
     }
 
-    /** Server thread. */
     public static boolean blocked(Level level, Vec3 from, Vec3 to) {
-        List<MistEntity> cells = CELLS.get(level);
+        MistEntity[] cells = CELLS.get(level);
         if (cells == null) {
             return false;
         }

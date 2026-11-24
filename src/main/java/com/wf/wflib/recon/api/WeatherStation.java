@@ -9,12 +9,15 @@ public final class WeatherStation {
     public static final double FULL_FRACTION = 0.5;
 
     private final long id;
+    private final long netId;
     private final BlockPos pos;
-    private double range;
-    private long lastRefresh;
+    private volatile double range;
+    private volatile long lastRefresh;
+    private volatile boolean live = true;
 
-    public WeatherStation(BlockPos pos, double range, long gameTime) {
+    public WeatherStation(long netId, BlockPos pos, double range, long gameTime) {
         this.id = pos.asLong();
+        this.netId = netId;
         this.pos = pos.immutable();
         this.range = range;
         this.lastRefresh = gameTime;
@@ -30,6 +33,27 @@ public final class WeatherStation {
 
     public double range() {
         return range;
+    }
+
+    long netId() {
+        return netId;
+    }
+
+    /** False once the network has dropped this station; a holder must re-register. */
+    public boolean live() {
+        return live;
+    }
+
+    void kill() {
+        this.live = false;
+    }
+
+    boolean matches(double range) {
+        return this.range == range;
+    }
+
+    void touch(long gameTime) {
+        this.lastRefresh = gameTime;
     }
 
     public long lastRefresh() {

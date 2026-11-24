@@ -30,7 +30,7 @@ public final class Bolts {
     /** Ticks between throws, per player, whichever bolt. */
     public static final int COOLDOWN = 12;
     /** Game time of each player's last throw, per side: {@code Entity.equals} is by id, which the sides share. */
-    private static final Map<Player, Long> LAST_THROW = new WeakHashMap<>();
+    private static final Map<Player, Long> LAST_THROW = java.util.Collections.synchronizedMap(new WeakHashMap<>());
     private static final Map<Player, Long> LAST_THROW_CLIENT = new WeakHashMap<>();
 
     private Bolts() {

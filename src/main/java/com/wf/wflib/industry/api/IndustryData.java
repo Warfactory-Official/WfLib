@@ -1,5 +1,6 @@
 package com.wf.wflib.industry.api;
 
+import com.wf.wflib.core.api.LevelCache;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -41,9 +42,11 @@ public final class IndustryData extends SavedData {
         this.cellChunks = IndustryConfig.cellChunks();
     }
 
+    private static final LevelCache<IndustryData> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(IndustryData::new, (tag, lookup) -> load(tag)));
+
     public static IndustryData get(ServerLevel level) {
-        IndustryData registry = level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(IndustryData::new, (tag, lookup) -> load(tag)), NAME);
+        IndustryData registry = CACHE.get(level);
         registry.reindexIfCellSizeChanged();
         return registry;
     }

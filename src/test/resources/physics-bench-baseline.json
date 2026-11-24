@@ -1,0 +1,32 @@
+{
+  "machine": {
+    "cpu": "AMD Ryzen 9 7900X 12-Core Processor",
+    "cores": 24,
+    "os": "Linux 7.2.11-zen1-1-zen",
+    "jvm": "OpenJDK 64-Bit Server VM 21.0.12"
+  },
+  "narrowphase": "native",
+  "scenes": {
+    "resting_hull_on_floor": {
+      "p50Ns": 4809,
+      "p95Ns": 5400,
+      "allocBytesP50": 824,
+      "allocBytesMean": 824,
+      "samples": 1760
+    },
+    "islands_50_bodies_5_islands": {
+      "p50Ns": 329307,
+      "p95Ns": 350057,
+      "allocBytesP50": 24616,
+      "allocBytesMean": 24640,
+      "samples": 1120
+    },
+    "fast_hull_crossing_sections": {
+      "p50Ns": 3026,
+      "p95Ns": 3426,
+      "allocBytesP50": 608,
+      "allocBytesMean": 699,
+      "samples": 1600
+    }
+  }
+}

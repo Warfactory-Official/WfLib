@@ -46,6 +46,7 @@ import org.joml.Vector3f;
 
 import java.util.Collection;
 import java.util.List;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import java.util.UUID;
 import com.wf.wflib.drone.DroneSystem;
 import com.wf.wflib.geom.api.flight.Airframe;
@@ -891,7 +892,8 @@ public class DroneEntity extends Entity implements OBBEntity, InterceptTarget, C
         if (this.level() instanceof ServerLevel serverLevel) {
             this.chunkLoader.releaseAll(this, serverLevel);
             if (this.orders.assignment() != null && !this.leavingWorld) {
-                WorkData.get(serverLevel).abandonAll(this.getUUID());
+                UUID self = this.getUUID();
+                ChunkTicketOps.run(serverLevel, () -> WorkData.get(serverLevel).abandonAll(self));
             }
         }
         super.remove(reason);

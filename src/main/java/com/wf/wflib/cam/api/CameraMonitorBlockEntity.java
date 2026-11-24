@@ -1,6 +1,7 @@
 package com.wf.wflib.cam.api;
 
 import com.wf.wflib.cam.FeedHosts;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -30,9 +31,11 @@ public class CameraMonitorBlockEntity extends BlockEntity {
     @Nullable
     private UUID bound;
 
-    private int feedId;
+    private volatile int feedId;
     /** Entity id per channel; 0 = unreachable. */
-    private int[] feedIds = new int[0];
+    private volatile int[] feedIds = new int[0];
+    @Nullable
+    private volatile CameraNet.Monitor monitor;
     /** Client-display mirror; server reads {@link #channels} directly. */
     private int selectedChannel;
     private int resolveIn;
@@ -46,10 +49,26 @@ public class CameraMonitorBlockEntity extends BlockEntity {
             return;
         }
         if (--this.resolveIn > 0) {
-            CameraNet.registerMonitor(sl, this.worldPosition, this.feedId, this.feedIds);
-            return;
+            CameraNet.Monitor held = CameraNet.touchMonitor(sl, this.monitor, this.worldPosition, this.feedId,
+                    this.feedIds);
+            if (held != null) {
+                this.monitor = held;
+                return;
+            }
         }
-        refresh(sl);
+        if (sl.getServer().isSameThread()) {
+            refresh(sl);
+        } else {
+            // Entity lookups by uuid, chunk wake-ups and feed-id allocation are server-thread only.
+            this.resolveIn = RESOLVE_INTERVAL;
+            ChunkTicketOps.run(sl, this::refreshIfLive);
+        }
+    }
+
+    private void refreshIfLive() {
+        if (!this.isRemoved() && this.level instanceof ServerLevel sl) {
+            refresh(sl);
+        }
     }
 
     private void refresh(ServerLevel level) {
@@ -77,7 +96,7 @@ public class CameraMonitorBlockEntity extends BlockEntity {
             this.setChanged();
             level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
         }
-        CameraNet.registerMonitor(level, this.worldPosition, this.feedId, this.feedIds);
+        this.monitor = CameraNet.registerMonitor(level, this.worldPosition, this.feedId, this.feedIds);
     }
 
     /** @return true if worth re-resolving immediately. */

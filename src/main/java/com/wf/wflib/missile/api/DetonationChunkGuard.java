@@ -8,9 +8,10 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.world.chunk.TicketController;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.core.api.WFLib;
 
 /**
@@ -26,7 +27,7 @@ public final class DetonationChunkGuard {
             WFChunkValidation::validateTickets
     );
 
-    private static final List<Hold> HOLDS = new ArrayList<>();
+    private static final Queue<Hold> HOLDS = new ConcurrentLinkedQueue<>();
 
     private DetonationChunkGuard() {
     }
@@ -48,7 +49,7 @@ public final class DetonationChunkGuard {
                 int x = cx + ox;
                 int z = cz + oz;
                 chunks[i++] = ChunkPos.asLong(x, z);
-                CONTROLLER.forceChunk(level, owner, x, z, true, true);
+                ChunkTicketOps.force(CONTROLLER, level, owner, x, z, true, true);
             }
         }
         HOLDS.add(new Hold(level, owner, chunks, level.getGameTime() + ticks));
@@ -65,7 +66,7 @@ public final class DetonationChunkGuard {
                 continue;
             }
             for (long key : h.chunks) {
-                CONTROLLER.forceChunk(level, h.owner,
+                ChunkTicketOps.force(CONTROLLER, level, h.owner,
                         ChunkPos.getX(key), ChunkPos.getZ(key), false, true);
             }
             it.remove();

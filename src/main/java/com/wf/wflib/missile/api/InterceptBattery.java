@@ -4,6 +4,8 @@ import com.wf.wflib.compat.api.WarforgeCompat;
 import com.wf.wflib.recon.api.ContactClass;
 import com.wf.wflib.recon.api.ReconNet;
 import com.wf.wflib.recon.api.ReconNetwork;
+import com.wf.wflib.core.api.ChunkTicketOps;
+import com.wf.wflib.recon.api.SensorHandle;
 import com.wf.wflib.recon.api.SensorSpec;
 import com.wf.wflib.recon.api.FireControl;
 import com.wf.wflib.recon.api.IffState;
@@ -105,6 +107,8 @@ public final class InterceptBattery {
     @Nullable
     private BlockPos sensorAt;
     private long sensorNet;
+    @Nullable
+    private volatile SensorHandle sensor;
 
     public InterceptBattery(Mount mount, long claimant, Object listenerKey) {
         this.mount = mount;
@@ -125,9 +129,21 @@ public final class InterceptBattery {
             BlockPos at = BlockPos.containing(this.mount.muzzle());
             if (this.sensorAt != null && (!this.sensorAt.equals(at) || this.sensorNet != net)) {
                 ReconNet.unregisterSensor(sl, this.sensorAt, this.sensorNet);
+                this.sensor = null;
             }
-            ReconNet.registerSensor(sl, at, SensorSpec.surveillanceRadar(net, settings.range())
-                    .withMast(settings.mast()).withSweep(SWEEP_TICKS));
+            SensorSpec spec = SensorSpec.surveillanceRadar(net, settings.range())
+                    .withMast(settings.mast()).withSweep(SWEEP_TICKS);
+            SensorHandle held = ReconNet.touchSensor(sl, this.sensor, at, spec);
+            if (held != null) {
+                this.sensor = held;
+            } else {
+                this.sensor = null;
+                ChunkTicketOps.run(sl, () -> {
+                    if (this.sensorAt != null && this.sensorAt.equals(at) && this.sensorNet == net) {
+                        this.sensor = ReconNet.registerSensor(sl, at, spec);
+                    }
+                });
+            }
             this.sensorAt = at;
             this.sensorNet = net;
         } else {
@@ -283,6 +299,7 @@ public final class InterceptBattery {
         if (this.sensorAt != null) {
             ReconNet.unregisterSensor(sl, this.sensorAt, this.sensorNet);
             this.sensorAt = null;
+            this.sensor = null;
         }
     }
 

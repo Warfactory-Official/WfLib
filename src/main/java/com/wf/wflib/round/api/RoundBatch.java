@@ -3,6 +3,7 @@ package com.wf.wflib.round.api;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
 
 /** Every round in one level, struct of arrays; removal swaps the last round in. */
@@ -44,6 +45,13 @@ final class RoundBatch {
     float[] lead = new float[64];
     /** Entity id of the body a {@code THROUGH} round is still inside, else -1: not struck again until it is clear. */
     int[] passing = new int[64];
+
+    /** Round key => strike awaiting its armour answer from a foreign region; null until first. World thread only. */
+    @Nullable
+    Map<Long, Parked> parked;
+
+    record Parked(Rounds.EntityHit hit, long deadline) {
+    }
 
     int add(long key, KineticPreset preset, double x, double y, double z, double vx, double vy, double vz,
             int shooter, @Nullable UUID faction, float damageScale, int rewind, int seq, float lead) {

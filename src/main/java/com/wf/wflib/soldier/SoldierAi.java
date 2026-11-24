@@ -35,6 +35,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.PlayLevelSoundEvent;
+import com.wf.wflib.core.api.RegionLease;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.lang.reflect.Method;
@@ -576,57 +577,63 @@ public final class SoldierAi {
                 continue;
             }
             if (!scripted(p)) continue;                        // never a real player
-            if (b.topUp > 0 && --b.topUp == 0) p.setHealth(p.getMaxHealth());
-            if (b.soldier) SoldierBrain.tick(server, p, b);
-            if (b.dead > 0) {
-                b.dead = 0;
-                b.arm = b.gun != null;
-                b.stanceDirty = true;
-                b.cover = null;
-                b.route.clear();
-                b.threats.clear();
-                b.probe = null;
-                b.lit = false;
-                b.suppression = 0;
-                b.danger.clear();
-                b.evading = false;
-                b.careAction = "";
-                b.carePlan = null;
-                b.carePatient = "";
-                b.oriented = false;
-                b.peek.reset(p.serverLevel().getGameTime());
-            }
-            if (b.arm) {
-                b.arm = false;
-                arm(p, b.gun, b.mags, b.grenades);
-                issue(b, b.grenades);
-                BotMedical.kit(p, b.role.equals("medic"));
-                b.kit = Kit.of(p.getInventory());
-            }
-            long healthStart = SoldierProfiler.begin();
-            b.health = BotMedical.condition(p);
-            SoldierProfiler.end("condition", healthStart);
-            if (b.health.downed()) {
-                move(p, 0, 0, false, false);
-                p.setJumping(false);
-                pose(p, b, Posture.PRONE, 0, false);
-                b.moving = false;
-                b.state = "downed";
-                light(p, b);                       // a downed soldier keeps its lamp on, lying where it fell
-                BotMedical.cancel(p);
-                // Leave time for approach, bleeding control, blood replacement and the real CPR channel.
-                if (b.down == 0) b.giveUpAt = 1200 + RNG.nextInt(200);
-                if (++b.down >= b.giveUpAt && b.rescuer.isEmpty() && b.down % 100 == 0) giveUp(p);
-                continue;
-            }
-            b.down = 0;
-            b.lastSeenAt = p.position();
-            long driveStart = System.nanoTime();
-            drive(server, p, b);
-            SoldierProfiler.driveNanos += System.nanoTime() - driveStart;
+            final Bot bot = b;
+            final ServerPlayer player = p;
+            RegionLease.onMain(player.serverLevel(), player.blockPosition(), () -> tickBot(server, player, bot, filmingServer));
             driven++;
         }
         SoldierProfiler.endTick(System.nanoTime() - tickStart, driven);
+    }
+
+    private static void tickBot(MinecraftServer server, ServerPlayer p, Bot b, boolean filmingServer) {
+        if (b.topUp > 0 && --b.topUp == 0) p.setHealth(p.getMaxHealth());
+        if (b.soldier) SoldierBrain.tick(server, p, b);
+        if (b.dead > 0) {
+            b.dead = 0;
+            b.arm = b.gun != null;
+            b.stanceDirty = true;
+            b.cover = null;
+            b.route.clear();
+            b.threats.clear();
+            b.probe = null;
+            b.lit = false;
+            b.suppression = 0;
+            b.danger.clear();
+            b.evading = false;
+            b.careAction = "";
+            b.carePlan = null;
+            b.carePatient = "";
+            b.oriented = false;
+            b.peek.reset(p.serverLevel().getGameTime());
+        }
+        if (b.arm) {
+            b.arm = false;
+            arm(p, b.gun, b.mags, b.grenades);
+            issue(b, b.grenades);
+            BotMedical.kit(p, b.role.equals("medic"));
+            b.kit = Kit.of(p.getInventory());
+        }
+        long healthStart = SoldierProfiler.begin();
+        b.health = BotMedical.condition(p);
+        SoldierProfiler.end("condition", healthStart);
+        if (b.health.downed()) {
+            move(p, 0, 0, false, false);
+            p.setJumping(false);
+            pose(p, b, Posture.PRONE, 0, false);
+            b.moving = false;
+            b.state = "downed";
+            light(p, b);                       // a downed soldier keeps its lamp on, lying where it fell
+            BotMedical.cancel(p);
+            // Leave time for approach, bleeding control, blood replacement and the real CPR channel.
+            if (b.down == 0) b.giveUpAt = 1200 + RNG.nextInt(200);
+            if (++b.down >= b.giveUpAt && b.rescuer.isEmpty() && b.down % 100 == 0) giveUp(p);
+            return;
+        }
+        b.down = 0;
+        b.lastSeenAt = p.position();
+        long driveStart = System.nanoTime();
+        drive(server, p, b);
+        SoldierProfiler.driveNanos += System.nanoTime() - driveStart;
     }
 
     private static void respawn(MinecraftServer server, Bot b) {

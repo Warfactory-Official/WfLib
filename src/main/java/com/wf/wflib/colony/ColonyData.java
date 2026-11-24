@@ -1,5 +1,6 @@
 package com.wf.wflib.colony;
 
+import com.wf.wflib.core.api.LevelCache;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.HolderLookup;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import com.wf.wflib.colony.api.Colony;
 
 /** Per-level store of colonies and the warbands they have sent out. */
@@ -21,18 +23,21 @@ public final class ColonyData extends SavedData {
 
     public static final String NAME = "wflib_colonies";
 
-    private final List<Colony> colonies = new ArrayList<>();
-    private final List<Warband> warbands = new ArrayList<>();
+    // COW: region-worker readers (spawner BE, scouts) iterate while the main thread adds/removes.
+    private final List<Colony> colonies = new CopyOnWriteArrayList<>();
+    private final List<Warband> warbands = new CopyOnWriteArrayList<>();
 
     /** Grid cells {@link ColonySeeder} has already dealt with, whether or not it put anything in them. */
     private final LongOpenHashSet seededCells = new LongOpenHashSet();
 
     /** The level's evolution scalar; see {@link Evolution}. Here rather than in a second file for one float. */
-    private float evolution;
+    private volatile float evolution;
+
+    private static final LevelCache<ColonyData> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(ColonyData::new, (tag, lookup) -> load(tag)));
 
     public static ColonyData get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(ColonyData::new, (tag, lookup) -> load(tag)), NAME);
+        return CACHE.get(level);
     }
 
     public List<Colony> colonies() {

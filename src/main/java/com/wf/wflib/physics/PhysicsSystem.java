@@ -8,6 +8,8 @@ import com.wf.wflib.physics.collision.ChunkCollisionCacheEvents;
 import com.wf.wflib.physics.predict.PredictionAcks;
 import com.wf.wflib.physics.predict.PredictionState;
 import com.wf.wflib.physics.step.RigidStep;
+import com.wf.wflib.physics.step.TessellateBridge;
+import com.wf.wflib.physics.step.TessellateMainThread;
 import com.wf.wflib.physics.api.CarrierDecks;
 import com.wf.wflib.physics.api.DeckRejoin;
 import com.wf.wflib.physics.api.ServerDeckRejoin;
@@ -19,6 +21,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -49,6 +52,8 @@ public final class PhysicsSystem implements WFSystem {
         NeoForge.EVENT_BUS.register(RigidStep.class);
         ServerTicks.LEVEL_POST.register(ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "physics"), TickOrder.PHYSICS,
                 RigidStep::tick);
+        TessellateBridge.install();
+        modBus.addListener(FMLLoadCompleteEvent.class, event -> event.enqueueWork(TessellateMainThread::register));
         NeoForge.EVENT_BUS.addListener(PhysicsLevelUnloadEvent.class, event -> CarrierDecks.forget(event.level()));
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, event -> {
             if (event.getEntity() instanceof ServerPlayer player) {

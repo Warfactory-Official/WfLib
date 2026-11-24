@@ -1,5 +1,6 @@
 package com.wf.wflib.recon.api;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.recon.ScopeFramePacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -28,6 +29,8 @@ public class ReconHubBlockEntity extends BlockEntity implements ReconBound, Name
     private long sentAt = Long.MIN_VALUE;
     private final SeismicLog events = new SeismicLog();
     private long eventStamp = Long.MIN_VALUE;
+    @Nullable
+    private volatile GridNode node;
 
     public ReconHubBlockEntity(BlockPos pos, BlockState state) {
         super(ReconSystem.RECON_HUB_BE.get(), pos, state);
@@ -46,10 +49,22 @@ public class ReconHubBlockEntity extends BlockEntity implements ReconBound, Name
         }
         long netId = this.netId();
         HubIndex.register(sl, this.worldPosition, netId);
-        ReconNet.registerNode(sl, this.worldPosition, netId, LINK_RANGE, LINK_MAST, true,
+        GridNode held = ReconNet.touchNode(sl, this.node, this.worldPosition, netId, LINK_RANGE, LINK_MAST, true,
                 this.name.isEmpty() ? "hub" : this.name);
+        if (held != null) {
+            this.node = held;
+        } else {
+            ChunkTicketOps.run(sl, this::enlist);
+        }
         this.broadcast(sl, ReconNet.picture(sl, netId), netId);
         this.pullEvents(sl, netId);
+    }
+
+    private void enlist() {
+        if (!this.isRemoved() && this.gridId != null && this.level instanceof ServerLevel sl) {
+            this.node = ReconNet.registerNode(sl, this.worldPosition, this.netId(), LINK_RANGE, LINK_MAST, true,
+                    this.name.isEmpty() ? "hub" : this.name);
+        }
     }
 
     private void pullEvents(ServerLevel sl, long netId) {

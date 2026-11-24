@@ -9,10 +9,16 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /** Where explosions are recorded so the seismic band can hear them. */
 public final class SeismicEvents {
@@ -47,6 +53,16 @@ public final class SeismicEvents {
     private static final Map<ResourceKey<Level>, List<BlastEvent>> BY_LEVEL = new HashMap<>();
     private static long nextId = 1L;
 
+    private record Pending(ServerLevel level, double x, double y, double z, float power, long gameTime) {
+    }
+
+    /** Reports from region workers; drained on the world thread by {@link #report} and {@link #live}. */
+    private static final ConcurrentLinkedQueue<Pending> PENDING = new ConcurrentLinkedQueue<>();
+    private static final AtomicInteger PENDING_SIZE = new AtomicInteger();
+    private static final int PENDING_CAP = 1024;
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final AtomicLong DROPPED = new AtomicLong();
+
     /** Ground ringing after a blast: geophones within {@code NOISE_RADIUS sqrt(power / TNT)} hear x{@code NOISE_FACTOR}. */
     public static final double NOISE_RADIUS = 48.0;
     public static final float NOISE_FACTOR = 0.05f;
@@ -61,17 +77,40 @@ public final class SeismicEvents {
      * @param power the blast's size in the units {@code ExplosionAEF} and vanilla both use, where TNT is 4.
      */
     public static void report(ServerLevel level, double x, double y, double z, float power) {
-        WorldThread.assertOn("seismic event report");
         if (!(power > 0.0f)) {
             return;
         }
+        if (WorldThread.armed() && !WorldThread.isWorldThread()) {
+            if (PENDING_SIZE.incrementAndGet() > PENDING_CAP) {
+                PENDING_SIZE.decrementAndGet();
+                if (DROPPED.getAndIncrement() == 0) {
+                    LOGGER.warn("[wflib] SeismicEvents: >{} off-thread blast reports pending, dropping (counted in dropped())",
+                            PENDING_CAP);
+                }
+                return;
+            }
+            PENDING.add(new Pending(level, x, y, z, power, level.getGameTime()));
+            return;
+        }
+        drainPending();
+        record(level, x, y, z, power, level.getGameTime());
+    }
+
+    private static void drainPending() {
+        Pending p;
+        while ((p = PENDING.poll()) != null) {
+            PENDING_SIZE.decrementAndGet();
+            record(p.level(), p.x(), p.y(), p.z(), p.power(), p.gameTime());
+        }
+    }
+
+    private static void record(ServerLevel level, double x, double y, double z, float power, long gameTime) {
         double coupling = couplingAt(level, x, y, z);
         double water = waterCouplingAt(level, x, y, z);
         if (coupling <= 0.0 && water <= 0.0) {
             return;
         }
         List<BlastEvent> live = BY_LEVEL.computeIfAbsent(level.dimension(), k -> new ArrayList<>());
-        long gameTime = level.getGameTime();
         prune(live, gameTime);
 
         BlockPos at = BlockPos.containing(x, y, z);
@@ -104,6 +143,8 @@ public final class SeismicEvents {
      *      read and is empty on a world where nothing has exploded in four seconds.
      */
     public static List<BlastEvent> live(ServerLevel level, long gameTime) {
+        WorldThread.assertOn("SeismicEvents.live");
+        drainPending();
         List<BlastEvent> live = BY_LEVEL.get(level.dimension());
         if (live == null || live.isEmpty()) {
             return List.of();
@@ -135,7 +176,15 @@ public final class SeismicEvents {
         return powerOf(energy / WATER_COUPLING);
     }
 
+    /** Reports discarded because {@code PENDING_CAP} was exceeded. */
+    public static long dropped() {
+        return DROPPED.get();
+    }
+
     public static void shutdown() {
+        DROPPED.set(0);
+        PENDING.clear();
+        PENDING_SIZE.set(0);
         BY_LEVEL.clear();
     }
 

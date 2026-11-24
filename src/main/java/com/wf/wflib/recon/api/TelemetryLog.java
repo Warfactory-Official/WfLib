@@ -34,6 +34,8 @@ public final class TelemetryLog {
 
     private static final ArrayDeque<Event> HISTORY = new ArrayDeque<>();
     private static final List<Event> PENDING = new ArrayList<>();
+    // post() runs on region workers (reporter entity ticks); readers on main.
+    private static final Object LOCK = new Object();
     private static long seq;
 
     private TelemetryLog() {
@@ -48,14 +50,18 @@ public final class TelemetryLog {
         if (telemetry == null) {
             return;
         }
-        Event event = new Event(new TelemetryLogPacket.Entry(++seq, reporter.level().getDayTime(),
-                TelemetryLink.trackId(reporter.getUUID()), telemetry.kind(), telemetry.label(), type, detail,
-                reporter.getBlockX(), reporter.getBlockY(), reporter.getBlockZ(), false), telemetry);
-        HISTORY.addLast(event);
-        if (HISTORY.size() > RING) {
-            HISTORY.removeFirst();
+        long dayTime = reporter.level().getDayTime();
+        long track = TelemetryLink.trackId(reporter.getUUID());
+        synchronized (LOCK) {
+            Event event = new Event(new TelemetryLogPacket.Entry(++seq, dayTime, track, telemetry.kind(),
+                    telemetry.label(), type, detail, reporter.getBlockX(), reporter.getBlockY(), reporter.getBlockZ(),
+                    false), telemetry);
+            HISTORY.addLast(event);
+            if (HISTORY.size() > RING) {
+                HISTORY.removeFirst();
+            }
+            PENDING.add(event);
         }
-        PENDING.add(event);
     }
 
     @SubscribeEvent
@@ -63,22 +69,31 @@ public final class TelemetryLog {
         if (PENDING.isEmpty()) {
             return;
         }
+        List<Event> batch;
+        synchronized (LOCK) {
+            if (PENDING.isEmpty()) {
+                return;
+            }
+            batch = new ArrayList<>(PENDING);
+            PENDING.clear();
+        }
         for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
             if (Pda.carries(player)) {
-                TelemetryLogPacket packet = filter(player, PENDING);
+                TelemetryLogPacket packet = filter(player, batch);
                 if (!packet.entries().isEmpty()) {
                     PacketDistributor.sendToPlayer(player, packet);
                 }
             }
         }
-        PENDING.clear();
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
-        HISTORY.clear();
-        PENDING.clear();
-        seq = 0;
+        synchronized (LOCK) {
+            HISTORY.clear();
+            PENDING.clear();
+            seq = 0;
+        }
     }
 
     /** History after {@code after}; nothing without a PDA. */
@@ -87,9 +102,11 @@ public final class TelemetryLog {
             return new TelemetryLogPacket(List.of());
         }
         List<Event> newer = new ArrayList<>();
-        for (Event event : HISTORY) {
-            if (event.entry().seq() > after) {
-                newer.add(event);
+        synchronized (LOCK) {
+            for (Event event : HISTORY) {
+                if (event.entry().seq() > after) {
+                    newer.add(event);
+                }
             }
         }
         return filter(viewer, newer);

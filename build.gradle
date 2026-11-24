@@ -568,3 +568,16 @@ tasks.named('test', Test).configure {
         exceptionFormat = 'full'
     }
 }
+
+// Physics step microbenchmark, not part of `test`. ./gradlew physicsBench [-PbenchRefresh] [-PbenchTolerance=0.15] [-PbenchJava]
+tasks.register('physicsBench', JavaExec) {
+    group = 'verification'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.wf.wflib.physics.regression.PhysicsBench'
+    workingDir = projectDir
+    javaLauncher = tasks.named('test', Test).flatMap { it.javaLauncher }
+    dependsOn tasks.named('testClasses')
+    systemProperty 'physics.bench.refresh', project.hasProperty('benchRefresh') ? 'true' : 'false'
+    systemProperty 'physics.bench.java', project.hasProperty('benchJava') ? 'true' : 'false'
+    systemProperty 'physics.bench.tolerance', project.findProperty('benchTolerance') ?: '0.15'
+}

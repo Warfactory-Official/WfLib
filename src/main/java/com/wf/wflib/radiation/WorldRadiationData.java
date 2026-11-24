@@ -47,6 +47,7 @@ final class WorldRadiationData {
 
     final Long2IntOpenHashMap coordToId = new Long2IntOpenHashMap(4225);
     final DirtyChunkTracker dirtyCk;
+    volatile @Nullable RadiationSnapshot published;
     final TLPool<short[]> pocketDataPool = new TLPool<>(() -> {
         short[] a = new short[4096];
         Arrays.fill(a, NO_POCKET);

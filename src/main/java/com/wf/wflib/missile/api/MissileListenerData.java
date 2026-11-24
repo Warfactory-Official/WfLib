@@ -12,14 +12,18 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.world.chunk.TicketController;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import com.wf.wflib.core.api.ChunkTicketOps;
+import com.wf.wflib.core.api.LevelCache;
 import com.wf.wflib.core.api.WFLib;
 
 /** Per-dimension registry of things that want a chance to engage a passing missile. */
@@ -34,17 +38,20 @@ public final class MissileListenerData extends SavedData {
             ResourceLocation.fromNamespaceAndPath(WFLib.MODID, "missile_listener"),
             WFChunkValidation::validateTickets);
 
-    private final Map<BlockPos, BlockRecord> blockRecords = new HashMap<>();
-    private final Map<UUID, IMissileListener> entityListeners = new HashMap<>();
+    private static final BlockRecord[] NO_RECORDS = new BlockRecord[0];
+    private static final LevelCache<MissileListenerData> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(MissileListenerData::new, (tag, reg) -> MissileListenerData.load(tag)));
+
+    // Mutated under the blockRecords monitor; reads (missile ticks on any region) use the copy-on-write snapshot.
+    private final Map<BlockPos, BlockRecord> blockRecords = new ConcurrentHashMap<>();
+    private volatile BlockRecord[] snapshot = NO_RECORDS;
+    private final Map<UUID, IMissileListener> entityListeners = new ConcurrentHashMap<>();
     // BlockPos of block listeners we currently hold a wakeup chunk ticket for (transient).
     private final Set<BlockPos> forced = new HashSet<>();
     private boolean reconciled = false;
 
     public static MissileListenerData get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(MissileListenerData::new,
-                        (tag, reg) -> MissileListenerData.load(tag)),
-                NAME);
+        return CACHE.get(level);
     }
 
     public static MissileListenerData load(CompoundTag tag) {
@@ -56,6 +63,7 @@ public final class MissileListenerData extends SavedData {
             Vec3 center = new Vec3(t.getDouble("CX"), t.getDouble("CY"), t.getDouble("CZ"));
             r.blockRecords.put(pos, new BlockRecord(pos, center, t.getDouble("Range")));
         }
+        r.publish();
         return r;
     }
 
@@ -82,10 +90,17 @@ public final class MissileListenerData extends SavedData {
         if (key instanceof BlockPos pos) {
             Vec3 center = listener.listenerCenter();
             double range = listener.listenerRange();
-            BlockRecord existing = blockRecords.get(pos);
-            if (existing == null || existing.range != range || !existing.center.equals(center)) {
-                blockRecords.put(pos, new BlockRecord(pos, center, range));
-                setDirty();
+            BlockRecord seen = blockRecords.get(pos);
+            if (seen != null && seen.range == range && seen.center.equals(center)) {
+                return;
+            }
+            synchronized (blockRecords) {
+                BlockRecord existing = blockRecords.get(pos);
+                if (existing == null || existing.range != range || !existing.center.equals(center)) {
+                    blockRecords.put(pos, new BlockRecord(pos, center, range));
+                    publish();
+                    setDirty();
+                }
             }
         } else {
             entityListeners.put((UUID) key, listener);
@@ -94,8 +109,10 @@ public final class MissileListenerData extends SavedData {
 
     public void deregister(Object key) {
         if (key instanceof BlockPos pos) {
-            if (blockRecords.remove(pos) != null) {
-                setDirty();
+            synchronized (blockRecords) {
+                if (removeRecord(pos)) {
+                    setDirty();
+                }
             }
             // Any wakeup ticket still held for pos is released by tickWakeups' orphan sweep (which has the level).
         } else {
@@ -108,9 +125,10 @@ public final class MissileListenerData extends SavedData {
      * as plain center/range pairs.
      */
     public List<ListenerView> views() {
-        List<ListenerView> out = new ArrayList<>();
-        for (BlockRecord r : blockRecords.values()) {
-            out.add(new ListenerView(r.center, r.range));
+        BlockRecord[] records = snapshot;
+        List<ListenerView> out = new ArrayList<>(records.length + entityListeners.size());
+        for (BlockRecord r : records) {
+            out.add(r.view);
         }
         Iterator<Map.Entry<UUID, IMissileListener>> it = entityListeners.entrySet().iterator();
         while (it.hasNext()) {
@@ -129,75 +147,162 @@ public final class MissileListenerData extends SavedData {
      * for {@link #THREAT_TTL_TICKS}.
      */
     public void noteThreat(Vec3 threatPos, long now) {
-        if (blockRecords.isEmpty()) {
-            return;
-        }
-        for (BlockRecord r : blockRecords.values()) {
+        BlockRecord[] records = snapshot;
+        for (BlockRecord r : records) {
             double reach = r.range + WAKE_MARGIN;
             if (r.center.distanceToSqr(threatPos) <= reach * reach) {
-                r.lastThreat = now;
+                BlockRecord.LAST_THREAT.setOpaque(r, now);
             }
         }
     }
 
-    /** Hold a ticking chunk ticket on every block listener with a live threat, and release the rest. */
+    /**
+     * Hold a ticking chunk ticket on every block listener with a live threat, and release the rest. The monitor is
+     * never held across a world read or ticket op: those lease the owning region on main, and a region worker
+     * blocked on the monitor in {@link #register} would never go idle => deadlock.
+     */
     public void tickWakeups(ServerLevel level, long now) {
-        if (!reconciled) {
-            for (BlockRecord r : blockRecords.values()) {
-                setForced(level, r.pos, false);
+        tickWakeups(new World() {
+            @Override
+            public void force(BlockPos pos, boolean add) {
+                setForced(level, pos, add);
             }
-            forced.clear();
-            reconciled = true;
-        }
-        // Release tickets whose block listener was deregistered (broken) since last tick.
-        Iterator<BlockPos> fit = forced.iterator();
-        while (fit.hasNext()) {
-            BlockPos p = fit.next();
-            if (!blockRecords.containsKey(p)) {
-                setForced(level, p, false);
-                fit.remove();
+
+            @Override
+            public boolean loaded(BlockPos pos) {
+                return level.isLoaded(pos);
             }
-        }
-        if (blockRecords.isEmpty()) {
-            return;
-        }
-        for (BlockRecord r : new ArrayList<>(blockRecords.values())) {
-            boolean want = (now - r.lastThreat) <= THREAT_TTL_TICKS;
-            if (want) {
-                if (forced.add(r.pos)) {
-                    setForced(level, r.pos, true);
+
+            @Override
+            public boolean listensAt(BlockPos pos) {
+                return level.getBlockEntity(pos) instanceof IMissileListener;
+            }
+        }, now);
+    }
+
+    /** World access of {@link #tickWakeups}; every call may block on a region lease. */
+    public interface World {
+        void force(BlockPos pos, boolean add);
+
+        boolean loaded(BlockPos pos);
+
+        boolean listensAt(BlockPos pos);
+    }
+
+    public void tickWakeups(World world, long now) {
+        List<BlockPos> acquire = null;
+        List<BlockPos> release = null;
+        List<BlockRecord> probe = null;
+        synchronized (blockRecords) {
+            if (!reconciled) {
+                for (BlockRecord r : snapshot) {
+                    release = add(release, r.pos);
                 }
-                if (level.isLoaded(r.pos) && !(level.getBlockEntity(r.pos) instanceof IMissileListener)) {
+                forced.clear();
+                reconciled = true;
+            }
+            // Release tickets whose block listener was deregistered (broken) since last tick.
+            Iterator<BlockPos> fit = forced.iterator();
+            while (fit.hasNext()) {
+                BlockPos p = fit.next();
+                if (!blockRecords.containsKey(p)) {
+                    release = add(release, p);
+                    fit.remove();
+                }
+            }
+            for (BlockRecord r : snapshot) {
+                boolean want = (now - (long) BlockRecord.LAST_THREAT.getOpaque(r)) <= THREAT_TTL_TICKS;
+                if (want) {
+                    if (forced.add(r.pos)) {
+                        acquire = add(acquire, r.pos);
+                    }
+                    if (probe == null) {
+                        probe = new ArrayList<>(2);
+                    }
+                    probe.add(r);
+                } else if (forced.remove(r.pos)) {
+                    release = add(release, r.pos);
+                }
+            }
+        }
+        if (release != null) {
+            for (BlockPos p : release) {
+                world.force(p, false);
+            }
+        }
+        if (acquire != null) {
+            for (BlockPos p : acquire) {
+                world.force(p, true);
+            }
+        }
+        if (probe != null) {
+            for (BlockRecord r : probe) {
+                if (world.loaded(r.pos) && !world.listensAt(r.pos)) {
                     // The block was removed (broken while unloaded, worldedit, ...) but its record lingered.
-                    setForced(level, r.pos, false);
-                    forced.remove(r.pos);
-                    blockRecords.remove(r.pos);
-                    setDirty();
+                    world.force(r.pos, false);
+                    synchronized (blockRecords) {
+                        forced.remove(r.pos);
+                        if (blockRecords.remove(r.pos, r)) {
+                            publish();
+                            setDirty();
+                        }
+                    }
                 }
-            } else if (forced.remove(r.pos)) {
-                setForced(level, r.pos, false);
             }
         }
+    }
+
+    private static List<BlockPos> add(List<BlockPos> list, BlockPos pos) {
+        List<BlockPos> out = list == null ? new ArrayList<>(2) : list;
+        out.add(pos);
+        return out;
+    }
+
+    private boolean removeRecord(BlockPos pos) {
+        synchronized (blockRecords) {
+            if (blockRecords.remove(pos) == null) {
+                return false;
+            }
+            publish();
+            return true;
+        }
+    }
+
+    private void publish() {
+        snapshot = blockRecords.values().toArray(NO_RECORDS);
     }
 
     private static void setForced(ServerLevel level, BlockPos pos, boolean add) {
         ChunkPos cp = new ChunkPos(pos);
-        CHUNK_TICKET.forceChunk(level, pos, cp.x, cp.z, add, true);
+        ChunkTicketOps.force(CHUNK_TICKET, level, pos, cp.x, cp.z, add, true);
     }
 
     public record ListenerView(Vec3 center, double range) {
     }
 
     private static final class BlockRecord {
+        /** Opaque access only: value compared against a TTL, no ordering needed; no fence per in-range write. */
+        private static final VarHandle LAST_THREAT;
+
+        static {
+            try {
+                LAST_THREAT = MethodHandles.lookup().findVarHandle(BlockRecord.class, "lastThreat", long.class);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
+            }
+        }
+
         private final BlockPos pos;
         private final Vec3 center;
         private final double range;
+        private final ListenerView view;
         private long lastThreat = Long.MIN_VALUE;
 
         private BlockRecord(BlockPos pos, Vec3 center, double range) {
             this.pos = pos;
             this.center = center;
             this.range = range;
+            this.view = new ListenerView(center, range);
         }
     }
 }

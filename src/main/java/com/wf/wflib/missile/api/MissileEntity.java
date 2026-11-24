@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.api;
 
+import com.wf.wflib.core.api.HitRouter;
 import com.mojang.logging.LogUtils;
 import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.compat.api.WarforgeCompat;
@@ -766,6 +767,9 @@ public class MissileEntity extends Projectile implements OBBEntity, InterceptTar
     public boolean hurt(DamageSource source, float amount) {
         if (this.level().isClientSide || this.isRemoved()) {
             return false;
+        }
+        if (HitRouter.defer(this.level(), this, () -> this.damage.hurt(source, amount))) {
+            return true;
         }
         return this.damage.hurt(source, amount);
     }

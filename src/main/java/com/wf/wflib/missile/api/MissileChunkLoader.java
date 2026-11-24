@@ -1,5 +1,6 @@
 package com.wf.wflib.missile.api;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.world.entity.Entity;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -17,7 +18,7 @@ public final class MissileChunkLoader {
     private int targetRadius = -1;
 
     private static void force(ServerLevel level, Entity flier, long chunkKey, boolean add, boolean ticking) {
-        DetonationChunkGuard.CONTROLLER.forceChunk(level, flier.getUUID(),
+        ChunkTicketOps.force(DetonationChunkGuard.CONTROLLER, level, flier.getUUID(),
                 ChunkPos.getX(chunkKey), ChunkPos.getZ(chunkKey), add, ticking);
     }
 

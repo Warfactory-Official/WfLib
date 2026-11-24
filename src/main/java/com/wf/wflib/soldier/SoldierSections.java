@@ -11,7 +11,6 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.Direction;
@@ -30,8 +29,8 @@ public final class SoldierSections {
     private static final int BUILD_BUDGET = 12;
 
     private static final Map<ResourceKey<Level>, ConcurrentHashMap<Long, byte[]>> CACHE = new ConcurrentHashMap<>();
-    /** BlockState -> cell byte; tick thread only (it asks the state for its collision shape). */
-    private static final Map<BlockState, Byte> CLASSES = new IdentityHashMap<>();
+    /** BlockState -> cell byte; BlockState has identity equality. */
+    private static final Map<BlockState, Byte> CLASSES = new ConcurrentHashMap<>();
 
     private SoldierSections() {
     }

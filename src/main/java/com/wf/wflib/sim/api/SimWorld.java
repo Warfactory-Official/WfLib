@@ -1,5 +1,6 @@
 package com.wf.wflib.sim.api;
 
+import com.wf.wflib.core.api.LevelCache;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
@@ -17,8 +18,11 @@ public final class SimWorld extends SavedData {
 
     public static final String NAME = "wflib_sims";
 
+    private static final LevelCache<SimWorld> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(SimWorld::new, (tag, registries) -> load(tag)));
+
     private final Map<ResourceLocation, SimTier<?>> tiers = new LinkedHashMap<>();
-    private ResourceKey<Level> dimension;
+    private volatile ResourceKey<Level> dimension;
 
     private SimWorld() {
         for (SimKind<?> kind : SimKinds.all()) {
@@ -27,9 +31,10 @@ public final class SimWorld extends SavedData {
     }
 
     public static SimWorld get(ServerLevel level) {
-        SimWorld world = level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(SimWorld::new, (tag, registries) -> load(tag)), NAME);
-        world.dimension = level.dimension();
+        SimWorld world = CACHE.get(level);
+        if (world.dimension == null) {
+            world.dimension = level.dimension();
+        }
         return world;
     }
 

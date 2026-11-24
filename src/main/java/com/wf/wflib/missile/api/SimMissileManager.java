@@ -4,7 +4,9 @@ import com.mojang.logging.LogUtils;
 import com.wf.wflib.core.api.ViewRange;
 import com.wf.wflib.missile.debug.MissileDebug;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -15,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import com.wf.wflib.sim.api.RayMath;
 import com.wf.wflib.sim.api.SimWorld;
 import com.wf.wflib.sim.api.SimKind;
@@ -106,6 +109,7 @@ public final class SimMissileManager implements SimKind<SimMissile> {
 
     @Override
     public void resolve(ServerLevel level, SimTier<SimMissile> tier) {
+        drainOffloads(level);
         long now = level.getGameTime();
         List<SimMissile> all = new ArrayList<>(tier.view());
         MissileListenerData listeners = MissileListenerData.get(level);
@@ -306,6 +310,36 @@ public final class SimMissileManager implements SimKind<SimMissile> {
             }
         }
         return false;
+    }
+
+    /** Offload requests from region workers, per dimension; set => one request per entity however many ticks it waits. */
+    private static final Map<ResourceKey<Level>, Set<MissileEntity>> OFFLOADS = new ConcurrentHashMap<>();
+
+    /** Any thread; offloaded at the next {@link #resolve}. */
+    static void requestOffload(MissileEntity missile, ServerLevel level) {
+        OFFLOADS.computeIfAbsent(level.dimension(), k -> ConcurrentHashMap.newKeySet()).add(missile);
+    }
+
+    private static void drainOffloads(ServerLevel level) {
+        Set<MissileEntity> requests = OFFLOADS.get(level.dimension());
+        if (requests == null || requests.isEmpty()) {
+            return;
+        }
+        for (Iterator<MissileEntity> it = requests.iterator(); it.hasNext(); ) {
+            MissileEntity m = it.next();
+            it.remove();
+            if (!m.isAlive() || m.isRemoved() || m.level() != level) {
+                continue;
+            }
+            if (m.swarm().getSwarmId() == 0L) {
+                startSim(m);
+            } else if (m.swarm().isCommander()) {
+                List<MissileEntity> subs = m.swarm().offloadableSubordinates(level);
+                if (subs != null) {
+                    startSimSwarm(m, subs);
+                }
+            }
+        }
     }
 
     public static void startSim(MissileEntity missile) {

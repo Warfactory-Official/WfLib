@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -129,6 +130,9 @@ public final class RagdollServer {
     private record Pending(long tick, Vec3 at, Vec3 impulse, boolean blast) {
     }
 
+    // Class monitor serialises worker-side hand-off/impulse/restore against the main-thread tick (Tessellate).
+    /** Not a monitor: {@link #unlocked} releases it around entity moves, which wait for the owning region while region threads queue here. */
+    private static final ReentrantLock LOCK = new ReentrantLock();
     private static final Map<Integer, Body> BODIES = new ConcurrentHashMap<>();
     private static final Map<Integer, Pending> PENDING = new HashMap<>();
     private static final Random RANDOM = new Random();
@@ -160,31 +164,41 @@ public final class RagdollServer {
     }
 
     public static void set(ServerPlayer player, boolean on) {
-        int id = player.getId();
-        Body body = BODIES.get(id);
-        if (on) {
-            if (body == null) {
-                BODIES.put(id, new Body(player, false));
-            } else {
-                body.wanted = true;
+        LOCK.lock();
+        try {
+            int id = player.getId();
+            Body body = BODIES.get(id);
+            if (on) {
+                if (body == null) {
+                    BODIES.put(id, new Body(player, false));
+                } else {
+                    body.wanted = true;
+                }
+            } else if (body != null) {
+                body.wanted = false;
+                RagdollStore store = RagdollStore.of(false);
+                RagdollStore.Track track = store.track(id);
+                if (body.sim != null && track != null && !track.released()) {
+                    stand(store, body);
+                }
             }
-        } else if (body != null) {
-            body.wanted = false;
-            RagdollStore store = RagdollStore.of(false);
-            RagdollStore.Track track = store.track(id);
-            if (body.sim != null && track != null && !track.released()) {
-                stand(store, body);
-            }
+        } finally {
+            LOCK.unlock();
         }
     }
 
     public static void impulse(LivingEntity entity, Vec3 at, Vec3 impulse) {
-        Body body = BODIES.get(entity.getId());
-        if (body != null && body.sim != null) {
-            shove(body.sim, at, impulse);
-            body.sentRest = false;
-        } else {
-            PENDING.put(entity.getId(), new Pending(entity.level().getGameTime(), at, impulse, false));
+        LOCK.lock();
+        try {
+            Body body = BODIES.get(entity.getId());
+            if (body != null && body.sim != null) {
+                shove(body.sim, at, impulse);
+                body.sentRest = false;
+            } else {
+                PENDING.put(entity.getId(), new Pending(entity.level().getGameTime(), at, impulse, false));
+            }
+        } finally {
+            LOCK.unlock();
         }
     }
 
@@ -199,22 +213,32 @@ public final class RagdollServer {
      * taut it pulls the body like a spring (see {@link Ragdoll#tether}). False when the body is not simulating or is carried.
      */
     public static boolean tether(LivingEntity entity, Vec3 anchor, double length) {
-        Body body = BODIES.get(entity.getId());
-        if (body == null || body.sim == null || body.carrier != null) {
-            return false;
+        LOCK.lock();
+        try {
+            Body body = BODIES.get(entity.getId());
+            if (body == null || body.sim == null || body.carrier != null) {
+                return false;
+            }
+            body.sim.tether(anchor.x, anchor.y, anchor.z, length);
+            body.sentRest = false;
+            return true;
+        } finally {
+            LOCK.unlock();
         }
-        body.sim.tether(anchor.x, anchor.y, anchor.z, length);
-        body.sentRest = false;
-        return true;
     }
 
     public static void blast(LivingEntity entity, Vec3 velocity) {
-        Body body = BODIES.get(entity.getId());
-        if (body != null && body.sim != null) {
-            throwBody(body.sim, velocity);
-            body.sentRest = false;
-        } else {
-            PENDING.put(entity.getId(), new Pending(entity.level().getGameTime(), Vec3.ZERO, velocity, true));
+        LOCK.lock();
+        try {
+            Body body = BODIES.get(entity.getId());
+            if (body != null && body.sim != null) {
+                throwBody(body.sim, velocity);
+                body.sentRest = false;
+            } else {
+                PENDING.put(entity.getId(), new Pending(entity.level().getGameTime(), Vec3.ZERO, velocity, true));
+            }
+        } finally {
+            LOCK.unlock();
         }
     }
 
@@ -223,78 +247,98 @@ public final class RagdollServer {
      * {@code from}'s rig, held hits included. {@code from} is released without a stand-up.
      */
     public static void handOff(LivingEntity from, LivingEntity corpse) {
-        RagdollStore store = RagdollStore.of(false);
-        long now = corpse.level().getGameTime();
-        Body old = BODIES.remove(from.getId());
-        RagdollStore.Track track = store.track(from.getId());
-        Body body = new Body(corpse, true);
-        if (old != null && old.sim != null && track != null && !track.released()) {
-            body.sim = old.sim;
-            body.sim.wake();
-            body.cache = old.cache;
-            body.lastY = old.lastY;
-            RagdollStore.Track to = store.open(corpse.getId());
-            to.push(now).from(body.sim);
-            send(body, now, to.newest());
-        } else {
-            begin(store, body, from, now);
+        LOCK.lock();
+        try {
+            RagdollStore store = RagdollStore.of(false);
+            long now = corpse.level().getGameTime();
+            Body old = BODIES.remove(from.getId());
+            RagdollStore.Track track = store.track(from.getId());
+            Body body = new Body(corpse, true);
+            if (old != null && old.sim != null && track != null && !track.released()) {
+                body.sim = old.sim;
+                body.sim.wake();
+                body.cache = old.cache;
+                body.lastY = old.lastY;
+                RagdollStore.Track to = store.open(corpse.getId());
+                to.push(now).from(body.sim);
+                send(body, now, to.newest());
+            } else {
+                begin(store, body, from, now);
+            }
+            if (old != null) {
+                drop(store, from.getId(), old);
+            }
+            BODIES.put(corpse.getId(), body);
+            place(body, store.track(corpse.getId()).newest());
+        } finally {
+            LOCK.unlock();
         }
-        if (old != null) {
-            drop(store, from.getId(), old);
-        }
-        BODIES.put(corpse.getId(), body);
-        place(body, store.track(corpse.getId()).newest());
     }
 
     /** Inert body from {@link #state}. */
     public static void restore(LivingEntity corpse, double[] state) {
-        Ragdoll sim = new Ragdoll(skeleton());
-        System.arraycopy(state, 0, sim.x, 0, sim.x.length);
-        System.arraycopy(state, sim.x.length, sim.q, 0, sim.q.length);
-        Body body = new Body(corpse, true);
-        body.sim = sim;
-        body.cache = ChunkCollisionCache.of(corpse.level());
-        body.lastY = sim.x[Skeleton.TORSO * 3 + 1];
-        RagdollStore store = RagdollStore.of(false);
-        RagdollStore.Track track = store.open(corpse.getId());
-        track.push(corpse.level().getGameTime()).from(sim);
-        BODIES.put(corpse.getId(), body);
-        place(body, track.newest());
+        LOCK.lock();
+        try {
+            Ragdoll sim = new Ragdoll(skeleton());
+            System.arraycopy(state, 0, sim.x, 0, sim.x.length);
+            System.arraycopy(state, sim.x.length, sim.q, 0, sim.q.length);
+            Body body = new Body(corpse, true);
+            body.sim = sim;
+            body.cache = ChunkCollisionCache.of(corpse.level());
+            body.lastY = sim.x[Skeleton.TORSO * 3 + 1];
+            RagdollStore store = RagdollStore.of(false);
+            RagdollStore.Track track = store.open(corpse.getId());
+            track.push(corpse.level().getGameTime()).from(sim);
+            BODIES.put(corpse.getId(), body);
+            place(body, track.newest());
+        } finally {
+            LOCK.unlock();
+        }
     }
 
     /** Body positions then rotations; null when not simulating. */
     public static double[] state(LivingEntity entity) {
-        Body body = BODIES.get(entity.getId());
-        if (body == null || body.sim == null) {
-            return null;
+        LOCK.lock();
+        try {
+            Body body = BODIES.get(entity.getId());
+            if (body == null || body.sim == null) {
+                return null;
+            }
+            double[] out = new double[STATE];
+            System.arraycopy(body.sim.x, 0, out, 0, body.sim.x.length);
+            System.arraycopy(body.sim.q, 0, out, body.sim.x.length, body.sim.q.length);
+            return out;
+        } finally {
+            LOCK.unlock();
         }
-        double[] out = new double[STATE];
-        System.arraycopy(body.sim.x, 0, out, 0, body.sim.x.length);
-        System.arraycopy(body.sim.q, 0, out, body.sim.x.length, body.sim.q.length);
-        return out;
     }
 
     public static final int STATE = Skeleton.BODIES * 7;
 
     /** {@code carrier} null => let go. Refused: no free running body, already carried, carrier ragdolled. */
     public static boolean carry(LivingEntity entity, LivingEntity carrier) {
-        Body body = BODIES.get(entity.getId());
-        if (carrier == null) {
-            if (body != null && body.carrier != null) {
-                letGo(body);
+        LOCK.lock();
+        try {
+            Body body = BODIES.get(entity.getId());
+            if (carrier == null) {
+                if (body != null && body.carrier != null) {
+                    letGo(body);
+                }
+                return true;
             }
+            RagdollStore.Track track = RagdollStore.of(false).track(entity.getId());
+            if (body == null || body.sim == null || body.carrier != null || track == null || track.released()
+                    || carrier == entity || BODIES.containsKey(carrier.getId())) {
+                return false;
+            }
+            body.carrier = carrier;
+            body.lift = 0;
+            System.arraycopy(body.sim.x, Skeleton.TORSO * 3, body.liftFrom, 0, 3);
+            System.arraycopy(body.sim.q, Skeleton.TORSO * 4, body.liftFrom, 3, 4);
             return true;
+        } finally {
+            LOCK.unlock();
         }
-        RagdollStore.Track track = RagdollStore.of(false).track(entity.getId());
-        if (body == null || body.sim == null || body.carrier != null || track == null || track.released()
-                || carrier == entity || BODIES.containsKey(carrier.getId())) {
-            return false;
-        }
-        body.carrier = carrier;
-        body.lift = 0;
-        System.arraycopy(body.sim.x, Skeleton.TORSO * 3, body.liftFrom, 0, 3);
-        System.arraycopy(body.sim.q, Skeleton.TORSO * 4, body.liftFrom, 3, 4);
-        return true;
     }
 
     public static LivingEntity carrier(Entity entity) {
@@ -382,47 +426,52 @@ public final class RagdollServer {
     }
 
     static void tick(ServerLevel level) {
-        long now = level.getGameTime();
-        if (!PENDING.isEmpty()) {
-            PENDING.values().removeIf(p -> now - p.tick > PENDING_TICKS);
-        }
-        if (BODIES.isEmpty()) {
-            return;
-        }
-        RagdollStore store = RagdollStore.of(false);
-        for (Iterator<Map.Entry<Integer, Body>> it = BODIES.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<Integer, Body> e = it.next();
-            Body body = e.getValue();
-            LivingEntity p = body.entity;
-            if (body.level != level) {
-                continue;
+        LOCK.lock();
+        try {
+            long now = level.getGameTime();
+            if (!PENDING.isEmpty()) {
+                PENDING.values().removeIf(p -> now - p.tick > PENDING_TICKS);
             }
-            if (p.level() != level || p.isRemoved() || p.isSpectator() || p.isPassenger() && body.sim != null) {
-                drop(store, e.getKey(), body);
-                it.remove();
-                continue;
+            if (BODIES.isEmpty()) {
+                return;
             }
-            RagdollStore.Track track = store.track(e.getKey());
-            if (track != null && track.released()) {
-                track.tickBlend();
-                if (track.blendDone()) {
-                    store.close(e.getKey());
-                    it.remove();
+            RagdollStore store = RagdollStore.of(false);
+            for (Iterator<Map.Entry<Integer, Body>> it = BODIES.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<Integer, Body> e = it.next();
+                Body body = e.getValue();
+                LivingEntity p = body.entity;
+                if (body.level != level) {
+                    continue;
                 }
-                continue;
-            }
-            if (body.sim == null) {
-                if (!body.wanted) {
+                if (p.level() != level || p.isRemoved() || p.isSpectator() || p.isPassenger() && body.sim != null) {
+                    drop(store, e.getKey(), body);
                     it.remove();
-                } else if (!p.isPassenger()) {
-                    begin(store, body, p, now);
+                    continue;
                 }
-                continue;
+                RagdollStore.Track track = store.track(e.getKey());
+                if (track != null && track.released()) {
+                    track.tickBlend();
+                    if (track.blendDone()) {
+                        store.close(e.getKey());
+                        it.remove();
+                    }
+                    continue;
+                }
+                if (body.sim == null) {
+                    if (!body.wanted) {
+                        it.remove();
+                    } else if (!p.isPassenger()) {
+                        begin(store, body, p, now);
+                    }
+                    continue;
+                }
+                if (body.carrier != null && !holds(body.carrier, body)) {
+                    letGo(body);
+                }
+                step(level, store, body, now);
             }
-            if (body.carrier != null && !holds(body.carrier, body)) {
-                letGo(body);
-            }
-            step(level, store, body, now);
+        } finally {
+            LOCK.unlock();
         }
     }
 
@@ -544,7 +593,7 @@ public final class RagdollServer {
         if (section != body.section) {
             body.section = section;
             if (p instanceof ServerPlayer sp && !(p instanceof FakePlayer)) {
-                level.getChunkSource().move(sp);
+                unlocked(() -> level.getChunkSource().move(sp));
             }
         }
         if (sim.asleep) {
@@ -554,9 +603,24 @@ public final class RagdollServer {
         send(body, now, pose);
     }
 
+    /** Entity moves wait for the owning region to idle; a region thread may be queued on {@link #LOCK} meanwhile. */
+    private static void unlocked(Runnable move) {
+        int holds = LOCK.getHoldCount();
+        for (int i = 0; i < holds; i++) {
+            LOCK.unlock();
+        }
+        try {
+            move.run();
+        } finally {
+            for (int i = 0; i < holds; i++) {
+                LOCK.lock();
+            }
+        }
+    }
+
     private static void place(Body body, RagdollPose pose) {
         LivingEntity p = body.entity;
-        p.setPos(pose.x, pose.y - pose.footDrop, pose.z);
+        unlocked(() -> p.setPos(pose.x, pose.y - pose.footDrop, pose.z));
         p.setDeltaMovement(Vec3.ZERO);
         p.fallDistance = 0;
     }
@@ -585,11 +649,13 @@ public final class RagdollServer {
         p.fallDistance = 0;
         p.yBodyRot = p.getYRot();
         p.yBodyRotO = p.getYRot();
-        if (p instanceof FakePlayer || p.connection == null) {
-            p.setPos(spot);
-        } else {
-            p.connection.teleport(spot.x, spot.y, spot.z, p.getYRot(), p.getXRot());
-        }
+        unlocked(() -> {
+            if (p instanceof FakePlayer || p.connection == null) {
+                p.setPos(spot);
+            } else {
+                p.connection.teleport(spot.x, spot.y, spot.z, p.getYRot(), p.getXRot());
+            }
+        });
         store.track(p.getId()).release(BLEND_TICKS);
         broadcastStop(p, BLEND_TICKS);
     }
@@ -652,23 +718,28 @@ public final class RagdollServer {
 
     /** Blast throw or round shove for a hit of {@code damage}. */
     public static void react(LivingEntity p, DamageSource source, float damage) {
-        if (source.is(DamageTypeTags.IS_EXPLOSION)) {
-            Vec3 from = source.getSourcePosition();
-            if (from != null) {
-                Vec3 away = p.position().add(0, 0.5, 0).subtract(from);
-                double speed = Math.min(damage * BLAST_SPEED_PER_DAMAGE, BLAST_SPEED_MAX);
-                if (away.lengthSqr() > 1.0e-6) {
-                    blast(p, away.normalize().add(0, 0.35, 0).normalize().scale(speed));
+        LOCK.lock();
+        try {
+            if (source.is(DamageTypeTags.IS_EXPLOSION)) {
+                Vec3 from = source.getSourcePosition();
+                if (from != null) {
+                    Vec3 away = p.position().add(0, 0.5, 0).subtract(from);
+                    double speed = Math.min(damage * BLAST_SPEED_PER_DAMAGE, BLAST_SPEED_MAX);
+                    if (away.lengthSqr() > 1.0e-6) {
+                        blast(p, away.normalize().add(0, 0.35, 0).normalize().scale(speed));
+                    }
+                }
+                return;
+            }
+            if (source instanceof AhfHitSource hit) {
+                Vec3 along = hit.hitTo().subtract(hit.hitFrom());
+                if (along.lengthSqr() > 1.0e-6) {
+                    impulse(p, nearestOnSegment(p, hit.hitFrom(), hit.hitTo()),
+                            along.normalize().scale(Math.min(damage * HIT_IMPULSE_PER_DAMAGE, HIT_IMPULSE_MAX)));
                 }
             }
-            return;
-        }
-        if (source instanceof AhfHitSource hit) {
-            Vec3 along = hit.hitTo().subtract(hit.hitFrom());
-            if (along.lengthSqr() > 1.0e-6) {
-                impulse(p, nearestOnSegment(p, hit.hitFrom(), hit.hitTo()),
-                        along.normalize().scale(Math.min(damage * HIT_IMPULSE_PER_DAMAGE, HIT_IMPULSE_MAX)));
-            }
+        } finally {
+            LOCK.unlock();
         }
     }
 
@@ -703,8 +774,13 @@ public final class RagdollServer {
     }
 
     static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
-        BODIES.remove(event.getEntity().getId());
-        RagdollStore.of(false).close(event.getEntity().getId());
+        LOCK.lock();
+        try {
+            BODIES.remove(event.getEntity().getId());
+            RagdollStore.of(false).close(event.getEntity().getId());
+        } finally {
+            LOCK.unlock();
+        }
     }
 
     /** Pose for the movement mixin: client packets ignored while present. */
@@ -713,9 +789,14 @@ public final class RagdollServer {
     }
 
     static void stopped() {
-        BODIES.clear();
-        PENDING.clear();
-        RagdollStore.of(false).clear();
+        LOCK.lock();
+        try {
+            BODIES.clear();
+            PENDING.clear();
+            RagdollStore.of(false).clear();
+        } finally {
+            LOCK.unlock();
+        }
     }
 
     /** Solver on/off comparison and tests. Null when not simulating. */

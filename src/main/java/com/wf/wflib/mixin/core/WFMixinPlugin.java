@@ -40,6 +40,9 @@ public class WFMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.endsWith("MixinLevelRendererFeed") || mixinClassName.endsWith("MixinViewArea")) {
             return !isSodiumFamilyLoaded();
         }
+        if (mixinClassName.endsWith("MixinLevelRegionIndexTickEnd")) {
+            return isModLoaded("tessellate");
+        }
         if (mixinClassName.contains(".compat.")) {
             return isModLoaded("gtceu");
         }

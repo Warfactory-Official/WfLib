@@ -7,20 +7,28 @@ import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import com.wf.wflib.core.api.WFLib;
 
 /** Flashed mobs: no target, no navigation until the game time stored here. Server. */
 @EventBusSubscriber(modid = WFLib.MODID)
 public final class Dazed {
 
-    private static final Map<Mob, Long> UNTIL = new WeakHashMap<>();
+    private static final Map<Mob, Long> UNTIL = new ConcurrentHashMap<>();
+
+    /** Game time of the last expiry sweep; racy => at worst a repeated sweep. */
+    private static long swept = Long.MIN_VALUE;
 
     private Dazed() {
     }
 
     public static void daze(Mob mob, int ticks) {
-        long until = mob.level().getGameTime() + ticks;
+        long now = mob.level().getGameTime();
+        long until = now + ticks;
+        if (swept != now) {
+            swept = now;
+            UNTIL.values().removeIf(expiry -> expiry <= now);
+        }
         UNTIL.merge(mob, until, Math::max);
         mob.setTarget(null);
         mob.getNavigation().stop();
@@ -48,7 +56,7 @@ public final class Dazed {
             return;
         }
         if (until <= mob.level().getGameTime()) {
-            UNTIL.remove(mob);
+            UNTIL.remove(mob, until);
             return;
         }
         mob.getNavigation().stop();

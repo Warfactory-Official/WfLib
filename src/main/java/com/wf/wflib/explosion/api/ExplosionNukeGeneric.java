@@ -2,6 +2,7 @@ package com.wf.wflib.explosion.api;
 
 import com.wf.wflib.damage.api.WFDamage;
 import com.wf.wflib.damage.api.WFDamageTypes;
+import com.wf.wflib.core.api.HitRouter;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -39,25 +40,32 @@ public final class ExplosionNukeGeneric {
             if (isExplosionExempt(e) || isObstructed(world, e, x, y, z, entX, entY, entZ)) continue;
 
             float damage = (float) (maxDamage * (radius - dist) / radius);
-            boolean doKnockback = true;
-            if (e instanceof LivingEntity living) {
-                if (!living.isAlive()) continue;
-                doKnockback = WFDamage.hurtIgnoringIFrames(living, source, damage);
-            } else {
-                e.hurt(source, damage);
-            }
+            if (e instanceof LivingEntity living && !living.isAlive()) continue;
+            HitRouter.apply(world, e, () -> hit(e, source, damage, x, entX, y, entY, z, entZ));
+        }
+    }
 
-            e.igniteForSeconds(5F);
+    /** On the victim's owner. */
+    private static void hit(Entity e, DamageSource source, float damage, double x, double entX, double y, double entY,
+                            double z, double entZ) {
+        boolean doKnockback = true;
+        if (e instanceof LivingEntity living) {
+            if (!living.isAlive()) return;
+            doKnockback = WFDamage.hurtIgnoringIFrames(living, source, damage);
+        } else {
+            e.hurt(source, damage);
+        }
 
-            if (doKnockback) {
-                double knockX = entX - x;
-                double knockY = entY - y;
-                double knockZ = entZ - z;
-                double len = Math.sqrt(knockX * knockX + knockY * knockY + knockZ * knockZ);
-                if (len != 0D) {
-                    e.setDeltaMovement(e.getDeltaMovement().add(knockX / len * 0.2D, knockY / len * 0.2D,
-                            knockZ / len * 0.2D));
-                }
+        e.igniteForSeconds(5F);
+
+        if (doKnockback) {
+            double knockX = entX - x;
+            double knockY = entY - y;
+            double knockZ = entZ - z;
+            double len = Math.sqrt(knockX * knockX + knockY * knockY + knockZ * knockZ);
+            if (len != 0D) {
+                e.setDeltaMovement(e.getDeltaMovement().add(knockX / len * 0.2D, knockY / len * 0.2D,
+                        knockZ / len * 0.2D));
             }
         }
     }

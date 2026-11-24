@@ -163,8 +163,14 @@ public class SecurityCameraBlockEntity extends BlockEntity {
 
     private boolean canSee(ServerLevel level, LivingEntity e) {
         Vec3 eye = lens();
-        return eye.distanceToSqr(e.getEyePosition()) <= RANGE * RANGE
-                && level.clip(new ClipContext(eye, e.getEyePosition(), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, e))
+        Vec3 at = e.getEyePosition();
+        double d2 = eye.distanceToSqr(at);
+        if (d2 > RANGE * RANGE) {
+            return false;
+        }
+        // Lens sits inside the housing's collision box: start the ray past the block's own faces.
+        Vec3 from = d2 > 1.0 ? eye.add(at.subtract(eye).normalize().scale(0.9)) : eye;
+        return level.clip(new ClipContext(from, at, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, e))
                 .getType() == HitResult.Type.MISS;
     }
 

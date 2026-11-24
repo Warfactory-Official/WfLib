@@ -1,5 +1,6 @@
 package com.wf.wflib.recon;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.recon.api.ReconBound;
 import com.wf.wflib.recon.api.ReconNet;
 import com.wf.wflib.recon.api.ReconNetwork;
@@ -31,7 +32,7 @@ public class RadarSurveillanceBlockEntity extends BlockEntity implements ReconBo
     public static final int SWEEP_TICKS = 20;
     public static final int ALERT_HOLD_TICKS = 60;
 
-    private UUID cachedTeamId;
+    private volatile UUID cachedTeamId;
     private int teamRefresh;
     @Nullable
     private UUID bound;
@@ -39,6 +40,8 @@ public class RadarSurveillanceBlockEntity extends BlockEntity implements ReconBo
     private int signalTicks;
     private int trackCount;
     private long sentAt = Long.MIN_VALUE;
+    @Nullable
+    private volatile SensorHandle sensor;
 
     public RadarSurveillanceBlockEntity(BlockPos pos, BlockState state) {
         super(ReconSystem.RADAR_SURVEILLANCE_BE.get(), pos, state);
@@ -52,9 +55,12 @@ public class RadarSurveillanceBlockEntity extends BlockEntity implements ReconBo
             this.resolve(sl);
             this.teamRefresh = 100;
         }
-        ReconNet.registerSensor(sl, this.worldPosition,
-                SensorSpec.surveillanceRadar(ReconNet.netId(this.cachedTeamId), RANGE)
-                        .withMast(MAST).withSweep(SWEEP_TICKS));
+        SensorHandle held = ReconNet.touchSensor(sl, this.sensor, this.worldPosition, this.spec());
+        if (held != null) {
+            this.sensor = held;
+        } else {
+            ChunkTicketOps.run(sl, this::enlist);
+        }
 
         TrackPicture picture = ReconNet.picture(sl, ReconNet.netId(this.cachedTeamId));
         this.trackCount = picture.tracks().size();
@@ -62,6 +68,17 @@ public class RadarSurveillanceBlockEntity extends BlockEntity implements ReconBo
         this.broadcast(sl, picture);
         if (this.signalTicks > 0 && --this.signalTicks == 0) {
             this.setSignal(sl, 0);
+        }
+    }
+
+    private SensorSpec spec() {
+        return SensorSpec.surveillanceRadar(ReconNet.netId(this.cachedTeamId), RANGE)
+                .withMast(MAST).withSweep(SWEEP_TICKS);
+    }
+
+    private void enlist() {
+        if (!this.isRemoved() && this.level instanceof ServerLevel sl) {
+            this.sensor = ReconNet.registerSensor(sl, this.worldPosition, this.spec());
         }
     }
 
@@ -86,13 +103,7 @@ public class RadarSurveillanceBlockEntity extends BlockEntity implements ReconBo
         if (net.grid().rootCount() > 0) {
             return false;
         }
-        long mine = this.worldPosition.asLong();
-        for (SensorHandle handle : net.sensorHandles()) {
-            if (handle.id() < mine) {
-                return false;
-            }
-        }
-        return true;
+        return net.lowestSensorId() >= this.worldPosition.asLong();
     }
 
     private void consumeAlerts(ServerLevel sl, List<Alert> alerts) {

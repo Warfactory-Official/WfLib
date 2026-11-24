@@ -46,7 +46,7 @@ public final class ReconNetwork {
     private final Map<Long, WeatherStation> stations = new LinkedHashMap<>();
     private final ReconGrid grid;
     private final Tracker tracker = new Tracker();
-    private final Map<Long, Claim> claims = new HashMap<>();
+    private final Map<Long, Claim> claims = new java.util.concurrent.ConcurrentHashMap<>();
     /**
      * Plots measured by something that is not a sensor on this grid: an orbital instrument, or a picture carried in
      * over a relay.
@@ -54,6 +54,8 @@ public final class ReconNetwork {
     private final List<Plot> contributed = new ArrayList<>();
 
     private volatile TrackPicture picture = TrackPicture.EMPTY;
+    private volatile long lowestSensorId = Long.MAX_VALUE;
+    private volatile Collection<SeismicFix> eventView = List.of();
     private Future<PassResult> inFlight;
     private int inFlightEpoch;
     private int epoch;
@@ -64,7 +66,7 @@ public final class ReconNetwork {
      */
     private final Map<Long, SeismicFix> events = new LinkedHashMap<>();
     /** Bumped whenever {@link #events} changes. */
-    private long eventStamp;
+    private volatile long eventStamp;
 
     private int lastTargetCount;
     private int lastSensorCount;
@@ -135,6 +137,19 @@ public final class ReconNetwork {
         return Collections.unmodifiableCollection(sensors.values());
     }
 
+    /** @return the smallest sensor id, readable from any thread; {@code Long.MAX_VALUE} when none. */
+    public long lowestSensorId() {
+        return lowestSensorId;
+    }
+
+    private void republishSensors() {
+        long lowest = Long.MAX_VALUE;
+        for (Long id : sensors.keySet()) {
+            lowest = Math.min(lowest, id);
+        }
+        this.lowestSensorId = lowest;
+    }
+
     SensorHandle register(BlockPos pos, SensorSpec spec, long gameTime) {
         SensorHandle existing = sensors.get(pos.asLong());
         if (existing != null) {
@@ -144,12 +159,16 @@ public final class ReconNetwork {
         SensorHandle handle = new SensorHandle(pos, spec, gameTime);
         sensors.put(handle.id(), handle);
         epoch++;
+        republishSensors();
         return handle;
     }
 
     void unregister(BlockPos pos) {
-        if (sensors.remove(pos.asLong()) != null) {
+        SensorHandle removed = sensors.remove(pos.asLong());
+        if (removed != null) {
+            removed.kill();
             epoch++;
+            republishSensors();
         }
     }
 
@@ -159,13 +178,16 @@ public final class ReconNetwork {
             existing.refresh(range, gameTime);
             return existing;
         }
-        WeatherStation station = new WeatherStation(pos, range, gameTime);
+        WeatherStation station = new WeatherStation(netId, pos, range, gameTime);
         stations.put(station.id(), station);
         return station;
     }
 
     void unregisterStation(BlockPos pos) {
-        stations.remove(pos.asLong());
+        WeatherStation removed = stations.remove(pos.asLong());
+        if (removed != null) {
+            removed.kill();
+        }
     }
 
     /** Hand this network a look somebody else took. */
@@ -212,12 +234,15 @@ public final class ReconNetwork {
      * @return true if the claim was taken, false if someone else already holds it.
      */
     public boolean claim(TrackId track, long claimant, long gameTime, int ticks) {
-        Claim held = claims.get(track.value());
-        if (held != null && held.expires > gameTime && held.claimant != claimant) {
-            return false;
-        }
-        claims.put(track.value(), new Claim(claimant, gameTime + ticks));
-        return true;
+        boolean[] taken = {true};
+        claims.compute(track.value(), (k, held) -> {
+            if (held != null && held.expires > gameTime && held.claimant != claimant) {
+                taken[0] = false;
+                return held;
+            }
+            return new Claim(claimant, gameTime + ticks);
+        });
+        return taken[0];
     }
 
     /**
@@ -277,13 +302,26 @@ public final class ReconNetwork {
     }
 
     private void dropStaleSensors(long gameTime) {
+        boolean dropped = false;
         for (Iterator<Map.Entry<Long, SensorHandle>> it = sensors.entrySet().iterator(); it.hasNext(); ) {
-            if (gameTime - it.next().getValue().lastRefresh() > SENSOR_TIMEOUT) {
+            SensorHandle handle = it.next().getValue();
+            if (gameTime - handle.lastRefresh() > SENSOR_TIMEOUT) {
+                handle.kill();
                 it.remove();
+                dropped = true;
                 epoch++;
             }
         }
-        stations.entrySet().removeIf(e -> gameTime - e.getValue().lastRefresh() > SENSOR_TIMEOUT);
+        if (dropped) {
+            republishSensors();
+        }
+        stations.entrySet().removeIf(e -> {
+            boolean stale = gameTime - e.getValue().lastRefresh() > SENSOR_TIMEOUT;
+            if (stale) {
+                e.getValue().kill();
+            }
+            return stale;
+        });
     }
 
     /** Snapshot the sensors that are due a look, collect what is around them, and hand each its terrain. */
@@ -397,6 +435,7 @@ public final class ReconNetwork {
             it.next();
             it.remove();
         }
+        eventView = List.copyOf(events.values());
         eventStamp++;
     }
 
@@ -405,7 +444,7 @@ public final class ReconNetwork {
      *      how to avoid walking it when nothing has changed.
      */
     public Collection<SeismicFix> events() {
-        return Collections.unmodifiableCollection(events.values());
+        return eventView;
     }
 
     /**

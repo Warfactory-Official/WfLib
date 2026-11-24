@@ -1,6 +1,8 @@
 package com.wf.wflib.round;
 
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.core.api.LevelCache;
+import com.wf.wflib.core.api.WorldThread;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.core.HolderLookup;
@@ -29,14 +31,16 @@ public final class DeferredImpacts extends SavedData {
     static final int MAX = 4096;
     private static final long SWEEP = 20L;
 
+    private static final LevelCache<DeferredImpacts> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(DeferredImpacts::new, DeferredImpacts::load));
+
     private final Long2ObjectOpenHashMap<List<DeferredImpact>> byChunk = new Long2ObjectOpenHashMap<>();
     private final LongArrayList loaded = new LongArrayList();
     private int count;
     private int dropped;
 
     public static DeferredImpacts get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(DeferredImpacts::new, DeferredImpacts::load), NAME);
+        return CACHE.get(level);
     }
 
     /** Owed to {@code chunk}, in impact order (tests, tools). */
@@ -46,6 +50,7 @@ public final class DeferredImpacts extends SavedData {
     }
 
     public void add(long chunk, DeferredImpact impact) {
+        WorldThread.assertOn("DeferredImpacts.add");
         if (count >= MAX) {
             if (dropped++ % 1000 == 0) {
                 LOGGER.warn("Deferred impacts full ({}): {} dropped", MAX, dropped);

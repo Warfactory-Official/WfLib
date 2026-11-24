@@ -1,5 +1,6 @@
 package com.wf.wflib.recon.api;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -21,6 +22,8 @@ public abstract class OrbitalNodeBlockEntity extends BlockEntity implements Reco
     private long netId;
     private int resolveIn;
     private String name = "";
+    @Nullable
+    private volatile GridNode node;
 
     protected OrbitalNodeBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -47,10 +50,23 @@ public abstract class OrbitalNodeBlockEntity extends BlockEntity implements Reco
             this.resolveIn = RESOLVE_INTERVAL;
         }
         if (nodeActive()) {
-            ReconNet.registerNode(sl, this.worldPosition, netId(), LINK_RANGE, 0.0, false,
+            GridNode held = ReconNet.touchNode(sl, this.node, this.worldPosition, netId(), LINK_RANGE, 0.0, false,
                     this.name.isEmpty() ? nodeLabel() : this.name);
-        } else {
+            if (held != null) {
+                this.node = held;
+            } else {
+                ChunkTicketOps.run(sl, this::enlist);
+            }
+        } else if (this.node != null) {
+            this.node = null;
             ReconNet.unregisterNode(sl, this.worldPosition, netId());
+        }
+    }
+
+    private void enlist() {
+        if (!this.isRemoved() && this.level instanceof ServerLevel sl && nodeActive()) {
+            this.node = ReconNet.registerNode(sl, this.worldPosition, netId(), LINK_RANGE, 0.0, false,
+                    this.name.isEmpty() ? nodeLabel() : this.name);
         }
     }
 

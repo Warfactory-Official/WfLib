@@ -1,6 +1,6 @@
 package com.wf.wflib.recon.api;
 
-import com.wf.wflib.core.api.WorldThread;
+import com.wf.wflib.sim.api.WorldInbox;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -60,14 +60,29 @@ public final class Interference implements TargetSource {
     private static final Map<Object, Integer> HEAT_IDS = new HashMap<>();
     private static int nextHeatId = 1;
 
-    /** Adds or replaces {@code key}'s area (a carried jammer re-puts each tick). */
+    private record Put(ResourceKey<Level> dimension, Object key, Area area) {
+    }
+
+    /** Puts from region workers; drained before every world-thread read or write. */
+    private static final WorldInbox<Put> PUTS = new WorldInbox<>();
+
+    private static void drainPuts() {
+        PUTS.drain(p -> BY_LEVEL.computeIfAbsent(p.dimension, k -> new LinkedHashMap<>()).put(p.key, p.area));
+    }
+
+    /** Adds or replaces {@code key}'s area (a carried jammer re-puts each tick). Any thread. */
     public static void put(ServerLevel level, Object key, Area area) {
-        WorldThread.assertOn("interference");
+        if (WorldInbox.offWorld()) {
+            PUTS.post(new Put(level.dimension(), key, area));
+            return;
+        }
+        drainPuts();
         BY_LEVEL.computeIfAbsent(level.dimension(), k -> new LinkedHashMap<>()).put(key, area);
     }
 
     /** Live areas, lapsed ones pruned. */
     public static List<Area> live(ServerLevel level) {
+        drainPuts();
         Map<Object, Area> areas = BY_LEVEL.get(level.dimension());
         if (areas == null || areas.isEmpty()) {
             return List.of();
@@ -127,6 +142,7 @@ public final class Interference implements TargetSource {
 
     @Override
     public void collect(ServerLevel level, AABB volume, TargetSink sink) {
+        drainPuts();
         Map<Object, Area> areas = BY_LEVEL.get(level.dimension());
         if (areas == null) {
             return;
@@ -145,6 +161,7 @@ public final class Interference implements TargetSource {
     }
 
     public static void shutdown() {
+        PUTS.clear();
         BY_LEVEL.clear();
         HEAT_IDS.clear();
     }

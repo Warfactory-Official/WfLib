@@ -3,6 +3,7 @@ package com.wf.wflib.explosion.api;
 import com.wf.wflib.damage.api.BlastDamageSource;
 import com.wf.wflib.explosion.BlastCorpses;
 import com.wf.wflib.explosion.debug.ExplosionTrace;
+import com.wf.wflib.core.api.HitRouter;
 import java.util.ArrayList;
 import net.minecraft.core.Direction;
 import net.minecraft.world.damagesource.DamageSource;
@@ -131,10 +132,9 @@ public class EntityProcessorCross implements IEntityProcessor {
 
             pushes.put(entity, new Vec3(deltaX * enchKnockback, deltaY * enchKnockback, deltaZ * enchKnockback));
             if (shouldDealKnockback(entity) && !(entity instanceof BlastTarget t && !t.pushedByBlast())) {
-                entity.setDeltaMovement(entity.getDeltaMovement().add(
-                        deltaX * enchKnockback * knockbackMult,
-                        deltaY * enchKnockback * knockbackMult,
-                        deltaZ * enchKnockback * knockbackMult));
+                Vec3 push = new Vec3(deltaX * enchKnockback * knockbackMult, deltaY * enchKnockback * knockbackMult,
+                        deltaZ * enchKnockback * knockbackMult);
+                HitRouter.apply(level, entity, () -> entity.setDeltaMovement(entity.getDeltaMovement().add(push)));
             }
 
             if (entity instanceof Player player) {
@@ -151,24 +151,37 @@ public class EntityProcessorCross implements IEntityProcessor {
             BlastPayload payload = explosion.payload();
             Vec3 centre = new Vec3(x, y, z);
             for (BlastTarget target : selfResolving) {
-                target.blast(explosion, payload, centre);
+                if (target instanceof Entity entity) {
+                    HitRouter.apply(level, entity, () -> target.blast(explosion, payload, centre));
+                } else {
+                    target.blast(explosion, payload, centre);
+                }
             }
         }
 
         // pass 2: deal damage + any custom payload
         for (Map.Entry<Entity, Float> entry : damageMap.entrySet()) {
             Entity entity = entry.getKey();
-            boolean alive = entity.isAlive();
-            attackEntity(entity, explosion, entry.getValue(), aims.get(entity));
-            if (alive && !entity.isAlive() && entity instanceof LivingEntity corpse && shouldDealKnockback(entity)) {
-                BlastCorpses.launch(corpse, pushes.get(entity));
-            }
-            if (damage != null) {
-                damage.handleAttack(explosion, entity, nearestSurfaceDistanceScaled(entity, x, y, z, size));
-            }
+            float amount = entry.getValue();
+            Vec3 aim = aims.get(entity);
+            Vec3 push = pushes.get(entity);
+            double scaled = damage == null ? 0.0 : nearestSurfaceDistanceScaled(entity, x, y, z, size);
+            HitRouter.apply(level, entity, () -> hurt(explosion, entity, amount, aim, push, scaled));
         }
 
         return affectedPlayers;
+    }
+
+    /** Pass 2 for one victim; on the victim's owner. */
+    private void hurt(ExplosionAEF explosion, Entity entity, float amount, Vec3 aim, Vec3 push, double scaled) {
+        boolean alive = entity.isAlive();
+        attackEntity(entity, explosion, amount, aim);
+        if (alive && !entity.isAlive() && entity instanceof LivingEntity corpse && shouldDealKnockback(entity)) {
+            BlastCorpses.launch(corpse, push);
+        }
+        if (damage != null) {
+            damage.handleAttack(explosion, entity, scaled);
+        }
     }
 
     /** Entity-damage reach = 2x size, after any range mutator. */

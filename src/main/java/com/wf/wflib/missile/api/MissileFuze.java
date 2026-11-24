@@ -6,10 +6,14 @@ import com.wf.wflib.damage.api.ThreatKind;
 import com.wf.wflib.damage.api.DamageClass;
 import com.wf.wflib.damage.api.WFDamageSources;
 import com.wf.wflib.explosion.api.BlastPayload;
+import com.wf.wflib.explosion.api.BlastTarget;
+import com.wf.wflib.core.api.HitRouter;
+import com.wf.wflib.round.api.StrikeRelay;
 import com.wf.wflib.warhead.api.Warheads;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -35,6 +39,10 @@ public final class MissileFuze {
     /** Contact fuze failed once: never strikes again. */
     boolean fuseFailed;
     private boolean detonated;
+    /** Hit point of a strike whose armour answer is pending on the target's owner; else null. */
+    @Nullable
+    private Vec3 awaitingAt;
+    private int awaitingSince;
     /** Goes off within this of any hittable entity; 0 = contact only. */
     float proximityRadius;
     /** Direct-hit damage to the struck entity, before the warhead; 0 = blast only. */
@@ -111,28 +119,96 @@ public final class MissileFuze {
         }
         Vec3 at = hit.getLocation();
         if (hit instanceof EntityHitResult ehr) {
-            ProjectileStrikeEvent strike = NeoForge.EVENT_BUS.post(new ProjectileStrikeEvent(this.missile,
-                    ehr.getEntity(), at, this.missile.getDeltaMovement(), this.threat()));
-            switch (strike.outcome()) {
-                case PASS -> {
-                    return;
-                }
-                case DUD -> {
-                    this.missile.damage().dropAsDud();
-                    return;
-                }
-                case PROCEED, STOP, THROUGH -> {
-                    if (strike.detonation() != null) {
-                        at = strike.detonation();
-                    }
-                }
+            Entity target = ehr.getEntity();
+            if (target instanceof BlastTarget && this.strikeAway(ehr, at)) {
+                return;
             }
-            if (this.impactDamage > 0.0f) {
-                ehr.getEntity().hurt(WFDamageSources.create(this.missile.level(), DamageClass.PHYSICAL,
-                        this.missile.getOwner(), this.missile, this.missile.igniterFactionId()), this.impactDamage);
+            at = settle(post(ehr, at), at);
+            if (at == null) {
+                return;
             }
         }
         this.detonate(at, false);
+    }
+
+    /**
+     * Foreign-region {@link BlastTarget}: strike on its owner, missile holds still until the answer lands on its own
+     * owner ({@link #resume}); {@link StrikeRelay#PARK_TICKS} else it goes off at the hit.
+     * @return false: caller owns the target
+     */
+    private boolean strikeAway(EntityHitResult ehr, Vec3 at) {
+        ServerLevel level = (ServerLevel) this.missile.level();
+        this.awaitingAt = at;
+        this.awaitingSince = this.missile.tickCount;
+        boolean routed = StrikeRelay.start(level, ehr.getEntity(), () -> post(ehr, at), answer -> {
+            if (!HitRouter.defer(level, this.missile, () -> this.resume(answer, at))) {
+                this.resume(answer, at);
+            }
+        });
+        if (!routed) {
+            this.awaitingAt = null;
+        }
+        return routed;
+    }
+
+    /** Owner's answer; null = target removed, missile flies on. */
+    private void resume(@Nullable ProjectileStrikeEvent answer, Vec3 at) {
+        if (this.awaitingAt == null) {
+            return;
+        }
+        this.awaitingAt = null;
+        if (answer != null) {
+            Vec3 burst = settle(answer, at);
+            if (burst != null) {
+                this.detonate(burst, false);
+            }
+        }
+    }
+
+    /** Missile thread, each tick: true while the answer is pending. */
+    boolean awaiting() {
+        if (this.awaitingAt == null) {
+            return false;
+        }
+        if (this.missile.tickCount - this.awaitingSince > StrikeRelay.PARK_TICKS) {
+            Vec3 at = this.awaitingAt;
+            this.awaitingAt = null;
+            this.detonate(at, false);
+            return false;
+        }
+        return true;
+    }
+
+    /** Strike event + impact damage, on the thread that owns the target. */
+    private ProjectileStrikeEvent post(EntityHitResult ehr, Vec3 at) {
+        ProjectileStrikeEvent strike = NeoForge.EVENT_BUS.post(new ProjectileStrikeEvent(this.missile,
+                ehr.getEntity(), at, this.missile.getDeltaMovement(), this.threat()));
+        ProjectileStrikeEvent.Outcome outcome = strike.outcome();
+        if (this.impactDamage > 0.0f && outcome != ProjectileStrikeEvent.Outcome.PASS
+                && outcome != ProjectileStrikeEvent.Outcome.DUD) {
+            Entity target = ehr.getEntity();
+            HitRouter.apply(this.missile.level(), target, () -> target.hurt(WFDamageSources.create(this.missile.level(),
+                    DamageClass.PHYSICAL, this.missile.getOwner(), this.missile, this.missile.igniterFactionId()),
+                    this.impactDamage));
+        }
+        return strike;
+    }
+
+    /** Detonation point, null = missile passes / dropped as dud. */
+    @Nullable
+    private Vec3 settle(ProjectileStrikeEvent strike, Vec3 at) {
+        switch (strike.outcome()) {
+            case PASS -> {
+                return null;
+            }
+            case DUD -> {
+                this.missile.damage().dropAsDud();
+                return null;
+            }
+            default -> {
+                return strike.detonation() != null ? strike.detonation() : at;
+            }
+        }
     }
 
     public Threat threat() {

@@ -1,6 +1,7 @@
 package com.wf.wflib.industry;
 
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
@@ -33,8 +34,12 @@ public final class IndustryTracker {
         try {
             int value = IndustryValues.valueOf(event.getPlacedBlock());
             if (value > 0) {
-                IndustryData.get(level).add(event.getPos(), value);
-                IndustryClusters.markDirty(level);
+                // IndustryData/IndustryClusters are main-thread owned; entity placement can run on a region worker.
+                BlockPos pos = event.getPos().immutable();
+                ChunkTicketOps.run(level, () -> {
+                    IndustryData.get(level).add(pos, value);
+                    IndustryClusters.markDirty(level);
+                });
             }
         } catch (Exception | LinkageError t) {
             logFailure(t);
@@ -48,8 +53,11 @@ public final class IndustryTracker {
         }
         try {
             if (IndustryValues.valueOf(event.getState()) > 0) {
-                IndustryData.get(level).remove(event.getPos());
-                IndustryClusters.markDirty(level);
+                BlockPos pos = event.getPos().immutable();
+                ChunkTicketOps.run(level, () -> {
+                    IndustryData.get(level).remove(pos);
+                    IndustryClusters.markDirty(level);
+                });
             }
         } catch (Exception | LinkageError t) {
             logFailure(t);

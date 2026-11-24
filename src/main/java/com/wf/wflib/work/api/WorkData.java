@@ -1,5 +1,6 @@
 package com.wf.wflib.work.api;
 
+import com.wf.wflib.core.api.LevelCache;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -26,12 +27,14 @@ public final class WorkData extends SavedData {
     /** How long a finished job stays in the list before it is swept, in ticks. */
     static final long RETENTION = 24000L;
 
+    private static final LevelCache<WorkData> CACHE = LevelCache.overworld(NAME,
+            new SavedData.Factory<>(WorkData::new, (tag, reg) -> WorkData.load(tag)));
+
     private final Map<UUID, WorkJob> jobs = new LinkedHashMap<>();
     private final Map<UUID, Long> finishedAt = new LinkedHashMap<>();
 
     public static WorkData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(WorkData::new, (tag, reg) -> WorkData.load(tag)), NAME);
+        return CACHE.get(server);
     }
 
     public static WorkData get(ServerLevel level) {

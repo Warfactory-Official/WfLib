@@ -1,6 +1,5 @@
 package com.wf.wflib.recon.api;
 
-import com.wf.wflib.core.api.WorldThread;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
@@ -26,7 +25,6 @@ public final class FireControl {
     @Nullable
     public static <T extends Entity> T resolve(ServerLevel level, Class<T> type, Track track,
                                                double maxError, Predicate<T> filter) {
-        WorldThread.assertOn("fire control resolution");
         long now = level.getGameTime();
         double error = track.predictedError(now);
         if (error > maxError) {

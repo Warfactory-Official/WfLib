@@ -1,5 +1,6 @@
 package com.wf.wflib.grenade.api;
 
+import com.wf.wflib.core.api.HitRouter;
 import com.wf.wflib.mist.api.MistEntity;
 import com.wf.wflib.geom.api.OBBEntity;
 import com.wf.wflib.geom.api.OBB;
@@ -98,7 +99,8 @@ public class ThrownCharge extends Projectile implements WarheadCarrier, IEntityW
     List<MistEntity> smokeCells = List.of();
     /** Client-only debris (a released spoon): ticks to live; 0 = a real charge. */
     private int debrisLife;
-    private static int debrisIds = -1_000_000;
+    private static final java.util.concurrent.atomic.AtomicInteger DEBRIS_IDS =
+            new java.util.concurrent.atomic.AtomicInteger(-1_000_000);
     /** Client: drawn orientation, this and last tick. */
     public final Quaternionf spin = new Quaternionf();
     public final Quaternionf spinO = new Quaternionf();
@@ -146,7 +148,7 @@ public class ThrownCharge extends Projectile implements WarheadCarrier, IEntityW
                 new ChargeSpec(Warheads.rl("inert"), Integer.MAX_VALUE, 0.35f, false, false, 0, 0, 0), 0,
                 null);
         c.debrisLife = life;
-        c.setId(debrisIds--);
+        c.setId(DEBRIS_IDS.getAndDecrement());
         return c;
     }
 
@@ -392,7 +394,7 @@ public class ThrownCharge extends Projectile implements WarheadCarrier, IEntityW
                         (float) Math.min(1.0, speed * 2.0), 0.9f + random.nextFloat() * 0.25f);
             }
         } else if (speed > 0.3 && c.entity instanceof LivingEntity living) {
-            living.hurt(damageSources().thrown(this, getOwner()), 1.0f);
+            HitRouter.apply(level(), living, () -> living.hurt(damageSources().thrown(this, getOwner()), 1.0f));
         }
         if (phase() != Phase.LIVE) {
             return false;

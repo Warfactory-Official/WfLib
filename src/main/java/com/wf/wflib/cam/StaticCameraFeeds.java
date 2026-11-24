@@ -6,22 +6,22 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Feed ids for cameras that are not entities. */
 public final class StaticCameraFeeds {
 
-    private static final Map<GlobalPos, Integer> IDS = new HashMap<>();
-    private static final Map<Integer, GlobalPos> BY_ID = new HashMap<>();
+    private static final Map<GlobalPos, Integer> IDS = new ConcurrentHashMap<>();
+    private static final Map<Integer, GlobalPos> BY_ID = new ConcurrentHashMap<>();
 
     /** Positions known to have no camera on them any more. */
-    private static final Set<GlobalPos> DEAD = new HashSet<>();
+    private static final Set<GlobalPos> DEAD = ConcurrentHashMap.newKeySet();
 
     /** Counts down, so every id is negative and none is ever {@code 0}. */
-    private static int next = -1;
+    private static final AtomicInteger NEXT = new AtomicInteger(-1);
 
     private StaticCameraFeeds() {
     }
@@ -49,10 +49,11 @@ public final class StaticCameraFeeds {
         if (known != null) {
             return known;
         }
-        int id = next--;
-        IDS.put(at, id);
-        BY_ID.put(id, at);
-        return id;
+        return IDS.computeIfAbsent(at, k -> {
+            int id = NEXT.getAndDecrement();
+            BY_ID.put(id, k);
+            return id;
+        });
     }
 
     /** @return where the camera behind this feed id is, or null if the id was never allocated here. */
@@ -74,6 +75,6 @@ public final class StaticCameraFeeds {
         IDS.clear();
         BY_ID.clear();
         DEAD.clear();
-        next = -1;
+        NEXT.set(-1);
     }
 }

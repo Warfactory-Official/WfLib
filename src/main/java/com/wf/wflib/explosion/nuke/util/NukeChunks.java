@@ -1,5 +1,6 @@
 package com.wf.wflib.explosion.nuke.util;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.explosion.nuke.BombForkJoinPool;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -58,8 +59,11 @@ public final class NukeChunks {
     public static final TicketType<ChunkPos> BLAST_LOAD =
             TicketType.create(WFLib.MODID + ":blast_load", Comparator.comparingLong(ChunkPos::toLong));
 
+    /** Guards {@code activeTask}, {@code chunkMap} membership and {@code refCounter} writes: nukes start/stop on any region. */
+    private static final Object MIRROR_LOCK = new Object();
     private static final Object2IntOpenHashMap<ResourceKey<Level>> activeTask = new Object2IntOpenHashMap<>();
     private static final Map<ResourceKey<Level>, ConcurrentHashMap<Long, LevelChunk>> chunkMap = new ConcurrentHashMap<>();
+    /** Server thread only (touched solely inside {@link ChunkTicketOps} ops). */
     private static final Map<ServerLevel, Long2IntOpenHashMap> BLAST_LOAD_CLAIMS = new WeakHashMap<>();
     private static volatile int refCounter = 0;
 
@@ -68,28 +72,32 @@ public final class NukeChunks {
 
     public static ConcurrentHashMap<Long, LevelChunk> acquireMirrorMap(ServerLevel level) {
         ResourceKey<Level> dim = level.dimension();
-        ConcurrentHashMap<Long, LevelChunk> thisDim;
-        if (activeTask.addTo(dim, 1) == 0) {
-            thisDim = new ConcurrentHashMap<>(4096);
-            for (ChunkHolder holder : level.getChunkSource().chunkMap.getChunks()) {
-                LevelChunk chunk = fullChunkIfLoaded(holder);
-                if (chunk != null) thisDim.put(chunk.getPos().toLong(), chunk);
+        synchronized (MIRROR_LOCK) {
+            ConcurrentHashMap<Long, LevelChunk> thisDim;
+            if (activeTask.addTo(dim, 1) == 0) {
+                thisDim = new ConcurrentHashMap<>(4096);
+                for (ChunkHolder holder : level.getChunkSource().chunkMap.getChunks()) {
+                    LevelChunk chunk = fullChunkIfLoaded(holder);
+                    if (chunk != null) thisDim.put(chunk.getPos().toLong(), chunk);
+                }
+                chunkMap.put(dim, thisDim);
+            } else {
+                thisDim = chunkMap.get(dim);
             }
-            chunkMap.put(dim, thisDim);
-        } else {
-            thisDim = chunkMap.get(dim);
+            refCounter++;
+            return Objects.requireNonNull(thisDim);
         }
-        refCounter++;
-        return Objects.requireNonNull(thisDim);
     }
 
     public static void releaseMirrorMap(ServerLevel level) {
         ResourceKey<Level> dim = level.dimension();
-        if (activeTask.addTo(dim, -1) == 1) {
-            chunkMap.remove(dim);
-            activeTask.removeInt(dim);
+        synchronized (MIRROR_LOCK) {
+            if (activeTask.addTo(dim, -1) == 1) {
+                chunkMap.remove(dim);
+                activeTask.removeInt(dim);
+            }
+            refCounter--;
         }
-        refCounter--;
     }
 
     private static @Nullable LevelChunk fullChunkIfLoaded(@Nullable ChunkHolder holder) {
@@ -101,7 +109,12 @@ public final class NukeChunks {
         return fullChunkIfLoaded(level.getChunkSource().chunkMap.getVisibleChunkIfPresent(chunkPos));
     }
 
+    /** Worker: queued; {@link #blastChunkFuture} may be null until the next drain (callers re-queue). */
     public static void addBlastTicket(ServerLevel level, long chunkPos) {
+        ChunkTicketOps.run(level, () -> addBlastTicketNow(level, chunkPos));
+    }
+
+    private static void addBlastTicketNow(ServerLevel level, long chunkPos) {
         Long2IntOpenHashMap held = BLAST_LOAD_CLAIMS.computeIfAbsent(level, ignored -> new Long2IntOpenHashMap());
         if (held.addTo(chunkPos, 1) > 0) return;
         ChunkPos pos = new ChunkPos(chunkPos);
@@ -109,7 +122,7 @@ public final class NukeChunks {
     }
 
     public static void flushChunkTickets(ServerLevel level) {
-        level.getChunkSource().runDistanceManagerUpdates();
+        ChunkTicketOps.run(level, level.getChunkSource()::runDistanceManagerUpdates);
     }
 
     public static @Nullable CompletableFuture<ChunkResult<LevelChunk>> blastChunkFuture(ServerLevel level, long chunkPos) {
@@ -118,6 +131,10 @@ public final class NukeChunks {
     }
 
     public static void releaseChunkAsync(ServerLevel level, long chunkPos) {
+        ChunkTicketOps.run(level, () -> releaseChunkNow(level, chunkPos));
+    }
+
+    private static void releaseChunkNow(ServerLevel level, long chunkPos) {
         Long2IntOpenHashMap held = BLAST_LOAD_CLAIMS.get(level);
         int count = held.addTo(chunkPos, -1);
         if (count <= 0) throw new IllegalStateException("Blast ticket underflow at " + new ChunkPos(chunkPos));
@@ -314,9 +331,11 @@ public final class NukeChunks {
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
         BombForkJoinPool.onServerStopped();
-        chunkMap.clear();
-        activeTask.clear();
+        synchronized (MIRROR_LOCK) {
+            chunkMap.clear();
+            activeTask.clear();
+            refCounter = 0;
+        }
         BLAST_LOAD_CLAIMS.clear();
-        refCounter = 0;
     }
 }

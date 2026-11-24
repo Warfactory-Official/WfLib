@@ -1,5 +1,6 @@
 package com.wf.wflib.radiation;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.radiation.api.RadiationConfig;
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
@@ -30,6 +31,7 @@ public final class FalloutData extends SavedData {
     private final Long2DoubleOpenHashMap strength = new Long2DoubleOpenHashMap();
     private final Long2LongOpenHashMap since = new Long2LongOpenHashMap();
 
+    /** Server thread only (uncached storage lookup); {@link #deposit} hops there. */
     public static FalloutData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(new SavedData.Factory<>(FalloutData::new, FalloutData::load), NAME);
     }
@@ -37,6 +39,10 @@ public final class FalloutData extends SavedData {
     /** Ground-zero {@code peak} RAD, {@code (1 - d/range)^2} out to {@code range} blocks, by chunk centre. */
     public static void deposit(ServerLevel level, double x, double z, double range, double peak) {
         if (!(range > 0) || !(peak > 0)) return;
+        ChunkTicketOps.run(level, () -> depositNow(level, x, z, range, peak));
+    }
+
+    private static void depositNow(ServerLevel level, double x, double z, double range, double peak) {
         FalloutData f = get(level);
         long now = level.getGameTime();
         int c0x = Mth.floor((x - range) / 16), c1x = Mth.floor((x + range) / 16);

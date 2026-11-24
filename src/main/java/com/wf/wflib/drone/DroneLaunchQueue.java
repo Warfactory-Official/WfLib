@@ -1,6 +1,7 @@
 package com.wf.wflib.drone;
 
 import com.mojang.logging.LogUtils;
+import com.wf.wflib.core.api.LevelCache;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -22,20 +23,19 @@ public final class DroneLaunchQueue extends SavedData {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    private static final LevelCache<DroneLaunchQueue> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(DroneLaunchQueue::new, (tag, reg) -> DroneLaunchQueue.load(tag)));
+
     private final List<Launch> launches = new ArrayList<>();
 
     public static DroneLaunchQueue get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(DroneLaunchQueue::new, (tag, reg) -> DroneLaunchQueue.load(tag)),
-                NAME);
+        return CACHE.get(level);
     }
 
     /** Release whatever is due this tick. */
     public static void tick(ServerLevel level) {
-        DroneLaunchQueue queue = level.getDataStorage().get(
-                new SavedData.Factory<>(DroneLaunchQueue::new, (tag, reg) -> DroneLaunchQueue.load(tag)),
-                NAME);
-        if (queue == null || queue.launches.isEmpty()) {
+        DroneLaunchQueue queue = CACHE.get(level);
+        if (queue.launches.isEmpty()) {
             return;
         }
         long now = level.getGameTime();

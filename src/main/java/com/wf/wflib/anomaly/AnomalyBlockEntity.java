@@ -36,12 +36,11 @@ import com.wf.wflib.anomaly.api.AnomalyContent;
 import com.wf.wflib.anomaly.client.AnomalyClient;
 import com.wf.wflib.artifact.api.BoltEntity;
 import com.wf.wflib.round.api.Rounds;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -83,8 +82,7 @@ public class AnomalyBlockEntity extends BlockEntity {
     /** Server, a CHairsZone: where each body inside was last tick, for its speed. */
     private Map<Integer, Vec3> seen = Map.of();
     /** Server: Rebounders loaded now, for {@link #shielding}. */
-    private static final Set<AnomalyBlockEntity> SHIELDS =
-            Collections.newSetFromMap(new WeakHashMap<>());
+    private static final Set<AnomalyBlockEntity> SHIELDS = ConcurrentHashMap.newKeySet();
     /** A {@link Quirk#moves wandering} anomaly's loop: made by the server once, saved, sent to clients. */
     @Nullable
     private AnomalyPath path;

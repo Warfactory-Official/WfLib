@@ -1,7 +1,10 @@
 package com.wf.wflib.recon;
 
 import com.wf.wflib.recon.api.ReconBound;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.recon.api.ReconNet;
+import com.wf.wflib.recon.api.SensorHandle;
+import com.wf.wflib.recon.api.WeatherStation;
 import com.wf.wflib.recon.api.ReconOwners;
 import com.wf.wflib.recon.api.SourceIds;
 import com.wf.wflib.recon.api.NamedNode;
@@ -40,6 +43,12 @@ public class ReconProbeBlockEntity extends BlockEntity implements ReconBound, Na
     private boolean wet = true;
     private boolean pinging;
     private String name = "";
+    @Nullable
+    private volatile GridNode node;
+    @Nullable
+    private volatile SensorHandle sensor;
+    @Nullable
+    private volatile WeatherStation station;
 
     public ReconProbeBlockEntity(BlockPos pos, BlockState state) {
         super(ReconSystem.RECON_PROBE_BE.get(), pos, state);
@@ -94,9 +103,15 @@ public class ReconProbeBlockEntity extends BlockEntity implements ReconBound, Na
             this.hubRefresh = HUB_REFRESH;
             this.refile(sl, kind);
         }
-        GridNode node = ReconNet.registerNode(sl, this.worldPosition, this.netId,
+        GridNode node = ReconNet.touchNode(sl, this.node, this.worldPosition, this.netId,
                 kind.linkRange(), kind.linkMast(), false, this.name.isEmpty() ? kind.id() : this.name);
-        int hops = node.hops();
+        if (node != null) {
+            this.node = node;
+        } else {
+            ChunkTicketOps.run(sl, this::enlistNode);
+            node = this.node;
+        }
+        int hops = node == null ? -1 : node.hops();
         if (hops != this.lastHops) {
             this.lastHops = hops;
             this.calibration = 0;
@@ -112,15 +127,52 @@ public class ReconProbeBlockEntity extends BlockEntity implements ReconBound, Na
         }
         if (kind.underwater() && !this.wet) {
             // Still a relay. A dry hydrophone carries links home and hears nothing at all.
-            ReconNet.unregisterSensor(sl, this.worldPosition, this.netId);
+            if (this.sensor != null) {
+                this.sensor = null;
+                ReconNet.unregisterSensor(sl, this.worldPosition, this.netId);
+            }
             this.online = false;
             return;
         }
         this.online = true;
         if (kind.sensing()) {
-            ReconNet.registerSensor(sl, this.worldPosition, kind.spec(this.netId, this.pinging));
+            SensorHandle held = ReconNet.touchSensor(sl, this.sensor, this.worldPosition,
+                    kind.spec(this.netId, this.pinging));
+            if (held != null) {
+                this.sensor = held;
+            } else {
+                ChunkTicketOps.run(sl, this::enlistSensor);
+            }
         } else {
-            ReconNet.registerStation(sl, this.worldPosition, this.netId, kind.stationRange());
+            WeatherStation held = ReconNet.touchStation(sl, this.station, this.worldPosition, this.netId,
+                    kind.stationRange());
+            if (held != null) {
+                this.station = held;
+            } else {
+                ChunkTicketOps.run(sl, this::enlistStation);
+            }
+        }
+    }
+
+    private void enlistNode() {
+        if (!this.isRemoved() && this.level instanceof ServerLevel sl) {
+            ProbeKind kind = this.kind();
+            this.node = ReconNet.registerNode(sl, this.worldPosition, this.netId, kind.linkRange(), kind.linkMast(),
+                    false, this.name.isEmpty() ? kind.id() : this.name);
+        }
+    }
+
+    private void enlistSensor() {
+        if (!this.isRemoved() && this.online && this.level instanceof ServerLevel sl) {
+            this.sensor = ReconNet.registerSensor(sl, this.worldPosition,
+                    this.kind().spec(this.netId, this.pinging));
+        }
+    }
+
+    private void enlistStation() {
+        if (!this.isRemoved() && this.online && this.level instanceof ServerLevel sl) {
+            this.station = ReconNet.registerStation(sl, this.worldPosition, this.netId,
+                    this.kind().stationRange());
         }
     }
 
@@ -154,6 +206,9 @@ public class ReconProbeBlockEntity extends BlockEntity implements ReconBound, Na
 
     /** Drop every membership this probe might hold on a network. */
     private void leave(ServerLevel sl, long net) {
+        this.node = null;
+        this.sensor = null;
+        this.station = null;
         ReconNet.unregisterNode(sl, this.worldPosition, net);
         ReconNet.unregisterSensor(sl, this.worldPosition, net);
         ReconNet.unregisterStation(sl, this.worldPosition, net);

@@ -55,7 +55,8 @@ public class ApsGrenadeEntity extends CountermeasureGrenade {
             }
         }
         for (long key : Rounds.within(level, box)) {
-            double speed = Rounds.velocity(level, key).lengthSqr();
+            Vec3 v = Rounds.velocity(level, key);
+            double speed = v == null ? -1.0 : v.lengthSqr();
             if (speed > best) {
                 best = speed;
                 target = null;
@@ -69,6 +70,9 @@ public class ApsGrenadeEntity extends CountermeasureGrenade {
                 : target instanceof RocketEntity r ? r.shooter() : Rounds.shooter(level, round);
         Vec3 from = position();
         Vec3 to = target != null ? target.position() : Rounds.position(level, round);
+        if (to == null) {
+            return;
+        }
         level.sendParticles(ParticleTypes.EXPLOSION, from.x, from.y, from.z, 3, 0.2, 0.2, 0.2, 0.15);
         level.sendParticles(ParticleTypes.EXPLOSION, to.x, to.y, to.z, 3, 0.2, 0.2, 0.2, 0.15);
         Vec3 step = to.subtract(from).scale(1.0 / 16);

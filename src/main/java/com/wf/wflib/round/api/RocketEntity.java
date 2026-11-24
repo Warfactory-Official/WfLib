@@ -1,6 +1,7 @@
 package com.wf.wflib.round.api;
 
 import com.wf.wflib.damage.api.event.ProjectileStrikeEvent;
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.damage.api.Threat;
 import com.wf.wflib.missile.api.ThreatSource;
 import com.wf.wflib.missile.api.DetonationChunkGuard;
@@ -41,6 +42,10 @@ public class RocketEntity extends Entity implements InterceptTarget, ThreatSourc
     private int age;
     /** Entity a THROUGH rocket is still inside, else -1. */
     private int passing = -1;
+    /** Strike awaiting the owner's answer ({@link Rounds#strikeAway}): rocket holds still. */
+    @Nullable
+    private Rounds.EntityHit awaiting;
+    private int awaitingSince;
     private float health;
     @Nullable
     private Entity shooter;
@@ -115,6 +120,14 @@ public class RocketEntity extends Entity implements InterceptTarget, ThreatSourc
             this.discard();
             return;
         }
+        if (this.awaiting != null) {
+            if (this.age - this.awaitingSince > StrikeRelay.PARK_TICKS) {
+                Rounds.EntityHit lost = this.awaiting;
+                this.awaiting = null;
+                this.detonate(level, lost.at);
+            }
+            return;
+        }
         Vec3 from = this.position();
         Vec3 v = this.getDeltaMovement();
         if (!this.flyable(level, from.add(v))) {
@@ -132,39 +145,16 @@ public class RocketEntity extends Entity implements InterceptTarget, ThreatSourc
                 inside = true;
                 continue;
             }
+            this.awaiting = eh;
+            this.awaitingSince = this.age;
+            if (Rounds.strikeAway(level, this.preset, this, this, eh, from, end, v, this.shooter, this.faction,
+                    answer -> this.resume(level, eh, answer))) {
+                return;
+            }
+            this.awaiting = null;
             ProjectileStrikeEvent strike = Rounds.strike(level, this.preset, this, this, eh, from, end, v,
                     this.shooter, this.faction, 1.0f, false, false);
-            if (this.isRemoved()) {
-                return;
-            }
-            ProjectileStrikeEvent.Outcome outcome = strike.outcome();
-            if (outcome == ProjectileStrikeEvent.Outcome.DUD) {
-                this.discard();
-                return;
-            }
-            if (outcome == ProjectileStrikeEvent.Outcome.PROCEED && this.preset.detonateOnEntity()) {
-                this.detonate(level, strike.detonation() != null ? strike.detonation() : eh.at);
-                return;
-            }
-            if (outcome == ProjectileStrikeEvent.Outcome.STOP) {
-                if (this.preset.detonateOnEntity() && !this.preset.postPen()) {
-                    this.detonate(level, strike.detonation() != null ? strike.detonation() : eh.at);
-                } else {
-                    this.discard();
-                }
-                return;
-            }
-            if (outcome == ProjectileStrikeEvent.Outcome.THROUGH) {
-                Vec3 out = strike.through();
-                if (this.preset.postPen()) {
-                    this.detonate(level, strike.detonation() != null ? strike.detonation()
-                            : eh.at.add(out.normalize()));
-                    return;
-                }
-                this.passing = eh.entity.getId();
-                this.setPos(eh.at);
-                this.setDeltaMovement(out);
-                this.face(out);
+            if (this.isRemoved() || this.conclude(level, eh, strike)) {
                 return;
             }
         }
@@ -235,8 +225,55 @@ public class RocketEntity extends Entity implements InterceptTarget, ThreatSourc
     }
 
     private void ticket(ServerLevel level, long chunk, boolean add) {
-        DetonationChunkGuard.CONTROLLER.forceChunk(level, this.getUUID(), ChunkPos.getX(chunk), ChunkPos.getZ(chunk),
+        ChunkTicketOps.force(DetonationChunkGuard.CONTROLLER, level, this.getUUID(), ChunkPos.getX(chunk), ChunkPos.getZ(chunk),
                 add, true);
+    }
+
+    /** Armour answer: true = rocket detonated, lost or redirected. */
+    private boolean conclude(ServerLevel level, Rounds.EntityHit eh, ProjectileStrikeEvent strike) {
+        ProjectileStrikeEvent.Outcome outcome = strike.outcome();
+        if (outcome == ProjectileStrikeEvent.Outcome.DUD) {
+            this.discard();
+            return true;
+        }
+        if (outcome == ProjectileStrikeEvent.Outcome.PROCEED && this.preset.detonateOnEntity()) {
+            this.detonate(level, strike.detonation() != null ? strike.detonation() : eh.at);
+            return true;
+        }
+        if (outcome == ProjectileStrikeEvent.Outcome.STOP) {
+            if (this.preset.detonateOnEntity() && !this.preset.postPen()) {
+                this.detonate(level, strike.detonation() != null ? strike.detonation() : eh.at);
+            } else {
+                this.discard();
+            }
+            return true;
+        }
+        if (outcome == ProjectileStrikeEvent.Outcome.THROUGH) {
+            Vec3 out = strike.through();
+            if (this.preset.postPen()) {
+                this.detonate(level, strike.detonation() != null ? strike.detonation()
+                        : eh.at.add(out.normalize()));
+                return true;
+            }
+            this.passing = eh.entity.getId();
+            this.setPos(eh.at);
+            this.setDeltaMovement(out);
+            this.face(out);
+            return true;
+        }
+        return false;
+    }
+
+    /** Owner's answer to {@link #awaiting}; null = target removed, rocket flies on. */
+    private void resume(ServerLevel level, Rounds.EntityHit eh, @Nullable ProjectileStrikeEvent answer) {
+        if (this.awaiting != eh || this.isRemoved()) {
+            return;
+        }
+        this.awaiting = null;
+        if (answer != null && !this.conclude(level, eh, answer)) {
+            this.passing = eh.entity.getId();
+            this.setPos(eh.at);
+        }
     }
 
     private void detonate(ServerLevel level, Vec3 at) {

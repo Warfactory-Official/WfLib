@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import com.wf.wflib.colony.api.ColonyContent;
+import com.wf.wflib.core.api.ChunkTicketOps;
 
 /** An egg chamber: the visible, breakable face of a colony record. */
 public class GlyphidSpawnerBlock extends BaseEntityBlock {
@@ -52,7 +53,7 @@ public class GlyphidSpawnerBlock extends BaseEntityBlock {
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!state.is(newState.getBlock()) && level instanceof ServerLevel server
                 && level.getBlockEntity(pos) instanceof GlyphidSpawnerBlockEntity chamber) {
-            chamber.onBroken(server);
+            ChunkTicketOps.run(server, () -> chamber.onBroken(server));
         }
         super.onRemove(state, level, pos, newState, moved);
     }

@@ -67,6 +67,15 @@ public final class StepBody {
     final StepResult result = new StepResult();
     private final SpringRows rows = new SpringRows();
     boolean active;
+    /**
+     * Step that captured it, null once released: held or predicted. The only field of this class other partitions
+     * read ({@code stepping == self}); volatile so a stale own value never pairs with a foreign capture.
+     */
+    @Nullable
+    volatile RigidStep stepping;
+    /** Region of its last registration under a host, -1 main thread; {@link #UNKNOWN} none since. */
+    volatile int partition = UNKNOWN;
+    static final int UNKNOWN = Integer.MIN_VALUE;
     /** Position in the tick's step list; tick thread. */
     int index;
 
@@ -184,18 +193,18 @@ public final class StepBody {
         return step;
     }
 
-    /** Stepping this tick; island tasks never create. */
-    static boolean active(PhysicsBody body) {
+    /** Captured by {@code by} this tick; island tasks never create. */
+    static boolean member(PhysicsBody body, @Nullable RigidStep by) {
         StepBody step = (StepBody) body.bodyState().engine;
-        return step != null && step.active;
+        return step != null && by != null && step.stepping == by;
     }
 
     static StepBody peek(PhysicsBody body) {
         return (StepBody) body.bodyState().engine;
     }
 
-    /** Tick thread. */
-    void capture(boolean async) {
+    /** Tick thread. {@code drive} null => the level's {@link DriveSurface}. */
+    void capture(boolean async, @Nullable DriveSurface drive) {
         active = true;
         result.failed = false;
         result.grounded = false;
@@ -228,7 +237,8 @@ public final class StepBody {
         gear = s.gear;
         restitution = s.restitution;
         sections = s.sections;
-        surface = DriveSurface.of(owner.level()).view(owner.level(), gather, CellTops.snapshot(s.cursor));
+        surface = (drive != null ? drive : DriveSurface.of(owner.level())).view(owner.level(), gather,
+                CellTops.snapshot(s.cursor));
     }
 
     /** Island task: coupling rows to the tractor's body. Tick-thread world points from {@link PhysicsBody#capture}. */
@@ -1224,6 +1234,17 @@ public final class StepBody {
         for (int i = 0; i < springs; i++) {
             springCache[i] = buf.readFloat();
         }
+    }
+
+    /** Not captured this tick (partition rule): active (dedup), result as a failed island's. */
+    void skip() {
+        active = true;
+        stepping = null;
+        result.woken = false;
+        result.grounded = false;
+        result.touched.clear();
+        result.springRows = 0;
+        hold();
     }
 
     /** Task failed: no motion this tick. */

@@ -1,5 +1,6 @@
 package com.wf.wflib.stream.api;
 
+import com.wf.wflib.core.api.LevelCache;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -15,16 +16,17 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Last known position of every {@link com.wf.wflib.stream.api.DetachedBodyHost}, for waking one from unloaded terrain. */
 public final class HostWakeupData extends SavedData {
 
     public static final String FILE_ID = "wflib_host_wakeup";
 
-    private final Map<UUID, Entry> entries = new HashMap<>();
+    // Host entity ticks on region workers write; save/commands on main read.
+    private final Map<UUID, Entry> entries = new ConcurrentHashMap<>();
 
     public record Entry(UUID hostId, ResourceKey<Level> dimension, Vec3 position, long gameTime) {
 
@@ -34,12 +36,14 @@ public final class HostWakeupData extends SavedData {
 
     }
 
+    private static final LevelCache<HostWakeupData> CACHE = LevelCache.overworld(FILE_ID, factory());
+
     private static SavedData.Factory<HostWakeupData> factory() {
         return new SavedData.Factory<>(HostWakeupData::new, HostWakeupData::load, null);
     }
 
     public static HostWakeupData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(factory(), FILE_ID);
+        return CACHE.get(server);
     }
 
     private static HostWakeupData load(CompoundTag tag, HolderLookup.Provider registries) {

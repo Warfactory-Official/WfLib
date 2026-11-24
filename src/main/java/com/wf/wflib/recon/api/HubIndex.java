@@ -1,16 +1,15 @@
 package com.wf.wflib.recon.api;
 
-import com.wf.wflib.core.api.WorldThread;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Where the hubs are, so a probe can work out which network it belongs to without scanning for one. */
 public final class HubIndex {
@@ -18,7 +17,7 @@ public final class HubIndex {
     /** Ticks a hub may go without refreshing before it is forgotten. */
     private static final int HUB_TIMEOUT = 60;
 
-    private static final Map<ResourceKey<Level>, Map<Long, Entry>> BY_LEVEL = new HashMap<>();
+    private static final Map<ResourceKey<Level>, Map<Long, Entry>> BY_LEVEL = new ConcurrentHashMap<>();
 
     private HubIndex() {
     }
@@ -27,9 +26,14 @@ public final class HubIndex {
      * Announce a hub. Called every tick from the hub itself, in the same idiom as sensor and node registration.
      */
     public static void register(ServerLevel level, BlockPos pos, long netId) {
-        WorldThread.assertOn("recon hub index");
-        BY_LEVEL.computeIfAbsent(level.dimension(), k -> new HashMap<>())
-                .put(pos.asLong(), new Entry(pos.immutable(), netId, level.getGameTime()));
+        Map<Long, Entry> hubs = BY_LEVEL.computeIfAbsent(level.dimension(), k -> new ConcurrentHashMap<>());
+        long key = pos.asLong();
+        Entry held = hubs.get(key);
+        if (held != null && held.netId == netId) {
+            held.stamp = level.getGameTime();
+        } else {
+            hubs.put(key, new Entry(pos.immutable(), netId, level.getGameTime()));
+        }
     }
 
     public static void unregister(ServerLevel level, BlockPos pos) {
@@ -87,6 +91,15 @@ public final class HubIndex {
         BY_LEVEL.clear();
     }
 
-    private record Entry(BlockPos pos, long netId, long stamp) {
+    private static final class Entry {
+        private final BlockPos pos;
+        private final long netId;
+        private volatile long stamp;
+
+        private Entry(BlockPos pos, long netId, long stamp) {
+            this.pos = pos;
+            this.netId = netId;
+            this.stamp = stamp;
+        }
     }
 }

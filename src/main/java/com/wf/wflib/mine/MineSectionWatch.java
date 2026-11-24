@@ -10,6 +10,7 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** A revision counter for the subchunks that something is resting on. */
 public final class MineSectionWatch {
@@ -20,14 +21,14 @@ public final class MineSectionWatch {
     private static final Map<Level, Sections> BY_LEVEL = new ConcurrentHashMap<>();
 
     /** Non-zero when any section anywhere is watched: the first thing every block write in the game asks. */
-    private static volatile int watched = 0;
+    private static final AtomicInteger WATCHED = new AtomicInteger();
 
     private MineSectionWatch() {
     }
 
     /** @return true if any section is being watched at all. */
     public static boolean isWatching() {
-        return watched != 0;
+        return WATCHED.get() != 0;
     }
 
     /**
@@ -36,13 +37,20 @@ public final class MineSectionWatch {
      * @return the section's current revision, to be compared against later
      */
     public static int watch(ServerLevel level, long section) {
-        Sections sections = BY_LEVEL.computeIfAbsent(level, key -> new Sections());
-        int version = sections.versions.get(section);
-        if (sections.refs.addTo(section, 1) == 0) {
-            sections.versions.put(section, version = 0);
-            watched++;
+        for (; ; ) {
+            Sections sections = BY_LEVEL.computeIfAbsent(level, key -> new Sections());
+            synchronized (sections) {
+                if (sections.dead) {
+                    continue;
+                }
+                if (sections.refs.addTo(section, 1) == 0) {
+                    sections.versions.put(section, new AtomicInteger());
+                    WATCHED.incrementAndGet();
+                    return 0;
+                }
+                return sections.versions.get(section).get();
+            }
         }
-        return version;
     }
 
     /** Drops a reference taken by {@link #watch}. */
@@ -51,19 +59,22 @@ public final class MineSectionWatch {
         if (sections == null) {
             return;
         }
-        int refs = sections.refs.get(section);
-        if (refs <= 0) {
-            return;
-        }
-        if (refs == 1) {
-            sections.refs.remove(section);
-            sections.versions.remove(section);
-            watched--;
-            if (sections.refs.isEmpty()) {
-                BY_LEVEL.remove(level, sections);
+        synchronized (sections) {
+            int refs = sections.refs.get(section);
+            if (refs <= 0) {
+                return;
             }
-        } else {
-            sections.refs.put(section, refs - 1);
+            if (refs == 1) {
+                sections.refs.remove(section);
+                sections.versions.remove(section);
+                WATCHED.decrementAndGet();
+                if (sections.refs.isEmpty()) {
+                    sections.dead = true;
+                    BY_LEVEL.remove(level, sections);
+                }
+            } else {
+                sections.refs.put(section, refs - 1);
+            }
         }
     }
 
@@ -73,7 +84,8 @@ public final class MineSectionWatch {
         if (sections == null) {
             return UNWATCHED;
         }
-        return sections.refs.containsKey(section) ? sections.versions.get(section) : UNWATCHED;
+        AtomicInteger version = sections.versions.get(section);
+        return version == null ? UNWATCHED : version.get();
     }
 
     /** @return the key {@link #watch} and {@link #version} take for the section containing {@code pos}. */
@@ -90,10 +102,9 @@ public final class MineSectionWatch {
         if (sections == null) {
             return;
         }
-        long section = SectionPos.asLong(pos);
-        int version = sections.versions.get(section);
-        if (version != sections.versions.defaultReturnValue()) {
-            sections.versions.put(section, version + 1);
+        AtomicInteger version = sections.versions.get(SectionPos.asLong(pos));
+        if (version != null) {
+            version.incrementAndGet();
         }
     }
 
@@ -101,18 +112,20 @@ public final class MineSectionWatch {
     public static void onLevelUnload(LevelEvent.Unload event) {
         Sections sections = BY_LEVEL.remove(event.getLevel());
         if (sections != null) {
-            watched -= sections.refs.size();
+            synchronized (sections) {
+                sections.dead = true;
+                WATCHED.addAndGet(-sections.refs.size());
+                sections.refs.clear();
+                sections.versions.clear();
+            }
         }
     }
 
+    /** {@code refs}, {@code dead}: guarded by this; {@code versions}: lock-free read, writes under the lock. */
     private static final class Sections {
 
-        private final Long2IntOpenHashMap versions = new Long2IntOpenHashMap();
         private final Long2IntOpenHashMap refs = new Long2IntOpenHashMap();
-
-        private Sections() {
-            versions.defaultReturnValue(UNWATCHED);
-            refs.defaultReturnValue(0);
-        }
+        private final ConcurrentHashMap<Long, AtomicInteger> versions = new ConcurrentHashMap<>();
+        private boolean dead;
     }
 }

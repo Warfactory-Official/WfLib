@@ -15,12 +15,15 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import com.wf.wflib.cam.GimbalMath;
 import com.wf.wflib.cam.StaticCameraFeeds;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -37,7 +40,7 @@ public final class CameraNet {
     /** How far back {@link #quietFor} can see. */
     private static final int QUIET_HORIZON = 6000;
 
-    private static final Map<ResourceKey<Level>, Cameras> BY_LEVEL = new HashMap<>();
+    private static final Map<ResourceKey<Level>, Cameras> BY_LEVEL = new ConcurrentHashMap<>();
     private static final List<Entitlement> ENTITLEMENTS = new ArrayList<>();
     /** Subscriptions to an entity's feed, all levels; 0 => {@link #watches} off the tracking hot path. */
     private static int entityWatches;
@@ -65,12 +68,43 @@ public final class CameraNet {
     // --- monitors -------------------------------------------------------------------------------------
 
     /** A monitor block claims a feed. */
-    public static void registerMonitor(ServerLevel level, BlockPos pos, int feedId, int[] feedIds) {
-        of(level).monitors.put(pos.asLong(), new Monitor(feedId, feedIds, level.getGameTime()));
+    static Monitor registerMonitor(ServerLevel level, BlockPos pos, int feedId, int[] feedIds) {
+        Monitor monitor = new Monitor(feedId, feedIds, level.getGameTime());
+        Monitor old = of(level).monitors.put(pos.asLong(), monitor);
+        if (old != null) {
+            old.live = false;
+        }
+        return monitor;
+    }
+
+    /**
+     * Region-thread renewal: an unchanged, still-live {@code held} is renewed in place. On the server thread this
+     * is {@link #registerMonitor}.
+     *
+     * @return the monitor now in force; null off the server thread when {@code held} is stale, in which case the
+     *      caller must confine {@link #registerMonitor} to the server thread
+     */
+    @Nullable
+    static Monitor touchMonitor(ServerLevel level, @Nullable Monitor held, BlockPos pos, int feedId, int[] feedIds) {
+        if (level.getServer().isSameThread()) {
+            return registerMonitor(level, pos, feedId, feedIds);
+        }
+        if (held != null && held.live && held.feedId == feedId && Arrays.equals(held.feedIds, feedIds)) {
+            held.renewed = level.getGameTime();
+            return held;
+        }
+        return null;
     }
 
     public static void unregisterMonitor(ServerLevel level, BlockPos pos) {
-        of(level).monitors.remove(pos.asLong());
+        if (!level.getServer().isSameThread()) {
+            ChunkTicketOps.run(level, () -> unregisterMonitor(level, pos));
+            return;
+        }
+        Monitor old = of(level).monitors.remove(pos.asLong());
+        if (old != null) {
+            old.live = false;
+        }
     }
 
     // --- subscriptions --------------------------------------------------------------------------------
@@ -191,14 +225,11 @@ public final class CameraNet {
     public record Order(ServerPlayer player, float yaw, float pitch) {
     }
 
+    /** Any thread: reads the snapshot the server thread republishes on every {@link #aim} and tick (<= 1 tick stale). */
     @Nullable
     public static Order order(ServerLevel level, int feedId) {
         Cameras cameras = BY_LEVEL.get(level.dimension());
-        Cam cam = cameras == null ? null : cameras.cams.get(feedId);
-        if (cam == null || cam.aimedBy == null || !cameras.watches(level, feedId, cam.aimedBy)) {
-            return null;
-        }
-        return new Order(cam.aimedBy, cam.desiredYaw, cam.desiredPitch);
+        return cameras == null ? null : cameras.orders.get(feedId);
     }
 
     /** @return players with this feed on screen by subscription; monitor audiences excluded. */
@@ -242,6 +273,7 @@ public final class CameraNet {
         if (cam.spec.fitted(wanted)) {
             cam.mode = wanted;
         }
+        cameras.publishOrders(level);
     }
 
     // --- tick -----------------------------------------------------------------------------------------
@@ -253,6 +285,7 @@ public final class CameraNet {
         }
         long now = level.getGameTime();
         cameras.expire(now);
+        cameras.publishOrders(level);
         if (now % PUBLISH_INTERVAL != 0) {
             return;
         }
@@ -395,7 +428,25 @@ public final class CameraNet {
      * @param feedId the channel this monitor is showing, which is what passers-by see
      * @param feedIds every channel bound to it, which is what its operator may switch to
      */
-    private record Monitor(int feedId, int[] feedIds, long renewed) {
+    static final class Monitor {
+        private final int feedId;
+        private final int[] feedIds;
+        private volatile long renewed;
+        private volatile boolean live = true;
+
+        private Monitor(int feedId, int[] feedIds, long renewed) {
+            this.feedId = feedId;
+            this.feedIds = feedIds;
+            this.renewed = renewed;
+        }
+
+        int feedId() {
+            return feedId;
+        }
+
+        long renewed() {
+            return renewed;
+        }
 
         boolean shows(int id) {
             if (id == this.feedId) {
@@ -467,9 +518,11 @@ public final class CameraNet {
     private static final class Cameras {
         private final Map<Integer, Cam> cams = new HashMap<>();
         private final Map<Long, Monitor> monitors = new HashMap<>();
-        private final Map<UUID, Watch> watching = new HashMap<>();
+        private final Map<UUID, Watch> watching = new ConcurrentHashMap<>();
         /** Feed id to the last game time it had anybody on it. Read by the off-world sim, never by publish. */
-        private final Map<Integer, Long> lastWatched = new HashMap<>();
+        private final Map<Integer, Long> lastWatched = new ConcurrentHashMap<>();
+        /** Immutable; replaced by the server thread, read by region-thread cameras ({@link #order}). */
+        private volatile Map<Integer, Order> orders = Map.of();
         /** The audience map, memoised for the tick it was built on. */
         private Map<Integer, List<Anchor>> cachedAudiences;
         private long cachedAt = Long.MIN_VALUE;
@@ -477,7 +530,9 @@ public final class CameraNet {
         void expire(long now) {
             this.cachedAudiences = null;
             for (Iterator<Map.Entry<Long, Monitor>> it = monitors.entrySet().iterator(); it.hasNext(); ) {
-                if (now - it.next().getValue().renewed() > SUBSCRIPTION_TTL) {
+                Monitor monitor = it.next().getValue();
+                if (now - monitor.renewed() > SUBSCRIPTION_TTL) {
+                    monitor.live = false;
                     it.remove();
                 }
             }
@@ -485,6 +540,21 @@ public final class CameraNet {
                 recountEntityWatches();
             }
             lastWatched.values().removeIf(at -> now - at > QUIET_HORIZON);
+        }
+
+        /** Server thread: orders whose operator still watches. Skips the audience pass while nothing is aimed. */
+        void publishOrders(ServerLevel level) {
+            Map<Integer, Order> out = null;
+            for (Map.Entry<Integer, Cam> entry : cams.entrySet()) {
+                Cam cam = entry.getValue();
+                if (cam.aimedBy != null && watches(level, entry.getKey(), cam.aimedBy)) {
+                    if (out == null) {
+                        out = new HashMap<>();
+                    }
+                    out.put(entry.getKey(), new Order(cam.aimedBy, cam.desiredYaw, cam.desiredPitch));
+                }
+            }
+            this.orders = out == null ? Map.of() : Map.copyOf(out);
         }
 
         boolean watches(ServerLevel level, int feedId, ServerPlayer player) {

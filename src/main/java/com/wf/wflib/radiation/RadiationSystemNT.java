@@ -34,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -44,6 +43,7 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
+import com.wf.wflib.core.api.WorldThread;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 public final class RadiationSystemNT {
@@ -60,9 +60,12 @@ public final class RadiationSystemNT {
 
     static final int[] FACE_DX = {0, 0, 0, 0, -1, 1}, FACE_DY = {-1, 1, 0, 0, 0, 0}, FACE_DZ = {0, 0, -1, 1, 0, 0};
     static final int[] FACE_PLANE = new int[6 * 256];
-    // Server-thread only; read inside join barrier.
-    static final Map<ServerLevel, WorldRadiationData> worldMap = new HashMap<>(4);
-    private static final Map<ServerLevel, Double> disabledAmbient = new HashMap<>(4);
+    // Mutated on the world thread only; region workers read.
+    static final Map<ServerLevel, WorldRadiationData> worldMap = new ConcurrentHashMap<>(4);
+    private static final Map<ServerLevel, Double> disabledAmbient = new ConcurrentHashMap<>(4);
+    static final RadiationWriteQueue<ServerLevel> WORKER_WRITES = new RadiationWriteQueue<>();
+    static final int WRITE_DRAIN_LIMIT = 1 << 16;
+    static final long DEMAND_HOLD_TICKS = 100L;
     static final int[] BOUNDARY_MASKS = {0, 0, 0xF00, 0xF00, 0xFF0, 0xFF0}, LINEAR_OFFSETS = {-256, 256, -16, 16, -1, 1};
     static final int PROFILE_WINDOW = 200;
     static final int FOG_DRAIN_LIMIT = 8;
@@ -108,7 +111,9 @@ public final class RadiationSystemNT {
     static final long DESTROY_PROB_U64 = Long.divideUnsigned(-1L, 100L);
     static final CompletableFuture<Void> COMPLETED = CompletableFuture.completedFuture(null);
     static volatile int resistantStateVersion;
-    static long ticks;
+    static volatile long ticks;
+    /** Last sim tick a worker read the field; snapshots are built only while this is recent. */
+    static volatile long workerDemandTick = Long.MIN_VALUE / 2;
     static @NotNull CompletableFuture<Void> radiationFuture = COMPLETED;
     static boolean serverStopping;
 
@@ -170,13 +175,58 @@ public final class RadiationSystemNT {
         ticks++;
         if ((ticks + 17) % tickDelay != 0) return;
         awaitSimulation();
+        drainWorkerWrites(WRITE_DRAIN_LIMIT);
         runWorldEffects();
         // Rebuild on server thread; WRD sweep async, joined lazily.
         runRebuilds();
         radiationFuture = CompletableFuture.runAsync(RadiationSystemNT::runSweeps, RAD_POOL);
     }
 
-    // Join in-flight sweep before server-thread WRD access.
+    static boolean offWorldThread() {
+        return WorldThread.armed() && !WorldThread.isWorldThread();
+    }
+
+    // World thread, sweep joined.
+    static void drainWorkerWrites(int limit) {
+        try {
+            WORKER_WRITES.drain(DRAIN_SINK, limit);
+        } catch (RuntimeException ex) {
+            LOGGER.error("Radiation worker write failed", ex);
+        }
+    }
+
+    private static final RadiationWriteQueue.Sink<ServerLevel> DRAIN_SINK = new RadiationWriteQueue.Sink<>() {
+        @Override
+        public void add(ServerLevel world, long pos, double amount) {
+            addOrEmit(world, BlockPos.of(pos), amount, 0.0D, false);
+        }
+
+        @Override
+        public void emit(ServerLevel world, long pos, double emission, double saturation) {
+            addOrEmit(world, BlockPos.of(pos), emission, saturation, true);
+        }
+
+        @Override
+        public void set(ServerLevel world, long pos, double amount) {
+            setRad(world, BlockPos.of(pos), amount);
+        }
+
+        @Override
+        public void mark(ServerLevel world, long sectionKey) {
+            markSection(world, sectionKey);
+        }
+
+        @Override
+        public void dirty(ServerLevel world, long chunkKey, int slot) {
+            WorldRadiationData data = worldMap.get(world);
+            if (data == null) return;
+            int id = data.getId(chunkKey);
+            if (id < 0 || id >= data.nextId || data.cks[id] != chunkKey) return;
+            data.dirtyCk.add(chunkKey, id, slot);
+        }
+    };
+
+    // World thread only: joins the in-flight sweep before WRD access.
     static void awaitSimulation() {
         if (radiationFuture == COMPLETED) return;
         try {
@@ -398,6 +448,7 @@ public final class RadiationSystemNT {
     public static void onServerSave(MinecraftServer server, boolean flush) {
         if (!RadiationConfig.get().enableChunkRads()) return;
         awaitSimulation();
+        drainWorkerWrites(Integer.MAX_VALUE);
         saveDirtySidecar(flush);
     }
 
@@ -412,8 +463,10 @@ public final class RadiationSystemNT {
             radiationFuture = COMPLETED;
         }
         try {
+            drainWorkerWrites(Integer.MAX_VALUE);
             saveDirtySidecar(true);
         } finally {
+            WORKER_WRITES.clear();
             for (WorldRadiationData data : worldMap.values()) data.logLifetimeProfiling();
             try {
                 SIDE_CAR.close();
@@ -461,8 +514,9 @@ public final class RadiationSystemNT {
     }
 
     public static boolean jettisonData(ServerLevel world) {
-        WorldRadiationData data = worldMap.get(world);
         awaitSimulation();
+        drainWorkerWrites(Integer.MAX_VALUE);
+        WorldRadiationData data = worldMap.get(world);
         try {
             SIDE_CAR.deleteDimension(world);
             sidecarEpochs.computeIfAbsent(world.dimension(), ignored -> new AtomicLong()).incrementAndGet();
@@ -472,6 +526,7 @@ public final class RadiationSystemNT {
             return false;
         }
         if (data == null) return true;
+        data.published = null;
         data.pocketToDestroy = Long.MIN_VALUE;
         data.destructionQueue.clear();
         data.fogQueue.clear();
@@ -500,6 +555,11 @@ public final class RadiationSystemNT {
 
     private static void addOrEmit(ServerLevel world, BlockPos pos, double emission, double saturation,
                                   boolean isSource) {
+        if (offWorldThread()) {
+            if (isSource) WORKER_WRITES.emit(world, pos.asLong(), emission, saturation);
+            else WORKER_WRITES.add(world, pos.asLong(), emission);
+            return;
+        }
         long posLong = pos.asLong();
         long sck = SectionPos.blockToSection(posLong);
         long ck = SectionKeys.sectionToChunkLong(sck);
@@ -524,6 +584,14 @@ public final class RadiationSystemNT {
 
     public static void setRadForCoord(ServerLevel world, BlockPos pos, double amount) {
         if (!RadiationConfig.get().enableChunkRads() || isOutsideWorld(world, pos)) return;
+        if (offWorldThread()) {
+            WORKER_WRITES.set(world, pos.asLong(), amount);
+            return;
+        }
+        setRad(world, pos, amount);
+    }
+
+    private static void setRad(ServerLevel world, BlockPos pos, double amount) {
         long posLong = pos.asLong();
         long sck = SectionPos.blockToSection(posLong);
         long ck = SectionKeys.sectionToChunkLong(sck);
@@ -547,6 +615,11 @@ public final class RadiationSystemNT {
         if (!RadiationConfig.get().enableChunkRads()) {
             return disabledAmbient.computeIfAbsent(world, level -> RadiationSettings.forLevel(level).ambientRadOrDefault());
         }
+        if (offWorldThread()) {
+            WorldRadiationData data = worldMap.get(world);
+            return data != null ? data.ambientRad : disabledAmbient.computeIfAbsent(world,
+                    level -> RadiationSettings.forLevel(level).ambientRadOrDefault());
+        }
         return getWorldRadData(world).ambientRad;
     }
 
@@ -562,12 +635,14 @@ public final class RadiationSystemNT {
         long ck = SectionKeys.sectionToChunkLong(sck);
         LevelChunk chunk = world.getChunkSource().getChunkNow(ChunkPos.getX(ck), ChunkPos.getZ(ck));
         if (chunk == null) return 0D;
-        awaitSimulation();
+        boolean worker = offWorldThread();
+        if (!worker) awaitSimulation();
         WorldRadiationData data = worldMap.get(world);
         if (data == null) return 0D;
         if (isResistantAt(chunk, pos)) return 0D;
         int slot = data.slotOf(SectionPos.y(sck));
         if (slot < 0) return 0D;
+        if (worker) return readPublished(world, data, ck, slot, posLong);
         int ownerId = data.getId(ck);
         if (ownerId < 0) return 0D;
         if (ownerId >= data.cks.length || data.cks[ownerId] != ck) return 0D;
@@ -598,6 +673,21 @@ public final class RadiationSystemNT {
         }
     }
 
+    // Stale <= one sweep; no snapshot yet => 0 and demand registered.
+    private static double readPublished(ServerLevel world, WorldRadiationData data, long ck, int slot,
+                                        long posLong) {
+        long t = ticks;
+        if (workerDemandTick != t) workerDemandTick = t;
+        RadiationSnapshot snapshot = data.published;
+        if (snapshot == null) return 0D;
+        double v = snapshot.read(ck, slot, posLong);
+        if (v != v) {
+            WORKER_WRITES.dirty(world, ck, slot);
+            return 0D;
+        }
+        return v;
+    }
+
     public static void markSectionForRebuild(Level world, BlockPos pos) {
         if (world == null || world.isClientSide() || !RadiationConfig.get().enableChunkRads()) return;
         if (!(world instanceof ServerLevel server)) return;
@@ -609,6 +699,14 @@ public final class RadiationSystemNT {
     public static void markSectionForRebuild(Level world, long sck) {
         if (world == null || world.isClientSide() || !RadiationConfig.get().enableChunkRads()) return;
         if (!(world instanceof ServerLevel ws)) return;
+        if (offWorldThread()) {
+            WORKER_WRITES.mark(ws, sck);
+            return;
+        }
+        markSection(ws, sck);
+    }
+
+    private static void markSection(ServerLevel ws, long sck) {
         long ck = SectionKeys.sectionToChunkLong(sck);
         LevelChunk chunk = ws.getChunkSource().getChunkNow(ChunkPos.getX(ck), ChunkPos.getZ(ck));
         if (chunk == null) return;
@@ -624,6 +722,10 @@ public final class RadiationSystemNT {
     public static void markSectionsForRebuild(Level world, LongIterable sections) {
         if (world == null || world.isClientSide() || !RadiationConfig.get().enableChunkRads()) return;
         if (!(world instanceof ServerLevel ws)) return;
+        if (offWorldThread()) {
+            for (LongIterator it = sections.iterator(); it.hasNext(); ) WORKER_WRITES.mark(ws, it.nextLong());
+            return;
+        }
         awaitSimulation();
         WorldRadiationData data = getWorldRadData(ws);
         LongIterator it = sections.iterator();
@@ -641,6 +743,17 @@ public final class RadiationSystemNT {
         }
     }
 
+    static void sweepAndPublish(WorldRadiationData data) {
+        try {
+            data.runSweepPhases();
+            data.published = ticks - workerDemandTick <= DEMAND_HOLD_TICKS
+                    ? RadiationSnapshot.of(data, data.published) : null;
+        } catch (Throwable t) {
+            LOGGER.error("Error in async rad simulation in dimension {}",
+                    data.world.dimension().location(), t);
+        }
+    }
+
     static void runSweeps() {
         WorldRadiationData[] all = worldMap.values().toArray(new WorldRadiationData[0]);
         int n = all.length;
@@ -649,24 +762,14 @@ public final class RadiationSystemNT {
         if (n == 1) {
             WorldRadiationData data = all[0];
             if (data.world.getServer() == null) return;
-            try {
-                data.runSweepPhases();
-            } catch (Throwable t) {
-                LOGGER.error("Error in async rad simulation in dimension {}",
-                        data.world.dimension().location(), t);
-            }
+            sweepAndPublish(data);
         } else {
             ForkJoinTask<?>[] tasks = new ForkJoinTask<?>[n];
             for (int i = 0; i < n; i++) {
                 WorldRadiationData data = all[i];
                 tasks[i] = ForkJoinTask.adapt(() -> {
                     if (data.world.getServer() == null) return;
-                    try {
-                        data.runSweepPhases();
-                    } catch (Throwable t) {
-                        LOGGER.error("Error in async rad simulation in dimension {}",
-                                data.world.dimension().location(), t);
-                    }
+                    sweepAndPublish(data);
                 });
             }
             ForkJoinTask.invokeAll(tasks);

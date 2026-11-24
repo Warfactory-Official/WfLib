@@ -3,17 +3,20 @@ package com.wf.wflib.missile.api;
 import com.wf.wflib.missile.debug.MissileDebug;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class WFTelemetryService {
 
     public static final int MAX_TRACKED = 128;
 
-    private static final LinkedHashMap<UUID, WFTelemetry> TRACKED = new LinkedHashMap<>();
+    /** Lock-free reads; ORDER (eldest first) guarded by itself, mutations of both under it. */
+    private static final ConcurrentHashMap<UUID, WFTelemetry> TRACKED = new ConcurrentHashMap<>();
+    private static final ArrayDeque<UUID> ORDER = new ArrayDeque<>();
 
     private static volatile boolean autoOpen = false;
 
@@ -33,16 +36,19 @@ public final class WFTelemetryService {
         if (existing != null) {
             return existing;
         }
-        if (TRACKED.size() >= MAX_TRACKED) {
-            Iterator<UUID> it = TRACKED.keySet().iterator();
-            if (it.hasNext()) {
-                it.next();
-                it.remove();
+        synchronized (ORDER) {
+            existing = TRACKED.get(id);
+            if (existing != null) {
+                return existing;
             }
+            if (ORDER.size() >= MAX_TRACKED) {
+                TRACKED.remove(ORDER.pollFirst());
+            }
+            WFTelemetry created = new WFTelemetry(id, gameTime);
+            TRACKED.put(id, created);
+            ORDER.addLast(id);
+            return created;
         }
-        WFTelemetry created = new WFTelemetry(id, gameTime);
-        TRACKED.put(id, created);
-        return created;
     }
 
     public static WFTelemetry get(UUID id) {
@@ -54,15 +60,28 @@ public final class WFTelemetryService {
     }
 
     public static Collection<WFTelemetry> all() {
-        return new ArrayList<>(TRACKED.values());
+        synchronized (ORDER) {
+            List<WFTelemetry> out = new ArrayList<>(ORDER.size());
+            for (UUID id : ORDER) {
+                out.add(TRACKED.get(id));
+            }
+            return out;
+        }
     }
 
     public static void close(UUID id) {
-        TRACKED.remove(id);
+        synchronized (ORDER) {
+            if (TRACKED.remove(id) != null) {
+                ORDER.remove(id);
+            }
+        }
     }
 
     public static void clear() {
-        TRACKED.clear();
+        synchronized (ORDER) {
+            TRACKED.clear();
+            ORDER.clear();
+        }
     }
 
     public static void record(WFTelemetry cached, UUID id, WFEventType type, long gameTime, Vec3 pos,

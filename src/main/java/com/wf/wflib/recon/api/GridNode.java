@@ -6,20 +6,27 @@ import net.minecraft.core.BlockPos;
 public final class GridNode {
 
     private final long id;
+    private final long netId;
     private final BlockPos pos;
 
-    private double linkRange;
-    private double mastHeight;
-    private boolean root;
-    private String label;
-    private long lastRefresh;
+    private volatile double linkRange;
+    private volatile double mastHeight;
+    private volatile boolean root;
+    private volatile String label;
+    private volatile long lastRefresh;
+    private volatile boolean live = true;
 
-    private int hops = -1;
-    private long uplink;
-    private int downstream;
+    // Published by commitRoute; relink works on the pending* copies so a reader never sees the cleared mid-state.
+    private volatile int hops = -1;
+    private volatile long uplink;
+    private volatile int downstream;
+    private int pendingHops = -1;
+    private long pendingUplink;
+    private int pendingDownstream;
 
-    GridNode(BlockPos pos, double linkRange, double mastHeight, boolean root, String label, long gameTime) {
+    GridNode(long netId, BlockPos pos, double linkRange, double mastHeight, boolean root, String label, long gameTime) {
         this.id = pos.asLong();
+        this.netId = netId;
         this.pos = pos.immutable();
         this.linkRange = linkRange;
         this.mastHeight = mastHeight;
@@ -94,19 +101,56 @@ public final class GridNode {
         this.lastRefresh = gameTime;
     }
 
+    long netId() {
+        return netId;
+    }
+
+    /** False once the grid has dropped this node; a holder must re-register. */
+    public boolean live() {
+        return live;
+    }
+
+    void kill() {
+        this.live = false;
+    }
+
+    /** Owner-thread refresh of an unchanged node: no grid mutation. */
+    void touch(long gameTime) {
+        this.lastRefresh = gameTime;
+    }
+
+    boolean matches(double linkRange, double mastHeight, boolean root, String label) {
+        return this.linkRange == linkRange && this.mastHeight == mastHeight && this.root == root
+                && this.label.equals(label);
+    }
+
     void clearRoute() {
-        this.hops = -1;
-        this.uplink = 0L;
-        this.downstream = 0;
+        this.pendingHops = -1;
+        this.pendingUplink = 0L;
+        this.pendingDownstream = 0;
     }
 
     void route(int hops, long uplink) {
-        this.hops = hops;
-        this.uplink = uplink;
+        this.pendingHops = hops;
+        this.pendingUplink = uplink;
     }
 
     void addDownstream() {
-        this.downstream++;
+        this.pendingDownstream++;
+    }
+
+    int pendingHops() {
+        return pendingHops;
+    }
+
+    long pendingUplink() {
+        return pendingUplink;
+    }
+
+    void commitRoute() {
+        this.uplink = pendingUplink;
+        this.downstream = pendingDownstream;
+        this.hops = pendingHops;
     }
 
     /**

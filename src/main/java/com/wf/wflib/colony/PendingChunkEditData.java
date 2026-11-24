@@ -1,5 +1,6 @@
 package com.wf.wflib.colony;
 
+import com.wf.wflib.core.api.LevelCache;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -47,9 +48,11 @@ public final class PendingChunkEditData extends SavedData {
         }
     }
 
+    private static final LevelCache<PendingChunkEditData> CACHE = LevelCache.perLevel(NAME,
+            new SavedData.Factory<>(PendingChunkEditData::new, (tag, lookup) -> load(tag)));
+
     public static PendingChunkEditData get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(PendingChunkEditData::new, (tag, lookup) -> load(tag)), NAME);
+        return CACHE.get(level);
     }
 
     /**

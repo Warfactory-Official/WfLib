@@ -1,5 +1,6 @@
 package com.wf.wflib.recon.api;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.core.api.WorldThread;
 import com.wf.wflib.recon.snapshot.ReconTerrainCache;
 import net.minecraft.core.BlockPos;
@@ -10,11 +11,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** The entry point. */
 public final class ReconNet {
@@ -22,7 +23,8 @@ public final class ReconNet {
     /** The network everything unaffiliated shares. */
     public static final long UNAFFILIATED = 0L;
 
-    private static final Map<ResourceKey<Level>, Map<Long, ReconNetwork>> BY_LEVEL = new HashMap<>();
+    // Mutated on the server thread only; region workers read via existing()/picture()/grid().
+    private static final Map<ResourceKey<Level>, Map<Long, ReconNetwork>> BY_LEVEL = new ConcurrentHashMap<>();
 
     private ReconNet() {
     }
@@ -55,7 +57,59 @@ public final class ReconNet {
                 .register(pos, linkRange, mast, root, label, level.getGameTime());
     }
 
+    /**
+     * Region-thread refresh: an unchanged, still-live {@code held} is refreshed in place (no queue, no allocation).
+     * On the server thread this is exactly {@link #registerNode}.
+     *
+     * @return the node now in force; null off the server thread when {@code held} is stale, in which case the
+     *      caller must confine {@link #registerNode} to the server thread
+     */
+    @Nullable
+    public static GridNode touchNode(ServerLevel level, @Nullable GridNode held, BlockPos pos, long netId,
+                                     double linkRange, double mast, boolean root, String label) {
+        if (level.getServer().isSameThread()) {
+            return registerNode(level, pos, netId, linkRange, mast, root, label);
+        }
+        if (held != null && held.live() && held.netId() == netId && held.matches(linkRange, mast, root, label)) {
+            held.touch(level.getGameTime());
+            return held;
+        }
+        return null;
+    }
+
+    /** {@link #touchNode} for a sensor. */
+    @Nullable
+    public static SensorHandle touchSensor(ServerLevel level, @Nullable SensorHandle held, BlockPos pos,
+                                           SensorSpec spec) {
+        if (level.getServer().isSameThread()) {
+            return registerSensor(level, pos, spec);
+        }
+        if (held != null && held.live() && held.spec().equals(spec)) {
+            held.touch(level.getGameTime());
+            return held;
+        }
+        return null;
+    }
+
+    /** {@link #touchNode} for a met station. */
+    @Nullable
+    public static WeatherStation touchStation(ServerLevel level, @Nullable WeatherStation held, BlockPos pos,
+                                              long netId, double range) {
+        if (level.getServer().isSameThread()) {
+            return registerStation(level, pos, netId, range);
+        }
+        if (held != null && held.live() && held.netId() == netId && held.matches(range)) {
+            held.touch(level.getGameTime());
+            return held;
+        }
+        return null;
+    }
+
     public static void unregisterNode(ServerLevel level, BlockPos pos, long netId) {
+        if (!level.getServer().isSameThread()) {
+            ChunkTicketOps.run(level, () -> unregisterNode(level, pos, netId));
+            return;
+        }
         ReconNetwork net = existing(level, netId);
         if (net != null) {
             net.grid().unregister(pos);
@@ -74,6 +128,10 @@ public final class ReconNet {
     }
 
     public static void unregisterStation(ServerLevel level, BlockPos pos, long netId) {
+        if (!level.getServer().isSameThread()) {
+            ChunkTicketOps.run(level, () -> unregisterStation(level, pos, netId));
+            return;
+        }
         ReconNetwork net = existing(level, netId);
         if (net != null) {
             net.unregisterStation(pos);
@@ -103,6 +161,10 @@ public final class ReconNet {
     }
 
     public static void unregisterSensor(ServerLevel level, BlockPos pos, long netId) {
+        if (!level.getServer().isSameThread()) {
+            ChunkTicketOps.run(level, () -> unregisterSensor(level, pos, netId));
+            return;
+        }
         Map<Long, ReconNetwork> nets = BY_LEVEL.get(level.dimension());
         if (nets == null) {
             return;
@@ -184,7 +246,7 @@ public final class ReconNet {
     }
 
     private static ReconNetwork network(ServerLevel level, long netId) {
-        return BY_LEVEL.computeIfAbsent(level.dimension(), k -> new HashMap<>())
+        return BY_LEVEL.computeIfAbsent(level.dimension(), k -> new ConcurrentHashMap<>())
                 .computeIfAbsent(netId, ReconNetwork::new);
     }
 }

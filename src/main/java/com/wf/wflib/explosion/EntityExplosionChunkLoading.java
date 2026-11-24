@@ -1,5 +1,6 @@
 package com.wf.wflib.explosion;
 
+import com.wf.wflib.core.api.ChunkTicketOps;
 import com.wf.wflib.missile.api.WFChunkValidation;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.nbt.CompoundTag;
@@ -41,7 +42,7 @@ public abstract class EntityExplosionChunkLoading extends Entity {
         int cz = blockPosition().getZ() >> 4;
         for (int x = cx - chunkRadius; x <= cx + chunkRadius; x++) {
             for (int z = cz - chunkRadius; z <= cz + chunkRadius; z++) {
-                if (forcedChunks.add(ChunkPos.asLong(x, z))) CHUNK_TICKET.forceChunk(server, this, x, z, true, true);
+                if (forcedChunks.add(ChunkPos.asLong(x, z))) ChunkTicketOps.force(CHUNK_TICKET, server, getUUID(), x, z, true, true);
             }
         }
         anchored = true;
@@ -50,7 +51,7 @@ public abstract class EntityExplosionChunkLoading extends Entity {
     protected void ensureForced() {
         if (released || anchored || forcedChunks.isEmpty() || !(level() instanceof ServerLevel server)) return;
         for (long key : forcedChunks) {
-            CHUNK_TICKET.forceChunk(server, this, ChunkPos.getX(key), ChunkPos.getZ(key), true, true);
+            ChunkTicketOps.force(CHUNK_TICKET, server, getUUID(), ChunkPos.getX(key), ChunkPos.getZ(key), true, true);
         }
         anchored = true;
     }
@@ -60,7 +61,7 @@ public abstract class EntityExplosionChunkLoading extends Entity {
         released = true;
         if (anchored) {
             for (long key : forcedChunks) {
-                CHUNK_TICKET.forceChunk(server, this, ChunkPos.getX(key), ChunkPos.getZ(key), false, true);
+                ChunkTicketOps.force(CHUNK_TICKET, server, getUUID(), ChunkPos.getX(key), ChunkPos.getZ(key), false, true);
             }
         }
         anchored = false;

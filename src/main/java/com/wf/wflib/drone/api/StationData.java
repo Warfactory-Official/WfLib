@@ -1,5 +1,6 @@
 package com.wf.wflib.drone.api;
 
+import com.wf.wflib.core.api.LevelCache;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -14,10 +15,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** The code-to-station directory, and the only thing that knows what a station code means. */
 public final class StationData extends SavedData {
@@ -26,15 +27,16 @@ public final class StationData extends SavedData {
     /** Attempts to draw an unused code before giving up. */
     private static final int CODE_ATTEMPTS = 8;
 
-    private final Map<String, StationRecord> byCode = new HashMap<>();
+    private static final LevelCache<StationData> CACHE = LevelCache.overworld(NAME,
+            new SavedData.Factory<>(StationData::new, (tag, reg) -> StationData.load(tag)));
+
+    private final Map<String, StationRecord> byCode = new ConcurrentHashMap<>();
 
     /**
      * @return the server-wide station directory, held on the overworld.
      */
     public static StationData get(MinecraftServer server) {
-        ServerLevel overworld = server.overworld();
-        return overworld.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(StationData::new, (tag, reg) -> StationData.load(tag)), NAME);
+        return CACHE.get(server);
     }
 
     public static StationData get(ServerLevel level) {
@@ -62,7 +64,7 @@ public final class StationData extends SavedData {
     }
 
     /** Give a pad a code, or return the one it already has. */
-    public String register(ServerLevel level, BlockPos pos) {
+    public synchronized String register(ServerLevel level, BlockPos pos) {
         StationRecord existing = at(level.dimension(), pos);
         if (existing != null) {
             return existing.code();
@@ -101,7 +103,7 @@ public final class StationData extends SavedData {
         return null;
     }
 
-    public void forget(ResourceKey<Level> dimension, BlockPos pos) {
+    public synchronized void forget(ResourceKey<Level> dimension, BlockPos pos) {
         StationRecord record = at(dimension, pos);
         if (record != null) {
             byCode.remove(record.code());

@@ -2,6 +2,7 @@ package com.wf.wflib.missile.api;
 
 import com.wf.wflib.missile.api.MissileEntity.Phase;
 import com.wf.wflib.sim.api.SimTargets;
+import com.wf.wflib.sim.api.WorldInbox;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -15,6 +16,9 @@ final class MissileTicker {
     }
 
     public static void tick(MissileEntity m, ServerLevel level) {
+        if (m.fuze().awaiting()) {
+            return;
+        }
         if (m.isDud()) {
             m.damage().tickDudDefuse(level);
             return;
@@ -112,6 +116,12 @@ final class MissileTicker {
                 || ctx.horizontalDist() <= MissileConfig.destinationRange()
                 || SimTargets.kept(m)
                 || SimMissileManager.nearAnyListener(level, m.position())) {
+            return false;
+        }
+        if (WorldInbox.offWorld()) {
+            if (m.swarm().getSwarmId() == 0L || m.swarm().isCommander()) {
+                SimMissileManager.requestOffload(m, level);
+            }
             return false;
         }
         if (m.swarm().getSwarmId() == 0L) {

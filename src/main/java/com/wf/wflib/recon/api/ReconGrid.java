@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -38,8 +39,9 @@ public final class ReconGrid {
     private int epoch;
     private int linkedEpoch = -1;
     private long lastLink = Long.MIN_VALUE;
-    private int onlineCount;
-    private int rootCount;
+    private volatile int onlineCount;
+    private volatile int rootCount;
+    private volatile GridNode[] view = new GridNode[0];
 
     /**
      * Owned by the {@code ReconNetwork} with the same id, which is the only thing that should be calling the
@@ -53,12 +55,17 @@ public final class ReconGrid {
         return netId;
     }
 
+    /** Snapshot: safe to walk from any thread. */
     public Collection<GridNode> nodes() {
-        return Collections.unmodifiableCollection(nodes.values());
+        return Collections.unmodifiableList(Arrays.asList(view));
     }
 
     public int nodeCount() {
-        return nodes.size();
+        return view.length;
+    }
+
+    private void republish() {
+        this.view = nodes.values().toArray(new GridNode[0]);
     }
 
     /**
@@ -111,14 +118,18 @@ public final class ReconGrid {
             }
             return existing;
         }
-        GridNode node = new GridNode(pos, linkRange, mastHeight, root, label, gameTime);
+        GridNode node = new GridNode(netId, pos, linkRange, mastHeight, root, label, gameTime);
         nodes.put(node.id(), node);
+        republish();
         epoch++;
         return node;
     }
 
     public void unregister(BlockPos pos) {
-        if (nodes.remove(pos.asLong()) != null) {
+        GridNode removed = nodes.remove(pos.asLong());
+        if (removed != null) {
+            removed.kill();
+            republish();
             epoch++;
         }
     }
@@ -131,11 +142,18 @@ public final class ReconGrid {
      * Drop timed-out nodes, and relink if anything has changed or enough time has passed.
      */
     public void tick(ServerLevel level, long gameTime) {
+        boolean dropped = false;
         for (Iterator<Map.Entry<Long, GridNode>> it = nodes.entrySet().iterator(); it.hasNext(); ) {
-            if (gameTime - it.next().getValue().lastRefresh() > NODE_TIMEOUT) {
+            GridNode node = it.next().getValue();
+            if (gameTime - node.lastRefresh() > NODE_TIMEOUT) {
+                node.kill();
                 it.remove();
+                dropped = true;
                 epoch++;
             }
+        }
+        if (dropped) {
+            republish();
         }
         if (epoch != linkedEpoch || gameTime - lastLink >= RELINK_INTERVAL) {
             relink(level);
@@ -165,7 +183,7 @@ public final class ReconGrid {
 
         while (!frontier.isEmpty()) {
             GridNode from = frontier.poll();
-            if (from.hops() >= MAX_HOPS) {
+            if (from.pendingHops() >= MAX_HOPS) {
                 continue;
             }
             for (Iterator<GridNode> it = unvisited.iterator(); it.hasNext(); ) {
@@ -173,7 +191,7 @@ public final class ReconGrid {
                 if (!from.withinRange(to) || !clearBetween(level, from, to)) {
                     continue;
                 }
-                to.route(from.hops() + 1, from.id());
+                to.route(from.pendingHops() + 1, from.id());
                 it.remove();
                 frontier.add(to);
             }
@@ -181,19 +199,22 @@ public final class ReconGrid {
 
         int online = 0;
         for (GridNode node : nodes.values()) {
-            if (!node.online()) {
+            if (node.pendingHops() < 0) {
                 continue;
             }
             online++;
-            long up = node.uplink();
+            long up = node.pendingUplink();
             for (int guard = 0; up != 0L && guard <= MAX_HOPS; guard++) {
                 GridNode parent = nodes.get(up);
                 if (parent == null) {
                     break;
                 }
                 parent.addDownstream();
-                up = parent.uplink();
+                up = parent.pendingUplink();
             }
+        }
+        for (GridNode node : nodes.values()) {
+            node.commitRoute();
         }
         this.onlineCount = online;
     }

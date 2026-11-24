@@ -1,9 +1,11 @@
 package com.wf.wflib.grenade.api;
 
+import com.wf.wflib.core.api.HitRouter;
 import com.norwood.ahf.hit.HitRegistration;
 import com.norwood.ahf.part.HitboxPart;
 import com.wf.wflib.geom.api.PreciseHitbox;
 import com.wf.wflib.damage.api.BlastDamageSource;
+import net.minecraft.world.damagesource.DamageSource;
 import com.wf.wflib.damage.api.DamageClass;
 import com.wf.wflib.damage.api.WFDamageSources;
 import com.wf.wflib.round.api.Rounds;
@@ -119,8 +121,10 @@ public final class FragRays {
             if (struck > 0 && damage >= 0.5f) {
                 victims++;
                 hits += struck;
-                victim.hurt(BlastDamageSource.of(WFDamageSources.create(level, DamageClass.EXPLOSIVE, attacker, direct, faction),
-                        victim, pos, through, part), damage);
+                DamageSource source = BlastDamageSource.of(WFDamageSources.create(level, DamageClass.EXPLOSIVE, attacker, direct, faction),
+                        victim, pos, through, part);
+                float dealt = damage;
+                HitRouter.apply(level, victim, () -> victim.hurt(source, dealt));
             }
         }
         return new Result(victims, hits);
