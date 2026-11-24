@@ -55,6 +55,7 @@
     "physics.MixinServerGamePacketListenerImplDeck"
   ],
   "client": [
+    "cam.MixinCameraOverhaulGate",
     "drone.MixinCameraDronePilot",
     "soldier.MixinHumanoidArmorLayerLamp",
     "nvg.MixinHumanoidArmorLayerNvg",

@@ -43,6 +43,9 @@ public class WFMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.endsWith("MixinLevelRegionIndexTickEnd")) {
             return isModLoaded("tessellate");
         }
+        if (mixinClassName.endsWith("MixinCameraOverhaulGate")) {
+            return isModLoaded("cameraoverhaulneoforge");
+        }
         if (mixinClassName.contains(".compat.")) {
             return isModLoaded("gtceu");
         }

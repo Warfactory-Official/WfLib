@@ -105,7 +105,8 @@ public enum PenMaterial {
                 return VALUES[m];
             }
         }
-        if (state.getDestroySpeed(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0.0f) {
+        // Not getDestroySpeed: dynamic hardness (Dynamic Trees) reads server config, unloaded at tags/data-map update.
+        if (state.getBlock().defaultDestroyTime() < 0.0f) {
             return IMPENETRABLE;
         }
         float blast = state.getExplosionResistance(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, null);

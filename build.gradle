@@ -370,6 +370,7 @@ dependencies {
     compileOnly("maven.modrinth:journeymap:${journeymap_version}") { transitive = false }
 
     // --- Xaero's World Map + Minimap (compile-only, dev runtime behind -Pxaero) ---------------
+    compileOnly("curse.maven:camera-overhaul-reforged-1011593:5517123") { transitive = false }
     compileOnly("maven.modrinth:xaeros-world-map:${xaero_worldmap_version}") { transitive = false }
     compileOnly("maven.modrinth:xaeros-minimap:${xaero_minimap_version}") { transitive = false }
     compileOnly fileTree('libs') { include 'xaerolib-*.jar' }
