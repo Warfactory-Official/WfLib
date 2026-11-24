@@ -26,6 +26,12 @@ public final class PhysicsStep {
         RigidStep.stepPartition(level, region);
     }
 
+    /** Active host, null: every body steps at LEVEL_POST. */
+    @Nullable
+    public static RegionHost regionHost() {
+        return RigidStep.regionHost();
+    }
+
     /** {@code on} / {@code off} / {@code off (no host)}. */
     public static String regionMode() {
         return RigidStep.regionMode();
