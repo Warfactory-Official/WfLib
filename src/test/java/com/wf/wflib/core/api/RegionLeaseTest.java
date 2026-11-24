@@ -4,6 +4,7 @@ import com.wf.wflib.physics.api.PhysicsBody;
 import com.wf.wflib.physics.api.RegionHost;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.AABB;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,5 +40,10 @@ class RegionLeaseTest {
         int[] ran = {0};
         host.runLeased(null, BlockPos.ZERO, () -> ran[0]++);
         assertEquals(1, ran[0]);
+    }
+
+    @Test
+    void leaseAreaWithoutTessellateIsNoOp() {
+        RegionLease.leaseArea(null, new AABB(0, 0, 0, 100, 10, 100));
     }
 }

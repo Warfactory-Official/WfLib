@@ -1,6 +1,7 @@
 package com.wf.wflib.soldier.api;
 
 import com.mojang.authlib.GameProfile;
+import com.wf.wflib.core.api.RegionLease;
 import com.wf.wflib.soldier.SoldierProfiler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ClientInformation;
@@ -84,7 +85,7 @@ public final class SoldierPlayer extends ServerPlayer {
     public void tick() {
         if (getServer().getTickCount() % 10 == 0) {      // a client's movement packets would do this
             connection.resetPosition();
-            serverLevel().getChunkSource().move(this);
+            RegionLease.moveOnMain(serverLevel(), this);
         }
         if (tickCount % 20 == 0) getFoodData().setFoodLevel(20);
         zza = forward * (sneak ? 0.3f : 1);

@@ -1,5 +1,6 @@
 package com.wf.wflib.ragdoll;
 
+import com.wf.wflib.core.api.RegionLease;
 import com.norwood.ahf.geometry.Obb;
 import com.norwood.ahf.hit.AhfHitSource;
 import com.norwood.ahf.lagcomp.EntityHistory;
@@ -593,7 +594,7 @@ public final class RagdollServer {
         if (section != body.section) {
             body.section = section;
             if (p instanceof ServerPlayer sp && !(p instanceof FakePlayer)) {
-                unlocked(() -> level.getChunkSource().move(sp));
+                unlocked(() -> RegionLease.moveOnMain(level, sp));
             }
         }
         if (sim.asleep) {

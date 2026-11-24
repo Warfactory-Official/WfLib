@@ -1,5 +1,6 @@
 package com.wf.wflib.recon.api;
 
+import com.wf.wflib.core.api.RegionLease;
 import com.wf.wflib.core.api.OrderedRegistry;
 import com.wf.wflib.core.api.WorldThread;
 import net.minecraft.server.level.ServerLevel;
@@ -26,6 +27,7 @@ public final class ReconTargets {
     /** Everything inside this volume, from every source, deduplicated. */
     public static List<TargetSnapshot> collect(ServerLevel level, AABB volume) {
         WorldThread.assertOn("recon target collection");
+        RegionLease.leaseArea(level, volume);
         List<TargetSnapshot> out = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
         List<Interference.Area> areas = Interference.live(level);
@@ -43,6 +45,7 @@ public final class ReconTargets {
     /** What each source has inside this volume, attributed to the source that produced it. */
     public static List<SourceCensus> census(ServerLevel level, AABB volume) {
         WorldThread.assertOn("recon target census");
+        RegionLease.leaseArea(level, volume);
         List<SourceCensus> out = new ArrayList<>();
         for (TargetSource source : SOURCES.values()) {
             List<TargetSnapshot> found = new ArrayList<>();
