@@ -1,6 +1,7 @@
 package com.wf.wflib.corpse;
 
 import com.mojang.authlib.GameProfile;
+import com.wf.wflib.core.api.HitRouter;
 import com.wf.wflib.corpse.api.CorpseEntity;
 import com.wf.wflib.corpse.api.CorpseSlot;
 import com.wf.wflib.corpse.api.Corpses;
@@ -69,7 +70,7 @@ public final class CorpseDeaths {
         spawn(p.serverLevel(), p, p.getGameProfile(), parts(p), taken, p.getInventory().selected);
     }
 
-    /** Offline stand-in: every slot of {@code owner} emptied into the corpse. */
+    /** Offline stand-in: every slot of {@code owner} emptied into the corpse; spawn + hand-off run on the thread that ticks {@code body} (OP calls from main). */
     public static void claim(ServerPlayer owner, GameProfile profile, LivingEntity body) {
         List<CorpseEntity.Entry> taken = new ArrayList<>();
         CorpseSlots.settle(owner);
@@ -83,7 +84,8 @@ public final class CorpseDeaths {
                 }
             }
         }
-        spawn((ServerLevel) body.level(), body, profile, (byte) 0x7F, taken, owner.getInventory().selected);
+        int selected = owner.getInventory().selected;
+        HitRouter.apply(body.level(), body, () -> spawn((ServerLevel) body.level(), body, profile, (byte) 0x7F, taken, selected));
     }
 
     private static void spawn(ServerLevel level, LivingEntity body, GameProfile profile, byte parts,
