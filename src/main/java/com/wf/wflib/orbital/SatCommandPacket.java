@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.List;
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.WFLib;
 
 /** Satellites app -> server: one command bus line for an own-net bird. */
@@ -19,9 +20,15 @@ public record SatCommandPacket(long satId, String verb, List<String> args) imple
             ByteBufCodecs.VAR_LONG, SatCommandPacket::satId, ByteBufCodecs.stringUtf8(32), SatCommandPacket::verb,
             ByteBufCodecs.stringUtf8(64).apply(ByteBufCodecs.list(8)), SatCommandPacket::args, SatCommandPacket::new);
 
+    private static final PlayerGap GAP = new PlayerGap(50);
+
     public void handle(IPayloadContext ctx) {
         if (ctx.player() instanceof ServerPlayer player) {
-            ctx.enqueueWork(() -> PdaSatellites.command(player, satId, verb, args));
+            ctx.enqueueWork(() -> {
+                if (GAP.allow(player)) {
+                    PdaSatellites.command(player, satId, verb, args);
+                }
+            });
         }
     }
 

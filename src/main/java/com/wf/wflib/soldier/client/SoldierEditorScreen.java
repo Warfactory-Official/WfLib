@@ -188,7 +188,7 @@ public final class SoldierEditorScreen extends Screen implements SharpTextScreen
         layoutDetails();
         button("Delete variant",mx,top+h-28,mw,()->confirm("Delete this variant? Its spawn eggs will stop working.",()->{var d=new JsonObject();d.addProperty("id",unitId);send("delete_unit",d);}));
         slider("Rotate preview",px+4,top+h-127,pw-8,-180,180,rotation,true,v->rotation=(float)v);
-        slider("Deploy count",px+4,top+h-104,pw-8,1,40,count,true,v->count=(int)v);
+        slider("Deploy count",px+4,top+h-104,pw-8,1,SoldierEditor.MAX_DEPLOY,count,true,v->count=(int)v);
         button("Save variant",px+4,top+h-80,pw-8,()->save("save"));
         button("Get spawn egg",px+4,top+h-60,pw-8,()->save("egg"));
         button("Deploy nearby",px+4,top+h-40,pw-8,()->save("spawn"));

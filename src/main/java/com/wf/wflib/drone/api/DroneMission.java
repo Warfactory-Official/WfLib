@@ -5,6 +5,7 @@ import com.wf.wflib.core.api.WFSystems;
 import com.wf.wflib.drone.ai.PowerPolicy;
 import com.wf.wflib.drone.exchange.Obfuscation;
 import com.wf.wflib.warhead.api.Warheads;
+import net.minecraft.util.Mth;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -30,6 +31,7 @@ public final class DroneMission {
     public static final int DEFAULT_LAUNCH_INTERVAL = 20;
     /** The range a configured interval is held to, applied where it enters the system. */
     public static final int MAX_LAUNCH_INTERVAL = 1200;
+    public static final int MAX_COUNT = 64;
 
     public ResourceLocation modelId = DroneModels.DEFAULT;
     public Vec3 destination = Vec3.ZERO;
@@ -364,7 +366,7 @@ public final class DroneMission {
                             missing, origin.distanceTo(destination)));
         }
 
-        int wanted = Math.max(1, count);
+        int wanted = Mth.clamp(count, 1, MAX_COUNT);
         long squadId = wanted > 1 ? squadId(level) : 0L;
         List<DroneEntity> spawned = new ArrayList<>(wanted);
 

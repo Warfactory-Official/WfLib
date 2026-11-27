@@ -27,7 +27,7 @@ final class DronePdaLinks {
             return false;
         }
         ControllableDrone body = DroneTracker.byId(player.serverLevel(), carrier.getUUID());
-        return body == null || !body.orders().isClassified();
+        return body == null || !body.orders().isClassified() && PdaDrones.sideMay(player, body);
     };
 
     static final TerminalNoun TERMINAL = new TerminalNoun() {

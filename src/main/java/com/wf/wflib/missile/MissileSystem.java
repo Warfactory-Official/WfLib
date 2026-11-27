@@ -1,6 +1,7 @@
 package com.wf.wflib.missile;
 
 import com.wf.wflib.core.api.CreativeTabs;
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.ServerTicks;
 import com.wf.wflib.core.api.TickOrder;
 import net.minecraft.resources.ResourceLocation;
@@ -83,6 +84,7 @@ import com.wf.wflib.ui.api.input.MouseSteer;
 public final class MissileSystem implements WFSystem {
     // Shahed pusher prop spin, deg/tick; visual only.
     private static final float SHAHED_ROTOR_SPEED = 45.0f;
+    private static final PlayerGap TV_CONNECT_GAP = new PlayerGap(50, 2);
 
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(Registries.ENTITY_TYPE, WFLib.MODID);
@@ -334,7 +336,7 @@ public final class MissileSystem implements WFSystem {
         r.playToServer(SpawnMissilePacket.TYPE, SpawnMissilePacket.STREAM_CODEC, (pkt, ctx) -> pkt.handle(ctx));
         r.playToServer(TvConnectPacket.TYPE, TvConnectPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> {
-                    if (ctx.player() instanceof ServerPlayer player) {
+                    if (ctx.player() instanceof ServerPlayer player && TV_CONNECT_GAP.allow(player)) {
                         PacketDistributor.sendToPlayer(player, new TvLinkPacket(TvGuidance.connect(player), false));
                     }
                 }));

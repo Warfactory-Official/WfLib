@@ -19,11 +19,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import com.wf.wflib.core.api.WFLib;
+import com.wf.wflib.pda.api.Pda;
 
 /**
  * Server library {@code <world>/pda_music/**.{ogg,opus,oga}}. Only files passing {@link OggAudio#probe} are listed
@@ -63,8 +66,12 @@ public final class ServerMusic {
 
     private static final Map<Key, Transfer> TRANSFERS = new HashMap<>();
     private static final Map<Key, Long> LAST_LIST = new HashMap<>();
-    /** Server thread. */
-    private static final Map<Key, Integer> LOADING = new HashMap<>();
+    private record Want(int id, String name) {
+    }
+
+    /** Server thread. READING: at most one disk read in flight per key. */
+    private static final Map<Key, Want> LOADING = new HashMap<>();
+    private static final Set<Key> READING = new HashSet<>();
 
     private ServerMusic() {
     }
@@ -78,6 +85,9 @@ public final class ServerMusic {
     }
 
     static void list(ServerPlayer player, boolean background) {
+        if (!background && !Pda.carries(player)) {
+            return;
+        }
         long now = Util.getMillis();
         Long last = LAST_LIST.put(new Key(player.getUUID(), background), now);
         if (last != null && now - last < 1000) {
@@ -118,32 +128,49 @@ public final class ServerMusic {
     }
 
     static void fetch(ServerPlayer player, int id, boolean background, String name) {
+        if (!background && !Pda.carries(player)) {
+            return;
+        }
         Key who = new Key(player.getUUID(), background);
         TRANSFERS.remove(who);
-        LOADING.put(who, id);
         if (name.isEmpty()) {
             LOADING.remove(who);
             return;
         }
+        Want want = new Want(id, name);
+        LOADING.put(who, want);
+        if (READING.add(who)) {
+            read(player, who, want);
+        }
+    }
+
+    private static void read(ServerPlayer player, Key who, Want want) {
         MinecraftServer server = player.server;
-        Path root = background ? backgroundRoot(server) : root(server);
+        Path root = who.background() ? backgroundRoot(server) : root(server);
         Util.backgroundExecutor().execute(() -> {
             byte[] data = null;
             try {
-                data = background ? readBackground(root, name) : read(root, name);
+                data = who.background() ? readBackground(root, want.name()) : read(root, want.name());
             } catch (IOException | RuntimeException e) {
-                LOGGER.warn("PDA music fetch '{}' refused: {}", name, e.toString());
+                LOGGER.warn("PDA music fetch '{}' refused: {}", want.name(), e.toString());
             }
             byte[] bytes = data;
             server.execute(() -> {
-                if (player.hasDisconnected() || !Integer.valueOf(id).equals(LOADING.get(who))) {
+                Want latest = LOADING.get(who);
+                if (player.hasDisconnected() || latest == null) {
+                    READING.remove(who);
                     return;
                 }
+                if (!latest.equals(want)) {
+                    read(player, who, latest);
+                    return;
+                }
+                READING.remove(who);
                 LOADING.remove(who);
                 if (bytes == null) {
-                    PacketDistributor.sendToPlayer(player, new MusicChunkPacket(id, 0, 0, new byte[0]));
+                    PacketDistributor.sendToPlayer(player, new MusicChunkPacket(want.id(), 0, 0, new byte[0]));
                 } else {
-                    TRANSFERS.put(who, new Transfer(id, bytes));
+                    TRANSFERS.put(who, new Transfer(want.id(), bytes));
                 }
             });
         });
@@ -276,6 +303,7 @@ public final class ServerMusic {
             Key key = new Key(id, background);
             TRANSFERS.remove(key);
             LOADING.remove(key);
+            READING.remove(key);
             LAST_LIST.remove(key);
         }
     }

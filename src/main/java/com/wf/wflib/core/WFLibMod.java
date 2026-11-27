@@ -15,6 +15,7 @@ import com.wf.wflib.carry.CarrySystem;
 import com.wf.wflib.colony.ColonySystem;
 import com.wf.wflib.compat.CompatSystem;
 import com.wf.wflib.core.api.Hook;
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.ServerTicks;
 import com.wf.wflib.core.api.TickOrder;
 import com.wf.wflib.core.api.ViewRange;
@@ -170,6 +171,7 @@ public class WFLibMod {
 
     public WFLibMod(IEventBus modEventBus, ModContainer modContainer) {
         NeoForge.EVENT_BUS.register(ServerTicks.Listeners.class);
+        NeoForge.EVENT_BUS.register(PlayerGap.class);
         ServerTicks.STARTING.register(
                 ResourceLocation.fromNamespaceAndPath(MODID, "workers"),
                 TickOrder.WORKERS_START, server -> WorkerPool.startup());

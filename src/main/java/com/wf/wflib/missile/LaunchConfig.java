@@ -16,10 +16,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import com.wf.wflib.missile.api.MissileContent;
 
 public final class LaunchConfig {
+    public static final int MAX_FRAGMENTS = 256;
+
     public ResourceLocation modelId = MissileModels.defaultId();
     public ResourceLocation warheadId = Warheads.defaultId();
     public boolean highAltitude;
@@ -169,7 +172,7 @@ public final class LaunchConfig {
         ResourceLocation model = MissileModels.exists(modelId) ? modelId : MissileModels.defaultId();
         ResourceLocation warhead = Warheads.exists(warheadId) ? warheadId : Warheads.defaultId();
         double speed = cruiseSpeed > 1.0E-3 ? cruiseSpeed : MissileEntity.CRUISE_SPEED;
-        int frags = Math.max(0, fragmentCount);
+        int frags = Mth.clamp(fragmentCount, 0, MAX_FRAGMENTS);
         float hp = health > 0.0f ? health : MissileEntity.DEFAULT_HEALTH;
 
         Vec3 target = new Vec3(targetX, targetY, targetZ);

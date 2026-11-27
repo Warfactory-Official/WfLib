@@ -318,6 +318,7 @@
   "wflib.pda.link.already": "Already linked",
   "wflib.pda.link.full": "Drone link list full",
   "wflib.pda.link.classified": "Classified: no link",
+  "wflib.pda.link.foreign": "Another side's drone: no link",
   "wflib.pda.monitor_empty": "That monitor has nothing bound",
   "wflib.pda.monitor_copied": "Copied %s camera channels",
   "wflib.pda.cameras": "%s camera channels (sneak + use a monitor to copy)",

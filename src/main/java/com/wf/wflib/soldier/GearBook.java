@@ -15,7 +15,7 @@ import java.util.UUID;
 
 /** Each player's named loadouts. Unlike the workshop's variants they belong to a player, not the world, and need no operator. */
 public final class GearBook extends SavedData {
-    public static final int MAX_PER_PLAYER = 32;
+    public static final int MAX_PER_PLAYER = 32, MAX_SPARES = 12;
 
     /** {@code role} "" and {@code spares} -1 leave those as they are. */
     public record Preset(String name, Want want, String role, int spares) {
@@ -23,7 +23,7 @@ public final class GearBook extends SavedData {
             name = name == null ? "" : name.strip();
             if (name.isEmpty() || name.length() > 32 || name.chars().anyMatch(Character::isISOControl))
                 throw new IllegalArgumentException("A preset name is 1-32 printable characters");
-            if (role == null || role.length() > 16 || spares < -1 || spares > 12) throw new IllegalArgumentException("Invalid preset");
+            if (role == null || role.length() > 16 || spares < -1 || spares > MAX_SPARES) throw new IllegalArgumentException("Invalid preset");
         }
 
         public JsonObject json() {

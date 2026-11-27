@@ -160,7 +160,7 @@ public final class PdaTerminal {
 
                     @Override
                     public String rename(ServerPlayer p, @Nullable String name) {
-                        if (!(p.serverLevel().getBlockEntity(n.pos()) instanceof NamedNode named)) {
+                        if (!p.serverLevel().isLoaded(n.pos()) || !(p.serverLevel().getBlockEntity(n.pos()) instanceof NamedNode named)) {
                             return "err: no renamable node '" + n.label() + "'";
                         }
                         named.rename(name == null ? "" : name);

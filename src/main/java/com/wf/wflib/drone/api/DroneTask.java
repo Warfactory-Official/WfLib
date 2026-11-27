@@ -245,7 +245,7 @@ public sealed interface DroneTask {
         public static final double DEFAULT_RADIUS = 40.0;
 
         public Loiter {
-            radius = Mth.clamp(radius, 0.0, MAX_LOITER_RADIUS);
+            radius = Double.isFinite(radius) ? Mth.clamp(radius, 0.0, MAX_LOITER_RADIUS) : DEFAULT_RADIUS;
             ticks = Math.max(0, ticks);
         }
 

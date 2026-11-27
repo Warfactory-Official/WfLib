@@ -60,7 +60,10 @@ public final class DroneDispatchers {
 
     /** Unclaimed, same side or WarForge allies. */
     public static boolean permits(@Nullable UUID playerSide, DroneDispatcher dispatcher) {
-        UUID own = dispatcher.side();
+        return permits(playerSide, dispatcher.side());
+    }
+
+    public static boolean permits(@Nullable UUID playerSide, @Nullable UUID own) {
         return own == null || own.equals(playerSide) || TelemetryLink.allied(playerSide, own);
     }
 }

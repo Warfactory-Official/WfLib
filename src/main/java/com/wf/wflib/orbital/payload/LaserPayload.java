@@ -5,6 +5,7 @@ import com.wf.wflib.explosion.api.BlockAllocatorStandard;
 import com.wf.wflib.explosion.api.BlockProcessorStandard;
 import com.wf.wflib.explosion.api.EntityProcessorCross;
 import com.wf.wflib.explosion.api.PlayerProcessorStandard;
+import com.wf.wflib.orbital.OrbitalCommandBus;
 import com.wf.wflib.orbital.OrbitalConfig;
 import com.wf.wflib.orbital.OrbitalDrop;
 import com.wf.wflib.orbital.api.SatPayload;
@@ -72,11 +73,12 @@ public final class LaserPayload implements SatPayload {
     }
 
     private String fire(ServerLevel level, Satellite self, String[] args) {
-        Double x = number(args[0]);
-        Double z = number(args[1]);
-        if (x == null || z == null) {
+        Vec3 target = OrbitalCommandBus.ground(level, args[0], args[1]);
+        if (target == null) {
             return "err: fire takes two coordinates";
         }
+        double x = target.x;
+        double z = target.z;
         if (!ready()) {
             return String.format(Locale.ROOT, "err: %d of %d charge",
                     (int) charge, (int) OrbitalConfig.LASER_CHARGE);
@@ -85,7 +87,7 @@ public final class LaserPayload implements SatPayload {
         double dx = x - at.x;
         double dz = z - at.z;
         double swath = self.swath();
-        if (dx * dx + dz * dz > swath * swath) {
+        if (!(dx * dx + dz * dz <= swath * swath)) {
             return String.format(Locale.ROOT, "err: target is outside the footprint (%.0f blocks of %.0f)",
                     Math.sqrt(dx * dx + dz * dz), swath);
         }
@@ -128,14 +130,6 @@ public final class LaserPayload implements SatPayload {
             return;
         }
         charge = Math.min(OrbitalConfig.LASER_CHARGE, charge + OrbitalConfig.LASER_CHARGE_RATE);
-    }
-
-    private static Double number(String raw) {
-        try {
-            return Double.valueOf(raw);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     @Override

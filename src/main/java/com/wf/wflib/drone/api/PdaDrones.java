@@ -6,6 +6,7 @@ import com.wf.wflib.cam.api.CameraSpec;
 import com.wf.wflib.cam.api.Datalink;
 import com.wf.wflib.cam.api.FeedTarget;
 import com.wf.wflib.radio.api.RadioCarrier;
+import com.wf.wflib.recon.api.ReconOwners;
 import com.wf.wflib.stream.api.HostWakeup;
 import com.wf.wflib.stream.api.HostWakeupData;
 import net.minecraft.network.chat.Component;
@@ -82,9 +83,14 @@ public final class PdaDrones {
         event.setCancellationResult(InteractionResult.sidedSuccess(player.level().isClientSide));
         if (!player.level().isClientSide) {
             player.displayClientMessage(Component.translatable(drone.orders().isClassified() ? "wflib.pda.link.classified"
+                    : !sideMay(player, drone) ? "wflib.pda.link.foreign"
                     : "wflib.pda.link." + link(event.getItemStack(), drone.getUUID()).name().toLowerCase(Locale.ROOT)),
                     true);
         }
+    }
+
+    public static boolean sideMay(Player player, ControllableDrone drone) {
+        return DroneDispatchers.permits(ReconOwners.owningEntity(player), drone.getTeamId());
     }
 
     /** Gametest seam. */
@@ -410,6 +416,9 @@ public final class PdaDrones {
             }
             if (this.drone.damage().crashed()) {
                 return "downed";
+            }
+            if (!sideMay(player, this.drone)) {
+                return "another side's";
             }
             return this.drone.pilot() != null ? "in use" : null;
         }

@@ -118,9 +118,11 @@ public final class CameraNet {
             return;
         }
         Cameras cameras = of(level);
-        cameras.watching.put(player.getUUID(), new Watch(player, feedId, level.getGameTime()));
-        cameras.cachedAudiences = null;
-        recountEntityWatches();
+        Watch was = cameras.watching.put(player.getUUID(), new Watch(player, feedId, level.getGameTime()));
+        if (was == null || was.player() != player || was.feedId() != feedId) {
+            cameras.cachedAudiences = null;
+            recountEntityWatches();
+        }
     }
 
     /**
@@ -248,7 +250,7 @@ public final class CameraNet {
 
     /** A pointing order. */
     public static void aim(ServerPlayer player, int feedId, float yaw, float pitch, float zoom, int mode) {
-        if (!(player.level() instanceof ServerLevel level)) {
+        if (!(player.level() instanceof ServerLevel level) || !Float.isFinite(yaw + pitch + zoom)) {
             return;
         }
         Cameras cameras = of(level);
@@ -273,7 +275,11 @@ public final class CameraNet {
         if (cam.spec.fitted(wanted)) {
             cam.mode = wanted;
         }
-        cameras.publishOrders(level);
+        long now = level.getGameTime();
+        if (cam.aimPublished != now) {
+            cam.aimPublished = now;
+            cameras.publishOrders(level);
+        }
     }
 
     // --- tick -----------------------------------------------------------------------------------------
@@ -475,6 +481,8 @@ public final class CameraNet {
         private float zoom = 1.0f;
         @Nullable
         private ServerPlayer aimedBy;
+        /** Game tick of the last aim-driven publish; further aims that tick wait for {@link #tick}'s. */
+        private long aimPublished = Long.MIN_VALUE;
         /** The heading of the mount. The centre of the arc, for a gimbal that has one. */
         private float restYaw;
 

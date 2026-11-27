@@ -97,7 +97,7 @@ public final class ImageryPayload implements SatPayload {
             int wz = Mth.floor(at.z - swath) + oz;
             double dx = wx - at.x;
             double dz = wz - at.z;
-            if (dx * dx + dz * dz > swath * swath) {
+            if (!(dx * dx + dz * dz <= swath * swath)) {
                 continue;
             }
             if (!sample(level, raster, self.netId(), wx, wz, now)) {

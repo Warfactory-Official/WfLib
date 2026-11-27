@@ -3,7 +3,9 @@ package com.wf.wflib.orbital;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -23,6 +25,7 @@ import com.wf.wflib.orbital.api.Satellite;
 public final class OrbitalCommandBus {
 
     static final int EXPIRY_TICKS = 6000;
+    static final int MAX_PENDING_PER_SAT = 16;
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Map<ResourceKey<Level>, List<Pending>> QUEUES = new HashMap<>();
@@ -80,8 +83,11 @@ public final class OrbitalCommandBus {
             sat.setReply(reply);
             return reply;
         }
-        QUEUES.computeIfAbsent(level.dimension(), k -> new ArrayList<>())
-                .add(new Pending(sat.rawId(), spec.name(), args, issuer, now + 1, now + EXPIRY_TICKS));
+        List<Pending> queue = QUEUES.computeIfAbsent(level.dimension(), k -> new ArrayList<>());
+        if (queue.stream().filter(pending -> pending.satId == sat.rawId()).count() >= MAX_PENDING_PER_SAT) {
+            return "err: command queue full";
+        }
+        queue.add(new Pending(sat.rawId(), spec.name(), args, issuer, now + 1, now + EXPIRY_TICKS));
         return sat.inContact() ? "queued" : "queued (out of contact - held for the next pass)";
     }
 
@@ -141,16 +147,15 @@ public final class OrbitalCommandBus {
                                   String verb, String[] args, long now) {
         switch (verb) {
             case "park" -> {
-                Double x = number(args[0]);
-                Double z = number(args[1]);
-                if (x == null || z == null) {
+                Vec3 at = ground(level, args[0], args[1]);
+                if (at == null) {
                     return "err: park takes two coordinates";
                 }
-                if (!sat.park(x, z)) {
+                if (!sat.park(at.x, at.z)) {
                     return "err: not enough fuel to reach station";
                 }
                 registry.setDirty();
-                return String.format(Locale.ROOT, "parked over %.0f %.0f, fuel %.0f", x, z, sat.fuel());
+                return String.format(Locale.ROOT, "parked over %.0f %.0f, fuel %.0f", at.x, at.z, sat.fuel());
             }
             case "unpark" -> {
                 if (!sat.parked()) {
@@ -161,17 +166,16 @@ public final class OrbitalCommandBus {
                 return "station broken, orbit resumed";
             }
             case "move" -> {
-                Double x = number(args[0]);
-                Double z = number(args[1]);
+                Vec3 at = ground(level, args[0], args[1]);
                 Double heading = number(args[2]);
-                if (x == null || z == null || heading == null) {
+                if (at == null || heading == null) {
                     return "err: move takes x z heading";
                 }
-                if (!sat.manoeuvre(now, x, z, Math.toRadians(heading))) {
+                if (!sat.manoeuvre(now, at.x, at.z, Math.toRadians(heading))) {
                     return "err: not enough fuel to manoeuvre";
                 }
                 registry.setDirty();
-                return String.format(Locale.ROOT, "new track through %.0f %.0f, fuel %.0f", x, z, sat.fuel());
+                return String.format(Locale.ROOT, "new track through %.0f %.0f, fuel %.0f", at.x, at.z, sat.fuel());
             }
             case "callsign" -> {
                 sat.setCallsign(args[0]);
@@ -218,12 +222,25 @@ public final class OrbitalCommandBus {
     }
 
     @Nullable
-    private static Double number(String raw) {
+    public static Double number(String raw) {
         try {
-            return Double.valueOf(raw);
+            double v = Double.parseDouble(raw);
+            return Double.isFinite(v) ? v : null;
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** Ground point clamped inside the world border; null unless both parse finite. */
+    @Nullable
+    public static Vec3 ground(ServerLevel level, String rawX, String rawZ) {
+        Double x = number(rawX);
+        Double z = number(rawZ);
+        if (x == null || z == null) {
+            return null;
+        }
+        WorldBorder border = level.getWorldBorder();
+        return new Vec3(Mth.clamp(x, border.getMinX(), border.getMaxX()), 0.0, Mth.clamp(z, border.getMinZ(), border.getMaxZ()));
     }
 
     private static final class Pending {

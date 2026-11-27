@@ -56,12 +56,12 @@ public final class SoldierEditorPackets {
                         var u=SoldierTemplate.read(data.getAsJsonObject("unit")); SoldierEditor.save(p.getServer(),u);
                         message="Saved "+u.name();
                         if (action.equals("egg")) { var stack=SoldierEditorEgg.egg(u); if (!p.getInventory().add(stack)) p.drop(stack,false); message="Spawn egg added to inventory"; }
-                        if (action.equals("spawn")) message="Deployed "+SoldierEditor.spawnNear(p,u.id(),data.get("count").getAsInt())+" soldiers";
+                        if (action.equals("spawn")) message="Deployed "+SoldierEditor.spawnNear(p,u.id(),deployCount(data))+" soldiers";
                     }
                     case "delete_unit" -> { r.removeUnit(data.get("id").getAsString()); message="Variant removed; its eggs are disabled"; }
                     case "save_faction" -> { SoldierEditor.faction(p.getServer(),new SoldierRoster.Faction(data.get("id").getAsString(),data.get("name").getAsString(),data.get("hostile").getAsBoolean())); message="Faction saved"; }
                     case "delete_faction" -> { String id=data.get("id").getAsString(); r.removeFaction(id); SoldierEditor.clear(p.getServer(),id); message="Faction, variants and deployed soldiers removed"; }
-                    case "spawn_faction" -> message="Deployed "+SoldierEditor.spawnFaction(p,data.get("id").getAsString(),data.get("count").getAsInt())+" faction soldiers";
+                    case "spawn_faction" -> message="Deployed "+SoldierEditor.spawnFaction(p,data.get("id").getAsString(),deployCount(data))+" faction soldiers";
                     case "clear_faction" -> message="Removed "+SoldierEditor.clear(p.getServer(),data.get("id").getAsString())+" deployed soldiers";
                     default -> throw new IllegalArgumentException("Unknown editor action");
                 }
@@ -72,6 +72,11 @@ public final class SoldierEditorPackets {
                 else p.sendSystemMessage(Component.literal("The soldier editor requires Creative mode"));
             }
         }); }
+    }
+    private static int deployCount(JsonObject data) {
+        int count=data.get("count").getAsInt();
+        if (count<1 || count>SoldierEditor.MAX_DEPLOY) throw new IllegalArgumentException("Count must be 1-"+SoldierEditor.MAX_DEPLOY);
+        return count;
     }
     private static byte[] compress(String value) {
         byte[] raw=value.getBytes(StandardCharsets.UTF_8);

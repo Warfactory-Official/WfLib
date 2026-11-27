@@ -1,5 +1,6 @@
 package com.wf.wflib.orbital.payload;
 
+import com.wf.wflib.orbital.OrbitalCommandBus;
 import com.wf.wflib.orbital.OrbitalConfig;
 import com.wf.wflib.orbital.api.OrbitalNet;
 import com.wf.wflib.orbital.api.SatPayload;
@@ -7,6 +8,7 @@ import com.wf.wflib.orbital.api.SatVerb;
 import com.wf.wflib.orbital.api.Satellite;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Locale;
@@ -49,18 +51,19 @@ public final class RodsPayload implements SatPayload {
     }
 
     private String fire(ServerLevel level, Satellite self, String[] args) {
-        Double x = number(args[0]);
-        Double z = number(args[1]);
-        if (x == null || z == null) {
+        Vec3 target = OrbitalCommandBus.ground(level, args[0], args[1]);
+        if (target == null) {
             return "err: fire takes two coordinates";
         }
+        double x = target.x;
+        double z = target.z;
         if (self.magazine() <= 0) {
             return "err: no rods left - resupply is another launch";
         }
         double dx = x - self.position(level.getGameTime()).x;
         double dz = z - self.position(level.getGameTime()).z;
         double swath = self.swath();
-        if (dx * dx + dz * dz > swath * swath) {
+        if (!(dx * dx + dz * dz <= swath * swath)) {
             return String.format(Locale.ROOT, "err: target is outside the footprint (%.0f blocks of %.0f)",
                     Math.sqrt(dx * dx + dz * dz), swath);
         }
@@ -85,14 +88,6 @@ public final class RodsPayload implements SatPayload {
         return String.format(Locale.ROOT, "%d rod(s) away, %d left, impact in about %ds",
                 away, self.magazine(),
                 (int) (OrbitalConfig.RELEASE_DISTANCE / OrbitalConfig.ROD_SPEED / 20.0));
-    }
-
-    private static Double number(String raw) {
-        try {
-            return Double.valueOf(raw);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     private static Integer integer(String raw) {

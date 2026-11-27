@@ -23,6 +23,7 @@ import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.EntityMountEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -118,6 +119,10 @@ public final class Carry {
             if (!(player.level().getEntity(entity) instanceof ItemEntity item) || item.isRemoved()
                     || !item.getItem().is(CARRIABLE)
                     || item.getBoundingBox().inflate(0.5).distanceToSqr(player.getEyePosition()) > REACH * REACH) {
+                return;
+            }
+            TriState allowed = EventHooks.fireItemPickupPre(item, player).canPickup();
+            if (allowed.isFalse() || allowed.isDefault() && item.getTarget() != null && !item.getTarget().equals(player.getUUID())) {
                 return;
             }
             ItemStack taken = item.getItem().split(1);

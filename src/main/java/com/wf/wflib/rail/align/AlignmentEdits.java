@@ -4,6 +4,7 @@ import com.wf.wflib.compat.api.WarforgeCompat;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.border.WorldBorder;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +37,25 @@ public final class AlignmentEdits {
         FULL
     }
 
+    /** Sum of PI legs; bounds centreline length, which is never longer. */
+    public static final double MAX_LENGTH = 65536.0;
+
     private AlignmentEdits() {
+    }
+
+    /** Finite radii, every PI inside the world border, PI polyline at most {@link #MAX_LENGTH}. */
+    public static boolean valid(WorldBorder border, List<AlignPoint> points) {
+        double length = 0.0;
+        for (int i = 0; i < points.size(); i++) {
+            AlignPoint point = points.get(i);
+            if (!Double.isFinite(point.radius()) || !border.isWithinBounds(point.x(), point.z())) {
+                return false;
+            }
+            if (i > 0) {
+                length += point.distanceTo(points.get(i - 1));
+            }
+        }
+        return length <= MAX_LENGTH;
     }
 
     /**
@@ -67,7 +86,7 @@ public final class AlignmentEdits {
     public static SaveOutcome save(ServerPlayer player, ServerLevel level, UUID id, String name,
                                    int coreColour, DesignClass designClass, List<AlignPoint> points,
                                    int baseRevision) {
-        if (points.size() < 2) {
+        if (points.size() < 2 || !valid(level.getWorldBorder(), points)) {
             return SaveOutcome.INVALID;
         }
         AlignmentData store = AlignmentData.of(level);
@@ -152,6 +171,9 @@ public final class AlignmentEdits {
      */
     public static SaveOutcome setBuilt(ServerPlayer player, ServerLevel level, UUID id, double from,
                                        double to, boolean laid) {
+        if (!Double.isFinite(from + to)) {
+            return SaveOutcome.INVALID;
+        }
         AlignmentData store = AlignmentData.of(level);
         Alignment existing = store.get(id);
         if (existing == null) {

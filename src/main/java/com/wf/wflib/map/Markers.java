@@ -28,7 +28,8 @@ public final class Markers {
             return;
         }
         String clean = label.strip();
-        if (clean.isEmpty() || clean.length() > Marker.MAX_LABEL) {
+        if (clean.isEmpty() || clean.length() > Marker.MAX_LABEL
+                || clean.chars().anyMatch(c -> Character.isISOControl(c) || c == '\u00a7')) {
             return;
         }
         UUID side = MarkerData.side(player);

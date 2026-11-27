@@ -87,6 +87,16 @@ public final class ArmViewPose {
             set = false;
         }
 
+        /** Arms trade hands, x mirrored: elbow directions exchanged, x negated; limits kept. */
+        public static void swapMirrored(Bend a, Bend b) {
+            float x = a.dir.x, y = a.dir.y, z = a.dir.z;
+            boolean set = a.set;
+            a.dir.set(-b.dir.x, b.dir.y, b.dir.z);
+            a.set = b.set;
+            b.dir.set(-x, y, z);
+            b.set = set;
+        }
+
         /** Elbow range of this arm from the next solve; null => {@link ArmLimits#DEFAULT}. */
         public void limits(@Nullable ArmLimits l) {
             limits = l == null ? ArmLimits.DEFAULT : l;

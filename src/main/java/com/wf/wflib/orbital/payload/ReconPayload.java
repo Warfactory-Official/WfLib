@@ -116,7 +116,7 @@ public final class ReconPayload implements SatPayload {
             TargetSnapshot target = targets.get(i);
             double dx = target.x() - at.x;
             double dz = target.z() - at.z;
-            if (dx * dx + dz * dz > swath * swath) {
+            if (!(dx * dx + dz * dz <= swath * swath)) {
                 continue;
             }
             if (target.buried()) {

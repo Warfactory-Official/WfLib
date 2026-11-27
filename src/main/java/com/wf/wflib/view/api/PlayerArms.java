@@ -116,6 +116,11 @@ public final class PlayerArms {
         posedAt[side] = 0;
     }
 
+    /** Arms trade hands, x mirrored (gun to the other shoulder): each takes the other's twist state. */
+    public void swapSides() {
+        ForearmTwist.swapMirrored(twistState[0], twistState[1]);
+    }
+
     /**
      * Hinge joint globals of {@code side}, view space ({@link ArmViewPose#solve}); {@code twist} rad, through the
      * side's {@link ForearmTwist} (wall clock) with {@code swing} rad ({@link ArmViewPose#swing}), corkscrew {@code limit}

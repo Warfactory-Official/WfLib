@@ -16,6 +16,7 @@ import java.util.*;
 
 /** All editor actions (GUI, commands, eggs) cross this server-side authorization/validation boundary. */
 public final class SoldierEditor {
+    public static final int MAX_DEPLOY=40;
     private static final Map<MinecraftServer,SoldierCatalogue> CATALOGUES=new WeakHashMap<>();
     private SoldierEditor() {}
     public static boolean allowed(CommandSourceStack s) { return s.getEntity() instanceof ServerPlayer p ? p.isCreative() && !SoldierAi.scripted(p) : s.hasPermission(2); }

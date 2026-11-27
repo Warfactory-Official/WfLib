@@ -7,6 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.WFLib;
 
 public record NvgActionPacket(Action action) implements CustomPacketPayload {
@@ -24,9 +25,12 @@ public record NvgActionPacket(Action action) implements CustomPacketPayload {
         return TYPE;
     }
 
+    /** Above held-key repeat (~33/s). */
+    private static final PlayerGap GAP = new PlayerGap(25, 4);
+
     public void handle(IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (ctx.player() instanceof ServerPlayer player) {
+            if (ctx.player() instanceof ServerPlayer player && GAP.allow(player)) {
                 NvgServer.act(player, action);
             }
         });

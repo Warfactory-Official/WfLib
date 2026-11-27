@@ -1,5 +1,6 @@
 package com.wf.wflib.rail;
 
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.WFNetwork;
 import com.wf.wflib.rail.align.AlignCompiler;
 import com.wf.wflib.rail.api.Alignment;
@@ -9,8 +10,6 @@ import com.wf.wflib.rail.align.AlignmentEdits;
 import com.wf.wflib.rail.align.AlignmentService;
 import com.wf.wflib.rail.client.PublishedAlignments;
 import com.wf.wflib.rail.client.RouteOwnership;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,7 +31,7 @@ public final class RailNetwork {
                 (pkt, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer player
                             && player.level() instanceof ServerLevel level
-                            && allowSave(player)) {
+                            && SAVE_GAP.allow(player)) {
                         AlignmentEdits.SaveOutcome outcome = AlignmentEdits.save(player, level, pkt.id(),
                                 pkt.name(), pkt.coreColour(), pkt.designClass(), pkt.points(),
                                 pkt.baseRevision());
@@ -43,21 +42,24 @@ public final class RailNetwork {
         registrar.playToServer(RailStatusPacket.TYPE, RailStatusPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer player
-                            && player.level() instanceof ServerLevel level) {
+                            && player.level() instanceof ServerLevel level
+                            && EDIT_GAP.allow(player)) {
                         AlignmentEdits.setStatus(player, level, pkt.id(), pkt.status());
                     }
                 }));
         registrar.playToServer(RailBuildPacket.TYPE, RailBuildPacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer player
-                            && player.level() instanceof ServerLevel level) {
+                            && player.level() instanceof ServerLevel level
+                            && EDIT_GAP.allow(player)) {
                         AlignmentEdits.setBuilt(player, level, pkt.id(), pkt.from(), pkt.to(), pkt.laid());
                     }
                 }));
         registrar.playToServer(RailDeletePacket.TYPE, RailDeletePacket.STREAM_CODEC,
                 (pkt, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer player
-                            && player.level() instanceof ServerLevel level) {
+                            && player.level() instanceof ServerLevel level
+                            && EDIT_GAP.allow(player)) {
                         AlignmentEdits.delete(player, level, pkt.id());
                     }
                 }));
@@ -65,7 +67,8 @@ public final class RailNetwork {
                 (pkt, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer player
                             && player.level() instanceof ServerLevel level
-                            && allowRightOfWay(player)) {
+                            && ROW_GAP.allow(player)
+                            && AlignmentEdits.valid(level.getWorldBorder(), pkt.points())) {
                         var centreline = AlignCompiler.compile(pkt.points(), pkt.designClass()).centreline();
                         WFNetwork.sendToPlayer(player, new RailRightOfWayPacket(
                                 RightOfWaySurvey.survey(player, level, centreline, pkt.designClass())));
@@ -95,7 +98,7 @@ public final class RailNetwork {
      * driven by a client dragging a point, and a client decides for itself how often to ask. This is
      * the server deciding instead.</p>
      */
-    private static final long ROW_MIN_INTERVAL_MS = 150L;
+    private static final PlayerGap ROW_GAP = new PlayerGap(150L);
 
     /**
      * Rate limit on saves.
@@ -104,29 +107,9 @@ public final class RailNetwork {
      * client already debounces at more than twice this, and a dropped save is not lost: the client keeps
      * its changes until an acknowledgement arrives and sends them again if one does not.</p>
      */
-    private static final long SAVE_MIN_INTERVAL_MS = 400L;
+    private static final PlayerGap SAVE_GAP = new PlayerGap(400L);
 
-    private static final Map<UUID, Long> LAST_ROW = new HashMap<>();
-    private static final Map<UUID, Long> LAST_SAVE = new HashMap<>();
-
-    private static boolean allow(Map<UUID, Long> seen, ServerPlayer player,
-                                 long interval) {
-        long now = System.currentTimeMillis();
-        Long last = seen.get(player.getUUID());
-        if (last != null && now - last < interval) {
-            return false;
-        }
-        seen.put(player.getUUID(), now);
-        return true;
-    }
-
-    private static boolean allowRightOfWay(ServerPlayer player) {
-        return allow(LAST_ROW, player, ROW_MIN_INTERVAL_MS);
-    }
-
-    private static boolean allowSave(ServerPlayer player) {
-        return allow(LAST_SAVE, player, SAVE_MIN_INTERVAL_MS);
-    }
+    private static final PlayerGap EDIT_GAP = new PlayerGap(200L);
 
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -147,8 +130,6 @@ public final class RailNetwork {
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             AlignmentService.forget(player);
-            LAST_ROW.remove(player.getUUID());
-            LAST_SAVE.remove(player.getUUID());
         }
     }
 }

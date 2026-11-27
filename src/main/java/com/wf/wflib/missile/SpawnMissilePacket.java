@@ -43,7 +43,8 @@ public record SpawnMissilePacket(BlockPos pos, LaunchConfig config, boolean laun
             if (!(ctx.player() instanceof ServerPlayer player)) {
                 return;
             }
-            if (!player.getAbilities().instabuild && !player.hasPermissions(2)) {
+            if (!player.getAbilities().instabuild && !player.hasPermissions(2)
+                    || !Double.isFinite(config.targetX + config.targetY + config.targetZ)) {
                 return;
             }
             ServerLevel level = player.serverLevel();

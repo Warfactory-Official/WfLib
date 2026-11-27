@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.wf.wflib.drone.api.PdaDrones;
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.WFLib;
 
 /** Drones app open -> server, polled. */
@@ -18,9 +19,15 @@ public record DroneStatusRequestPacket() implements CustomPacketPayload {
     public static final StreamCodec<FriendlyByteBuf, DroneStatusRequestPacket> STREAM_CODEC =
             StreamCodec.unit(INSTANCE);
 
+    private static final PlayerGap GAP = new PlayerGap(50, 4);
+
     public void handle(IPayloadContext ctx) {
         if (ctx.player() instanceof ServerPlayer player) {
-            ctx.enqueueWork(() -> PacketDistributor.sendToPlayer(player, new DroneStatusPacket(PdaDrones.status(player))));
+            ctx.enqueueWork(() -> {
+                if (GAP.allow(player)) {
+                    PacketDistributor.sendToPlayer(player, new DroneStatusPacket(PdaDrones.status(player)));
+                }
+            });
         }
     }
 

@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import com.wf.wflib.map.api.Marker;
+import com.wf.wflib.core.api.PlayerGap;
 import com.wf.wflib.core.api.WFLib;
 
 /** {@code removeId} != 0 => remove that marker; else add {@code label} at {@code pos}. */
@@ -38,9 +39,11 @@ public record MarkerEditPacket(long removeId, ResourceLocation dimension, BlockP
         return TYPE;
     }
 
+    private static final PlayerGap GAP = new PlayerGap(100, 3);
+
     public void handle(IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (ctx.player() instanceof ServerPlayer player) {
+            if (ctx.player() instanceof ServerPlayer player && GAP.allow(player)) {
                 if (removeId != 0) {
                     Markers.remove(player, removeId);
                 } else {

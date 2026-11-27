@@ -49,6 +49,22 @@ public final class ForearmTwist {
         base = winding + off - Math.clamp(off, -limit, limit);
     }
 
+    /** Arms trade hands, x mirrored: states exchanged, twist negated. */
+    public static void swapMirrored(ForearmTwist a, ForearmTwist b) {
+        boolean started = a.started;
+        float roll = a.roll, winding = a.winding, target = a.target, base = a.base;
+        a.started = b.started;
+        a.roll = -b.roll;
+        a.winding = -b.winding;
+        a.target = -b.target;
+        a.base = -b.base;
+        b.started = started;
+        b.roll = -roll;
+        b.winding = -winding;
+        b.target = -target;
+        b.base = -base;
+    }
+
     /** Fist roll, rad. */
     public float roll() {
         return roll;

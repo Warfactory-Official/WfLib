@@ -43,6 +43,7 @@ public final class Gear {
      * @return how many soldiers took it
      */
     public static int assign(ServerPlayer owner, List<UUID> bodies, Want want, String role, int spares) {
+        if (spares < -1 || spares > GearBook.MAX_SPARES) throw new IllegalArgumentException("Invalid spare count");
         MinecraftServer server = owner.getServer();
         validate(SoldierEditor.catalogue(server), want, role);
         var book = SquadBook.get(server);

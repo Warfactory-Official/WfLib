@@ -1,6 +1,7 @@
 package com.wf.wflib.orbital.payload;
 
 import com.wf.wflib.orbital.api.CargoTable;
+import com.wf.wflib.orbital.OrbitalCommandBus;
 import com.wf.wflib.orbital.OrbitalConfig;
 import com.wf.wflib.orbital.api.OrbitalNet;
 import com.wf.wflib.orbital.api.SatPayload;
@@ -55,11 +56,12 @@ public final class MinerPayload implements SatPayload {
     }
 
     private String drop(ServerLevel level, Satellite self, String[] args) {
-        Double x = parse(args[0]);
-        Double z = parse(args[1]);
-        if (x == null || z == null) {
+        Vec3 target = OrbitalCommandBus.ground(level, args[0], args[1]);
+        if (target == null) {
             return "err: drop takes two coordinates";
         }
+        double x = target.x;
+        double z = target.z;
         if (units < 1.0) {
             return "err: the hold is empty";
         }
@@ -107,14 +109,6 @@ public final class MinerPayload implements SatPayload {
             return;
         }
         units = Math.min(OrbitalConfig.MINER_HOLD, units + OrbitalConfig.MINER_UNITS_PER_SLOW_TICK);
-    }
-
-    private static Double parse(String raw) {
-        try {
-            return Double.valueOf(raw);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     @Override
